@@ -18,11 +18,26 @@ MonoBehaviour:
   m_LevelSprite: {fileID: 0}
   m_UseNativeResolution: 1
   m_CustomResolution: {x: 24, y: 24}
-  m_CubeSpacing: 0.04
-  m_CubeDepth: 0.4
-  m_InnerPadding: 0.08
+  m_ColorPalette:
+  - originalColor: {r: 1, g: 0.21568629, b: 0.33333334, a: 1}
+    targetColor: {r: 1, g: 0.21568629, b: 0.33333334, a: 1}
+    pixelCount: 87
+    label: 
+  - originalColor: {r: 0.6666667, g: 0.078431375, b: 0.1764706, a: 1}
+    targetColor: {r: 0.6666667, g: 0.078431375, b: 0.1764706, a: 1}
+    pixelCount: 34
+    label: 
+  - originalColor: {r: 1, g: 0.7843138, b: 0.8431373, a: 1}
+    targetColor: {r: 1, g: 0.7843138, b: 0.8431373, a: 1}
+    pixelCount: 3
+    label: 
+  m_TintColor: {r: 1, g: 1, b: 1, a: 1}
+  m_HueShift: 0
   m_ColorBrightness: 1.25
   m_ColorSaturation: 1.25
   m_ColorContrast: 1.05
   m_EmissionIntensity: 0.35
+  m_CubeSpacing: 0.04
+  m_CubeDepth: 0.4
+  m_InnerPadding: 0.08
   m_SkipTransparent: 1

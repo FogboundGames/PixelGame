@@ -18,11 +18,42 @@ MonoBehaviour:
   m_LevelSprite: {fileID: 0}
   m_UseNativeResolution: 1
   m_CustomResolution: {x: 24, y: 24}
-  m_CubeSpacing: 0.04
-  m_CubeDepth: 0.4
-  m_InnerPadding: 0.08
+  m_ColorPalette:
+  - originalColor: {r: 1, g: 0.854902, b: 0.15686275, a: 1}
+    targetColor: {r: 1, g: 0.854902, b: 0.15686275, a: 1}
+    pixelCount: 196
+    label: 
+  - originalColor: {r: 0.1254902, g: 0.1254902, b: 0.14901961, a: 1}
+    targetColor: {r: 0.1254902, g: 0.1254902, b: 0.14901961, a: 1}
+    pixelCount: 142
+    label: 
+  - originalColor: {r: 0.10980393, g: 0.5647059, b: 0.98823535, a: 1}
+    targetColor: {r: 0.10980393, g: 0.5647059, b: 0.98823535, a: 1}
+    pixelCount: 104
+    label: 
+  - originalColor: {r: 1, g: 1, b: 1, a: 1}
+    targetColor: {r: 1, g: 1, b: 1, a: 1}
+    pixelCount: 83
+    label: 
+  - originalColor: {r: 0.627451, g: 0.3529412, b: 0.15686275, a: 1}
+    targetColor: {r: 0.627451, g: 0.3529412, b: 0.15686275, a: 1}
+    pixelCount: 37
+    label: 
+  - originalColor: {r: 0.37254903, g: 0.7686275, b: 1, a: 1}
+    targetColor: {r: 0.37254903, g: 0.7686275, b: 1, a: 1}
+    pixelCount: 8
+    label: 
+  - originalColor: {r: 0.54901963, g: 0.29411766, b: 0.098039225, a: 1}
+    targetColor: {r: 0.54901963, g: 0.29411766, b: 0.098039225, a: 1}
+    pixelCount: 6
+    label: 
+  m_TintColor: {r: 1, g: 1, b: 1, a: 1}
+  m_HueShift: 0
   m_ColorBrightness: 1.25
   m_ColorSaturation: 1.25
   m_ColorContrast: 1.05
   m_EmissionIntensity: 0.35
+  m_CubeSpacing: 0.04
+  m_CubeDepth: 0.4
+  m_InnerPadding: 0.08
   m_SkipTransparent: 1

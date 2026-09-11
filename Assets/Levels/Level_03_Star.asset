@@ -10,19 +10,34 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56621c704aae40878464c98bd3ff671a, type: 3}
-  m_Name: Level_03_Altın Yıldız
+  m_Name: "Level_03_Alt\u0131n Y\u0131ld\u0131z"
   m_EditorClassIdentifier: PixelGame::PixelGame.PixelLevelData
-  m_LevelName: Altın Yıldız
+  m_LevelName: "Alt\u0131n Y\u0131ld\u0131z"
   m_LevelIndex: 3
   m_LevelTexture: {fileID: 2800000, guid: f16dad97d6094c5fa353b599dab245b3, type: 3}
   m_LevelSprite: {fileID: 0}
   m_UseNativeResolution: 1
   m_CustomResolution: {x: 24, y: 24}
-  m_CubeSpacing: 0.04
-  m_CubeDepth: 0.4
-  m_InnerPadding: 0.08
+  m_ColorPalette:
+  - originalColor: {r: 0.7058824, g: 0.50980395, b: 0.078431375, a: 1}
+    targetColor: {r: 0.7058824, g: 0.50980395, b: 0.078431375, a: 1}
+    pixelCount: 40
+    label: 
+  - originalColor: {r: 1, g: 0.8431373, b: 0.11764707, a: 1}
+    targetColor: {r: 1, g: 0.8431373, b: 0.11764707, a: 1}
+    pixelCount: 37
+    label: 
+  - originalColor: {r: 1, g: 1, b: 0.7843138, a: 1}
+    targetColor: {r: 1, g: 1, b: 0.7843138, a: 1}
+    pixelCount: 1
+    label: 
+  m_TintColor: {r: 1, g: 1, b: 1, a: 1}
+  m_HueShift: 0
   m_ColorBrightness: 1.25
   m_ColorSaturation: 1.25
   m_ColorContrast: 1.05
   m_EmissionIntensity: 0.35
+  m_CubeSpacing: 0.04
+  m_CubeDepth: 0.4
+  m_InnerPadding: 0.08
   m_SkipTransparent: 1
