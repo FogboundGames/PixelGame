@@ -105,11 +105,16 @@ namespace PixelGame
         [Tooltip("Şeffaf (alpha < 0.1) pikseller için küp oluşturulmasın mı?")]
         [SerializeField] private bool m_SkipTransparent = true;
 
+        [Header("🌑 Gölge Özelleştirme (Opsiyonel)")]
+        [Tooltip("Bu bölüme özel kontur gölgesi dokusu (Boş bırakılırsa görselden otomatik üretilir)")]
+        [SerializeField] private Texture2D m_FigureShadowTexture;
+
         // Public Properties
         public string LevelName { get => m_LevelName; set => m_LevelName = value; }
         public int LevelIndex { get => m_LevelIndex; set => m_LevelIndex = value; }
         public Texture2D LevelTexture { get => m_LevelTexture; set => m_LevelTexture = value; }
         public Sprite LevelSprite { get => m_LevelSprite; set => m_LevelSprite = value; }
+        public Texture2D FigureShadowTexture { get => m_FigureShadowTexture; set => m_FigureShadowTexture = value; }
         public bool UseNativeResolution { get => m_UseNativeResolution; set => m_UseNativeResolution = value; }
         public Vector2Int CustomResolution { get => m_CustomResolution; set => m_CustomResolution = value; }
         public List<PaletteColorOverride> ColorPalette => m_ColorPalette;

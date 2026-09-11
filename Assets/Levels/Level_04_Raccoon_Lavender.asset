@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56621c704aae40878464c98bd3ff671a, type: 3}
+  m_Name: Level_04_Raccoon_Lavender
+  m_EditorClassIdentifier: PixelGame::PixelGame.PixelLevelData
+  m_LevelName: Lavanta Rakun (Toon 18)
+  m_LevelIndex: 4
+  m_LevelTexture: {fileID: 2800000, guid: 6f0fe25b1ca140c2920f0a2f18f287e6, type: 3}
+  m_LevelSprite: {fileID: 0}
+  m_UseNativeResolution: 1
+  m_CustomResolution: {x: 24, y: 24}
+  m_ColorPalette: []
+  m_TintColor: {r: 1, g: 1, b: 1, a: 1}
+  m_InnerPadding: 0.08
+  m_CubeSpacing: 0.04
+  m_CubeDepth: 0.4
+  m_ColorBrightness: 1
+  m_ColorSaturation: 1
+  m_ColorContrast: 1
+  m_EmissionIntensity: 0.05
+  m_FigureShadowTexture: {fileID: 0}

@@ -21,6 +21,9 @@ namespace PixelGame.Editor
             // Özel Başlık
             DrawCustomHeader();
 
+            // Bölüm Seçici (Hızlı Geçiş)
+            DrawLevelSelector();
+
             // Varsayılan alanlar
             DrawDefaultInspector();
 
@@ -54,6 +57,36 @@ namespace PixelGame.Editor
 
             GUI.Label(rect, "🎮 Pixel Art Generator (3D Küp Dizici)", titleStyle);
             EditorGUILayout.Space(6);
+        }
+
+        private void DrawLevelSelector()
+        {
+            LevelManager lm = Object.FindFirstObjectByType<LevelManager>();
+            if (lm != null && lm.Levels != null && lm.Levels.Count > 0)
+            {
+                EditorGUILayout.Space(4);
+                EditorGUILayout.LabelField("🎮 Bölüm Seçici (Levels - Tek Tıkla Sahnede Canlı Geçiş)", EditorStyles.boldLabel);
+                EditorGUILayout.BeginHorizontal();
+                for (int i = 0; i < lm.Levels.Count; i++)
+                {
+                    PixelLevelData level = lm.Levels[i];
+                    if (level == null) continue;
+
+                    bool isCurrent = m_Target.ActiveLevelData == level;
+                    GUI.backgroundColor = isCurrent ? new Color(0.2f, 0.9f, 0.5f) : Color.white;
+                    if (GUILayout.Button($"{i + 1}. {level.LevelName}", GUILayout.Height(30)))
+                    {
+                        Undo.RecordObject(m_Target, "Switch Level");
+                        m_Target.LoadLevel(level);
+                        m_Target.ApplyShadowsToAllExistingCubes();
+                        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+                        SceneView.RepaintAll();
+                    }
+                }
+                EditorGUILayout.EndHorizontal();
+                GUI.backgroundColor = Color.white;
+                EditorGUILayout.Space(6);
+            }
         }
 
         private void DrawColorPresets()
@@ -147,9 +180,21 @@ namespace PixelGame.Editor
         {
             EditorGUILayout.Space(10);
 
+            // 0. Sahnede Canlı Önizle Butonu (Oyunu başlatmadan Edit Mode'da önizleme)
+            GUI.backgroundColor = new Color(0.15f, 0.75f, 1.0f);
+            if (GUILayout.Button("👁️ Sahnede Piksel Resmini ve Gölgeleri Canlı Önizle", GUILayout.Height(38)))
+            {
+                m_Target.GeneratePixelArt();
+                m_Target.ApplyShadowsToAllExistingCubes();
+                SceneView.RepaintAll();
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            }
+
+            EditorGUILayout.Space(4);
+
             // 1. Resmi Oluştur Butonu (Büyük yeşil buton)
             GUI.backgroundColor = new Color(0.2f, 0.88f, 0.45f);
-            if (GUILayout.Button("🎨 Resmi Küplerle Yeniden Oluştur (Generate)", GUILayout.Height(44)))
+            if (GUILayout.Button("🎨 Resmi Küplerle Yeniden Oluştur (Generate)", GUILayout.Height(40)))
             {
                 m_Target.GeneratePixelArt();
                 SceneView.RepaintAll();
@@ -167,6 +212,15 @@ namespace PixelGame.Editor
             }
 
             EditorGUILayout.Space(4);
+
+            // 2b. Küplere Fake Shadow Ekle / Güncelle Butonu
+            GUI.backgroundColor = new Color(0.7f, 0.5f, 1.0f);
+            if (GUILayout.Button("🌑 Küplere Fake Shadow (Gölge) Ekle / Güncelle", GUILayout.Height(32)))
+            {
+                m_Target.ApplyShadowsToAllExistingCubes();
+                SceneView.RepaintAll();
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            }
 
             // 3. Küpleri Temizle Butonu
             GUI.backgroundColor = new Color(0.95f, 0.35f, 0.35f);
@@ -219,6 +273,18 @@ namespace PixelGame.Editor
                 gen.UpdateExistingCubesLive();
                 SceneView.RepaintAll();
                 Debug.Log("<color=#00FFAA>[PixelGame]</color> Küp renkleri canlı güncellendi!");
+            }
+        }
+
+        [MenuItem("Tools/PixelGame/🌑 Sahnede Küplere Fake Shadow Ekle veya Güncelle")]
+        public static void ApplyShadowsManual()
+        {
+            PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (gen != null)
+            {
+                gen.ApplyShadowsToAllExistingCubes();
+                SceneView.RepaintAll();
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             }
         }
 
@@ -278,6 +344,12 @@ namespace PixelGame.Editor
                     string path = AssetDatabase.GUIDToAssetPath(texGuids[0]);
                     gen.SourceTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
                 }
+            }
+
+            // Etkileşim bileşenini sağla (Tıklayınca partiküllere ayrılarak patlama)
+            if (gen.GetComponent<PixelCubeInteraction>() == null)
+            {
+                gen.gameObject.AddComponent<PixelCubeInteraction>();
             }
 
             // Eğer yeni oluşturulduysa veya küpleri yoksa otomatik oluştur
