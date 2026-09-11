@@ -1,0 +1,202 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &1838249050002556741
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 62a3c0edb32c3186dbd141d06b62e1bc, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 62a3c0edb32c3186dbd141d06b62e1bc, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 62a3c0edb32c3186dbd141d06b62e1bc, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 62a3c0edb32c3186dbd141d06b62e1bc, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.00000009415697
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 62a3c0edb32c3186dbd141d06b62e1bc, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.00000009415696
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 62a3c0edb32c3186dbd141d06b62e1bc, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 62a3c0edb32c3186dbd141d06b62e1bc, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.7071067
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 62a3c0edb32c3186dbd141d06b62e1bc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 62a3c0edb32c3186dbd141d06b62e1bc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 62a3c0edb32c3186dbd141d06b62e1bc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 62a3c0edb32c3186dbd141d06b62e1bc, type: 3}
+      propertyPath: m_Name
+      value: ToyTruck
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 62a3c0edb32c3186dbd141d06b62e1bc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6695499532167918310}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 62a3c0edb32c3186dbd141d06b62e1bc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1453309977891613883}
+  m_SourcePrefab: {fileID: 100100000, guid: 62a3c0edb32c3186dbd141d06b62e1bc, type: 3}
+--- !u!1 &1532257501848222228 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 62a3c0edb32c3186dbd141d06b62e1bc, type: 3}
+  m_PrefabInstance: {fileID: 1838249050002556741}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6695499532167918310
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1532257501848222228}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 577416688ab6ed34b8b18dba311ceb4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPaint
+  m_Cabin: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+  m_Cargo: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+  m_Tires: {r: 0.19607843, g: 0.19607843, b: 0.21568628, a: 1}
+  m_Rims: {r: 0.7647059, g: 0.77254903, b: 0.7921569, a: 1}
+  m_Glass: {r: 0.3529412, g: 0.43137255, b: 0.50980395, a: 1}
+  m_Headlights: {r: 0.9882353, g: 0.98039216, b: 0.93333334, a: 1}
+  m_Taillights: {r: 0.5294118, g: 0.09411765, b: 0.11764706, a: 1}
+  m_Chassis: {r: 0.23529412, g: 0.23529412, b: 0.25882354, a: 1}
+--- !u!114 &1453309977891613883
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1532257501848222228}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1a6868709dcb58c3939433af786081a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckTailgate
+  m_Tailgate: {fileID: 0}
+  m_LeftRearWheel: {fileID: 0}
+  m_RightRearWheel: {fileID: 0}
+  m_OpenAngle: 90
+  m_OpenDuration: 0.7
+  m_CloseDuration: 0.5
+  m_StartOpen: 0
+  m_OpenCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.55
+      value: 1.0888889
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.75
+      value: 0.95555556
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.9
+      value: 1.0111111
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  m_CloseCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.67
+      value: -0.044444446
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.87
+      value: 0.022222223
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
