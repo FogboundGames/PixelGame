@@ -13,7 +13,8 @@ namespace PixelGame.Editor
 
         static SetupBackgroundUI()
         {
-            EditorApplication.delayCall += OnEditorReady;
+            // Auto-run devre dışı bırakıldı (Mavi çerçeve ve küplerin üzerine gölge binmesini engellemek için)
+            // EditorApplication.delayCall += OnEditorReady;
         }
 
         private static void OnEditorReady()

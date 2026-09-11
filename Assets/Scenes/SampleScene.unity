@@ -628,7 +628,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &983302141
 RectTransform:
   m_ObjectHideFlags: 0
@@ -879,3 +879,86 @@ SceneRoots:
   - {fileID: 832575519}
   - {fileID: 77125449}
   - {fileID: 1310090992}
+  - {fileID: 1700000002}
+--- !u!1 &1700000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1700000002}
+  - component: {fileID: 1700000003}
+  - component: {fileID: 1700000004}
+  m_Layer: 0
+  m_Name: '[PixelArtGenerator]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1700000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1700000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1700000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1700000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc00110529d844579fc3e39dd943a85f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PixelGame::PixelGame.PixelArtGenerator
+  m_CubePrefab: {fileID: 4328659273502076615, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
+  m_SourceTexture: {fileID: 2800000, guid: 71d45c83e29147fa90015f70e129f744, type: 3}
+  m_SourceSprite: {fileID: 0}
+  m_TargetFrameRect: {fileID: 534210924}
+  m_WorldCamera: {fileID: 330585545}
+  m_UseNativeResolution: 1
+  m_SamplingMode: 0
+  m_ColorBrightness: 1.25
+  m_ColorSaturation: 1.25
+  m_ColorContrast: 1.05
+  m_EmissionIntensity: 0.35
+  m_GridResolution: {x: 20, y: 20}
+  m_CubeSpacing: 0.04
+  m_CubeDepth: 0.4
+  m_InnerPadding: 0.08
+  m_TargetZ: 0
+  m_SkipTransparent: 1
+  m_GenerateOnStart: 1
+  m_CubesContainer: {fileID: 0}
+--- !u!114 &1700000004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1700000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2613b30e1b74973b28cdd381c52f422, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PixelGame::PixelGame.LevelManager
+  m_Levels:
+  - {fileID: 11400000, guid: ec26301e3251463d94f2c891a979cac9, type: 2}
+  - {fileID: 11400000, guid: 85848949177f4235a3f3ef3e3efb98fc, type: 2}
+  - {fileID: 11400000, guid: e306336b412b46cba91733c61ff05438, type: 2}
+  m_CurrentLevelIndex: 0
+  m_Generator: {fileID: 1700000003}
