@@ -17,8 +17,48 @@ namespace PixelGame.Editor
     /// park yerinin eğik düzlemine kendiliğinden otururlar.
     /// Mevcut Overlay Canvas'a (MainPlane / FakeShadow) dokunulmaz.
     /// </summary>
+    [InitializeOnLoad]
     public static class SetupTruckSlots
     {
+        private const string SessionKey = "SetupTruckSlots_ShadowInitDone_v3";
+
+        static SetupTruckSlots()
+        {
+            EditorApplication.delayCall += OnEditorReady;
+        }
+
+        private static void OnEditorReady()
+        {
+            if (SessionState.GetBool(SessionKey, false)) return;
+
+            TruckSlotRow row = Object.FindFirstObjectByType<TruckSlotRow>();
+            if (row == null)
+            {
+                GameObject rowObj = GameObject.Find("SlotRow");
+                if (rowObj != null) row = rowObj.GetComponent<TruckSlotRow>();
+            }
+
+            if (row != null)
+            {
+                SessionState.SetBool(SessionKey, true);
+
+                if (row.Style.shadowSprite == null)
+                    row.Style.shadowSprite = SlotShadowTextureGenerator.GetOrGenerateSlotShadowSprite();
+                row.Style.enableRowGroundShadow = false;
+
+                row.UpdateShadows();
+                EditorUtility.SetDirty(row);
+                UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
+                    UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+                UnityEditor.SceneManagement.EditorSceneManager.SaveOpenScenes();
+                Debug.Log("<color=#00FFAA><b>[PixelGame]</b></color> SlotRow sahte gölgeleri (Fake Shadow) otomatik olarak sahneye uygulandı!");
+            }
+            else
+            {
+                EditorApplication.delayCall += OnEditorReady;
+            }
+        }
+
         private const string k_SlotCanvasName = "SlotCanvas";
         private const string k_SlotRowName = "SlotRow";
         private const string k_PoolRowName = "TruckPool";
@@ -168,6 +208,39 @@ namespace PixelGame.Editor
                 UnityEngine.SceneManagement.SceneManager.GetActiveScene());
         }
 
+        [MenuItem("Tools/PixelGame/🌑 Slot Fake Shadow'u Güncelle veya Seç", priority = 22)]
+        public static void SelectOrUpdateSlotShadow()
+        {
+            TruckSlotRow row = Object.FindFirstObjectByType<TruckSlotRow>();
+            if (row == null)
+            {
+                Setup();
+                return;
+            }
+
+            if (row.Style.shadowSprite == null)
+                row.Style.shadowSprite = SlotShadowTextureGenerator.GetOrGenerateSlotShadowSprite();
+            if (row.Style.rowGroundShadowSprite == null)
+                row.Style.rowGroundShadowSprite = SlotShadowTextureGenerator.GetOrGenerateRowGroundShadowSprite();
+
+            row.UpdateShadows();
+            EditorUtility.SetDirty(row);
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
+                UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+
+            Selection.activeGameObject = row.gameObject;
+
+            SceneView sv = SceneView.lastActiveSceneView;
+            if (sv != null)
+            {
+                sv.FrameSelected();
+            }
+
+            EditorUtility.DisplayDialog("Fake Shadow Hazır",
+                "SlotRow sahte gölgeleri güncellendi ve seçildi!\n\n" +
+                "Sağdaki Inspector panelinden gölge renklerini, ofsetlerini ve şerit zemin gölgesini canlı olarak ayarlayabilirsiniz.", "Tamam");
+        }
+
         #region 🔧 Kurulum Parçaları
 
         private static void SetupDispatcher(TruckSlotRow slots, TruckPool pool, GameObject truckPrefab)
@@ -245,6 +318,14 @@ namespace PixelGame.Editor
             style.showSprite = showSprite;
             style.interactive = interactive;
             style.rowWidthFill = k_RowScreenWidthFill;
+
+            if (showSprite)
+            {
+                style.enableShadow = true;
+                style.shadowSprite = SlotShadowTextureGenerator.GetOrGenerateSlotShadowSprite();
+                style.enableRowGroundShadow = true;
+                style.rowGroundShadowSprite = SlotShadowTextureGenerator.GetOrGenerateRowGroundShadowSprite();
+            }
         }
 
         private static PixelLevelData GetActiveLevel()

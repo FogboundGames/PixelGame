@@ -156,7 +156,20 @@ namespace PixelGame
                 if (m_Pool != null) m_Pool.Style.sprite = level.SlotSprite;
             }
 
-            if (m_Slots != null) m_Slots.RebuildPlaces(level.SlotCount, 1);
+            // Sahnedeki mevcut slotlar varsa ve sayıları uyuyorsa (veya sahne slotları ayarlandıysa),
+            // slotları ve gölgeleri silip yok etmek yerine durumlarını ve gölgelerini güncelle
+            if (m_Slots != null)
+            {
+                if (m_Slots.SlotCount > 0 && (m_Slots.SlotCount == level.SlotCount || level.SlotCount <= 0))
+                {
+                    m_Slots.UpdateShadows();
+                }
+                else
+                {
+                    m_Slots.RebuildPlaces(level.SlotCount > 0 ? level.SlotCount : 5, 1);
+                }
+            }
+
             if (m_Pool != null) m_Pool.RebuildPlaces(level.PoolColumns, level.PoolRows);
         }
 

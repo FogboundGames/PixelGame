@@ -44,6 +44,44 @@ namespace PixelGame
 
         [Tooltip("Şeridin ekran genişliğinin en fazla ne kadarını kaplayacağı")]
         public float rowWidthFill = 0.96f;
+
+        [Header("🌑 Slot Gölgesi (Slot Fake Shadow)")]
+        [Tooltip("Slotların altına yumuşak sahte gölge ekler.")]
+        public bool enableShadow = true;
+
+        [Tooltip("Bireysel slot gölge görseli. Boşsa Assets/UI/SlotShadow.png kullanılır.")]
+        public Sprite shadowSprite;
+
+        [Tooltip("Slot gölgesinin rengi ve opaklığı.")]
+        public Color shadowColor = new Color(0.02f, 0.03f, 0.06f, 0.52f);
+
+        [Tooltip("Slot gölgesinin X ve Y ofseti.")]
+        public Vector2 shadowOffset = new Vector2(0f, -14f);
+
+        [Tooltip("Slot gölgesinin boyut çarpanı (genişleme oranı).")]
+        public Vector2 shadowScale = new Vector2(1.06f, 1.06f);
+
+        [Tooltip("Gölgenin slot yüzeyinin arkasında kalacağı Z derinliği.")]
+        public float shadowZ = 4f;
+
+        [Header("🌑 Şerit Zemin Gölgesi (Row Ground Shadow)")]
+        [Tooltip("Tüm slot şeridinin altına zemini saran yumuşak gölge şeridi ekler.")]
+        public bool enableRowGroundShadow = false;
+
+        [Tooltip("Şerit zemin gölgesi görseli. Boşsa Assets/UI/RowGroundShadow.png kullanılır.")]
+        public Sprite rowGroundShadowSprite;
+
+        [Tooltip("Şerit zemin gölgesinin rengi ve opaklığı.")]
+        public Color rowGroundShadowColor = new Color(0.02f, 0.03f, 0.05f, 0.38f);
+
+        [Tooltip("Şerit zemin gölgesinin Y ofseti.")]
+        public Vector2 rowGroundShadowOffset = new Vector2(0f, -22f);
+
+        [Tooltip("Şerit zemin gölgesinin genişlik ve yükseklik payı.")]
+        public Vector2 rowGroundShadowPadding = new Vector2(60f, 40f);
+
+        [Tooltip("Şerit zemin gölgesinin Z derinliği.")]
+        public float rowGroundShadowZ = 8f;
     }
 
     /// <summary>

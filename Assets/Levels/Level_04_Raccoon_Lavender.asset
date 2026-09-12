@@ -61,4 +61,4 @@ MonoBehaviour:
   m_PoolColumns: 5
   m_PoolRows: 2
   m_TruckCapacity: 16
-  m_FigureShadowTexture: {fileID: 0}
+  m_FigureShadowTexture: {fileID: 2800000, guid: ce8033f3aa2246c09a0bbcbd8b859fbf, type: 3}

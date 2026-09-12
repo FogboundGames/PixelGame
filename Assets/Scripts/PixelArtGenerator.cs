@@ -198,9 +198,16 @@ namespace PixelGame
                 {
                     GeneratePixelArt();
                 }
-                else if (m_EnableCubeShadows)
+                else
                 {
-                    ApplyShadowsToAllExistingCubes();
+                    if (m_EnableCubeShadows)
+                    {
+                        ApplyShadowsToAllExistingCubes();
+                    }
+                    if (m_EnableFigureContourShadow)
+                    {
+                        UpdateContourShadowLive();
+                    }
                 }
             }
         }
@@ -224,6 +231,11 @@ namespace PixelGame
                     EditorApplication.delayCall -= DeferredApplyShadows;
                     EditorApplication.delayCall += DeferredApplyShadows;
                 }
+                if (m_EnableFigureContourShadow)
+                {
+                    EditorApplication.delayCall -= DeferredApplyContourShadow;
+                    EditorApplication.delayCall += DeferredApplyContourShadow;
+                }
                 #endif
             }
         }
@@ -233,6 +245,12 @@ namespace PixelGame
         {
             if (this == null) return;
             ApplyShadowsToAllExistingCubes();
+        }
+
+        private void DeferredApplyContourShadow()
+        {
+            if (this == null) return;
+            UpdateContourShadowLive();
         }
         #endif
 
@@ -265,6 +283,43 @@ namespace PixelGame
             GeneratePixelArt();
 
             // Bölüme bağlı sistemler (kamyon kuyruğu gibi) kendilerini yenilesin
+            LevelLoaded?.Invoke(levelData);
+        }
+
+        /// <summary>
+        /// Sahnede zaten var olan küpleri silmeden seviye verisini bağlar ve dinleyicileri tetikler.
+        /// Böylece sahneye önceden yerleştirilen küpler ve sahte gölgeler sıfırlanmaz.
+        /// </summary>
+        public void BindExistingLevel(PixelLevelData levelData)
+        {
+            if (levelData == null) return;
+
+            m_ActiveLevelData = levelData;
+            m_SourceTexture = levelData.LevelTexture;
+            m_SourceSprite = levelData.LevelSprite;
+
+            if (levelData.ColorPalette.Count == 0 && levelData.GetActiveTexture() != null)
+            {
+                levelData.ExtractPaletteFromTexture();
+            }
+
+            if (m_EnableCubeShadows)
+            {
+                ApplyShadowsToAllExistingCubes();
+            }
+            if (m_EnableFigureContourShadow)
+            {
+                UpdateContourShadowLive();
+            }
+
+            LevelLoaded?.Invoke(levelData);
+        }
+
+        /// <summary>
+        /// Seviye yüklendiğinde dışarıdan dinleyicileri bilgilendirmek için statik tetikleyici.
+        /// </summary>
+        public static void TriggerLevelLoaded(PixelLevelData levelData)
+        {
             LevelLoaded?.Invoke(levelData);
         }
 
@@ -597,6 +652,8 @@ namespace PixelGame
             #if UNITY_EDITOR
             // 1. İsim eşleşmeli hazır gölge dokusu ara (örn: FigureShadow_Star, FigureShadow_Raccoon, vb.)
             string cleanName = texName.Replace("PixelArt_", "").Replace("Level_", "").Replace("Texture_", "");
+            string baseName = cleanName.Contains("_") ? cleanName.Split('_')[0] : cleanName;
+
             string[] guids = AssetDatabase.FindAssets($"FigureShadow_{cleanName} t:Texture2D");
             if (guids.Length > 0)
             {
@@ -605,12 +662,24 @@ namespace PixelGame
                 if (found != null) return found;
             }
 
+            if (baseName != cleanName)
+            {
+                string[] baseGuids = AssetDatabase.FindAssets($"FigureShadow_{baseName} t:Texture2D");
+                if (baseGuids.Length > 0)
+                {
+                    string path = AssetDatabase.GUIDToAssetPath(baseGuids[0]);
+                    Texture2D found = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                    if (found != null) return found;
+                }
+            }
+
             // Genel ad araması
             string[] anyGuids = AssetDatabase.FindAssets("FigureShadow t:Texture2D");
             foreach (var g in anyGuids)
             {
                 string p = AssetDatabase.GUIDToAssetPath(g);
-                if (p.IndexOf(cleanName, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                if (p.IndexOf(cleanName, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    p.IndexOf(baseName, System.StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     Texture2D found = AssetDatabase.LoadAssetAtPath<Texture2D>(p);
                     if (found != null) return found;
@@ -658,9 +727,29 @@ namespace PixelGame
                 }
             }
 
-            // Eğer görselin şeffaf arka planı yoksa (tam dikdörtgen ise, örn: Rakun):
-            // Arkaya siyah bir katman koyulmaz, temiz arka plan korunur!
-            if (!hasTransparency)
+            // Eğer görselin şeffaf arka planı yoksa (düz renk arka planlı, örn: pembe fonlu Rakun):
+            // 4 köşenin rengini kontrol et; tek renk arka plandan figür silüetini çıkar
+            Color cornerColor = Color.white;
+            bool isSolidBackground = false;
+            if (!hasTransparency && srcW > 1 && srcH > 1)
+            {
+                Color cTL = srcPixels[(srcH - 1) * srcW];
+                Color cTR = srcPixels[(srcH - 1) * srcW + (srcW - 1)];
+                Color cBL = srcPixels[0];
+                Color cBR = srcPixels[srcW - 1];
+
+                float diff1 = Mathf.Abs(cTL.r - cTR.r) + Mathf.Abs(cTL.g - cTR.g) + Mathf.Abs(cTL.b - cTR.b);
+                float diff2 = Mathf.Abs(cTL.r - cBL.r) + Mathf.Abs(cTL.g - cBL.g) + Mathf.Abs(cTL.b - cBL.b);
+                float diff3 = Mathf.Abs(cTL.r - cBR.r) + Mathf.Abs(cTL.g - cBR.g) + Mathf.Abs(cTL.b - cBR.b);
+
+                if (diff1 < 0.15f && diff2 < 0.15f && diff3 < 0.15f)
+                {
+                    cornerColor = (cTL + cTR + cBL + cBR) * 0.25f;
+                    isSolidBackground = true;
+                }
+            }
+
+            if (!hasTransparency && !isSolidBackground)
             {
                 return null;
             }
@@ -674,7 +763,15 @@ namespace PixelGame
                 {
                     int srcX = Mathf.Clamp(Mathf.FloorToInt(((float)x / targetSize) * srcW), 0, srcW - 1);
                     Color pixel = srcPixels[srcY * srcW + srcX];
-                    mask[y * targetSize + x] = pixel.a > 0.1f ? 1f : 0f;
+                    if (hasTransparency)
+                    {
+                        mask[y * targetSize + x] = pixel.a > 0.1f ? 1f : 0f;
+                    }
+                    else
+                    {
+                        float colorDiff = Mathf.Abs(pixel.r - cornerColor.r) + Mathf.Abs(pixel.g - cornerColor.g) + Mathf.Abs(pixel.b - cornerColor.b);
+                        mask[y * targetSize + x] = colorDiff > 0.08f ? 1f : 0f;
+                    }
                 }
             }
 
@@ -891,22 +988,28 @@ namespace PixelGame
             }
 
             Texture2D shadowTex = GetAppropriateFigureShadowTexture();
-            if (shadowTex == null)
+            MeshRenderer mr = shadowObj.GetComponent<MeshRenderer>();
+
+            if (shadowTex != null)
             {
-                // Şeffaf olmayan tam kare görsellerde (örn: Rakun) arkada siyah leke oluşmaması için kapat
+                Material mat = GetOrCreateFigureShadowMaterial(shadowTex);
+                if (mr != null)
+                {
+                    mr.sharedMaterial = mat;
+                    mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    mr.receiveShadows = false;
+                }
+                shadowObj.SetActive(true);
+            }
+            else if (mr != null && mr.sharedMaterial != null && mr.sharedMaterial.mainTexture != null)
+            {
+                // Sahnede önceden ayarlanmış materyal ve doku var, olduğu gibi koru!
+                shadowObj.SetActive(true);
+            }
+            else
+            {
                 shadowObj.SetActive(false);
                 return;
-            }
-
-            shadowObj.SetActive(true);
-            Material mat = GetOrCreateFigureShadowMaterial(shadowTex);
-
-            MeshRenderer mr = shadowObj.GetComponent<MeshRenderer>();
-            if (mr != null)
-            {
-                mr.sharedMaterial = mat;
-                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                mr.receiveShadows = false;
             }
 
             // Küplerin hemen arkasında (z = m_TargetZ + 0.06f)

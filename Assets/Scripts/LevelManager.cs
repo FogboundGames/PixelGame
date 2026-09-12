@@ -35,7 +35,22 @@ namespace PixelGame
         {
             if (Application.isPlaying && m_Levels.Count > 0)
             {
-                LoadLevel(m_CurrentLevelIndex);
+                EnsureGenerator();
+                // Sahnedeki mevcut küpler ve gölge ayarları zaten varsa bunları silip yeniden üretme!
+                if (m_Generator != null && m_Generator.CubesContainer != null && m_Generator.CubesContainer.childCount > 0)
+                {
+                    m_CurrentLevelIndex = Mathf.Clamp(m_CurrentLevelIndex, 0, m_Levels.Count - 1);
+                    PixelLevelData level = m_Levels[m_CurrentLevelIndex];
+                    if (level != null)
+                    {
+                        m_Generator.BindExistingLevel(level);
+                        Debug.Log($"<color=#00FFAA><b>[LevelManager]</b></color> Sahnedeki mevcut küpler ve gölgeler korundu. Aktif Level: '{level.LevelName}'");
+                    }
+                }
+                else
+                {
+                    LoadLevel(m_CurrentLevelIndex);
+                }
             }
         }
 
