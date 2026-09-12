@@ -133,9 +133,13 @@ namespace PixelGame
             {
                 if (r.gameObject != null)
                 {
-                    // Eğer tıklanan nesne bir Button veya Selectable ise engelle
+                    // Eğer tıklanan nesne bir Button, Selectable, havuz yeri veya vagon ise engelle
                     if (r.gameObject.GetComponent<UnityEngine.UI.Button>() != null ||
-                        r.gameObject.GetComponent<UnityEngine.UI.Selectable>() != null)
+                        r.gameObject.GetComponent<UnityEngine.UI.Selectable>() != null ||
+                        r.gameObject.GetComponent<TruckPoolPlace>() != null ||
+                        r.gameObject.GetComponentInParent<TruckPoolPlace>() != null ||
+                        r.gameObject.GetComponent<WagonClickTarget>() != null ||
+                        r.gameObject.GetComponentInParent<WagonClickTarget>() != null)
                     {
                         return true;
                     }

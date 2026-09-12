@@ -53,6 +53,9 @@ namespace PixelGame
         [Tooltip("Parçaların dökülürken 3 boyutlu olarak takla atarak dönmesi")]
         [SerializeField] private bool m_EnableTumbling = true;
 
+        [Tooltip("Parçalanma anında partikül sisteminden aşağıya dökülen eski partiküller (yeni iki aşamalı rafta birikme ve vagona akma sistemi aktifken çakışmaması için varsayılan kapalıdır)")]
+        [SerializeField] private bool m_EnableFallingParticles = false;
+
         [Header("Ses Efekti")]
         [SerializeField] private bool m_EnablePopSound = true;
         [SerializeField] [Range(0f, 1f)] private float m_SoundVolume = 0.65f;
@@ -213,6 +216,10 @@ namespace PixelGame
         /// </summary>
         public void SpawnVoxelBurst(Vector3 position, Vector3 cubeScale, Color cubeColor, int customCount = -1)
         {
+            PlayPopSound();
+
+            if (!m_EnableFallingParticles) return;
+
             if (m_ParticleSystem == null)
             {
                 SetupParticleSystem();
@@ -306,8 +313,6 @@ namespace PixelGame
                     }
                 }
             }
-
-            PlayPopSound();
         }
 
         private void PlayPopSound()

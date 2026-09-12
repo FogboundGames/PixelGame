@@ -75,7 +75,7 @@ namespace PixelGame
 
         [Header("🌑 Slot Gölgesi (Slot Fake Shadow)")]
         [Tooltip("Slotların altına yumuşak sahte gölge ekler.")]
-        public bool enableShadow = true;
+        public bool enableShadow = false;
 
         [Tooltip("Bireysel slot gölge görseli. Boşsa Assets/UI/SlotShadow.png kullanılır.")]
         public Sprite shadowSprite;
@@ -93,23 +93,42 @@ namespace PixelGame
         public float shadowZ = 4f;
 
         [Header("🌑 Şerit Zemin Gölgesi (Row Ground Shadow)")]
-        [Tooltip("Tüm slot şeridinin altına zemini saran yumuşak gölge şeridi ekler.")]
-        public bool enableRowGroundShadow = false;
+        [Tooltip("Tüm slot şeridinin ve portalların altına zemini saran yumuşak gölge şeridi ekler.")]
+        public bool enableRowGroundShadow = true;
 
         [Tooltip("Şerit zemin gölgesi görseli. Boşsa Assets/UI/RowGroundShadow.png kullanılır.")]
         public Sprite rowGroundShadowSprite;
 
         [Tooltip("Şerit zemin gölgesinin rengi ve opaklığı.")]
-        public Color rowGroundShadowColor = new Color(0.02f, 0.03f, 0.05f, 0.38f);
+        public Color rowGroundShadowColor = new Color(0.02f, 0.03f, 0.05f, 0.42f);
 
         [Tooltip("Şerit zemin gölgesinin Y ofseti.")]
-        public Vector2 rowGroundShadowOffset = new Vector2(0f, -22f);
+        public Vector2 rowGroundShadowOffset = new Vector2(0f, -16f);
 
         [Tooltip("Şerit zemin gölgesinin genişlik ve yükseklik payı.")]
-        public Vector2 rowGroundShadowPadding = new Vector2(60f, 40f);
+        public Vector2 rowGroundShadowPadding = new Vector2(320f, 60f);
 
         [Tooltip("Şerit zemin gölgesinin Z derinliği.")]
         public float rowGroundShadowZ = 8f;
+
+        [Header("⛏️ Maden Portalı Gölgeleri (Portal Fake Shadows)")]
+        [Tooltip("Sol ve sağ maden portalının altına temas gölgesi ekler.")]
+        public bool enablePortalShadow = true;
+
+        [Tooltip("Portal gölge görseli. Boşsa Assets/UI/PortalShadow.png kullanılır.")]
+        public Sprite portalShadowSprite;
+
+        [Tooltip("Portal gölgesinin rengi ve opaklığı.")]
+        public Color portalShadowColor = new Color(0.02f, 0.03f, 0.06f, 0.52f);
+
+        [Tooltip("Portal gölgesinin X ve Y ofseti.")]
+        public Vector2 portalShadowOffset = new Vector2(0f, -14f);
+
+        [Tooltip("Portal gölgesinin boyut çarpanı.")]
+        public Vector2 portalShadowScale = new Vector2(1.12f, 1.12f);
+
+        [Tooltip("Portal gölgesinin Z derinliği.")]
+        public float portalShadowZ = 4f;
     }
 
     /// <summary>

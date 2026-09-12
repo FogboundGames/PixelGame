@@ -8,15 +8,17 @@ namespace PixelGame.Editor
     {
         public const string SlotShadowPath = "Assets/UI/SlotShadow.png";
         public const string RowGroundShadowPath = "Assets/UI/RowGroundShadow.png";
+        public const string PortalShadowPath = "Assets/UI/PortalShadow.png";
         private const string SourceSlotPath = "Assets/UI/Slot.png";
 
-        [MenuItem("Tools/PixelGame/🎨 Slot Gölge Dokularını Yeniden Üret")]
+        [MenuItem("Tools/PixelGame/🎨 Tüm Gölge Dokularını Yeniden Üret")]
         public static void GenerateAllShadowTextures()
         {
             GenerateSlotShadowTexture();
             GenerateRowGroundShadowTexture();
+            GeneratePortalShadowTexture();
             AssetDatabase.Refresh();
-            Debug.Log("<color=#00FFAA><b>[PixelGame]</b></color> Slot gölge dokuları (SlotShadow.png & RowGroundShadow.png) başarıyla üretildi!");
+            Debug.Log("<color=#00FFAA><b>[PixelGame]</b></color> Ray ve Portal gölge dokuları (SlotShadow.png, RowGroundShadow.png & PortalShadow.png) başarıyla üretildi!");
         }
 
         public static Sprite GetOrGenerateSlotShadowSprite()
@@ -37,6 +39,16 @@ namespace PixelGame.Editor
             GenerateRowGroundShadowTexture();
             AssetDatabase.ImportAsset(RowGroundShadowPath, ImportAssetOptions.ForceUpdate);
             return AssetDatabase.LoadAssetAtPath<Sprite>(RowGroundShadowPath);
+        }
+
+        public static Sprite GetOrGeneratePortalShadowSprite()
+        {
+            Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(PortalShadowPath);
+            if (sprite != null) return sprite;
+
+            GeneratePortalShadowTexture();
+            AssetDatabase.ImportAsset(PortalShadowPath, ImportAssetOptions.ForceUpdate);
+            return AssetDatabase.LoadAssetAtPath<Sprite>(PortalShadowPath);
         }
 
         public static void GenerateSlotShadowTexture()
@@ -91,31 +103,123 @@ namespace PixelGame.Editor
 
         public static void GenerateRowGroundShadowTexture()
         {
-            // Tüm şeridi alttan saran yumuşak zemin gölgesi (512 x 128)
-            int targetW = 512;
-            int targetH = 128;
-            int paddingX = 44;
-            int paddingY = 24;
-            int cornerRadius = 40;
+            // Ray demirleri ve ahşap traverslerin hat gölgesi (2048 x 512)
+            int targetW = 2048;
+            int targetH = 512;
+            int cx = targetW / 2;
+            int cy = targetH / 2;
+
+            float spanX = 2224f;
+            float scaleX = (float)targetW / spanX;
+            float scaleY = scaleX;
 
             float[] mask = new float[targetW * targetH];
 
-            int innerLeft = paddingX;
-            int innerRight = targetW - paddingX;
-            int innerBottom = paddingY;
-            int innerTop = targetH - paddingY;
+            float[] slotCenters = new float[] { -832f, -416f, 0f, 416f, 832f };
+            float[] tieOffsets = new float[] { -160f, -80f, 0f, 80f, 160f };
 
-            for (int y = 0; y < targetH; y++)
+            float tieWHalf = 11f * scaleX;
+            float tieTopY = 86f * scaleY;
+            float tieBottomY = 96f * scaleY;
+
+            // 1. 25 Ahşap Travers (Wooden Ties)
+            foreach (float sc in slotCenters)
             {
-                for (int x = 0; x < targetW; x++)
+                foreach (float to in tieOffsets)
                 {
-                    float dist = GetDistanceToRoundedRect(x, y, innerLeft, innerRight, innerBottom, innerTop, cornerRadius);
-                    mask[y * targetW + x] = dist <= 0f ? 1f : Mathf.Clamp01(1f - dist);
+                    float tx = cx + (sc + to) * scaleX;
+                    int x0 = Mathf.Clamp(Mathf.RoundToInt(tx - tieWHalf), 0, targetW - 1);
+                    int x1 = Mathf.Clamp(Mathf.RoundToInt(tx + tieWHalf), 0, targetW - 1);
+                    int y0 = Mathf.Clamp(Mathf.RoundToInt(cy - tieBottomY), 0, targetH - 1);
+                    int y1 = Mathf.Clamp(Mathf.RoundToInt(cy + tieTopY), 0, targetH - 1);
+
+                    for (int y = y0; y <= y1; y++)
+                    {
+                        for (int x = x0; x <= x1; x++)
+                        {
+                            int idx = y * targetW + x;
+                            if (mask[idx] < 0.95f) mask[idx] = 0.95f;
+                        }
+                    }
                 }
             }
 
-            float[] blurred = BoxBlur(mask, targetW, targetH, 18);
-            blurred = BoxBlur(blurred, targetW, targetH, 18);
+            // 2. 2 Kesintisiz Demir Ray Hattı (Continuous Iron Rails)
+            int railLeft = Mathf.Clamp(Mathf.RoundToInt(cx + (-1030f) * scaleX), 0, targetW - 1);
+            int railRight = Mathf.Clamp(Mathf.RoundToInt(cx + (1030f) * scaleX), 0, targetW - 1);
+
+            float railYUpper = 46f * scaleY;
+            float railYLower = -46f * scaleY;
+            float railThickHalf = 6f * scaleY;
+
+            int uy0 = Mathf.Clamp(Mathf.RoundToInt(cy + railYUpper - railThickHalf), 0, targetH - 1);
+            int uy1 = Mathf.Clamp(Mathf.RoundToInt(cy + railYUpper + railThickHalf), 0, targetH - 1);
+            for (int y = uy0; y <= uy1; y++)
+            {
+                for (int x = railLeft; x <= railRight; x++)
+                {
+                    int idx = y * targetW + x;
+                    if (mask[idx] < 0.90f) mask[idx] = 0.90f;
+                }
+            }
+
+            int ly0 = Mathf.Clamp(Mathf.RoundToInt(cy + railYLower - railThickHalf), 0, targetH - 1);
+            int ly1 = Mathf.Clamp(Mathf.RoundToInt(cy + railYLower + railThickHalf), 0, targetH - 1);
+            for (int y = ly0; y <= ly1; y++)
+            {
+                for (int x = railLeft; x <= railRight; x++)
+                {
+                    int idx = y * targetW + x;
+                    if (mask[idx] < 0.90f) mask[idx] = 0.90f;
+                }
+            }
+
+            // 3. Ray Yatağı Zemin Oklüzyonu (Ambient Ground Shadow)
+            float bedYHalf = 72f * scaleY;
+            int by0 = Mathf.Clamp(Mathf.RoundToInt(cy - bedYHalf), 0, targetH - 1);
+            int by1 = Mathf.Clamp(Mathf.RoundToInt(cy + bedYHalf), 0, targetH - 1);
+            for (int y = by0; y <= by1; y++)
+            {
+                float distY = Mathf.Abs(y - cy) / bedYHalf;
+                float val = (1f - distY) * 0.28f;
+                for (int x = railLeft; x <= railRight; x++)
+                {
+                    int idx = y * targetW + x;
+                    if (mask[idx] < val) mask[idx] = val;
+                }
+            }
+
+            // 4. Portalların Alt Temas Gölgeleri
+            float[] portalXs = new float[] { -992f, 992f };
+            float pr = 76f * scaleX;
+            foreach (float portalX in portalXs)
+            {
+                float px = cx + portalX * scaleX;
+                int py0 = Mathf.Clamp(Mathf.RoundToInt(cy - pr), 0, targetH - 1);
+                int py1 = Mathf.Clamp(Mathf.RoundToInt(cy + pr), 0, targetH - 1);
+                int px0 = Mathf.Clamp(Mathf.RoundToInt(px - pr), 0, targetW - 1);
+                int px1 = Mathf.Clamp(Mathf.RoundToInt(px + pr), 0, targetW - 1);
+
+                for (int y = py0; y <= py1; y++)
+                {
+                    for (int x = px0; x <= px1; x++)
+                    {
+                        float dx = (x - px) / pr;
+                        float dy = (y - cy) / (pr * 0.85f);
+                        float d = Mathf.Sqrt(dx * dx + dy * dy);
+                        if (d < 1f)
+                        {
+                            float val = (1f - d) * 0.65f;
+                            int idx = y * targetW + x;
+                            if (mask[idx] < val) mask[idx] = val;
+                        }
+                    }
+                }
+            }
+
+            // Yumuşak gölge geçişi (2 geçişli Gauss benzeri kutu bulanıklaştırma)
+            float[] blurred = BoxBlur(mask, targetW, targetH, 8);
+            blurred = BoxBlur(blurred, targetW, targetH, 8);
 
             Texture2D tex = new Texture2D(targetW, targetH, TextureFormat.RGBA32, false);
             tex.name = "RowGroundShadow";
@@ -135,6 +239,63 @@ namespace PixelGame.Editor
 
             File.WriteAllBytes(RowGroundShadowPath, bytes);
             ConfigureSpriteImporter(RowGroundShadowPath);
+        }
+
+        public static void GeneratePortalShadowTexture()
+        {
+            // Maden portalının taş ayakları ve tünel girişine özel temas gölgesi (512 x 512)
+            int targetW = 512;
+            int targetH = 512;
+
+            float[] mask = new float[targetW * targetH];
+
+            // Sol ayak, sağ ayak ve arka tünel birleşimi için birleşik silüet
+            for (int y = 0; y < targetH; y++)
+            {
+                for (int x = 0; x < targetW; x++)
+                {
+                    // Sol taş sütun tabanı
+                    float dLeft = GetDistanceToRoundedRect(x, y, 70, 210, 110, 390, 36);
+                    float leftVal = dLeft <= 0f ? 1f : Mathf.Clamp01(1f - dLeft * 0.1f);
+
+                    // Sağ taş sütun tabanı
+                    float dRight = GetDistanceToRoundedRect(x, y, 302, 442, 110, 390, 36);
+                    float rightVal = dRight <= 0f ? 1f : Mathf.Clamp01(1f - dRight * 0.1f);
+
+                    // Arka kemer / tünel girişi tavan arkası
+                    float dArch = GetDistanceToRoundedRect(x, y, 140, 372, 240, 420, 44);
+                    float archVal = dArch <= 0f ? 0.9f : Mathf.Clamp01(0.9f - dArch * 0.1f);
+
+                    // Tünel içi zemin oklüzyonu
+                    float dCenter = GetDistanceToRoundedRect(x, y, 170, 342, 140, 320, 30);
+                    float centerVal = dCenter <= 0f ? 0.55f : Mathf.Clamp01(0.55f - dCenter * 0.08f);
+
+                    float maxVal = Mathf.Max(leftVal, Mathf.Max(rightVal, Mathf.Max(archVal, centerVal)));
+                    mask[y * targetW + x] = maxVal;
+                }
+            }
+
+            float[] blurred = BoxBlur(mask, targetW, targetH, 20);
+            blurred = BoxBlur(blurred, targetW, targetH, 20);
+
+            Texture2D tex = new Texture2D(targetW, targetH, TextureFormat.RGBA32, false);
+            tex.name = "PortalShadow";
+
+            Color[] pixels = new Color[targetW * targetH];
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                float a = Mathf.Clamp01(blurred[i]);
+                pixels[i] = new Color(1f, 1f, 1f, a);
+            }
+
+            tex.SetPixels(pixels);
+            tex.Apply();
+
+            byte[] bytes = tex.EncodeToPNG();
+            Object.DestroyImmediate(tex);
+
+            File.WriteAllBytes(PortalShadowPath, bytes);
+            ConfigureSpriteImporter(PortalShadowPath);
         }
 
         private static float GetDistanceToRoundedRect(float px, float py, float xMin, float xMax, float yMin, float yMax, float radius)

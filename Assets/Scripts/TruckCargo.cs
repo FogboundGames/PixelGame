@@ -36,8 +36,9 @@ namespace PixelGame
             }
         }
 
-        public int Capacity { get => m_Capacity; set => m_Capacity = Mathf.Max(1, value); }
+        public int Capacity { get => m_Capacity; set { m_Capacity = Mathf.Max(1, value); UpdateBadge(false); } }
         public int Load => m_Load;
+        public int RemainingCapacity => Mathf.Max(0, m_Capacity - m_Load);
         public bool IsFull => m_Load >= m_Capacity;
         public float FillRatio => m_Capacity > 0 ? (float)m_Load / m_Capacity : 0f;
 
@@ -46,6 +47,7 @@ namespace PixelGame
 
         private TruckTailgate m_Tailgate;
         private CargoStack m_Stack;
+        private WagonCapacityBadge m_Badge;
 
         /// <summary>Yolda olan (henüz kasaya varmamış) küp sayısı.</summary>
         private int m_InFlight;
@@ -57,6 +59,7 @@ namespace PixelGame
         {
             m_Tailgate = GetComponent<TruckTailgate>();
             EnsureStack();
+            EnsureBadge();
         }
 
         private void EnsureStack()
@@ -65,6 +68,22 @@ namespace PixelGame
 
             m_Stack = GetComponent<CargoStack>();
             if (m_Stack == null) m_Stack = gameObject.AddComponent<CargoStack>();
+        }
+
+        public void EnsureBadge()
+        {
+            if (m_Badge != null) return;
+            m_Badge = GetComponent<WagonCapacityBadge>();
+            if (m_Badge == null) m_Badge = gameObject.AddComponent<WagonCapacityBadge>();
+        }
+
+        public void UpdateBadge(bool punch = true)
+        {
+            EnsureBadge();
+            if (m_Badge != null)
+            {
+                m_Badge.SetCount(RemainingCapacity, punch);
+            }
         }
 
         /// <summary>Kamyonu boş bir yük için hazırlar ve kapağını açar.</summary>
@@ -79,10 +98,31 @@ namespace PixelGame
             OpenTailgate();
 
             EnsureStack();
+            UpdateBadge(false);
 
             // Kasaya toplam kaç parça düşecek: her küp birkaç parçaya bölünüyor.
             // Parça boyutu buna göre hesaplanır ki kasa dolsun ama taşmasın.
             if (m_Stack != null) m_Stack.Setup(m_Capacity * m_PiecesPerCube, color);
+        }
+
+        /// <summary>
+        /// Bir piksel küpünün tüm parçalarını tek bir birim olarak kasaya kabul eder.
+        /// Kalan kapasite 1 azalır ve rozet güncellenir.
+        /// </summary>
+        public bool LoadOneCube()
+        {
+            if (IsFull) return false;
+
+            m_Load++;
+            UpdateBadge(true);
+
+            if (IsFull)
+            {
+                CloseTailgate();
+                Filled?.Invoke(this);
+            }
+
+            return true;
         }
 
         /// <summary>

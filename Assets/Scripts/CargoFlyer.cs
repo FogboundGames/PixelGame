@@ -1,18 +1,19 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using DG.Tweening;
 
 namespace PixelGame
 {
     /// <summary>
-    /// Kırılan küpü tablodan vagona uçuran mini küp.
+    /// Kırılan küp parçalarının önce çerçevenin altındaki rafta birikmesini,
+    /// ardından DOTween ile raydaki eşleşen renkli vagona kavisle akmasını yöneten nesne.
     ///
-    /// Küp başına tek bir parça uçar: bir parça = kasaya bir küp. Böylece görsel
-    /// ile yük sayacı birebir örtüşür. Kırılma hissini zaten voksel patlaması veriyor.
+    /// İki aşamalı yaşam döngüsü (Two-Phase Flow):
+    /// 1. Aşama: Küpten alt rafa düşüş, zıplayarak yerleşme (OutBounce) ve birikme.
+    /// 2. Aşama: Rafta toplanan parçaların sırayla/kademeli olarak vagona şelale gibi akması.
     ///
-    /// Parçalar havuzdan gelir; hızlı tıklamada yüzlerce nesne oluşmasın diye
-    /// kullanılan parçalar geri dönüştürülür.
+    /// Parçalar havuzdan gelir ve DOTween animasyonları tamamlandığında havuza geri döner.
     /// </summary>
     [DisallowMultipleComponent]
     [AddComponentMenu("PixelGame/Cargo Flyer")]
@@ -23,9 +24,141 @@ namespace PixelGame
 
         private MeshRenderer m_Renderer;
         private Material m_Material;
+        private Sequence m_ActiveSequence;
 
         /// <summary>
-        /// Bir küpü hedefe doğru uçurur. Varışta <paramref name="onArrive"/> çağrılır.
+        /// Parçayı küpten alt rafa (kırmızı işaretli hazneye) fırlatır.
+        /// Yerçekimi ve OutBounce ile rafa konar, DOPunchScale yaylanması yapar ve rafta bekler.
+        /// </summary>
+        public static CargoFlyer LaunchToShelf(
+            Vector3 worldStart,
+            Vector3 shelfPosition,
+            Color color,
+            float size,
+            float fallDuration,
+            Action<CargoFlyer> onLanded)
+        {
+            CargoFlyer flyer = Rent();
+
+            flyer.CleanupTweens();
+            flyer.transform.position = worldStart;
+            flyer.transform.localScale = Vector3.one * size;
+            flyer.transform.rotation = UnityEngine.Random.rotation;
+            flyer.SetColor(color);
+            flyer.gameObject.SetActive(true);
+
+            flyer.AnimateToShelf(shelfPosition, size, fallDuration, () => onLanded?.Invoke(flyer));
+            return flyer;
+        }
+
+        private void AnimateToShelf(Vector3 shelfPosition, float size, float fallDuration, Action onLanded)
+        {
+            CleanupTweens();
+            m_ActiveSequence = DOTween.Sequence();
+
+            m_ActiveSequence.Append(transform.DOMoveX(shelfPosition.x, fallDuration).SetEase(Ease.OutQuad));
+            m_ActiveSequence.Join(transform.DOMoveY(shelfPosition.y, fallDuration).SetEase(Ease.OutBounce));
+            m_ActiveSequence.Join(transform.DOMoveZ(shelfPosition.z, fallDuration).SetEase(Ease.OutQuad));
+            m_ActiveSequence.Join(transform.DORotate(new Vector3(
+                UnityEngine.Random.Range(-180f, 180f),
+                UnityEngine.Random.Range(-180f, 180f),
+                UnityEngine.Random.Range(-180f, 180f)),
+                fallDuration, RotateMode.FastBeyond360).SetEase(Ease.OutQuad));
+
+            // Rafa temas anında yaylanma
+            m_ActiveSequence.Append(transform.DOPunchScale(new Vector3(0.25f, -0.25f, 0.25f) * size, 0.16f, 6, 0.5f));
+            m_ActiveSequence.OnComplete(() => onLanded?.Invoke());
+        }
+
+        /// <summary>
+        /// Rafta bekleyen parçayı hareket halindeki vagona doğru kavisli bir yayla takip ettirerek fırlatır.
+        /// Vagon ray üzerinde ilerlese dahi hedef şaşmadan tam kasaya oturur.
+        /// </summary>
+        public void FlowToMovingTarget(Transform targetWagon, float duration, float arcHeight, Action onArrive)
+        {
+            CleanupTweens();
+            if (gameObject.activeInHierarchy)
+            {
+                StartCoroutine(FlowToMovingTargetRoutine(targetWagon, duration, arcHeight, onArrive));
+            }
+            else
+            {
+                onArrive?.Invoke();
+                Release();
+            }
+        }
+
+        private System.Collections.IEnumerator FlowToMovingTargetRoutine(
+            Transform targetWagon, float duration, float arcHeight, Action onArrive)
+        {
+            Vector3 startPos = transform.position;
+            Vector3 startScale = transform.localScale;
+            float elapsed = 0f;
+
+            Vector3 rotAxis = UnityEngine.Random.onUnitSphere;
+            float rotSpeed = UnityEngine.Random.Range(360f, 720f);
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float p = Mathf.Clamp01(elapsed / duration);
+
+                // Kavis ve takip: vagon hareket ettikçe hedefin güncel konumunu esas al
+                Vector3 endPos = targetWagon != null ? targetWagon.position : startPos;
+                Vector3 current = Vector3.Lerp(startPos, endPos, p);
+                current.y += Mathf.Sin(p * Mathf.PI) * arcHeight;
+
+                transform.position = current;
+                transform.Rotate(rotAxis, rotSpeed * Time.deltaTime, Space.World);
+
+                if (p > 0.82f)
+                {
+                    // Kasaya girerken zarifçe küçül
+                    float shrinkP = (p - 0.82f) / 0.18f;
+                    transform.localScale = Vector3.Lerp(startScale, Vector3.zero, shrinkP);
+                }
+
+                yield return null;
+            }
+
+            onArrive?.Invoke();
+            Release();
+        }
+
+        /// <summary>
+        /// İki aşamalı voksel akışını başlatır:
+        /// 1) Küpten alt rafa (shelfPosition) düşüp zıplayarak birikir.
+        /// 2) Belirtilen birikme süresinden (accumulateDelay) sonra vagona kavis çizerek akar.
+        /// </summary>
+        public static void LaunchAccumulateAndFlow(
+            Vector3 worldStart,
+            Vector3 shelfPosition,
+            Transform targetWagon,
+            Color color,
+            float size,
+            float fallDuration,
+            float accumulateDelay,
+            float flowDuration,
+            float flowArcHeight,
+            Action onArrive)
+        {
+            CargoFlyer flyer = Rent();
+
+            flyer.CleanupTweens();
+            flyer.transform.position = worldStart;
+            flyer.transform.localScale = Vector3.one * size;
+            flyer.transform.rotation = UnityEngine.Random.rotation;
+            flyer.SetColor(color);
+            flyer.gameObject.SetActive(true);
+
+            flyer.AnimateAccumulateAndFlow(
+                shelfPosition, targetWagon, size,
+                fallDuration, accumulateDelay, flowDuration, flowArcHeight, onArrive
+            );
+        }
+
+        /// <summary>
+        /// Doğrudan hedefe uçuran tek aşamalı yedek fırlatıcı (eski çağrılar için geriye dönük uyumlu).
         /// </summary>
         public static void Launch(Vector3 worldStart, Transform target, Color color,
                                   float size, float duration, float arcHeight,
@@ -39,45 +172,87 @@ namespace PixelGame
 
             CargoFlyer flyer = Rent();
 
+            flyer.CleanupTweens();
             flyer.transform.position = worldStart;
             flyer.transform.localScale = Vector3.one * size;
             flyer.SetColor(color);
             flyer.gameObject.SetActive(true);
 
-            flyer.StartCoroutine(flyer.FlyRoutine(worldStart, target, duration, arcHeight, onArrive));
+            Vector3 endPos = target.position;
+            flyer.m_ActiveSequence = DOTween.Sequence();
+            flyer.m_ActiveSequence.Append(flyer.transform.DOJump(endPos, arcHeight, 1, duration).SetEase(Ease.InQuad));
+            flyer.m_ActiveSequence.Join(flyer.transform.DORotate(new Vector3(
+                UnityEngine.Random.Range(-180f, 180f),
+                UnityEngine.Random.Range(-180f, 180f),
+                UnityEngine.Random.Range(-180f, 180f)), duration, RotateMode.FastBeyond360));
+            flyer.m_ActiveSequence.OnComplete(() =>
+            {
+                onArrive?.Invoke();
+                flyer.Release();
+            });
         }
 
-        private IEnumerator FlyRoutine(Vector3 start, Transform target,
-                                       float duration, float arcHeight, Action onArrive)
+        private void AnimateAccumulateAndFlow(
+            Vector3 shelfPosition,
+            Transform targetWagon,
+            float size,
+            float fallDuration,
+            float accumulateDelay,
+            float flowDuration,
+            float flowArcHeight,
+            Action onArrive)
         {
-            float elapsed = 0f;
-            Vector3 spin = new Vector3(
-                UnityEngine.Random.Range(-180f, 180f),
-                UnityEngine.Random.Range(-180f, 180f),
-                UnityEngine.Random.Range(-180f, 180f));
+            CleanupTweens();
+            m_ActiveSequence = DOTween.Sequence();
 
-            while (elapsed < duration)
+            // ─── 1. AŞAMA: Tablonun altındaki rafa düşüş & zıplayarak birikme ───
+            m_ActiveSequence.Append(transform.DOMoveX(shelfPosition.x, fallDuration).SetEase(Ease.OutQuad));
+            m_ActiveSequence.Join(transform.DOMoveY(shelfPosition.y, fallDuration).SetEase(Ease.OutBounce));
+            m_ActiveSequence.Join(transform.DOMoveZ(shelfPosition.z, fallDuration).SetEase(Ease.OutQuad));
+            m_ActiveSequence.Join(transform.DORotate(new Vector3(
+                UnityEngine.Random.Range(-180f, 180f),
+                UnityEngine.Random.Range(-180f, 180f),
+                UnityEngine.Random.Range(-180f, 180f)),
+                fallDuration, RotateMode.FastBeyond360).SetEase(Ease.OutQuad));
+
+            // Rafa temas anında tatlı bir yaylanma / squash-stretch etkisi
+            m_ActiveSequence.Append(transform.DOPunchScale(new Vector3(0.22f, -0.22f, 0.22f) * size, 0.16f, 6, 0.5f));
+
+            // ─── BEKLEME: Rafta görünür şekilde birikme süresi ───
+            m_ActiveSequence.AppendInterval(accumulateDelay);
+
+            // ─── 2. AŞAMA: Raftan vagona akış (Cascade Flow) ───
+            m_ActiveSequence.AppendCallback(() =>
             {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / duration);
+                if (targetWagon == null || !gameObject.activeSelf)
+                {
+                    onArrive?.Invoke();
+                    Release();
+                    return;
+                }
 
-                // Hedef hareket edebilir (vagon kayıyor olabilir), her karede yeniden oku
-                if (target == null) break;
+                Vector3 destination = targetWagon.position;
+                Sequence flowSeq = DOTween.Sequence();
 
-                Vector3 end = target.position;
+                // Raftan vagona doğru kavisli uçuş
+                flowSeq.Append(transform.DOJump(destination, flowArcHeight, 1, flowDuration).SetEase(Ease.InQuad));
+                flowSeq.Join(transform.DORotate(new Vector3(
+                    UnityEngine.Random.Range(-180f, 180f),
+                    UnityEngine.Random.Range(-180f, 180f),
+                    UnityEngine.Random.Range(-180f, 180f)),
+                    flowDuration, RotateMode.FastBeyond360));
 
-                // Yukarıdan aşağıya bir kavis: düz çizgi cansız durur
-                Vector3 position = Vector3.Lerp(start, end, t);
-                position.y += Mathf.Sin(t * Mathf.PI) * arcHeight;
+                // Kasaya girerken zarifçe içeri küçülme
+                flowSeq.Append(transform.DOScale(0f, 0.08f).SetEase(Ease.InBack));
 
-                transform.position = position;
-                transform.Rotate(spin * Time.deltaTime, Space.Self);
+                flowSeq.OnComplete(() =>
+                {
+                    onArrive?.Invoke();
+                    Release();
+                });
 
-                yield return null;
-            }
-
-            onArrive?.Invoke();
-            Release();
+                m_ActiveSequence = flowSeq;
+            });
         }
 
         private void SetColor(Color color)
@@ -93,6 +268,21 @@ namespace PixelGame
             }
 
             CartoonShader.ApplyColor(m_Material, color);
+        }
+
+        private void CleanupTweens()
+        {
+            if (m_ActiveSequence != null)
+            {
+                m_ActiveSequence.Kill();
+                m_ActiveSequence = null;
+            }
+            transform.DOKill();
+        }
+
+        private void OnDisable()
+        {
+            CleanupTweens();
         }
 
         #region ♻️ Havuz
@@ -113,7 +303,6 @@ namespace PixelGame
             GameObject obj = GameObject.CreatePrimitive(PrimitiveType.Cube);
             obj.name = "CargoFlyer";
 
-            // Uçan parça tıklamayı yutmasın; oyuncu tabloya basıyor
             Collider collider = obj.GetComponent<Collider>();
             if (collider != null) Destroy(collider);
 
@@ -143,6 +332,7 @@ namespace PixelGame
 
         private void Release()
         {
+            CleanupTweens();
             gameObject.SetActive(false);
             transform.SetParent(EnsurePoolRoot(), false);
             s_Pool.Push(this);
@@ -150,6 +340,7 @@ namespace PixelGame
 
         private void OnDestroy()
         {
+            CleanupTweens();
             if (m_Material != null) Destroy(m_Material);
         }
 

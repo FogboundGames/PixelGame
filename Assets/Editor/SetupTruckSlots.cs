@@ -21,7 +21,7 @@ namespace PixelGame.Editor
     [InitializeOnLoad]
     public static class SetupTruckSlots
     {
-        private const string SessionKey = "SetupTruckSlots_ShadowInitDone_v3";
+        private const string SessionKey = "SetupTruckSlots_TrackLineShadow_v5";
 
         static SetupTruckSlots()
         {
@@ -43,16 +43,37 @@ namespace PixelGame.Editor
             {
                 SessionState.SetBool(SessionKey, true);
 
-                if (row.Style.shadowSprite == null)
-                    row.Style.shadowSprite = SlotShadowTextureGenerator.GetOrGenerateSlotShadowSprite();
-                row.Style.enableRowGroundShadow = false;
+                // 1. Slot kutu sahte gölgelerini kaldır
+                row.Style.enableShadow = false;
 
-                row.UpdateShadows();
+                // 2. Doğrudan ray demirleri ve ahşap traverslerin hat gölgesini aktif et
+                row.Style.enableRowGroundShadow = true;
+                row.Style.rowGroundShadowSprite = SlotShadowTextureGenerator.GetOrGenerateRowGroundShadowSprite();
+                row.Style.rowGroundShadowColor = new Color(0.04f, 0.06f, 0.10f, 0.52f);
+                row.Style.rowGroundShadowOffset = new Vector2(0f, -14f);
+                row.Style.rowGroundShadowPadding = new Vector2(0f, 0f);
+                row.Style.rowGroundShadowZ = 6f;
+
+                // Eski SlotShadow_1..10 nesnelerini pasife al
+                Transform shadows = row.transform.Find("Shadows");
+                if (shadows != null)
+                {
+                    for (int i = 1; i <= 10; i++)
+                    {
+                        Transform s = shadows.Find($"SlotShadow_{i}");
+                        if (s != null)
+                        {
+                            s.gameObject.SetActive(false);
+                        }
+                    }
+                }
+
+                row.ForceApplyStyleToShadows();
                 EditorUtility.SetDirty(row);
                 UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
                     UnityEngine.SceneManagement.SceneManager.GetActiveScene());
                 UnityEditor.SceneManagement.EditorSceneManager.SaveOpenScenes();
-                Debug.Log("<color=#00FFAA><b>[PixelGame]</b></color> SlotRow sahte gölgeleri (Fake Shadow) otomatik olarak sahneye uygulandı!");
+                Debug.Log("<color=#00FFAA><b>[PixelGame]</b></color> Ray demirleri ve ahşap traverslerin hat gölgesi (Track Line Shadow) başarıyla uygulandı!");
             }
             else
             {
@@ -234,8 +255,13 @@ namespace PixelGame.Editor
                 UnityEngine.SceneManagement.SceneManager.GetActiveScene());
         }
 
-        [MenuItem("Tools/PixelGame/🌑 Slot Fake Shadow'u Güncelle veya Seç", priority = 22)]
+        [MenuItem("Tools/PixelGame/🌑 Ray ve Portal Sahte Gölgelerini (Fake Shadow) Kur / Güncelle", priority = 22)]
         public static void SelectOrUpdateSlotShadow()
+        {
+            SelectOrUpdateSlotShadow(showDialog: true);
+        }
+
+        public static void SelectOrUpdateSlotShadow(bool showDialog)
         {
             TruckSlotRow row = Object.FindFirstObjectByType<TruckSlotRow>();
             if (row == null)
@@ -244,15 +270,18 @@ namespace PixelGame.Editor
                 return;
             }
 
-            if (row.Style.shadowSprite == null)
-                row.Style.shadowSprite = SlotShadowTextureGenerator.GetOrGenerateSlotShadowSprite();
-            if (row.Style.rowGroundShadowSprite == null)
-                row.Style.rowGroundShadowSprite = SlotShadowTextureGenerator.GetOrGenerateRowGroundShadowSprite();
+            row.Style.enableShadow = false;
+            row.Style.enableRowGroundShadow = true;
+            row.Style.enablePortalShadow = true;
 
-            row.UpdateShadows();
+            row.Style.rowGroundShadowSprite = SlotShadowTextureGenerator.GetOrGenerateRowGroundShadowSprite();
+            row.Style.portalShadowSprite = SlotShadowTextureGenerator.GetOrGeneratePortalShadowSprite();
+
+            row.ForceApplyStyleToShadows();
             EditorUtility.SetDirty(row);
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
                 UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+            UnityEditor.SceneManagement.EditorSceneManager.SaveOpenScenes();
 
             Selection.activeGameObject = row.gameObject;
 
@@ -262,9 +291,12 @@ namespace PixelGame.Editor
                 sv.FrameSelected();
             }
 
-            EditorUtility.DisplayDialog("Fake Shadow Hazır",
-                "SlotRow sahte gölgeleri güncellendi ve seçildi!\n\n" +
-                "Sağdaki Inspector panelinden gölge renklerini, ofsetlerini ve şerit zemin gölgesini canlı olarak ayarlayabilirsiniz.", "Tamam");
+            if (showDialog)
+            {
+                EditorUtility.DisplayDialog("Fake Shadow Hazır!",
+                    "Ray şeridi, maden portalları ve slotların sahte gölgeleri (Fake Shadow) başarıyla kuruldu ve güncellendi!\n\n" +
+                    "Sağdaki Inspector panelinden veya sahne üzerinde Gizmo ile gölgeleri serbestçe taşıyabilir, boyutlandırabilir ve rengini ayarlayabilirsiniz.", "Tamam");
+            }
         }
 
         #region 🔧 Kurulum Parçaları
@@ -349,13 +381,13 @@ namespace PixelGame.Editor
             style.interactive = interactive;
             style.rowWidthFill = k_RowScreenWidthFill;
 
-            if (showSprite)
-            {
-                style.enableShadow = true;
-                style.shadowSprite = SlotShadowTextureGenerator.GetOrGenerateSlotShadowSprite();
-                style.enableRowGroundShadow = true;
-                style.rowGroundShadowSprite = SlotShadowTextureGenerator.GetOrGenerateRowGroundShadowSprite();
-            }
+            // Ray şeridi ve portallarda sahte gölgeleri (Fake Shadow) her zaman aktif tut
+            style.enableShadow = true;
+            style.shadowSprite = SlotShadowTextureGenerator.GetOrGenerateSlotShadowSprite();
+            style.enableRowGroundShadow = true;
+            style.rowGroundShadowSprite = SlotShadowTextureGenerator.GetOrGenerateRowGroundShadowSprite();
+            style.enablePortalShadow = true;
+            style.portalShadowSprite = SlotShadowTextureGenerator.GetOrGeneratePortalShadowSprite();
         }
 
         private static PixelLevelData GetActiveLevel()

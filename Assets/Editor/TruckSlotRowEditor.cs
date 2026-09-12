@@ -26,8 +26,17 @@ namespace PixelGame.Editor
         private SerializedProperty m_RowGroundShadowPadding;
         private SerializedProperty m_RowGroundShadowZ;
 
-        private bool m_ShowIndividualSlots = true;
-        private bool m_ShowGlobalSettings = false;
+        private SerializedProperty m_EnablePortalShadow;
+        private SerializedProperty m_PortalShadowSprite;
+        private SerializedProperty m_PortalShadowColor;
+        private SerializedProperty m_PortalShadowOffset;
+        private SerializedProperty m_PortalShadowScale;
+        private SerializedProperty m_PortalShadowZ;
+
+        private bool m_ShowPortals = true;
+        private bool m_ShowRowGround = true;
+        private bool m_ShowIndividualSlots = false;
+        private bool m_ShowGlobalSettings = true;
 
         private void OnEnable()
         {
@@ -50,6 +59,13 @@ namespace PixelGame.Editor
                 m_RowGroundShadowOffset = m_Style.FindPropertyRelative("rowGroundShadowOffset");
                 m_RowGroundShadowPadding = m_Style.FindPropertyRelative("rowGroundShadowPadding");
                 m_RowGroundShadowZ = m_Style.FindPropertyRelative("rowGroundShadowZ");
+
+                m_EnablePortalShadow = m_Style.FindPropertyRelative("enablePortalShadow");
+                m_PortalShadowSprite = m_Style.FindPropertyRelative("portalShadowSprite");
+                m_PortalShadowColor = m_Style.FindPropertyRelative("portalShadowColor");
+                m_PortalShadowOffset = m_Style.FindPropertyRelative("portalShadowOffset");
+                m_PortalShadowScale = m_Style.FindPropertyRelative("portalShadowScale");
+                m_PortalShadowZ = m_Style.FindPropertyRelative("portalShadowZ");
             }
         }
 
@@ -78,7 +94,7 @@ namespace PixelGame.Editor
 
             if (isManual)
             {
-                EditorGUILayout.HelpBox("AÇIK: Sahnede gölge nesnelerini (SlotShadow_1..5, RowGroundShadow) serbestçe tutup sürükleyebilir, boyutlandırabilir ve renklendirebilirsiniz. Kod yaptığınız değişiklikleri ASLA ezmez veya sıfırlamaz!", MessageType.Info);
+                EditorGUILayout.HelpBox("AÇIK: Sahnede gölge nesnelerini (PortalShadow_Left/Right, RowGroundShadow, SlotShadow_1..5) serbestçe tutup sürükleyebilir, boyutlandırabilir ve renklendirebilirsiniz. Kod yaptığınız değişiklikleri ASLA ezmez!", MessageType.Info);
             }
             else
             {
@@ -91,7 +107,7 @@ namespace PixelGame.Editor
 
             // 2. Hızlı Sahne Seçim Butonları
             EditorGUILayout.LabelField("🎯 Sahnede Doğrudan Seçim & Gizmo ile Taşıma", EditorStyles.boldLabel);
-            if (GUILayout.Button("🎯 Tüm Slot Gölgelerini Sahnede Seç", GUILayout.Height(28)))
+            if (GUILayout.Button("🎯 Tüm Gölgeleri Sahnede Seç (Portallar + Ray + Slotlar)", GUILayout.Height(30)))
             {
                 List<GameObject> all = rowTarget.GetAllShadowObjects();
                 if (all != null && all.Count > 0)
@@ -101,9 +117,75 @@ namespace PixelGame.Editor
                 }
             }
 
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("⛏️ Sol Portal Gölgesi", GUILayout.Height(24)))
+            {
+                GameObject pl = rowTarget.GetPortalLeftShadowObject();
+                if (pl != null) { Selection.activeGameObject = pl; SceneView.FrameLastActiveSceneView(); }
+            }
+            if (GUILayout.Button("⛏️ Sağ Portal Gölgesi", GUILayout.Height(24)))
+            {
+                GameObject pr = rowTarget.GetPortalRightShadowObject();
+                if (pr != null) { Selection.activeGameObject = pr; SceneView.FrameLastActiveSceneView(); }
+            }
+            if (GUILayout.Button("🛤️ Ray Zemin Gölgesi", GUILayout.Height(24)))
+            {
+                GameObject rgs = rowTarget.GetRowGroundShadowObject();
+                if (rgs != null) { Selection.activeGameObject = rgs; SceneView.FrameLastActiveSceneView(); }
+            }
+            EditorGUILayout.EndHorizontal();
+
             EditorGUILayout.Space(10);
 
-            // 3. Bireysel Slot Gölgeleri (Canlı Kontrol)
+            // 3. Maden Portalı Gölgeleri (Portal Shadows)
+            m_ShowPortals = EditorGUILayout.Foldout(m_ShowPortals, "⛏️ Maden Portalı Gölgeleri (Portal Shadows)", true, EditorStyles.foldoutHeader);
+            if (m_ShowPortals)
+            {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                if (m_EnablePortalShadow != null)
+                {
+                    EditorGUILayout.PropertyField(m_EnablePortalShadow, new GUIContent("Portal Gölgeleri Aktif"));
+                    if (m_EnablePortalShadow.boolValue)
+                    {
+                        if (m_PortalShadowSprite != null) EditorGUILayout.PropertyField(m_PortalShadowSprite, new GUIContent("Portal Gölge Sprite"));
+                        if (m_PortalShadowColor != null) EditorGUILayout.PropertyField(m_PortalShadowColor, new GUIContent("Gölge Rengi & Opaklık"));
+                        if (m_PortalShadowOffset != null) EditorGUILayout.PropertyField(m_PortalShadowOffset, new GUIContent("Gölge Ofseti (X, Y)"));
+                        if (m_PortalShadowScale != null) EditorGUILayout.PropertyField(m_PortalShadowScale, new GUIContent("Boyut Oranı (X, Y)"));
+                        if (m_PortalShadowZ != null) EditorGUILayout.PropertyField(m_PortalShadowZ, new GUIContent("Z Derinliği"));
+                    }
+                }
+                EditorGUILayout.EndVertical();
+                EditorGUI.indentLevel--;
+            }
+
+            EditorGUILayout.Space(6);
+
+            // 4. Ray Şeridi Zemin Gölgesi (Row Ground Shadow)
+            m_ShowRowGround = EditorGUILayout.Foldout(m_ShowRowGround, "🛤️ Ray Şeridi Zemin Gölgesi (Row Ground Shadow)", true, EditorStyles.foldoutHeader);
+            if (m_ShowRowGround)
+            {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                if (m_EnableRowGroundShadow != null)
+                {
+                    EditorGUILayout.PropertyField(m_EnableRowGroundShadow, new GUIContent("Ray Zemin Gölgesi Aktif"));
+                    if (m_EnableRowGroundShadow.boolValue)
+                    {
+                        if (m_RowGroundShadowSprite != null) EditorGUILayout.PropertyField(m_RowGroundShadowSprite, new GUIContent("Şerit Gölge Sprite"));
+                        if (m_RowGroundShadowColor != null) EditorGUILayout.PropertyField(m_RowGroundShadowColor, new GUIContent("Gölge Rengi & Opaklık"));
+                        if (m_RowGroundShadowOffset != null) EditorGUILayout.PropertyField(m_RowGroundShadowOffset, new GUIContent("Gölge Ofseti (X, Y)"));
+                        if (m_RowGroundShadowPadding != null) EditorGUILayout.PropertyField(m_RowGroundShadowPadding, new GUIContent("Genişlik & Yükseklik Payı"));
+                        if (m_RowGroundShadowZ != null) EditorGUILayout.PropertyField(m_RowGroundShadowZ, new GUIContent("Z Derinliği"));
+                    }
+                }
+                EditorGUILayout.EndVertical();
+                EditorGUI.indentLevel--;
+            }
+
+            EditorGUILayout.Space(6);
+
+            // 5. Bireysel Slot Gölgeleri (Canlı Kontrol)
             m_ShowIndividualSlots = EditorGUILayout.Foldout(m_ShowIndividualSlots, "🎛️ Bireysel Slot Gölgeleri (Tek Tek Elle Ayarla)", true, EditorStyles.foldoutHeader);
             if (m_ShowIndividualSlots)
             {
@@ -176,9 +258,9 @@ namespace PixelGame.Editor
                 EditorGUI.indentLevel--;
             }
 
-            EditorGUILayout.Space(10);
+            EditorGUILayout.Space(6);
 
-            // 4. Genel Şablon & Toplu Stiller (Global Styles & Presets)
+            // 6. Genel Şablon & Hazır Ayarlar (Global Presets)
             m_ShowGlobalSettings = EditorGUILayout.Foldout(m_ShowGlobalSettings, "⚙️ Toplu Şablon ve Genel Stil Ayarları (Global)", true, EditorStyles.foldoutHeader);
             if (m_ShowGlobalSettings)
             {
@@ -190,17 +272,23 @@ namespace PixelGame.Editor
                 if (GUILayout.Button("Doğal (Natural)"))
                 {
                     ApplyPreset(rowTarget,
-                        new Color(0.02f, 0.03f, 0.06f, 0.48f), new Vector2(0f, -14f), new Vector2(1.06f, 1.06f), 4f);
+                        slotCol: new Color(0.02f, 0.03f, 0.06f, 0.48f), slotOff: new Vector2(0f, -14f), slotSc: new Vector2(1.06f, 1.06f), slotZ: 4f,
+                        rowCol: new Color(0.02f, 0.03f, 0.05f, 0.42f), rowOff: new Vector2(0f, -16f), rowPad: new Vector2(320f, 60f), rowZ: 8f,
+                        portalCol: new Color(0.02f, 0.03f, 0.06f, 0.52f), portalOff: new Vector2(0f, -14f), portalSc: new Vector2(1.12f, 1.12f), portalZ: 4f);
                 }
                 if (GUILayout.Button("Belirgin (Deep)"))
                 {
                     ApplyPreset(rowTarget,
-                        new Color(0.01f, 0.02f, 0.04f, 0.65f), new Vector2(0f, -18f), new Vector2(1.09f, 1.09f), 5f);
+                        slotCol: new Color(0.01f, 0.02f, 0.04f, 0.65f), slotOff: new Vector2(0f, -18f), slotSc: new Vector2(1.09f, 1.09f), slotZ: 5f,
+                        rowCol: new Color(0.01f, 0.02f, 0.04f, 0.58f), rowOff: new Vector2(0f, -18f), rowPad: new Vector2(360f, 75f), rowZ: 8f,
+                        portalCol: new Color(0.01f, 0.02f, 0.04f, 0.68f), portalOff: new Vector2(0f, -16f), portalSc: new Vector2(1.16f, 1.16f), portalZ: 5f);
                 }
-                if (GUILayout.Button("Hafif (Subtle)"))
+                if (GUILayout.Button("Yumuşak (Soft)"))
                 {
                     ApplyPreset(rowTarget,
-                        new Color(0.03f, 0.04f, 0.08f, 0.32f), new Vector2(0f, -10f), new Vector2(1.04f, 1.04f), 3f);
+                        slotCol: new Color(0.03f, 0.04f, 0.08f, 0.32f), slotOff: new Vector2(0f, -10f), slotSc: new Vector2(1.04f, 1.04f), slotZ: 3f,
+                        rowCol: new Color(0.03f, 0.04f, 0.08f, 0.28f), rowOff: new Vector2(0f, -12f), rowPad: new Vector2(280f, 50f), rowZ: 8f,
+                        portalCol: new Color(0.03f, 0.04f, 0.08f, 0.35f), portalOff: new Vector2(0f, -10f), portalSc: new Vector2(1.08f, 1.08f), portalZ: 3f);
                 }
                 EditorGUILayout.EndHorizontal();
 
@@ -223,14 +311,10 @@ namespace PixelGame.Editor
                     }
                 }
 
-                EditorGUILayout.Space(8);
-
-
-
                 EditorGUILayout.Space(6);
-                if (GUILayout.Button("🔄 Bu Stili Tüm Gölgelere Eşitle / Sıfırla", GUILayout.Height(28)))
+                if (GUILayout.Button("🔄 Bu Stili Tüm Gölgelere Eşitle / Otomatik Uygula", GUILayout.Height(30)))
                 {
-                    if (EditorUtility.DisplayDialog("Gölgeleri Stile Eşitle", "Tüm gölgeler yukarıdaki stil değerleriyle yeniden hizalanacak. Devam edilsin mi?", "Evet, Eşitle", "İptal"))
+                    if (EditorUtility.DisplayDialog("Gölgeleri Stile Eşitle", "Tüm gölgeler (Ray Zemin, Maden Portalları ve Slotlar) yukarıdaki stil değerleriyle yeniden hizalanacak. Devam edilsin mi?", "Evet, Eşitle", "İptal"))
                     {
                         rowTarget.ForceApplyStyleToShadows();
                         EditorUtility.SetDirty(rowTarget);
@@ -242,9 +326,9 @@ namespace PixelGame.Editor
 
             EditorGUILayout.Space(10);
 
-            // 5. Araç Butonları
+            // 7. Araç Butonları
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("🎨 Dokuları Yeniden Üret", GUILayout.Height(30)))
+            if (GUILayout.Button("🎨 Tüm Dokuları Yeniden Üret (Portal + Ray + Slot)", GUILayout.Height(32)))
             {
                 SlotShadowTextureGenerator.GenerateAllShadowTextures();
                 rowTarget.UpdateShadows();
@@ -263,15 +347,27 @@ namespace PixelGame.Editor
         }
 
         private void ApplyPreset(TruckSlotRow targetRow,
-            Color shadowCol, Vector2 shadowOff, Vector2 shadowSc, float shadowZ)
+            Color slotCol, Vector2 slotOff, Vector2 slotSc, float slotZ,
+            Color rowCol, Vector2 rowOff, Vector2 rowPad, float rowZ,
+            Color portalCol, Vector2 portalOff, Vector2 portalSc, float portalZ)
         {
             if (m_EnableShadow != null) m_EnableShadow.boolValue = true;
-            if (m_ShadowColor != null) m_ShadowColor.colorValue = shadowCol;
-            if (m_ShadowOffset != null) m_ShadowOffset.vector2Value = shadowOff;
-            if (m_ShadowScale != null) m_ShadowScale.vector2Value = shadowSc;
-            if (m_ShadowZ != null) m_ShadowZ.floatValue = shadowZ;
+            if (m_ShadowColor != null) m_ShadowColor.colorValue = slotCol;
+            if (m_ShadowOffset != null) m_ShadowOffset.vector2Value = slotOff;
+            if (m_ShadowScale != null) m_ShadowScale.vector2Value = slotSc;
+            if (m_ShadowZ != null) m_ShadowZ.floatValue = slotZ;
 
-            if (m_EnableRowGroundShadow != null) m_EnableRowGroundShadow.boolValue = false;
+            if (m_EnableRowGroundShadow != null) m_EnableRowGroundShadow.boolValue = true;
+            if (m_RowGroundShadowColor != null) m_RowGroundShadowColor.colorValue = rowCol;
+            if (m_RowGroundShadowOffset != null) m_RowGroundShadowOffset.vector2Value = rowOff;
+            if (m_RowGroundShadowPadding != null) m_RowGroundShadowPadding.vector2Value = rowPad;
+            if (m_RowGroundShadowZ != null) m_RowGroundShadowZ.floatValue = rowZ;
+
+            if (m_EnablePortalShadow != null) m_EnablePortalShadow.boolValue = true;
+            if (m_PortalShadowColor != null) m_PortalShadowColor.colorValue = portalCol;
+            if (m_PortalShadowOffset != null) m_PortalShadowOffset.vector2Value = portalOff;
+            if (m_PortalShadowScale != null) m_PortalShadowScale.vector2Value = portalSc;
+            if (m_PortalShadowZ != null) m_PortalShadowZ.floatValue = portalZ;
 
             serializedObject.ApplyModifiedProperties();
             targetRow.ForceApplyStyleToShadows();

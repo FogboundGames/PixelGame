@@ -161,7 +161,7 @@ namespace PixelGame
         #region 🌑 Fake Shadow Yönetimi
 
         /// <summary>
-        /// Slotların ve şeridin altındaki sahte gölgeleri (Fake Shadow) günceller veya oluşturur.
+        /// Slotların, maden portallarının ve şeridin altındaki sahte gölgeleri (Fake Shadow) günceller veya oluşturur.
         /// </summary>
         [ContextMenu("🌑 Fake Shadow'ları Yeniden Oluştur / Güncelle")]
         public void UpdateShadows()
@@ -171,7 +171,7 @@ namespace PixelGame
 
             Transform shadowsTrans = transform.Find("Shadows");
 
-            if (!m_Style.enableShadow && !m_Style.enableRowGroundShadow)
+            if (!m_Style.enableShadow && !m_Style.enableRowGroundShadow && !m_Style.enablePortalShadow)
             {
                 if (shadowsTrans != null) shadowsTrans.gameObject.SetActive(false);
                 return;
@@ -189,7 +189,7 @@ namespace PixelGame
             }
 
             shadowsObj.SetActive(true);
-            // Hiyerarşide en başa al: CanvasRenderer bu sayede gölgeleri slotların arkasına çizer
+            // Hiyerarşide en başa al: CanvasRenderer bu sayede gölgeleri slotların ve modellerin arkasına çizer
             shadowsObj.transform.SetAsFirstSibling();
 
             RectTransform shadowsRect = shadowsObj.GetComponent<RectTransform>();
@@ -202,10 +202,13 @@ namespace PixelGame
             shadowsRect.localRotation = Quaternion.identity;
             shadowsRect.localScale = Vector3.one;
 
-            // 1. Şerit Zemin Gölgesi (Row Ground Shadow)
+            // 1. Şerit Zemin Gölgesi (Row Ground Shadow - tüm rayı ve portalları kapsar)
             UpdateRowGroundShadow(shadowsRect);
 
-            // 2. Bireysel Slot Gölgeleri (Slot Drop Shadows)
+            // 2. Maden Portalı Gölgeleri (Portal Fake Shadows - sol ve sağ maden girişi)
+            UpdatePortalShadows(shadowsRect);
+
+            // 3. Bireysel Slot Gölgeleri (Slot Drop Shadows)
             UpdateSlotShadows(shadowsRect);
         }
 
@@ -256,10 +259,91 @@ namespace PixelGame
             float rowWidth = rowRect != null ? rowRect.sizeDelta.x : 2000f;
             float cellH = m_Style.cellSize;
 
-            rgsRect.sizeDelta = new Vector2(rowWidth + m_Style.rowGroundShadowPadding.x, cellH * 0.85f + m_Style.rowGroundShadowPadding.y);
+            // Portalların yerleştiği sınırları hesapla; ray ve travers dokumuz (2224 birimlik hat) ile birebir örtüşür
+            Transform leftPortal = transform.Find("Portal_Left");
+            Transform rightPortal = transform.Find("Portal_Right");
+            float span = 2224f;
+            if (leftPortal != null && rightPortal != null)
+            {
+                float leftX = Mathf.Abs(leftPortal.localPosition.x);
+                float rightX = Mathf.Abs(rightPortal.localPosition.x);
+                span = Mathf.Max(leftX, rightX) * 2f + 240f;
+            }
+            else
+            {
+                float edge = rowWidth * 0.5f + Mathf.Abs(m_Style.portalMargin);
+                span = edge * 2f + 240f;
+            }
+
+            float shadowHeight = span * 0.25f; // 2048 x 512 ray ve travers gölge dokusu (4:1 oranı)
+            rgsRect.sizeDelta = new Vector2(span + m_Style.rowGroundShadowPadding.x, shadowHeight + m_Style.rowGroundShadowPadding.y);
             rgsRect.anchoredPosition3D = new Vector3(m_Style.rowGroundShadowOffset.x, m_Style.rowGroundShadowOffset.y, m_Style.rowGroundShadowZ);
             rgsRect.localRotation = Quaternion.Euler(m_Style.tilt, 0f, 0f);
             img.color = m_Style.rowGroundShadowColor;
+        }
+
+        private void UpdatePortalShadows(RectTransform shadowsRect, bool forceStyle = false)
+        {
+            UpdateSinglePortalShadow(shadowsRect, "Portal_Left", "PortalShadow_Left", forceStyle);
+            UpdateSinglePortalShadow(shadowsRect, "Portal_Right", "PortalShadow_Right", forceStyle);
+        }
+
+        private void UpdateSinglePortalShadow(RectTransform shadowsRect, string portalName, string shadowName, bool forceStyle)
+        {
+            Transform pShadowTrans = shadowsRect.Find(shadowName);
+            if (!m_Style.enablePortalShadow)
+            {
+                if (pShadowTrans != null) pShadowTrans.gameObject.SetActive(false);
+                return;
+            }
+
+            Transform portalTrans = transform.Find(portalName);
+            if (portalTrans == null)
+            {
+                if (pShadowTrans != null) pShadowTrans.gameObject.SetActive(false);
+                return;
+            }
+
+            bool isNew = (pShadowTrans == null);
+            GameObject pShadowObj = !isNew ? pShadowTrans.gameObject : new GameObject(shadowName, typeof(RectTransform));
+            if (isNew)
+            {
+                pShadowObj.transform.SetParent(shadowsRect, false);
+            }
+
+            pShadowObj.SetActive(true);
+
+            RectTransform sRect = pShadowObj.GetComponent<RectTransform>();
+            Image img = pShadowObj.GetComponent<Image>();
+            if (img == null) img = pShadowObj.AddComponent<Image>();
+
+            Sprite portalSprite = m_Style.portalShadowSprite != null ? m_Style.portalShadowSprite : ResolvePortalShadowSprite();
+            if (img.sprite == null || img.sprite != portalSprite)
+                img.sprite = portalSprite;
+            img.raycastTarget = false;
+            img.type = Image.Type.Simple;
+
+            if (m_ManualShadowMode && !isNew && !forceStyle)
+            {
+                return;
+            }
+
+            RectTransform pRect = portalTrans as RectTransform;
+            Vector2 baseSize = pRect != null ? pRect.sizeDelta : new Vector2(m_Style.cellSize, m_Style.cellSize);
+            sRect.anchorMin = new Vector2(0.5f, 0.5f);
+            sRect.anchorMax = new Vector2(0.5f, 0.5f);
+            sRect.pivot = new Vector2(0.5f, 0.5f);
+            sRect.sizeDelta = new Vector2(baseSize.x * m_Style.portalShadowScale.x, baseSize.y * m_Style.portalShadowScale.y);
+
+            Vector3 targetPos = portalTrans.localPosition;
+            sRect.anchoredPosition3D = new Vector3(
+                targetPos.x + m_Style.portalShadowOffset.x,
+                targetPos.y + m_Style.portalShadowOffset.y,
+                targetPos.z + m_Style.portalShadowZ
+            );
+            sRect.localRotation = Quaternion.Euler(m_Style.tilt, 0f, 0f);
+            sRect.localScale = Vector3.one;
+            img.color = m_Style.portalShadowColor;
         }
 
         private void UpdateSlotShadows(RectTransform shadowsRect, bool forceStyle = false)
@@ -352,6 +436,7 @@ namespace PixelGame
 
             RectTransform shadowsRect = shadowsTrans.GetComponent<RectTransform>();
             UpdateRowGroundShadow(shadowsRect, forceStyle: true);
+            UpdatePortalShadows(shadowsRect, forceStyle: true);
             UpdateSlotShadows(shadowsRect, forceStyle: true);
         }
 
@@ -361,6 +446,18 @@ namespace PixelGame
         {
             Transform st = GetShadowsContainer();
             return st != null ? st.Find("RowGroundShadow")?.gameObject : null;
+        }
+
+        public GameObject GetPortalLeftShadowObject()
+        {
+            Transform st = GetShadowsContainer();
+            return st != null ? st.Find("PortalShadow_Left")?.gameObject : null;
+        }
+
+        public GameObject GetPortalRightShadowObject()
+        {
+            Transform st = GetShadowsContainer();
+            return st != null ? st.Find("PortalShadow_Right")?.gameObject : null;
         }
 
         public GameObject GetSlotShadowObject(int index)
@@ -377,6 +474,12 @@ namespace PixelGame
 
             Transform rgs = st.Find("RowGroundShadow");
             if (rgs != null) list.Add(rgs.gameObject);
+
+            Transform pl = st.Find("PortalShadow_Left");
+            if (pl != null) list.Add(pl.gameObject);
+
+            Transform pr = st.Find("PortalShadow_Right");
+            if (pr != null) list.Add(pr.gameObject);
 
             for (int i = 0; i < SlotCount; i++)
             {
@@ -416,6 +519,20 @@ namespace PixelGame
         {
             #if UNITY_EDITOR
             string[] guids = UnityEditor.AssetDatabase.FindAssets("RowGroundShadow t:Sprite");
+            if (guids.Length > 0)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+                Sprite s = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(path);
+                if (s != null) return s;
+            }
+            #endif
+            return null;
+        }
+
+        private Sprite ResolvePortalShadowSprite()
+        {
+            #if UNITY_EDITOR
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("PortalShadow t:Sprite");
             if (guids.Length > 0)
             {
                 string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
