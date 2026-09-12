@@ -34,6 +34,10 @@ namespace PixelGame
             RectTransform rect = transform as RectTransform;
             if (rect == null) return;
 
+            // Doldurma slotlarının rolü sabittir: park yeri çizilir, tıklama küpleri engellemesin
+            m_Style.showSprite = true;
+            m_Style.interactive = false;
+
             m_Slots = TruckPlaceBuilder.Build(rect, m_Style, columns, rows, "Slot");
         }
 

@@ -57,3 +57,9 @@ MonoBehaviour:
   m_CubeDepth: 0.4
   m_InnerPadding: 0.08
   m_SkipTransparent: 1
+  m_SlotSprite: {fileID: 21300000, guid: 4b3d2f47130df8dd8af6a709e594aa54, type: 3}
+  m_SlotCount: 3
+  m_PoolColumns: 4
+  m_PoolRows: 2
+  m_TruckCapacity: 16
+  m_FigureShadowTexture: {fileID: 0}

@@ -465,6 +465,22 @@ namespace PixelGame.Editor
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("🚚 Kamyon Düzeni", EditorStyles.boldLabel);
 
+            m_SelectedLevel.SlotSprite = (Sprite)EditorGUILayout.ObjectField(
+                new GUIContent("Park Yeri Görseli",
+                    "Öndeki slotların altında görünecek görsel. Boş bırakılırsa sahnedeki " +
+                    "kurulumdan gelen görsel kullanılır."),
+                m_SelectedLevel.SlotSprite, typeof(Sprite), false);
+
+            if (m_SelectedLevel.SlotSprite == null)
+            {
+                EditorGUILayout.HelpBox(
+                    "Park yeri görseli atanmamış. Slotlar boş beyaz kare olarak görünüyorsa " +
+                    "buraya Slot.png'yi sürükle.",
+                    MessageType.Info);
+            }
+
+            EditorGUILayout.Space(4);
+
             m_SelectedLevel.SlotCount = EditorGUILayout.IntSlider(
                 new GUIContent("Öndeki Slot Sayısı",
                     "Aynı anda kaç kamyon doldurulabilir. Bölümün zorluğunu en çok bu belirler: " +

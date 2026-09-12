@@ -71,6 +71,15 @@ namespace PixelGame
             columns = Mathf.Max(1, columns);
             rows = Mathf.Max(1, rows);
 
+            if (style.showSprite && style.sprite == null)
+            {
+                Debug.LogWarning(
+                    $"[TruckPlaceBuilder] '{row.name}' şeridinde park yeri görseli atanmamış; " +
+                    "yerler boş beyaz kare olarak çizilecek. " +
+                    "Tools > PixelGame > Kamyon Döngüsünü Kur menüsünü çalıştırarak görünüm ayarlarını doldur.",
+                    row);
+            }
+
             ClearChildren(row);
 
             float totalWidth = columns * style.cellSize + (columns - 1) * style.gap;
@@ -124,6 +133,10 @@ namespace PixelGame
                         // yalnızca kamyonun kendisi görünür
                         image.sprite = null;
                         image.color = new Color(1f, 1f, 1f, 0f);
+
+                        // Tamamen saydam bir UI elemanının mesh'i varsayılan olarak atılır
+                        // ve o zaman tıklama da almaz; bu yüzden atılmasını engelliyoruz
+                        image.canvasRenderer.cullTransparentMesh = false;
                     }
 
                     image.raycastTarget = style.interactive;

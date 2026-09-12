@@ -33,12 +33,12 @@ namespace PixelGame
                  "Kapalıyken her küp patlar (eski serbest davranış).")]
         [SerializeField] private bool m_RequireMatchingTruck = true;
 
-        [Tooltip("Küp rengi ile kamyon rengi arasındaki kabul edilen fark (0 = birebir aynı).\n" +
-                 "Palet gruplama eşiği 0.04 olduğu için bundan büyük olmalı; " +
-                 "ama bölümdeki en yakın iki rengin farkından küçük kalmalı, " +
-                 "yoksa küpler yanlış kamyona yüklenir.")]
+        [Tooltip("Kamyon rengi ile palet rengi arasındaki tolerans.\n" +
+                 "Küpün rengi önce paletteki en yakın renge sınıflandırıldığı için bu değerin " +
+                 "büyük olmasına gerek yoktur; kamyon renkleri de paletten geldiği için " +
+                 "normalde birebir eşleşirler.")]
         [Range(0f, 0.5f)]
-        [SerializeField] private float m_ColorThreshold = 0.05f;
+        [SerializeField] private float m_ColorThreshold = 0.02f;
 
         [Tooltip("Bölüm verisinde kamyon ayarı yoksa kullanılacak yedek kapasite. " +
                  "Normalde kapasite bölümden gelir (Level Designer > Kamyon Düzeni).")]
@@ -148,6 +148,13 @@ namespace PixelGame
         {
             PixelLevelData level = GetLevel();
             if (level == null) return;
+
+            // Bölüme özel park yeri görseli varsa onu kullan; yoksa kurulumdan geleni bırak
+            if (level.SlotSprite != null)
+            {
+                if (m_Slots != null) m_Slots.Style.sprite = level.SlotSprite;
+                if (m_Pool != null) m_Pool.Style.sprite = level.SlotSprite;
+            }
 
             if (m_Slots != null) m_Slots.RebuildPlaces(level.SlotCount, 1);
             if (m_Pool != null) m_Pool.RebuildPlaces(level.PoolColumns, level.PoolRows);
@@ -436,7 +443,7 @@ namespace PixelGame
         {
             if (!m_RequireMatchingTruck) return true;
 
-            return FindSlotFor(cubeColor) != null;
+            return FindSlotFor(ClassifyToPalette(cubeColor)) != null;
         }
 
         /// <summary>
@@ -444,13 +451,46 @@ namespace PixelGame
         /// </summary>
         public void NotifyCubePopped(Color cubeColor)
         {
-            TruckSlot slot = FindSlotFor(cubeColor);
+            Color paletteColor = ClassifyToPalette(cubeColor);
+
+            TruckSlot slot = FindSlotFor(paletteColor);
             if (slot == null) return;
 
             TruckCargo cargo = slot.Cargo;
             if (cargo == null) return;
 
-            cargo.TryLoad(cubeColor, m_ColorThreshold);
+            cargo.TryLoad(paletteColor, m_ColorThreshold);
+        }
+
+        /// <summary>
+        /// Küpün rengini bölüm paletindeki EN YAKIN renge eşler.
+        ///
+        /// Küplerin rengi paletteki temsilci renkten bir miktar sapar (palet benzer tonları
+        /// gruplayarak çıkarılır). Sabit bir toleransla karşılaştırmak, sapması toleransı aşan
+        /// küplerin hiçbir kamyona uymaması ve hiç patlamaması demekti.
+        /// En yakına sınıflandırma bunu kökten çözer: her küp mutlaka bir palet rengine düşer.
+        /// </summary>
+        private Color ClassifyToPalette(Color cubeColor)
+        {
+            List<PaletteColorOverride> palette = GetPalette();
+            if (palette == null || palette.Count == 0) return cubeColor;
+
+            Color best = cubeColor;
+            float bestDistance = float.MaxValue;
+
+            foreach (PaletteColorOverride entry in palette)
+            {
+                if (entry == null || entry.pixelCount <= 0) continue;
+
+                float distance = TruckCargo.ColorDistance(cubeColor, entry.targetColor);
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    best = entry.targetColor;
+                }
+            }
+
+            return best;
         }
 
         /// <summary>Bu rengi kabul edebilecek, dolmamış kamyonu taşıyan slotu bulur.</summary>

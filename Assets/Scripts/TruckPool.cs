@@ -33,6 +33,11 @@ namespace PixelGame
             RectTransform rect = transform as RectTransform;
             if (rect == null) return;
 
+            // Havuzun rolü sabittir: park yeri çizilmez (yalnızca kamyonlar görünür)
+            // ve kamyon seçilebilmesi için tıklanabilir olmalıdır
+            m_Style.showSprite = false;
+            m_Style.interactive = true;
+
             m_Places = TruckPlaceBuilder.Build(rect, m_Style, columns, rows, "Place");
         }
         public int PlaceCount => m_Places != null ? m_Places.Count : 0;
