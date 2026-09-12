@@ -55,11 +55,22 @@ namespace PixelGame
         [SerializeField] private float m_MoveArc = -120f;
 
         [Header("🚚 Kalkış")]
-        [Tooltip("Kamyonun kalkıp ekrandan çıkma süresi")]
-        [Min(0.05f)]
-        [SerializeField] private float m_DepartDuration = 0.55f;
+        [Tooltip("Vagonun ray boyunca gitme hızı (şerit birimi / saniye). " +
+                 "Süre sabit değildir: vagon bu hızla portalı geçene kadar gider.")]
+        [Min(1f)]
+        [SerializeField] private float m_DepartSpeed = 900f;
 
-        [Tooltip("Kapak kapandıktan sonra kalkışa kadar beklenen süre")]
+        [Tooltip("Vagonun tam hıza ulaşma süresi. Hareketin bir anda başlamış gibi değil, " +
+                 "ağır bir vagonun yavaşça yol almaya başlaması gibi görünmesini sağlar.")]
+        [Min(0f)]
+        [SerializeField] private float m_DepartAccelTime = 0.9f;
+
+        [Tooltip("Portalı geçtikten sonra ne kadar daha gitsin. Vagonun portalın " +
+                 "arkasında tamamen kaybolmasını garanti eder.")]
+        [Min(0f)]
+        [SerializeField] private float m_DepartExtraDistance = 600f;
+
+        [Tooltip("Kasa dolduktan sonra kalkışa kadar beklenen süre")]
         [Min(0f)]
         [SerializeField] private float m_DepartDelay = 0.35f;
 
@@ -306,6 +317,15 @@ namespace PixelGame
             if (cargo == null) cargo = truck.AddComponent<TruckCargo>();
 
             cargo.ResetCargo(order.Color, order.Capacity);
+
+            // Vagon park ederken sabit durmalı. MineCartMover prefabda "başlayınca hareket et"
+            // ile geldiği için kapatıyoruz; hareketi yalnızca kalkış yönetir.
+            MineCartMover mover = truck.GetComponent<MineCartMover>();
+            if (mover != null) mover.StopMoving();
+
+            // Yuvarlanma animasyonu da beklerken donmuş kalsın
+            Animator animator = truck.GetComponent<Animator>();
+            if (animator != null) animator.speed = 0f;
         }
 
         /// <summary>
@@ -432,13 +452,33 @@ namespace PixelGame
             }
         }
 
+        /// <summary>
+        /// Boş bir ray yeri bulur; aramaya ekranın ortasından başlar ve dışa doğru açılır.
+        /// Böylece vagon ilk olarak rayın ortasına gelir, oradan portala doğru yola çıkar.
+        /// </summary>
         private TruckSlot FindEmptySlot()
         {
             if (m_Slots == null) return null;
 
-            foreach (TruckSlot slot in m_Slots.Slots)
+            var slots = m_Slots.Slots;
+            int count = slots.Count;
+            if (count == 0) return null;
+
+            int center = count / 2;
+
+            // Ortadan dışa: merkez, merkez-1, merkez+1, merkez-2, merkez+2 ...
+            for (int offset = 0; offset <= count; offset++)
             {
-                if (slot != null && slot.IsEmpty) return slot;
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    int index = center + offset * side;
+                    if (index < 0 || index >= count) continue;
+
+                    TruckSlot slot = slots[index];
+                    if (slot != null && slot.IsEmpty) return slot;
+
+                    if (offset == 0) break; // merkez tek kez denenir
+                }
             }
 
             return null;
@@ -560,29 +600,60 @@ namespace PixelGame
             return null;
         }
 
-        /// <summary>Kamyonu slottan çıkarır, kaydırarak uzaklaştırır ve yok eder.</summary>
+        /// <summary>
+        /// Vagonu ray üzerinden kendi hızıyla uzaklaştırır ve portalı geçince yok eder.
+        /// Süre sabit değildir; mesafe ve hız belirler, böylece hareket doğal görünür.
+        /// </summary>
         private IEnumerator DepartRoutine(TruckSlot slot, Transform truck)
         {
-            // Kapağın kapanmasını bekle
             yield return new WaitForSeconds(m_DepartDelay);
 
             slot.ReleaseTruck();
 
             if (truck == null) yield break;
 
-            Vector3 start = truck.localPosition;
-            // Slot düzleminde sağa doğru, kamyon boyunun birkaç katı kadar uzaklaş
-            float distance = Mathf.Max(400f, Mathf.Abs(start.x) * 2f + 400f);
-            Vector3 end = start + new Vector3(distance, 0f, 0f);
+            MineCartMover mover = truck.GetComponent<MineCartMover>();
+            Animator animator = truck.GetComponent<Animator>();
 
+            // Vagon kendi park yerinden portala kadar gider; soldaki yerler daha uzun yol alır
+            RectTransform slotRect = slot.SlotRect;
+            RectTransform rowRect = slotRect != null ? slotRect.parent as RectTransform : null;
+
+            float railHalf = rowRect != null ? rowRect.rect.width * 0.5f : 1000f;
+            float slotX = slotRect != null ? slotRect.anchoredPosition.x : 0f;
+
+            float distance = (railHalf - slotX) + m_DepartExtraDistance;
+            float travelled = 0f;
             float elapsed = 0f;
 
-            while (elapsed < m_DepartDuration && truck != null)
+            // Şerit ölçeği: tekerlek dönüşü dünya birimiyle hesaplanır
+            float worldScale = truck.parent != null ? truck.parent.lossyScale.x : 1f;
+
+            while (travelled < distance && truck != null)
             {
                 elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / m_DepartDuration);
-                // Hızlanarak çıksın
-                truck.localPosition = Vector3.LerpUnclamped(start, end, t * t);
+
+                // Yavaşça yol almaya başla: ani kayma yerine ağırlık hissi
+                float accel = m_DepartAccelTime > 0f
+                    ? Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / m_DepartAccelTime))
+                    : 1f;
+
+                float step = m_DepartSpeed * accel * Time.deltaTime;
+
+                travelled += step;
+                truck.localPosition += Vector3.right * step;
+
+                // Yuvarlanma animasyonu hıza bağlı oynar; animasyon yoksa tekerlekleri
+                // mover döndürür (ikisi birlikte çalışırsa birbirini ezer)
+                if (animator != null)
+                {
+                    animator.speed = accel;
+                }
+                else if (mover != null)
+                {
+                    mover.SpinWheelsByDistance(step * worldScale);
+                }
+
                 yield return null;
             }
 

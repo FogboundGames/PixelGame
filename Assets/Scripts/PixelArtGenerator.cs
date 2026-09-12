@@ -400,6 +400,14 @@ namespace PixelGame
             // 1. Hedef dünya alanı sınırlarını hesapla
             if (!CalculateTargetWorldBounds(cam, out Vector3 worldCenter, out float worldWidth, out float worldHeight))
             {
+                // Oyun içinde bu genellikle Canvas düzeninin ilk karede henüz hazır olmamasıdır;
+                // bir kare sonra tekrar denemek yeterli olur.
+                if (Application.isPlaying)
+                {
+                    ScheduleGenerateRetry();
+                    return;
+                }
+
                 Debug.LogError("[PixelArtGenerator] Hedef çerçevenin dünya koordinatları hesaplanamadı!");
                 return;
             }
@@ -499,6 +507,30 @@ namespace PixelGame
             EnsureFigureContourShadow(worldCenter, totalWidth, totalHeight);
 
             Debug.Log($"<color=#00FFAA><b>[PixelArtGenerator]</b></color> Başarıyla {createdCount} adet küp oluşturuldu! ({cols}x{rows} ızgara)");
+        }
+
+        private bool m_GenerateRetryScheduled;
+
+        /// <summary>
+        /// Canvas düzeni hazır olmadığı için başarısız olan üretimi bir sonraki karede tekrar dener.
+        /// Aynı anda tek bir tekrar planlanır.
+        /// </summary>
+        private void ScheduleGenerateRetry()
+        {
+            if (m_GenerateRetryScheduled) return;
+
+            m_GenerateRetryScheduled = true;
+            StartCoroutine(GenerateAfterCanvasReady());
+        }
+
+        private System.Collections.IEnumerator GenerateAfterCanvasReady()
+        {
+            // CanvasScaler ölçeği Update sırasında belirlediği için bir kare beklemek gerekir
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+
+            m_GenerateRetryScheduled = false;
+            GeneratePixelArt();
         }
 
         public Material GetOrCreateShadowMaterial()
@@ -1075,6 +1107,19 @@ namespace PixelGame
 
             if (m_TargetFrameRect == null || cam == null)
                 return false;
+
+            // Canvas düzeni henüz hesaplanmamış olabilir: Overlay Canvas'ın ölçeğini
+            // CanvasScaler çalışma anında belirler ve ilk karede sıfır olur.
+            // O anda köşeler üst üste biner; hizalama yapılırsa küpler ekranın
+            // sol alt köşesine minik bir yığın halinde düşer. Bu yüzden başarısız dönüyoruz.
+            Rect frame = m_TargetFrameRect.rect;
+            Vector3 frameScale = m_TargetFrameRect.lossyScale;
+
+            if (frame.width * Mathf.Abs(frameScale.x) < 1f ||
+                frame.height * Mathf.Abs(frameScale.y) < 1f)
+            {
+                return false;
+            }
 
             Canvas canvas = m_TargetFrameRect.GetComponentInParent<Canvas>();
             Vector3[] corners = new Vector3[4];

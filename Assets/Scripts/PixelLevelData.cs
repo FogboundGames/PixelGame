@@ -110,10 +110,11 @@ namespace PixelGame
                  "görsel kullanılır; buraya bir sprite sürüklersen bu bölüme özel olur.")]
         [SerializeField] private Sprite m_SlotSprite;
 
-        [Tooltip("Öndeki doldurma slotu sayısı. Aynı anda kaç renge çalışılabileceğini belirler; " +
-                 "bölümün zorluğunu en çok bu ayar etkiler.")]
+        [Tooltip("Ray üzerinde aynı anda kaç vagon doldurulabilir. Aynı anda kaç renge " +
+                 "çalışılabileceğini belirler; bölümün zorluğunu en çok bu ayar etkiler. " +
+                 "1 verilirse tek vagonlu, çok daha kısıtlayıcı bir bölüm olur.")]
         [Range(1, 8)]
-        [SerializeField] private int m_SlotCount = 5;
+        [SerializeField] private int m_SlotCount = 3;
 
         [Tooltip("Havuzda yan yana kaç kamyon beklesin")]
         [Range(1, 8)]

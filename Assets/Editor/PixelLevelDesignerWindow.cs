@@ -463,50 +463,34 @@ namespace PixelGame.Editor
         private void DrawTruckLayoutSection()
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("🚚 Kamyon Düzeni", EditorStyles.boldLabel);
-
-            m_SelectedLevel.SlotSprite = (Sprite)EditorGUILayout.ObjectField(
-                new GUIContent("Park Yeri Görseli",
-                    "Öndeki slotların altında görünecek görsel. Boş bırakılırsa sahnedeki " +
-                    "kurulumdan gelen görsel kullanılır."),
-                m_SelectedLevel.SlotSprite, typeof(Sprite), false);
-
-            if (m_SelectedLevel.SlotSprite == null)
-            {
-                EditorGUILayout.HelpBox(
-                    "Park yeri görseli atanmamış. Slotlar boş beyaz kare olarak görünüyorsa " +
-                    "buraya Slot.png'yi sürükle.",
-                    MessageType.Info);
-            }
-
-            EditorGUILayout.Space(4);
+            EditorGUILayout.LabelField("🛤️ Vagon Düzeni", EditorStyles.boldLabel);
 
             m_SelectedLevel.SlotCount = EditorGUILayout.IntSlider(
-                new GUIContent("Öndeki Slot Sayısı",
-                    "Aynı anda kaç kamyon doldurulabilir. Bölümün zorluğunu en çok bu belirler: " +
-                    "az slot, aynı anda az renge çalışabilmek demektir."),
+                new GUIContent("Raydaki Vagon Sayısı",
+                    "Ray üzerinde aynı anda kaç vagon doldurulabilir. Bölümün zorluğunu en çok " +
+                    "bu belirler: az vagon, aynı anda az renge çalışabilmek demektir."),
                 m_SelectedLevel.SlotCount, 1, 8);
 
             EditorGUILayout.Space(2);
 
             m_SelectedLevel.PoolColumns = EditorGUILayout.IntSlider(
-                new GUIContent("Havuz: Yan Yana", "Havuzda yan yana kaç kamyon beklesin"),
+                new GUIContent("Havuz: Yan Yana", "Havuzda yan yana kaç vagon beklesin"),
                 m_SelectedLevel.PoolColumns, 1, 8);
 
             m_SelectedLevel.PoolRows = EditorGUILayout.IntSlider(
                 new GUIContent("Havuz: Sıra Sayısı",
-                    "Kaç sıra halinde gelsinler. Sıra arttıkça oyuncu sıradaki kamyonların " +
+                    "Kaç sıra halinde gelsinler. Sıra arttıkça oyuncu sıradaki vagonların " +
                     "daha fazlasını önceden görür, yani daha rahat plan yapar."),
                 m_SelectedLevel.PoolRows, 1, 5);
 
             EditorGUILayout.LabelField(
-                $"Havuzda aynı anda görünen: {m_SelectedLevel.PoolPlaceCount} kamyon",
+                $"Havuzda aynı anda görünen: {m_SelectedLevel.PoolPlaceCount} vagon",
                 EditorStyles.miniLabel);
 
             EditorGUILayout.Space(2);
 
             m_SelectedLevel.TruckCapacity = EditorGUILayout.IntSlider(
-                new GUIContent("Kamyon Kapasitesi", "Bir kamyonun kasasına kaç küp sığar"),
+                new GUIContent("Vagon Kapasitesi", "Bir vagonun kasasına kaç küp sığar"),
                 m_SelectedLevel.TruckCapacity, 1, 64);
 
             // Bölümün bu ayarlarla kaç kamyon gerektirdiğini göster: oyunun uzunluğu budur
@@ -531,15 +515,15 @@ namespace PixelGame.Editor
             }
 
             EditorGUILayout.LabelField(
-                $"Bu bölüm toplam {required} kamyon gerektiriyor " +
+                $"Bu bölüm toplam {required} vagon gerektiriyor " +
                 $"({m_SelectedLevel.ColorPalette.Count} renk).",
                 EditorStyles.miniLabel);
 
             if (required > 60)
             {
                 EditorGUILayout.HelpBox(
-                    $"{required} kamyon oldukça uzun bir bölüm demek. " +
-                    "Kısaltmak için kamyon kapasitesini artır.",
+                    $"{required} vagon oldukça uzun bir bölüm demek. " +
+                    "Kısaltmak için vagon kapasitesini artır.",
                     MessageType.Info);
             }
 
@@ -547,8 +531,8 @@ namespace PixelGame.Editor
             if (m_SelectedLevel.PoolPlaceCount < m_SelectedLevel.SlotCount)
             {
                 EditorGUILayout.HelpBox(
-                    "Havuzdaki kamyon sayısı slot sayısından az. " +
-                    "Oyuncu tüm slotları dolduramaz.",
+                    "Havuzdaki vagon sayısı raydaki yer sayısından az. " +
+                    "Oyuncu tüm yerleri dolduramaz.",
                     MessageType.Warning);
             }
         }

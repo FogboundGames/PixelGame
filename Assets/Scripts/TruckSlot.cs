@@ -3,12 +3,13 @@ using UnityEngine;
 namespace PixelGame
 {
     /// <summary>
-    /// Ekranın altındaki tek bir kamyon slotunu temsil eder.
-    /// Slotun kendisi bir UI görselidir (Slot.png), üstünde duran kamyon ise gerçek bir 3D nesnedir.
+    /// Ray üzerindeki tek bir vagon yerini temsil eder.
     ///
-    /// Kamyon slotun çocuğudur: slotun eğimini, konumunu ve ölçeğini miras alır,
-    /// böylece park yerinin düzlemine kendiliğinden oturur.
-    /// Bu bileşen yalnızca kamyonun slot içindeki yönünü, boyutunu ve oturma yerini ayarlar.
+    /// Yerin kendisi görünmez bir UI dikdörtgenidir; altındaki ray parçası ve üstündeki
+    /// vagon gerçek 3B nesnelerdir ve ikisi de bu dikdörtgenin çocuğudur.
+    /// Böylece yerin eğimini, konumunu ve ölçeğini miras alırlar.
+    ///
+    /// Ray sabittir: vagon dolup gitse de yerinde kalır.
     /// </summary>
     [ExecuteAlways]
     [DisallowMultipleComponent]
@@ -19,8 +20,12 @@ namespace PixelGame
         [Tooltip("Slotun UI dikdörtgeni. Boş bırakılırsa bu nesnenin kendi RectTransform'u kullanılır.")]
         [SerializeField] private RectTransform m_SlotRect;
 
-        [Tooltip("Slotun üstünde duracak 3D kamyon (bu slotun çocuğu olmalı)")]
+        [Tooltip("Slotun üstünde duracak 3D vagon (bu slotun çocuğu olmalı)")]
         [SerializeField] private Transform m_Truck;
+
+        [Tooltip("Bu park yerinin altındaki ray parçası. Yan yana duran parçalar " +
+                 "kesintisiz bir hat oluşturur.")]
+        [SerializeField] private Transform m_Ground;
 
         [Tooltip("Kamyonun slot içindeki taban duruşu. Slotun eğimi zaten miras alınır; " +
                  "bu yalnızca kamyonun park yerindeki yönüdür. Yaw bunun üzerine uygulanır.")]
@@ -39,14 +44,33 @@ namespace PixelGame
         [Range(0f, 1f)]
         [SerializeField] private float m_VerticalOffset = 0.5f;
 
-        [Tooltip("Kamyonun slot yüzeyinden ne kadar önde duracağı. Z kavgasını (z-fighting) önler.")]
+        [Tooltip("Vagonun ray yüzeyinden ne kadar önde duracağı. Z kavgasını (z-fighting) önler.")]
         [SerializeField] private float m_LiftOffset = 2f;
+
+        [Header("🛤️ Ray")]
+        [Tooltip("Ray parçasının park yeri içindeki duruşu. Vagonun duruşundan bağımsızdır; " +
+                 "elle bulunup doğrulanmış değerdir.")]
+        [SerializeField] private Quaternion m_GroundBaseRotation = Quaternion.identity;
+
+        [Tooltip("Rayın hat boyunca ek dönüşü. Ray yanlış yöne bakıyorsa 90 / -90 / 180 dene.")]
+        [Range(-180f, 180f)]
+        [SerializeField] private float m_GroundYaw = 0f;
+
+        [Tooltip("Ray parçası slot genişliğinin ne kadarını kaplasın. " +
+                 "1'den büyük değer, yan yana duran parçalar arasındaki boşluğu kapatır.")]
+        [Range(0.5f, 2f)]
+        [SerializeField] private float m_GroundWidthFill = 1.08f;
+
+        [Tooltip("Ray parçasının slot içindeki dikey yeri. 0.5 = tam ortası.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float m_GroundVerticalOffset = 0.5f;
 
         [Header("🎨 Kamyon Rengi")]
         [SerializeField] private Color m_TruckColor = TruckPaint.Red;
 
         public RectTransform SlotRect => m_SlotRect != null ? m_SlotRect : transform as RectTransform;
         public Transform Truck { get => m_Truck; set { m_Truck = value; AlignTruck(); } }
+        public Transform Ground => m_Ground;
         public Color TruckColor { get => m_TruckColor; set { m_TruckColor = value; ApplyTruckColor(); } }
 
         /// <summary>
@@ -56,6 +80,33 @@ namespace PixelGame
         {
             m_SlotRect = rect;
             m_BaseRotation = truckRotation;
+        }
+
+        /// <summary>
+        /// Bu park yerinin ray parçasını bağlar ve yerine oturtur.
+        /// Ray sabittir; vagon gelip gitse de yerinde kalır.
+        /// </summary>
+        public void SetGround(Transform ground, Quaternion rotation)
+        {
+            m_Ground = ground;
+            m_GroundBaseRotation = rotation;
+            AlignGround();
+        }
+
+        /// <summary>Ray parçasını slotun içine oturtur.</summary>
+        [ContextMenu("🛤️ Rayı Hizala")]
+        public void AlignGround()
+        {
+            if (m_Ground == null) return;
+
+            RectTransform rect = SlotRect;
+            if (rect == null) return;
+
+            // Ray kendi doğal yönünde durur; slotun eğimi zaten miras gelir
+            m_Ground.localRotation = m_GroundBaseRotation *
+                                     Quaternion.AngleAxis(m_GroundYaw, Vector3.up);
+
+            FitToRect(m_Ground, rect, m_GroundWidthFill, m_GroundVerticalOffset, 0f);
         }
 
         /// <summary>Slotta kamyon var mı?</summary>
@@ -93,7 +144,7 @@ namespace PixelGame
 
         private void OnEnable()
         {
-            AlignTruck();
+            AlignAll();
         }
 
         private void OnValidate()
@@ -109,7 +160,7 @@ namespace PixelGame
         private void DeferredRefresh()
         {
             if (this == null) return;
-            AlignTruck();
+            AlignAll();
             ApplyTruckColor();
         }
         #endif
@@ -129,21 +180,42 @@ namespace PixelGame
             // 1. Yön: modelin taban rotasyonu korunur, yaw onun kendi ekseninde uygulanır
             m_Truck.localRotation = m_BaseRotation * Quaternion.AngleAxis(m_TruckYaw, Vector3.up);
 
-            // 2. Boyut: slot genişliğinin belli bir oranı
-            m_Truck.localPosition = Vector3.zero;
-            if (TryGetTruckLocalBounds(out Bounds bounds) && bounds.size.x > 0.0001f)
+            // 2. Boyut ve yer: slot genişliğine göre ölçekle, rayın biraz önüne oturt
+            FitToRect(m_Truck, rect, m_WidthFill, m_VerticalOffset, m_LiftOffset);
+        }
+
+        /// <summary>
+        /// Rayı ve (varsa) vagonu birlikte hizalar.
+        /// Ray vagondan bağımsızdır: slot boşken de yerinde durmalı.
+        /// </summary>
+        public void AlignAll()
+        {
+            AlignGround();
+            AlignTruck();
+        }
+
+        /// <summary>
+        /// Bir 3B modeli slotun içine sığdırır: genişliğine göre ölçekler,
+        /// yatayda ortalar ve slot yüzeyinin önüne alır.
+        /// Hem vagon hem ray parçası için kullanılır.
+        /// </summary>
+        private void FitToRect(Transform model, RectTransform rect,
+                               float widthFill, float verticalOffset, float lift)
+        {
+            model.localPosition = Vector3.zero;
+
+            if (TryGetLocalBounds(model, out Bounds bounds) && bounds.size.x > 0.0001f)
             {
-                float target = rect.rect.width * m_WidthFill;
-                m_Truck.localScale *= target / bounds.size.x;
+                float target = rect.rect.width * widthFill;
+                model.localScale *= target / bounds.size.x;
             }
 
-            // 3. Yer: slotun içinde ortala, yüzeyinin biraz önüne al
-            if (!TryGetTruckLocalBounds(out bounds)) return;
+            if (!TryGetLocalBounds(model, out bounds)) return;
 
-            m_Truck.localPosition = new Vector3(
+            model.localPosition = new Vector3(
                 -bounds.center.x,
-                -bounds.center.y + rect.rect.height * (m_VerticalOffset - 0.5f),
-                -bounds.max.z - m_LiftOffset);
+                -bounds.center.y + rect.rect.height * (verticalOffset - 0.5f),
+                -bounds.max.z - lift);
         }
 
         /// <summary>
@@ -151,17 +223,17 @@ namespace PixelGame
         /// Mesh sınırları kullanılır, çünkü Renderer.bounds dünya uzayında eksen hizalıdır
         /// ve slot eğik olduğunda yanlış ölçü verir.
         /// </summary>
-        private bool TryGetTruckLocalBounds(out Bounds bounds)
+        private static bool TryGetLocalBounds(Transform model, out Bounds bounds)
         {
             bounds = default;
-            if (m_Truck == null) return false;
+            if (model == null) return false;
 
-            Transform parent = m_Truck.parent;
+            Transform parent = model.parent;
             if (parent == null) return false;
 
             bool found = false;
 
-            foreach (MeshFilter filter in m_Truck.GetComponentsInChildren<MeshFilter>())
+            foreach (MeshFilter filter in model.GetComponentsInChildren<MeshFilter>())
             {
                 Mesh mesh = filter.sharedMesh;
                 if (mesh == null) continue;

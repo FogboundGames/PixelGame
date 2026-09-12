@@ -39,8 +39,24 @@ namespace PixelGame
                 // Sahnedeki mevcut küpler ve gölge ayarları zaten varsa bunları silip yeniden üretme!
                 if (m_Generator != null && m_Generator.CubesContainer != null && m_Generator.CubesContainer.childCount > 0)
                 {
-                    m_CurrentLevelIndex = Mathf.Clamp(m_CurrentLevelIndex, 0, m_Levels.Count - 1);
-                    PixelLevelData level = m_Levels[m_CurrentLevelIndex];
+                    // Sahnedeki küpler hangi bölüme aitse ONU bağla.
+                    // Listeden indekse göre bağlamak, sahnede kalp inşa edilmişken rakun
+                    // paletinin yüklenmesine yol açıyordu: tablo bir bölüme, vagon renkleri
+                    // başka bölüme ait kalıyordu.
+                    PixelLevelData level = m_Generator.ActiveLevelData;
+
+                    if (level != null)
+                    {
+                        // İndeksi sahnedeki bölümle eşitle, yoksa sonraki geçişler şaşar
+                        int index = m_Levels.IndexOf(level);
+                        if (index >= 0) m_CurrentLevelIndex = index;
+                    }
+                    else
+                    {
+                        m_CurrentLevelIndex = Mathf.Clamp(m_CurrentLevelIndex, 0, m_Levels.Count - 1);
+                        level = m_Levels[m_CurrentLevelIndex];
+                    }
+
                     if (level != null)
                     {
                         m_Generator.BindExistingLevel(level);

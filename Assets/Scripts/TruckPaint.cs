@@ -17,7 +17,11 @@ namespace PixelGame
         Taillights,
         Chassis,
         Cabin,
-        Cargo
+        Cargo,
+        Stone,
+        Wood,
+        Dark,
+        StoneDark
     }
 
     /// <summary>
@@ -56,6 +60,10 @@ namespace PixelGame
             new Vector2Int(1, 1), // Chassis
             new Vector2Int(2, 1), // Cabin (kabin + kaput)
             new Vector2Int(3, 1), // Cargo (kasa + arka kapak)
+            new Vector2Int(0, 2), // Stone (maden girişi taşları)
+            new Vector2Int(1, 2), // Wood (ahşap tahkimat + ray traversleri)
+            new Vector2Int(2, 2), // Dark (maden girişinin karanlık içi)
+            new Vector2Int(3, 2), // StoneDark (taşların koyu tonu)
         };
 
         private static readonly Dictionary<string, Material> s_MaterialsByScheme = new Dictionary<string, Material>();
@@ -77,6 +85,12 @@ namespace PixelGame
         [SerializeField] private Color m_Headlights = new Color32(252, 250, 238, 255);
         [SerializeField] private Color m_Taillights = new Color32(135, 24, 30, 255);
         [SerializeField] private Color m_Chassis = new Color32(60, 60, 66, 255);
+
+        [Header("Maden Girişi / Ray")]
+        [SerializeField] private Color m_Stone = new Color32(128, 132, 140, 255);
+        [SerializeField] private Color m_StoneDark = new Color32(96, 99, 108, 255);
+        [SerializeField] private Color m_Wood = new Color32(120, 78, 48, 255);
+        [SerializeField] private Color m_Dark = new Color32(18, 16, 22, 255);
 
         private readonly List<Renderer> m_Renderers = new List<Renderer>();
         private Material m_Template;
@@ -108,6 +122,10 @@ namespace PixelGame
                 case TruckPart.Taillights: return m_Taillights;
                 case TruckPart.Chassis: return m_Chassis;
                 case TruckPart.Cabin: return m_Cabin;
+                case TruckPart.Stone: return m_Stone;
+                case TruckPart.Wood: return m_Wood;
+                case TruckPart.Dark: return m_Dark;
+                case TruckPart.StoneDark: return m_StoneDark;
                 default: return m_Cargo;
             }
         }
@@ -124,6 +142,10 @@ namespace PixelGame
                 case TruckPart.Chassis: m_Chassis = color; break;
                 case TruckPart.Cabin: m_Cabin = color; break;
                 case TruckPart.Cargo: m_Cargo = color; break;
+                case TruckPart.Stone: m_Stone = color; break;
+                case TruckPart.Wood: m_Wood = color; break;
+                case TruckPart.Dark: m_Dark = color; break;
+                case TruckPart.StoneDark: m_StoneDark = color; break;
             }
             m_Dirty = true;
         }

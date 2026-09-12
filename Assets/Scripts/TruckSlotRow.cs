@@ -5,9 +5,10 @@ using UnityEngine.UI;
 namespace PixelGame
 {
     /// <summary>
-    /// Ekranın altındaki kamyon slotu şeridini yönetir.
-    /// Slotların kendisi UI görselidir; üstlerindeki kamyonlar 3D nesnedir.
-    /// Ekran boyutu değiştiğinde kamyonları slotlara yeniden hizalar.
+    /// Tablonun altındaki ray şeridini yönetir.
+    /// Her park yerinin altında bir ray parçası durur; yan yana dizilen parçalar
+    /// kesintisiz bir hat oluşturur. Vagonlar bu yerlerin üstünde doldurulur.
+    /// Ekran boyutu değiştiğinde vagonları ve rayları yeniden hizalar.
     /// </summary>
     [ExecuteAlways]
     [DisallowMultipleComponent]
@@ -40,8 +41,9 @@ namespace PixelGame
             RectTransform rect = transform as RectTransform;
             if (rect == null) return;
 
-            // Doldurma slotlarının rolü sabittir: park yeri çizilir, tıklama küpleri engellemesin
-            m_Style.showSprite = true;
+            // Ray şeridinin rolü sabittir: park yeri UI görseli çizilmez (yerini gerçek ray
+            // modeli aldı) ve tıklama küpleri engellemesin
+            m_Style.showSprite = false;
             m_Style.interactive = false;
 
             m_Slots = TruckPlaceBuilder.Build(rect, m_Style, columns, rows, "Slot");
@@ -108,7 +110,7 @@ namespace PixelGame
             foreach (TruckSlot slot in m_Slots)
             {
                 if (slot == null) continue;
-                slot.AlignTruck();
+                slot.AlignAll();
             }
         }
 

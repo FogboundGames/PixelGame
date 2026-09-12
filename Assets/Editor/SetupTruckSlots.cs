@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -65,6 +66,15 @@ namespace PixelGame.Editor
         private const string k_DispatcherName = "[TruckDispatcher]";
         private const string k_TrucksRootName = "Trucks";
 
+        private const string k_CartModelPath = "Assets/Models/MineCart/MineCart.fbx";
+        private const string k_TrackModelPath = "Assets/Models/Track/Track.fbx";
+        private const string k_CartPrefabPath = "Assets/Prefabs/MineCart.prefab";
+        private const string k_TrackPrefabPath = "Assets/Prefabs/Track.prefab";
+        private const string k_PortalModelPath = "Assets/Models/MinePortal/MinePortal.fbx";
+        private const string k_PortalPrefabPath = "Assets/Prefabs/MinePortal.prefab";
+        private const string k_CartControllerPath = "Assets/Prefabs/MineCart_Roll.controller";
+        private const string k_CartLoopClipPath = "Assets/Prefabs/MineCart_Roll_Loop.anim";
+
         // --- Slot şeridi (doldurma alanı) — yolun üzerindeki boş park yerleri ---
         private const float k_SlotSize = 400f;
         private const float k_SlotGap = 16f;
@@ -108,12 +118,23 @@ namespace PixelGame.Editor
         /// Slotun eğimi zaten miras alındığı için burada sadece kamyonun yönü belirtilir.
         /// Bu değer elle bulunup doğrulanmıştır.
         /// </summary>
-        private static readonly Vector3 k_TruckLocalEuler = new Vector3(-180f, 0f, 0f);
+        /// <summary>
+        /// Vagonun park yeri içindeki duruşu (local Euler, derece).
+        /// Ray ile aynı eksen dönüşümünden geldiği için ray ile aynı değeri kullanır;
+        /// eski kamyon değeri (-180, 0, 0) vagonu baş aşağı çeviriyordu.
+        /// </summary>
+        private static readonly Vector3 k_TruckLocalEuler = new Vector3(0f, -90f, -270f);
+
+        /// <summary>
+        /// Ray parçasının park yeri içindeki duruşu (local Euler, derece).
+        /// Vagonun duruşundan bağımsızdır; bu değer elle bulunup doğrulanmıştır.
+        /// </summary>
+        private static readonly Vector3 k_TrackLocalEuler = new Vector3(0f, -90f, -270f);
 
         /// <summary>Canvas'ın kameradan uzaklığı.</summary>
         private const float k_CanvasPlaneDistance = 11f;
 
-        [MenuItem("Tools/PixelGame/🚚 Kamyon Döngüsünü Kur (Slot + Havuz)", priority = 20)]
+        [MenuItem("Tools/PixelGame/🛤️ Vagon Döngüsünü Kur (Ray + Havuz)", priority = 20)]
         public static void Setup()
         {
             Camera cam = Camera.main != null ? Camera.main : Object.FindFirstObjectByType<Camera>();
@@ -124,23 +145,26 @@ namespace PixelGame.Editor
                 return;
             }
 
-            GameObject truckPrefab = LoadTruckPrefab();
-            if (truckPrefab == null)
+            GameObject cartPrefab = LoadCartPrefab();
+            if (cartPrefab == null)
             {
-                EditorUtility.DisplayDialog("Kamyon Prefab'ı Bulunamadı",
-                    "Assets/Prefabs/ToyTruck.prefab bulunamadı.", "Tamam");
+                EditorUtility.DisplayDialog("Vagon Prefab'ı Bulunamadı",
+                    "Assets/Models/MineCart/MineCart.fbx bulunamadı, prefab üretilemedi.", "Tamam");
                 return;
             }
 
-            Sprite slotSprite = LoadSlotSprite();
-            if (slotSprite == null)
+            GameObject trackPrefab = LoadTrackPrefab();
+            if (trackPrefab == null)
             {
-                EditorUtility.DisplayDialog("Slot Görseli Bulunamadı",
-                    "Assets/UI/Slot.png bulunamadı veya Sprite olarak import edilmemiş.", "Tamam");
+                EditorUtility.DisplayDialog("Ray Prefab'ı Bulunamadı",
+                    "Assets/Models/Track/Track.fbx bulunamadı, prefab üretilemedi.", "Tamam");
                 return;
             }
 
-            Undo.SetCurrentGroupName("Kamyon Döngüsünü Kur");
+            // Portal zorunlu değil: bulunamazsa ray portalsız kurulur
+            GameObject portalPrefab = LoadPortalPrefab();
+
+            Undo.SetCurrentGroupName("Vagon Döngüsünü Kur");
             int undoGroup = Undo.GetCurrentGroup();
 
             CleanupLegacyTrucksRoot();
@@ -151,15 +175,17 @@ namespace PixelGame.Editor
             RectTransform slotRow = EnsureRow(canvas, k_SlotRowName, k_SlotRowScreenHeight);
             TruckSlotRow rowComponent = EnsureComponent<TruckSlotRow>(slotRow.gameObject);
 
-            ApplyStyle(rowComponent.Style, slotSprite, k_SlotGapY, 0f,
-                       showSprite: true, interactive: false);
+            // Slot şeridi: park yeri görseli yok, altında gerçek ray modeli var
+            ApplyStyle(rowComponent.Style, k_SlotGapY, 0f, trackPrefab, portalPrefab,
+                       showSprite: false, interactive: false);
 
             // 2. Havuz — sıradaki kamyonlar burada bekler, tıklanınca slota gider
             RectTransform poolRow = EnsureRow(canvas, k_PoolRowName, k_PoolRowScreenHeight);
             TruckPool poolComponent = EnsureComponent<TruckPool>(poolRow.gameObject);
 
-            // Havuzda park yeri görseli yok: sadece kamyonlar görünür
-            ApplyStyle(poolComponent.Style, slotSprite, k_PoolGapY, k_PoolStepZ,
+            // Havuzda ne park yeri görseli ne ray var: sadece bekleyen vagonlar görünür
+            // Havuzda ray ve portal yok: sadece bekleyen vagonlar görünür
+            ApplyStyle(poolComponent.Style, k_PoolGapY, k_PoolStepZ, null, null,
                        showSprite: false, interactive: true);
 
             // Sayılar bölüm verisinden gelir; burada yalnızca bir önizleme kurulur
@@ -172,7 +198,7 @@ namespace PixelGame.Editor
             poolComponent.RebuildPlaces(poolColumns, poolRows);
 
             // 3. Yönetici
-            SetupDispatcher(rowComponent, poolComponent, truckPrefab);
+            SetupDispatcher(rowComponent, poolComponent, cartPrefab);
 
             EditorUtility.SetDirty(rowComponent);
             EditorUtility.SetDirty(poolComponent);
@@ -182,12 +208,12 @@ namespace PixelGame.Editor
             Undo.CollapseUndoOperations(undoGroup);
             Selection.activeGameObject = slotRow.gameObject;
 
-            Debug.Log($"<color=#00FFAA><b>[PixelGame]</b></color> Kamyon döngüsü kuruldu: " +
-                      $"{slotCount} slot, {poolColumns}x{poolRows} havuz. " +
+            Debug.Log($"<color=#00FFAA><b>[PixelGame]</b></color> Vagon döngüsü kuruldu: " +
+                      $"{slotCount} ray yeri, {poolColumns}x{poolRows} havuz. " +
                       "Sayılar bölüm verisinden gelir (Level Designer > Kamyon Düzeni).");
         }
 
-        [MenuItem("Tools/PixelGame/🚚 Kamyon Döngüsünü Kaldır", priority = 21)]
+        [MenuItem("Tools/PixelGame/🛤️ Vagon Döngüsünü Kaldır", priority = 21)]
         public static void Remove()
         {
             GameObject canvas = GameObject.Find(k_SlotCanvasName);
@@ -243,7 +269,7 @@ namespace PixelGame.Editor
 
         #region 🔧 Kurulum Parçaları
 
-        private static void SetupDispatcher(TruckSlotRow slots, TruckPool pool, GameObject truckPrefab)
+        private static void SetupDispatcher(TruckSlotRow slots, TruckPool pool, GameObject cartPrefab)
         {
             GameObject obj = GameObject.Find(k_DispatcherName);
             if (obj == null)
@@ -257,7 +283,7 @@ namespace PixelGame.Editor
             SerializedObject so = new SerializedObject(dispatcher);
             so.FindProperty("m_Slots").objectReferenceValue = slots;
             so.FindProperty("m_Pool").objectReferenceValue = pool;
-            so.FindProperty("m_TruckPrefab").objectReferenceValue = truckPrefab;
+            so.FindProperty("m_TruckPrefab").objectReferenceValue = cartPrefab;
             so.FindProperty("m_Generator").objectReferenceValue =
                 Object.FindFirstObjectByType<PixelArtGenerator>();
             so.ApplyModifiedPropertiesWithoutUndo();
@@ -304,11 +330,15 @@ namespace PixelGame.Editor
         }
 
         /// <summary>Şeridin görsel ayarlarını kurulum sabitlerinden doldurur.</summary>
-        private static void ApplyStyle(TruckPlaceStyle style, Sprite sprite,
-                                       float gapY, float stepZ,
+        private static void ApplyStyle(TruckPlaceStyle style,
+                                       float gapY, float stepZ, GameObject groundPrefab,
+                                       GameObject portalPrefab,
                                        bool showSprite, bool interactive)
         {
-            style.sprite = sprite;
+            style.groundPrefab = groundPrefab;
+            style.groundEuler = k_TrackLocalEuler;
+            style.portalPrefab = portalPrefab;
+            style.portalEuler = k_TrackLocalEuler;
             style.cellSize = k_SlotSize;
             style.gap = k_SlotGap;
             style.gapY = gapY;
@@ -395,34 +425,210 @@ namespace PixelGame.Editor
             if (root != null) Undo.DestroyObjectImmediate(root);
         }
 
-        private static GameObject LoadTruckPrefab()
+        /// <summary>Vagon prefabını bulur; yoksa modelden üretir.</summary>
+        private static GameObject LoadCartPrefab()
         {
-            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/ToyTruck.prefab");
-            if (prefab != null) return prefab;
-
-            string[] guids = AssetDatabase.FindAssets("ToyTruck t:Prefab");
-            if (guids.Length == 0) return null;
-
-            return AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(guids[0]));
+            return EnsurePrefab(k_CartModelPath, k_CartPrefabPath, "MineCart", withMover: true);
         }
 
-        private static Sprite LoadSlotSprite()
+        /// <summary>Ray prefabını bulur; yoksa modelden üretir.</summary>
+        private static GameObject LoadTrackPrefab()
         {
-            Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/Slot.png");
-            if (sprite != null) return sprite;
+            return EnsurePrefab(k_TrackModelPath, k_TrackPrefabPath, "Track", withMover: false);
+        }
 
-            string[] guids = AssetDatabase.FindAssets("Slot t:Sprite");
-            foreach (string guid in guids)
+        /// <summary>
+        /// Vagonun yuvarlanma animasyonu için Animator Controller döndürür; yoksa üretir.
+        ///
+        /// FBX içindeki klip salt okunurdur ve döngüsü kapalı gelir; bu yüzden bir kopyası
+        /// alınıp döngü açılarak asset olarak kaydedilir. Aksi halde tekerlekler bir kez
+        /// dönüp durur.
+        /// </summary>
+        private static AnimatorController EnsureCartController()
+        {
+            AnimatorController existing =
+                AssetDatabase.LoadAssetAtPath<AnimatorController>(k_CartControllerPath);
+            if (existing != null) return existing;
+
+            AnimationClip source = FindRollClip();
+            if (source == null)
             {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
-                if (!path.EndsWith("Slot.png")) continue;
-
-                sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
-                if (sprite != null) return sprite;
+                Debug.LogWarning("[PixelGame] MineCart.fbx içinde yuvarlanma animasyonu bulunamadı; " +
+                                 "vagon animasyonsuz hareket edecek.");
+                return null;
             }
 
-            return null;
+            AnimationClip looped = AssetDatabase.LoadAssetAtPath<AnimationClip>(k_CartLoopClipPath);
+
+            if (looped == null)
+            {
+                looped = Object.Instantiate(source);
+                looped.name = "MineCart_Roll_Loop";
+
+                AnimationClipSettings settings = AnimationUtility.GetAnimationClipSettings(looped);
+                settings.loopTime = true;
+                AnimationUtility.SetAnimationClipSettings(looped, settings);
+
+                AssetDatabase.CreateAsset(looped, k_CartLoopClipPath);
+            }
+
+            return AnimatorController.CreateAnimatorControllerAtPathWithClip(k_CartControllerPath, looped);
         }
+
+        /// <summary>
+        /// Önceden üretilmiş vagon prefabına eksik olan Animator'ı ekler.
+        /// Prefab eski sürümden kalmışsa yuvarlanma animasyonu olmadan geliyordu.
+        /// </summary>
+        private static void UpgradeCartPrefab(string prefabPath)
+        {
+            AnimatorController controller = EnsureCartController();
+            if (controller == null) return;
+
+            GameObject root = PrefabUtility.LoadPrefabContents(prefabPath);
+
+            try
+            {
+                bool changed = false;
+
+                Animator animator = root.GetComponent<Animator>();
+                if (animator == null)
+                {
+                    animator = root.AddComponent<Animator>();
+                    changed = true;
+                }
+
+                if (animator.runtimeAnimatorController != controller)
+                {
+                    animator.runtimeAnimatorController = controller;
+                    changed = true;
+                }
+
+                // Kök hareketi kapalı: vagonu ilerleten kalkış kodu, animasyon değil
+                if (animator.applyRootMotion)
+                {
+                    animator.applyRootMotion = false;
+                    changed = true;
+                }
+
+                animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+
+                // Tekerlek dönüşü artık animasyondan geliyor; mover ile çakışmasın
+                MineCartMover mover = root.GetComponent<MineCartMover>();
+                if (mover != null)
+                {
+                    SerializedObject so = new SerializedObject(mover);
+                    so.FindProperty("m_MoveOnStart").boolValue = false;
+                    so.FindProperty("m_SpinWheels").boolValue = false;
+                    so.ApplyModifiedPropertiesWithoutUndo();
+                }
+
+                if (changed || mover != null)
+                {
+                    PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+                    Debug.Log($"<color=#00FFAA><b>[PixelGame]</b></color> Vagon prefabı güncellendi: " +
+                              "yuvarlanma animasyonu bağlandı.");
+                }
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
+        private static AnimationClip FindRollClip()
+        {
+            AnimationClip fallback = null;
+
+            foreach (Object asset in AssetDatabase.LoadAllAssetsAtPath(k_CartModelPath))
+            {
+                if (!(asset is AnimationClip clip)) continue;
+                if (clip.name.StartsWith("__preview__")) continue;
+
+                if (clip.name.IndexOf("Roll", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return clip;
+                }
+
+                if (fallback == null) fallback = clip;
+            }
+
+            return fallback;
+        }
+
+        /// <summary>Maden portalı prefabını bulur; yoksa modelden üretir.</summary>
+        private static GameObject LoadPortalPrefab()
+        {
+            return EnsurePrefab(k_PortalModelPath, k_PortalPrefabPath, "MinePortal", withMover: false);
+        }
+
+        /// <summary>
+        /// Prefabı döndürür; yoksa FBX modelinden oluşturup kaydeder.
+        ///
+        /// Üretimi burada yapıyoruz ki kurulum başka bir editör script'inin
+        /// metot adlarına ve erişim düzeyine bağımlı kalmasın.
+        /// </summary>
+        private static GameObject EnsurePrefab(string modelPath, string prefabPath,
+                                               string objectName, bool withMover)
+        {
+            GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (existing != null)
+            {
+                // Prefab önceden üretilmiş olabilir; eksik bileşenleri tamamla
+                if (withMover) UpgradeCartPrefab(prefabPath);
+                return AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            }
+
+            GameObject model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
+            if (model == null) return null;
+
+            GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(model);
+
+            try
+            {
+                instance.name = objectName;
+
+                if (instance.GetComponent<TruckPaint>() == null)
+                {
+                    instance.AddComponent<TruckPaint>();
+                }
+
+                if (withMover && instance.GetComponent<MineCartMover>() == null)
+                {
+                    MineCartMover mover = instance.AddComponent<MineCartMover>();
+
+                    // Vagon park ederken sabit durmalı; hareketi kalkış animasyonu yönetir.
+                    // Tekerlek döndürmeyi de kapatıyoruz: dönüşü artık FBX'teki yuvarlanma
+                    // animasyonu yapıyor, ikisi birlikte çalışırsa birbirini ezer.
+                    SerializedObject moverSo = new SerializedObject(mover);
+                    moverSo.FindProperty("m_MoveOnStart").boolValue = false;
+                    moverSo.FindProperty("m_SpinWheels").boolValue = false;
+                    moverSo.ApplyModifiedPropertiesWithoutUndo();
+
+                    AnimatorController controller = EnsureCartController();
+                    if (controller != null)
+                    {
+                        Animator animator = instance.GetComponent<Animator>();
+                        if (animator == null) animator = instance.AddComponent<Animator>();
+
+                        animator.runtimeAnimatorController = controller;
+                        // Kök hareketi kapalı: vagonu ilerleten kalkış kodu, animasyon değil
+                        animator.applyRootMotion = false;
+                        animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                    }
+                }
+
+                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(prefabPath));
+                GameObject prefab = PrefabUtility.SaveAsPrefabAsset(instance, prefabPath);
+
+                Debug.Log($"<color=#00FFAA><b>[PixelGame]</b></color> Prefab üretildi: {prefabPath}");
+                return prefab;
+            }
+            finally
+            {
+                Object.DestroyImmediate(instance);
+            }
+        }
+
 
         #endregion
     }

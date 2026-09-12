@@ -45,6 +45,34 @@ namespace PixelGame
         [Tooltip("Şeridin ekran genişliğinin en fazla ne kadarını kaplayacağı")]
         public float rowWidthFill = 0.96f;
 
+        [Header("🛤️ Ray")]
+        [Tooltip("Her park yerinin altına konacak ray parçası prefabı. " +
+                 "Yan yana duran parçalar kesintisiz bir hat oluşturur. " +
+                 "Havuzda genellikle boş bırakılır.")]
+        public GameObject groundPrefab;
+
+        [Tooltip("Ray parçasının park yeri içindeki duruşu (local Euler). " +
+                 "Elle bulunup doğrulanmış değer.")]
+        public Vector3 groundEuler = new Vector3(0f, -90f, -270f);
+
+        [Header("⛏️ Maden Portalı")]
+        [Tooltip("Rayın iki ucuna konacak maden girişi prefabı. " +
+                 "Vagonlar bu portaldan geçtikten sonra kaybolur.")]
+        public GameObject portalPrefab;
+
+        [Tooltip("Portalın duruşu (local Euler). Sağdaki portal buna 180 derece eklenerek " +
+                 "karşıya baktırılır.")]
+        public Vector3 portalEuler = new Vector3(0f, -90f, -270f);
+
+        [Tooltip("Portalın ölçeği. Otomatik sığdırma yerine sabit verilir: portal modelinin " +
+                 "dar ekseninden ölçmek ölçeği şişiriyordu.")]
+        public float portalScale = 200f;
+
+        [Tooltip("Portalın şerit ucuna göre yeri. Negatif değer portalı içe alır: " +
+                 "şerit ekranın neredeyse tamamını kapladığı için dışarıda kalan portal " +
+                 "ekran kenarına düşüp görünmez oluyordu.")]
+        public float portalMargin = -40f;
+
         [Header("🌑 Slot Gölgesi (Slot Fake Shadow)")]
         [Tooltip("Slotların altına yumuşak sahte gölge ekler.")]
         public bool enableShadow = true;
@@ -182,6 +210,14 @@ namespace PixelGame
                     TruckSlot slot = obj.AddComponent<TruckSlot>();
                     slot.Configure(rect, truckRotation);
 
+                    // Ray parçası: park yerinin altında sabit durur, vagon gelip gitse de kalır
+                    if (style.groundPrefab != null)
+                    {
+                        GameObject ground = UnityEngine.Object.Instantiate(style.groundPrefab, rect);
+                        ground.name = "Track";
+                        slot.SetGround(ground.transform, Quaternion.Euler(style.groundEuler));
+                    }
+
                     if (style.interactive)
                     {
                         obj.AddComponent<TruckPoolPlace>();
@@ -192,7 +228,93 @@ namespace PixelGame
                 }
             }
 
+            BuildPortals(row, style, totalWidth);
+
             return result;
+        }
+
+        /// <summary>
+        /// Rayın iki ucuna maden portalı yerleştirir.
+        /// Vagonlar bu portallardan geçip kaybolur; portal hattın nerede bittiğini gösterir.
+        /// </summary>
+        private static void BuildPortals(RectTransform row, TruckPlaceStyle style, float totalWidth)
+        {
+            if (style.portalPrefab == null) return;
+
+            float edge = totalWidth * 0.5f + style.portalMargin;
+
+            CreatePortal(row, style, "Portal_Left", -edge, 180f);
+            CreatePortal(row, style, "Portal_Right", edge, 0f);
+        }
+
+        private static void CreatePortal(RectTransform row, TruckPlaceStyle style,
+                                         string name, float x, float extraYaw)
+        {
+            GameObject obj = new GameObject(name, typeof(RectTransform));
+            obj.transform.SetParent(row, false);
+
+            RectTransform rect = obj.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(style.cellSize, style.cellSize);
+            rect.anchoredPosition3D = new Vector3(x, 0f, 0f);
+            rect.localRotation = Quaternion.Euler(style.tilt, 0f, 0f);
+
+            GameObject portal = UnityEngine.Object.Instantiate(style.portalPrefab, rect);
+            portal.name = "MinePortal";
+
+            // Karşı uçtaki portal içeriye baksın
+            portal.transform.localRotation = Quaternion.Euler(style.portalEuler) *
+                                             Quaternion.AngleAxis(extraYaw, Vector3.up);
+
+            PlacePortal(portal.transform, style.portalScale);
+        }
+
+        /// <summary>Portalı sabit ölçekte kurar ve hücrenin içine ortalar.</summary>
+        private static void PlacePortal(Transform portal, float scale)
+        {
+            portal.localScale = Vector3.one * scale;
+            portal.localPosition = Vector3.zero;
+
+            // Ölçek belli olduktan sonra ortala; pivot nerede olursa olsun doğru oturur
+            if (!TryGetBounds(portal, out Bounds bounds)) return;
+
+            portal.localPosition = new Vector3(-bounds.center.x, -bounds.center.y, -bounds.max.z);
+        }
+
+        /// <summary>Modelin parent uzayındaki sınırlarını mesh'lerden hesaplar.</summary>
+        private static bool TryGetBounds(Transform model, out Bounds bounds)
+        {
+            bounds = default;
+            Transform parent = model.parent;
+            if (parent == null) return false;
+
+            bool found = false;
+
+            foreach (MeshFilter filter in model.GetComponentsInChildren<MeshFilter>())
+            {
+                Mesh mesh = filter.sharedMesh;
+                if (mesh == null) continue;
+
+                Matrix4x4 toParent = parent.worldToLocalMatrix * filter.transform.localToWorldMatrix;
+                Bounds local = mesh.bounds;
+
+                for (int i = 0; i < 8; i++)
+                {
+                    Vector3 corner = new Vector3(
+                        (i & 1) == 0 ? local.min.x : local.max.x,
+                        (i & 2) == 0 ? local.min.y : local.max.y,
+                        (i & 4) == 0 ? local.min.z : local.max.z);
+
+                    Vector3 point = toParent.MultiplyPoint3x4(corner);
+
+                    if (!found) { bounds = new Bounds(point, Vector3.zero); found = true; }
+                    else bounds.Encapsulate(point);
+                }
+            }
+
+            return found;
         }
 
         private static void ClearChildren(Transform parent)
