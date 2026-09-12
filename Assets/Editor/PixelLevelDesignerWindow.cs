@@ -267,6 +267,11 @@ namespace PixelGame.Editor
             // 5. 📐 PİKSEL UYUMU & IZGARA AYARLARI
             DrawGridSettingsSection();
 
+            EditorGUILayout.Space(6);
+
+            // 6. 🚚 KAMYON DÜZENİ (slot sayısı, havuz sıraları, kapasite)
+            DrawTruckLayoutSection();
+
             // Değişiklik algılandıysa kaydet ve canlı güncelle
             if (EditorGUI.EndChangeCheck())
             {
@@ -453,6 +458,83 @@ namespace PixelGame.Editor
             m_SelectedLevel.SkipTransparent = EditorGUILayout.Toggle("Şeffaf Pikselleri Atla", m_SelectedLevel.SkipTransparent);
 
             EditorGUILayout.EndVertical();
+        }
+
+        private void DrawTruckLayoutSection()
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.LabelField("🚚 Kamyon Düzeni", EditorStyles.boldLabel);
+
+            m_SelectedLevel.SlotCount = EditorGUILayout.IntSlider(
+                new GUIContent("Öndeki Slot Sayısı",
+                    "Aynı anda kaç kamyon doldurulabilir. Bölümün zorluğunu en çok bu belirler: " +
+                    "az slot, aynı anda az renge çalışabilmek demektir."),
+                m_SelectedLevel.SlotCount, 1, 8);
+
+            EditorGUILayout.Space(2);
+
+            m_SelectedLevel.PoolColumns = EditorGUILayout.IntSlider(
+                new GUIContent("Havuz: Yan Yana", "Havuzda yan yana kaç kamyon beklesin"),
+                m_SelectedLevel.PoolColumns, 1, 8);
+
+            m_SelectedLevel.PoolRows = EditorGUILayout.IntSlider(
+                new GUIContent("Havuz: Sıra Sayısı",
+                    "Kaç sıra halinde gelsinler. Sıra arttıkça oyuncu sıradaki kamyonların " +
+                    "daha fazlasını önceden görür, yani daha rahat plan yapar."),
+                m_SelectedLevel.PoolRows, 1, 5);
+
+            EditorGUILayout.LabelField(
+                $"Havuzda aynı anda görünen: {m_SelectedLevel.PoolPlaceCount} kamyon",
+                EditorStyles.miniLabel);
+
+            EditorGUILayout.Space(2);
+
+            m_SelectedLevel.TruckCapacity = EditorGUILayout.IntSlider(
+                new GUIContent("Kamyon Kapasitesi", "Bir kamyonun kasasına kaç küp sığar"),
+                m_SelectedLevel.TruckCapacity, 1, 64);
+
+            // Bölümün bu ayarlarla kaç kamyon gerektirdiğini göster: oyunun uzunluğu budur
+            DrawTruckSummary();
+
+            EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// Seçili ayarlarla bölümün kaç kamyon gerektirdiğini ve olası sorunları gösterir.
+        /// </summary>
+        private void DrawTruckSummary()
+        {
+            int required = m_SelectedLevel.GetRequiredTruckCount();
+
+            if (m_SelectedLevel.ColorPalette.Count == 0)
+            {
+                EditorGUILayout.HelpBox(
+                    "Renk paleti boş. Kamyonlar paletten üretildiği için önce paleti çıkarman gerekir.",
+                    MessageType.Warning);
+                return;
+            }
+
+            EditorGUILayout.LabelField(
+                $"Bu bölüm toplam {required} kamyon gerektiriyor " +
+                $"({m_SelectedLevel.ColorPalette.Count} renk).",
+                EditorStyles.miniLabel);
+
+            if (required > 60)
+            {
+                EditorGUILayout.HelpBox(
+                    $"{required} kamyon oldukça uzun bir bölüm demek. " +
+                    "Kısaltmak için kamyon kapasitesini artır.",
+                    MessageType.Info);
+            }
+
+            // Havuz, slotları dolduramayacak kadar küçükse oyuncu kilitlenebilir
+            if (m_SelectedLevel.PoolPlaceCount < m_SelectedLevel.SlotCount)
+            {
+                EditorGUILayout.HelpBox(
+                    "Havuzdaki kamyon sayısı slot sayısından az. " +
+                    "Oyuncu tüm slotları dolduramaz.",
+                    MessageType.Warning);
+            }
         }
 
         private void DrawActionButtons()

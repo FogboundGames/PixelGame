@@ -16,8 +16,26 @@ namespace PixelGame
         [Header("🅿️ Slotlar")]
         [SerializeField] private List<TruckSlot> m_Slots = new List<TruckSlot>();
 
+        [Header("🎨 Görünüm")]
+        [Tooltip("Park yerlerinin boyutu, aralığı ve görünümü. " +
+                 "Kaç tane olacağı bölüm verisinden gelir.")]
+        [SerializeField] private TruckPlaceStyle m_Style = new TruckPlaceStyle();
+
         public List<TruckSlot> Slots => m_Slots;
+        public TruckPlaceStyle Style => m_Style;
         public int SlotCount => m_Slots != null ? m_Slots.Count : 0;
+
+        /// <summary>
+        /// Şeridi verilen sütun/sıra sayısına göre yeniden kurar.
+        /// Bölüm verisi değiştiğinde çağrılır.
+        /// </summary>
+        public void RebuildPlaces(int columns, int rows)
+        {
+            RectTransform rect = transform as RectTransform;
+            if (rect == null) return;
+
+            m_Slots = TruckPlaceBuilder.Build(rect, m_Style, columns, rows, "Slot");
+        }
 
         private Vector2 m_LastScreenSize;
 

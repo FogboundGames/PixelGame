@@ -40,10 +40,10 @@ namespace PixelGame
         [Range(0f, 0.5f)]
         [SerializeField] private float m_ColorThreshold = 0.05f;
 
-        [Tooltip("Bir kamyonun kasasına kaç küp sığar. Küçük değer çok sayıda kamyon demektir; " +
-                 "bölümün toplam küp sayısına göre ayarla.")]
+        [Tooltip("Bölüm verisinde kamyon ayarı yoksa kullanılacak yedek kapasite. " +
+                 "Normalde kapasite bölümden gelir (Level Designer > Kamyon Düzeni).")]
         [Min(1)]
-        [SerializeField] private int m_TruckCapacity = 16;
+        [SerializeField] private int m_FallbackTruckCapacity = 16;
 
         [Header("🚚 Geçiş")]
         [Tooltip("Kamyonun havuzdan slota (veya havuz içinde ileri) gitme süresi")]
@@ -135,8 +135,36 @@ namespace PixelGame
 
             ClearSlots();
             ClearPool();
+            RebuildStrips();
             BuildQueue();
             RefillPool();
+        }
+
+        /// <summary>
+        /// Slot ve havuz şeritlerini bölüm verisindeki sayılara göre yeniden kurar.
+        /// Bölüm kaç slot ve kaç sıra havuz istiyorsa şeritler ona göre üretilir.
+        /// </summary>
+        private void RebuildStrips()
+        {
+            PixelLevelData level = GetLevel();
+            if (level == null) return;
+
+            if (m_Slots != null) m_Slots.RebuildPlaces(level.SlotCount, 1);
+            if (m_Pool != null) m_Pool.RebuildPlaces(level.PoolColumns, level.PoolRows);
+        }
+
+        /// <summary>Aktif bölüm verisi.</summary>
+        private PixelLevelData GetLevel()
+        {
+            if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
+            return m_Generator != null ? m_Generator.ActiveLevelData : null;
+        }
+
+        /// <summary>Kamyon kapasitesi: bölümden gelir, yoksa yedek değer kullanılır.</summary>
+        private int GetTruckCapacity()
+        {
+            PixelLevelData level = GetLevel();
+            return level != null ? level.TruckCapacity : m_FallbackTruckCapacity;
         }
 
         #region 🎨 Kuyruk Kurulumu
@@ -157,6 +185,7 @@ namespace PixelGame
             }
 
             var trucks = new List<TruckOrder>();
+            int capacity = GetTruckCapacity();
 
             // Paletteki HER renk için kamyon çıkmalı; atlanan bir renk,
             // hiç patlatılamayan ve bölümü bitirilemez kılan küpler demektir
@@ -170,9 +199,9 @@ namespace PixelGame
 
                 while (remaining > 0)
                 {
-                    int capacity = Mathf.Min(m_TruckCapacity, remaining);
-                    trucks.Add(new TruckOrder { Color = entry.targetColor, Capacity = capacity });
-                    remaining -= capacity;
+                    int load = Mathf.Min(capacity, remaining);
+                    trucks.Add(new TruckOrder { Color = entry.targetColor, Capacity = load });
+                    remaining -= load;
                 }
             }
 
@@ -186,10 +215,7 @@ namespace PixelGame
 
         private List<PaletteColorOverride> GetPalette()
         {
-            if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
-            if (m_Generator == null) return null;
-
-            PixelLevelData level = m_Generator.ActiveLevelData;
+            PixelLevelData level = GetLevel();
             return level != null ? level.ColorPalette : null;
         }
 

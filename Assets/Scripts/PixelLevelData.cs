@@ -105,6 +105,25 @@ namespace PixelGame
         [Tooltip("Şeffaf (alpha < 0.1) pikseller için küp oluşturulmasın mı?")]
         [SerializeField] private bool m_SkipTransparent = true;
 
+        [Header("🚚 Kamyon Düzeni")]
+        [Tooltip("Öndeki doldurma slotu sayısı. Aynı anda kaç renge çalışılabileceğini belirler; " +
+                 "bölümün zorluğunu en çok bu ayar etkiler.")]
+        [Range(1, 8)]
+        [SerializeField] private int m_SlotCount = 5;
+
+        [Tooltip("Havuzda yan yana kaç kamyon beklesin")]
+        [Range(1, 8)]
+        [SerializeField] private int m_PoolColumns = 5;
+
+        [Tooltip("Havuzda kaç sıra kamyon beklesin. Sıra arttıkça oyuncu daha ilerisini görür.")]
+        [Range(1, 5)]
+        [SerializeField] private int m_PoolRows = 2;
+
+        [Tooltip("Bir kamyonun kasasına kaç küp sığar. Küçük değer daha çok kamyon demektir; " +
+                 "bölümdeki toplam küp sayısına göre ayarla.")]
+        [Min(1)]
+        [SerializeField] private int m_TruckCapacity = 16;
+
         [Header("🌑 Gölge Özelleştirme (Opsiyonel)")]
         [Tooltip("Bu bölüme özel kontur gölgesi dokusu (Boş bırakılırsa görselden otomatik üretilir)")]
         [SerializeField] private Texture2D m_FigureShadowTexture;
@@ -128,6 +147,33 @@ namespace PixelGame
         public float CubeDepth { get => m_CubeDepth; set => m_CubeDepth = value; }
         public float InnerPadding { get => m_InnerPadding; set => m_InnerPadding = value; }
         public bool SkipTransparent { get => m_SkipTransparent; set => m_SkipTransparent = value; }
+
+        public int SlotCount { get => m_SlotCount; set => m_SlotCount = Mathf.Max(1, value); }
+        public int PoolColumns { get => m_PoolColumns; set => m_PoolColumns = Mathf.Max(1, value); }
+        public int PoolRows { get => m_PoolRows; set => m_PoolRows = Mathf.Max(1, value); }
+        public int TruckCapacity { get => m_TruckCapacity; set => m_TruckCapacity = Mathf.Max(1, value); }
+
+        /// <summary>Havuzda aynı anda görünen kamyon sayısı.</summary>
+        public int PoolPlaceCount => m_PoolColumns * m_PoolRows;
+
+        /// <summary>
+        /// Bu bölümü bitirmek için gereken toplam kamyon sayısı.
+        /// Her renk için o renkteki küpleri taşıyacak kadar kamyon çıkar.
+        /// </summary>
+        public int GetRequiredTruckCount()
+        {
+            if (m_ColorPalette == null) return 0;
+
+            int total = 0;
+
+            foreach (PaletteColorOverride entry in m_ColorPalette)
+            {
+                if (entry == null || entry.pixelCount <= 0) continue;
+                total += Mathf.CeilToInt((float)entry.pixelCount / Mathf.Max(1, m_TruckCapacity));
+            }
+
+            return total;
+        }
 
         public Texture2D GetActiveTexture()
         {

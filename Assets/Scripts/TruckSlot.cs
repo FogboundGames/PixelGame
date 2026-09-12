@@ -49,6 +49,15 @@ namespace PixelGame
         public Transform Truck { get => m_Truck; set { m_Truck = value; AlignTruck(); } }
         public Color TruckColor { get => m_TruckColor; set { m_TruckColor = value; ApplyTruckColor(); } }
 
+        /// <summary>
+        /// Park yerini kurar. Şerit oluşturulurken çağrılır.
+        /// </summary>
+        public void Configure(RectTransform rect, Quaternion truckRotation)
+        {
+            m_SlotRect = rect;
+            m_BaseRotation = truckRotation;
+        }
+
         /// <summary>Slotta kamyon var mı?</summary>
         public bool IsEmpty => m_Truck == null;
 

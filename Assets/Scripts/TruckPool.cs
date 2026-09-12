@@ -14,10 +14,27 @@ namespace PixelGame
     public class TruckPool : MonoBehaviour
     {
         [Header("🅿️ Havuz Yerleri")]
-        [Tooltip("Kamyonların bekleyeceği yerler (slotlarla aynı yapıda)")]
         [SerializeField] private List<TruckSlot> m_Places = new List<TruckSlot>();
 
+        [Header("🎨 Görünüm")]
+        [Tooltip("Bekleme yerlerinin boyutu, aralığı ve görünümü. " +
+                 "Kaç tane ve kaç sıra olacağı bölüm verisinden gelir.")]
+        [SerializeField] private TruckPlaceStyle m_Style = new TruckPlaceStyle();
+
         public List<TruckSlot> Places => m_Places;
+        public TruckPlaceStyle Style => m_Style;
+
+        /// <summary>
+        /// Havuzu verilen sütun/sıra sayısına göre yeniden kurar.
+        /// Bölüm verisi değiştiğinde çağrılır.
+        /// </summary>
+        public void RebuildPlaces(int columns, int rows)
+        {
+            RectTransform rect = transform as RectTransform;
+            if (rect == null) return;
+
+            m_Places = TruckPlaceBuilder.Build(rect, m_Style, columns, rows, "Place");
+        }
         public int PlaceCount => m_Places != null ? m_Places.Count : 0;
 
         private void OnEnable()

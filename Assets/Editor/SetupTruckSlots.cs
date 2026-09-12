@@ -26,7 +26,6 @@ namespace PixelGame.Editor
         private const string k_TrucksRootName = "Trucks";
 
         // --- Slot şeridi (doldurma alanı) — yolun üzerindeki boş park yerleri ---
-        private const int k_SlotCount = 5;
         private const float k_SlotSize = 400f;
         private const float k_SlotGap = 16f;
         private const float k_SlotGapY = 0f;
@@ -40,11 +39,7 @@ namespace PixelGame.Editor
         // görünüyor ve aynı düzlemde durmuyorlarmış gibi algılanıyor.
         // Aynı ölçüler sayesinde iki şerit aynı ölçeği alır, kamyonlar aynı boyutta
         // ve aynı sütun hizasında durur.
-        private const int k_PoolColumns = k_SlotCount;
-        private const float k_PoolSlotSize = k_SlotSize;
-        private const float k_PoolGap = k_SlotGap;
 
-        private const int k_PoolRows = 2;
 
         /// <summary>Havuzda sıralar arası dikey boşluk.</summary>
         private const float k_PoolGapY = 0f;
@@ -113,30 +108,28 @@ namespace PixelGame.Editor
             Canvas canvas = EnsureSlotCanvas(cam);
 
             // 1. Doldurma slotları — boş başlar, kamyonlar havuzdan gelir
-            RectTransform slotRow = EnsureRow(canvas, k_SlotRowName, k_SlotCount, 1,
-                                              k_SlotSize, k_SlotGap, k_SlotGapY, k_SlotRowScreenHeight);
-
+            RectTransform slotRow = EnsureRow(canvas, k_SlotRowName, k_SlotRowScreenHeight);
             TruckSlotRow rowComponent = EnsureComponent<TruckSlotRow>(slotRow.gameObject);
-            var slots = BuildPlaces(slotRow, slotSprite, k_SlotCount, 1,
-                                    k_SlotSize, k_SlotGap, k_SlotGapY, 0f, "Slot",
-                                    showSprite: true, interactive: false);
 
-            rowComponent.Slots.Clear();
-            rowComponent.Slots.AddRange(slots);
+            ApplyStyle(rowComponent.Style, slotSprite, k_SlotGapY, 0f,
+                       showSprite: true, interactive: false);
 
             // 2. Havuz — sıradaki kamyonlar burada bekler, tıklanınca slota gider
-            int poolCount = k_PoolColumns * k_PoolRows;
-            RectTransform poolRow = EnsureRow(canvas, k_PoolRowName, k_PoolColumns, k_PoolRows,
-                                              k_PoolSlotSize, k_PoolGap, k_PoolGapY, k_PoolRowScreenHeight);
-
+            RectTransform poolRow = EnsureRow(canvas, k_PoolRowName, k_PoolRowScreenHeight);
             TruckPool poolComponent = EnsureComponent<TruckPool>(poolRow.gameObject);
-            // Havuzda park yeri görseli yok: sadece kamyonlar görünür
-            var places = BuildPlaces(poolRow, slotSprite, k_PoolColumns, k_PoolRows,
-                                     k_PoolSlotSize, k_PoolGap, k_PoolGapY, k_PoolStepZ, "Place",
-                                     showSprite: false, interactive: true);
 
-            poolComponent.Places.Clear();
-            poolComponent.Places.AddRange(places);
+            // Havuzda park yeri görseli yok: sadece kamyonlar görünür
+            ApplyStyle(poolComponent.Style, slotSprite, k_PoolGapY, k_PoolStepZ,
+                       showSprite: false, interactive: true);
+
+            // Sayılar bölüm verisinden gelir; burada yalnızca bir önizleme kurulur
+            PixelLevelData level = GetActiveLevel();
+            int slotCount = level != null ? level.SlotCount : 5;
+            int poolColumns = level != null ? level.PoolColumns : 5;
+            int poolRows = level != null ? level.PoolRows : 2;
+
+            rowComponent.RebuildPlaces(slotCount, 1);
+            poolComponent.RebuildPlaces(poolColumns, poolRows);
 
             // 3. Yönetici
             SetupDispatcher(rowComponent, poolComponent, truckPrefab);
@@ -150,8 +143,8 @@ namespace PixelGame.Editor
             Selection.activeGameObject = slotRow.gameObject;
 
             Debug.Log($"<color=#00FFAA><b>[PixelGame]</b></color> Kamyon döngüsü kuruldu: " +
-                      $"{k_SlotCount} slot, {poolCount} havuz yeri. " +
-                      "Oyunu başlatınca havuzdaki bir kamyona tıklayıp slota gönder.");
+                      $"{slotCount} slot, {poolColumns}x{poolRows} havuz. " +
+                      "Sayılar bölüm verisinden gelir (Level Designer > Kamyon Düzeni).");
         }
 
         [MenuItem("Tools/PixelGame/🚚 Kamyon Döngüsünü Kaldır", priority = 21)]
@@ -210,8 +203,7 @@ namespace PixelGame.Editor
         /// Şerit kökünü kurar: ekran yüksekliğine orantısal ankrajlanır ve
         /// gerekirse ekran genişliğine sığacak şekilde ölçeklenir.
         /// </summary>
-        private static RectTransform EnsureRow(Canvas canvas, string name, int columns, int rows,
-                                               float cellSize, float gap, float gapY, float screenHeight)
+        private static RectTransform EnsureRow(Canvas canvas, string name, float screenHeight)
         {
             Transform existing = canvas.transform.Find(name);
             GameObject rowObj;
@@ -219,11 +211,6 @@ namespace PixelGame.Editor
             if (existing != null)
             {
                 rowObj = existing.gameObject;
-
-                for (int i = rowObj.transform.childCount - 1; i >= 0; i--)
-                {
-                    Undo.DestroyObjectImmediate(rowObj.transform.GetChild(i).gameObject);
-                }
             }
             else
             {
@@ -232,105 +219,40 @@ namespace PixelGame.Editor
                 rowObj.transform.SetParent(canvas.transform, false);
             }
 
-            float totalWidth = columns * cellSize + (columns - 1) * gap;
-            float totalHeight = rows * cellSize + (rows - 1) * gapY;
-
+            // Yüksekliği orana göre ankrajla: her ekran boyutunda şerit aynı yerde dursun.
+            // Genişlik, yükseklik ve sığdırma ölçeği park yerleri kurulurken hesaplanır.
             RectTransform rect = rowObj.GetComponent<RectTransform>();
             rect.anchorMin = new Vector2(0.5f, screenHeight);
             rect.anchorMax = new Vector2(0.5f, screenHeight);
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = new Vector2(totalWidth, totalHeight);
             rect.anchoredPosition = Vector2.zero;
-
-            // Canvas match=0 (genişliğe göre) olduğu için referans genişlik ekran genişliğine denktir
-            float available = canvas.GetComponent<CanvasScaler>().referenceResolution.x * k_RowScreenWidthFill;
-            float fit = totalWidth > available ? available / totalWidth : 1f;
-
-            // Z de ölçeklenmeli: kamyonlar bu şeridin altında yaşıyor,
-            // non-uniform ölçek 3B modeli derinlikte ezer
-            rect.localScale = new Vector3(fit, fit, fit);
 
             return rect;
         }
 
-        /// <summary>
-        /// Bir şeridin içine park yeri görsellerini dizer ve her birine TruckSlot takar.
-        /// Kamyon oluşturulmaz; yerler boş başlar.
-        /// </summary>
-        private static List<TruckSlot> BuildPlaces(RectTransform row, Sprite sprite,
-                                                   int columns, int rows,
-                                                   float cellSize, float gap, float gapY, float stepZ,
-                                                   string namePrefix,
-                                                   bool showSprite, bool interactive)
+        /// <summary>Şeridin görsel ayarlarını kurulum sabitlerinden doldurur.</summary>
+        private static void ApplyStyle(TruckPlaceStyle style, Sprite sprite,
+                                       float gapY, float stepZ,
+                                       bool showSprite, bool interactive)
         {
-            var result = new List<TruckSlot>();
-
-            float totalWidth = columns * cellSize + (columns - 1) * gap;
-            float totalHeight = rows * cellSize + (rows - 1) * gapY;
-
-            float startX = -totalWidth * 0.5f + cellSize * 0.5f;
-            float startY = totalHeight * 0.5f - cellSize * 0.5f;
-
-            int index = 0;
-
-            for (int r = 0; r < rows; r++)
-            {
-                for (int c = 0; c < columns; c++)
-                {
-                    float x = startX + c * (cellSize + gap);
-                    float y = startY - r * (cellSize + gapY);
-
-                    GameObject obj = new GameObject($"{namePrefix}_{index + 1}", typeof(RectTransform));
-                    Undo.RegisterCreatedObjectUndo(obj, "Park Yeri Oluştur");
-                    obj.transform.SetParent(row, false);
-
-                    RectTransform rect = obj.GetComponent<RectTransform>();
-                    rect.anchorMin = new Vector2(0.5f, 0.5f);
-                    rect.anchorMax = new Vector2(0.5f, 0.5f);
-                    rect.pivot = new Vector2(0.5f, 0.5f);
-                    rect.sizeDelta = new Vector2(cellSize, cellSize);
-                    // Alt sıralar kameraya doğru gelsin: negatif Z öne çeker
-                    rect.anchoredPosition3D = new Vector3(x, y, -r * stepZ);
-                    // Yere yatır: perspektif kamera bunu yamuk gösterir, zemin parçası hissi verir
-                    rect.localRotation = Quaternion.Euler(k_SlotTilt, 0f, 0f);
-
-                    Image image = Undo.AddComponent<Image>(obj);
-
-                    if (showSprite)
-                    {
-                        image.sprite = sprite;
-                        image.preserveAspect = true;
-                    }
-                    else
-                    {
-                        // Görünmez ama tıklanabilir yüzey: havuzda park yeri çizilmez,
-                        // yalnızca kamyonun kendisi görünür
-                        image.sprite = null;
-                        image.color = new Color(1f, 1f, 1f, 0f);
-                    }
-
-                    // Havuzdaki yerler tıklanabilir olmalı; doldurma slotları tıklamayı yutmamalı
-                    image.raycastTarget = interactive;
-
-                    TruckSlot slot = Undo.AddComponent<TruckSlot>(obj);
-
-                    SerializedObject so = new SerializedObject(slot);
-                    so.FindProperty("m_SlotRect").objectReferenceValue = rect;
-                    so.FindProperty("m_BaseRotation").quaternionValue = Quaternion.Euler(k_TruckLocalEuler);
-                    so.ApplyModifiedPropertiesWithoutUndo();
-
-                    if (interactive)
-                    {
-                        Undo.AddComponent<TruckPoolPlace>(obj);
-                    }
-
-                    result.Add(slot);
-                    index++;
-                }
-            }
-
-            return result;
+            style.sprite = sprite;
+            style.cellSize = k_SlotSize;
+            style.gap = k_SlotGap;
+            style.gapY = gapY;
+            style.stepZ = stepZ;
+            style.tilt = k_SlotTilt;
+            style.truckEuler = k_TruckLocalEuler;
+            style.showSprite = showSprite;
+            style.interactive = interactive;
+            style.rowWidthFill = k_RowScreenWidthFill;
         }
+
+        private static PixelLevelData GetActiveLevel()
+        {
+            PixelArtGenerator generator = Object.FindFirstObjectByType<PixelArtGenerator>();
+            return generator != null ? generator.ActiveLevelData : null;
+        }
+
 
         /// <summary>
         /// Park yerleri için Screen Space - Camera modunda ayrı bir Canvas kurar.
