@@ -49,6 +49,39 @@ namespace PixelGame
         public Transform Truck { get => m_Truck; set { m_Truck = value; AlignTruck(); } }
         public Color TruckColor { get => m_TruckColor; set { m_TruckColor = value; ApplyTruckColor(); } }
 
+        /// <summary>Slotta kamyon var mı?</summary>
+        public bool IsEmpty => m_Truck == null;
+
+        /// <summary>Slottaki kamyonun yük bilgisi (boşsa null).</summary>
+        public TruckCargo Cargo => m_Truck != null ? m_Truck.GetComponent<TruckCargo>() : null;
+
+        /// <summary>
+        /// Bir kamyonu bu slota yerleştirir: çocuğu yapar, park yerine oturtur ve rengini uygular.
+        /// </summary>
+        public void AssignTruck(Transform truck, Color color)
+        {
+            m_Truck = truck;
+            m_TruckColor = color;
+
+            if (m_Truck != null)
+            {
+                m_Truck.SetParent(SlotRect, false);
+            }
+
+            AlignTruck();
+            ApplyTruckColor();
+        }
+
+        /// <summary>
+        /// Kamyonu slottan ayırır ve döndürür. Slot boşalır.
+        /// </summary>
+        public Transform ReleaseTruck()
+        {
+            Transform truck = m_Truck;
+            m_Truck = null;
+            return truck;
+        }
+
         private void OnEnable()
         {
             AlignTruck();

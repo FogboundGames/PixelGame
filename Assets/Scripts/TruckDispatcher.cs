@@ -1,0 +1,515 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace PixelGame
+{
+    /// <summary>
+    /// Kamyon döngüsünün merkezi.
+    ///
+    /// Akış: slotlar boş başlar → oyuncu havuzdan bir kamyon seçip boş slota gönderir →
+    /// tablodan o kamyonun rengindeki küpleri patlatıp kasasını doldurur →
+    /// kasa dolunca kamyon kapağını kapatıp kalkar, slot boşalır →
+    /// havuzda boşalan yere kuyruktan yeni kamyon gelir.
+    ///
+    /// Kamyon kuyruğu bölümün renk paletinden üretilir: her renkten, o renkteki küpleri
+    /// taşımaya yetecek kadar kamyon çıkar. Böylece bölüm her zaman çözülebilir kalır.
+    /// </summary>
+    [DisallowMultipleComponent]
+    [AddComponentMenu("PixelGame/Truck Dispatcher")]
+    public class TruckDispatcher : MonoBehaviour
+    {
+        private static TruckDispatcher s_Instance;
+        public static TruckDispatcher Instance => s_Instance;
+
+        [Header("🔗 Bağlantılar")]
+        [SerializeField] private TruckSlotRow m_Slots;
+        [SerializeField] private TruckPool m_Pool;
+        [SerializeField] private GameObject m_TruckPrefab;
+        [SerializeField] private PixelArtGenerator m_Generator;
+
+        [Header("🎯 Kurallar")]
+        [Tooltip("Açıkken küp ancak rengine uyan bir kamyon slotta varsa patlar. " +
+                 "Kapalıyken her küp patlar (eski serbest davranış).")]
+        [SerializeField] private bool m_RequireMatchingTruck = true;
+
+        [Tooltip("Küp rengi ile kamyon rengi arasındaki kabul edilen fark (0 = birebir aynı).\n" +
+                 "Palet gruplama eşiği 0.04 olduğu için bundan büyük olmalı; " +
+                 "ama bölümdeki en yakın iki rengin farkından küçük kalmalı, " +
+                 "yoksa küpler yanlış kamyona yüklenir.")]
+        [Range(0f, 0.5f)]
+        [SerializeField] private float m_ColorThreshold = 0.05f;
+
+        [Tooltip("Bir kamyonun kasasına kaç küp sığar. Küçük değer çok sayıda kamyon demektir; " +
+                 "bölümün toplam küp sayısına göre ayarla.")]
+        [Min(1)]
+        [SerializeField] private int m_TruckCapacity = 16;
+
+        [Header("🚚 Geçiş")]
+        [Tooltip("Kamyonun havuzdan slota (veya havuz içinde ileri) gitme süresi")]
+        [Min(0.05f)]
+        [SerializeField] private float m_MoveDuration = 0.4f;
+
+        [Tooltip("Geçiş sırasında kamyonun kameraya doğru yaptığı kavis. " +
+                 "0 = düz kayar, negatif değer öne doğru hafifçe kalkar.")]
+        [SerializeField] private float m_MoveArc = -120f;
+
+        [Header("🚚 Kalkış")]
+        [Tooltip("Kamyonun kalkıp ekrandan çıkma süresi")]
+        [Min(0.05f)]
+        [SerializeField] private float m_DepartDuration = 0.55f;
+
+        [Tooltip("Kapak kapandıktan sonra kalkışa kadar beklenen süre")]
+        [Min(0f)]
+        [SerializeField] private float m_DepartDelay = 0.35f;
+
+        /// <summary>
+        /// Kuyruktaki bir kamyon siparişi: hangi renk, kaç küp.
+        /// Kapasite sabit değildir; bir rengin son kamyonu kalan küp kadar yük alır,
+        /// böylece asla dolmayan (ve oyunu kilitleyen) yarım kamyon oluşmaz.
+        /// </summary>
+        private struct TruckOrder
+        {
+            public Color Color;
+            public int Capacity;
+        }
+
+        /// <summary>Sıradaki kamyonlar.</summary>
+        private readonly Queue<TruckOrder> m_Queue = new Queue<TruckOrder>();
+
+        public bool RequireMatchingTruck { get => m_RequireMatchingTruck; set => m_RequireMatchingTruck = value; }
+        public int QueuedTruckCount => m_Queue.Count;
+
+        private void Awake()
+        {
+            s_Instance = this;
+        }
+
+        private void OnEnable()
+        {
+            PixelArtGenerator.LevelLoaded -= OnLevelLoaded;
+            PixelArtGenerator.LevelLoaded += OnLevelLoaded;
+        }
+
+        private void OnDisable()
+        {
+            PixelArtGenerator.LevelLoaded -= OnLevelLoaded;
+        }
+
+        private void OnDestroy()
+        {
+            if (s_Instance == this) s_Instance = null;
+        }
+
+        private void Start()
+        {
+            if (!Application.isPlaying) return;
+
+            // LevelManager bölümü de Start() içinde yüklüyor ve sıra garantili değil.
+            // Bu yüzden bir kare bekleyip paleti okuruz; bölüm o ana kadar yüklenmiş olur.
+            StartCoroutine(RebuildNextFrame());
+        }
+
+        private IEnumerator RebuildNextFrame()
+        {
+            yield return null;
+            Rebuild();
+        }
+
+        private void OnLevelLoaded(PixelLevelData level)
+        {
+            if (!Application.isPlaying) return;
+
+            // Bölüm değişti: kamyonlar yeni bölümün paletine göre yeniden kurulmalı
+            Rebuild();
+        }
+
+        /// <summary>
+        /// Kamyon döngüsünü aktif bölümün paletine göre sıfırdan kurar.
+        /// Birden çok kez çağrılabilir; her seferinde temiz bir başlangıç yapar.
+        /// </summary>
+        public void Rebuild()
+        {
+            StopAllCoroutines();
+            m_Moving.Clear();
+
+            ClearSlots();
+            ClearPool();
+            BuildQueue();
+            RefillPool();
+        }
+
+        #region 🎨 Kuyruk Kurulumu
+
+        /// <summary>
+        /// Bölümün renk paletinden kamyon kuyruğunu üretir.
+        /// Her renk için o renkteki küpleri taşımaya yetecek sayıda kamyon eklenir.
+        /// </summary>
+        public void BuildQueue()
+        {
+            m_Queue.Clear();
+
+            List<PaletteColorOverride> palette = GetPalette();
+            if (palette == null || palette.Count == 0)
+            {
+                Debug.LogWarning("[TruckDispatcher] Bölüm paleti bulunamadı; kamyon kuyruğu kurulamadı.");
+                return;
+            }
+
+            var trucks = new List<TruckOrder>();
+
+            // Paletteki HER renk için kamyon çıkmalı; atlanan bir renk,
+            // hiç patlatılamayan ve bölümü bitirilemez kılan küpler demektir
+            for (int i = 0; i < palette.Count; i++)
+            {
+                PaletteColorOverride entry = palette[i];
+                if (entry == null || entry.pixelCount <= 0) continue;
+
+                // Rengi taşımaya yetecek kadar kamyon; sonuncusu kalan kadar yük alır
+                int remaining = entry.pixelCount;
+
+                while (remaining > 0)
+                {
+                    int capacity = Mathf.Min(m_TruckCapacity, remaining);
+                    trucks.Add(new TruckOrder { Color = entry.targetColor, Capacity = capacity });
+                    remaining -= capacity;
+                }
+            }
+
+            Shuffle(trucks);
+
+            foreach (TruckOrder order in trucks)
+            {
+                m_Queue.Enqueue(order);
+            }
+        }
+
+        private List<PaletteColorOverride> GetPalette()
+        {
+            if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (m_Generator == null) return null;
+
+            PixelLevelData level = m_Generator.ActiveLevelData;
+            return level != null ? level.ColorPalette : null;
+        }
+
+        private static void Shuffle(List<TruckOrder> list)
+        {
+            for (int i = list.Count - 1; i > 0; i--)
+            {
+                int j = Random.Range(0, i + 1);
+                (list[i], list[j]) = (list[j], list[i]);
+            }
+        }
+
+        #endregion
+
+        #region 🅿️ Havuz ve Slotlar
+
+        private void ClearSlots()
+        {
+            if (m_Slots == null) return;
+
+            foreach (TruckSlot slot in m_Slots.Slots)
+            {
+                if (slot == null || slot.IsEmpty) continue;
+
+                Transform truck = slot.ReleaseTruck();
+                if (truck != null) Destroy(truck.gameObject);
+            }
+        }
+
+        private void ClearPool()
+        {
+            if (m_Pool == null) return;
+
+            foreach (TruckSlot place in m_Pool.Places)
+            {
+                if (place == null || place.IsEmpty) continue;
+
+                Transform truck = place.ReleaseTruck();
+                if (truck != null) Destroy(truck.gameObject);
+            }
+        }
+
+        /// <summary>Havuzdaki boş yerlere kuyruktan kamyon getirir.</summary>
+        public void RefillPool()
+        {
+            if (m_Pool == null) return;
+
+            foreach (TruckSlot place in m_Pool.Places)
+            {
+                if (place == null || !place.IsEmpty) continue;
+                if (m_Queue.Count == 0) break;
+
+                TruckOrder order = m_Queue.Dequeue();
+                SpawnTruckInto(place, order);
+            }
+        }
+
+        private void SpawnTruckInto(TruckSlot place, TruckOrder order)
+        {
+            if (m_TruckPrefab == null || place == null) return;
+
+            GameObject truck = Instantiate(m_TruckPrefab);
+            truck.name = $"Truck_{ColorUtility.ToHtmlStringRGB(order.Color)}_{order.Capacity}";
+
+            place.AssignTruck(truck.transform, order.Color);
+
+            TruckCargo cargo = truck.GetComponent<TruckCargo>();
+            if (cargo == null) cargo = truck.AddComponent<TruckCargo>();
+
+            cargo.ResetCargo(order.Color, order.Capacity);
+        }
+
+        /// <summary>
+        /// Havuzdaki bir kamyonu ilk boş slota gönderir.
+        /// Boş slot yoksa hiçbir şey yapmaz.
+        /// </summary>
+        public bool SendToSlot(TruckSlot place)
+        {
+            if (place == null || place.IsEmpty || m_Slots == null) return false;
+
+            TruckSlot target = FindEmptySlot();
+            if (target == null) return false;
+
+            Color color = place.TruckColor;
+            Transform truck = place.ReleaseTruck();
+
+            MoveTruckInto(target, truck, color);
+
+            TruckCargo cargo = truck != null ? truck.GetComponent<TruckCargo>() : null;
+            if (cargo != null)
+            {
+                cargo.Filled -= OnCargoFilled;
+                cargo.Filled += OnCargoFilled;
+            }
+
+            CompactPool();
+            RefillPool();
+
+            return true;
+        }
+
+        /// <summary>
+        /// Kamyonu hedef park yerine yerleştirir ve oraya kayarak gitmesini sağlar.
+        /// Hedefe hemen bağlanır (slot dolu sayılır), yalnızca görsel geçiş animasyonludur.
+        /// </summary>
+        private void MoveTruckInto(TruckSlot target, Transform truck, Color color)
+        {
+            if (target == null) return;
+
+            if (truck == null)
+            {
+                target.AssignTruck(null, color);
+                return;
+            }
+
+            // Geçişten önceki dünya konumu
+            Vector3 startWorld = truck.position;
+
+            // Hedefin çocuğu yap ve oturacağı yeri hesapla
+            target.AssignTruck(truck, color);
+
+            Vector3 endLocal = truck.localPosition;
+            Vector3 startLocal = truck.parent != null
+                ? truck.parent.InverseTransformPoint(startWorld)
+                : endLocal;
+
+            // Hızlı tıklamalarda aynı kamyon için ikinci bir geçiş başlarsa
+            // ikisi birbiriyle yarışıp titremeye yol açar; öncekini durdur
+            if (m_Moving.TryGetValue(truck, out Coroutine running) && running != null)
+            {
+                StopCoroutine(running);
+            }
+
+            m_Moving[truck] = StartCoroutine(MoveRoutine(truck, startLocal, endLocal));
+        }
+
+        /// <summary>Hâlen yer değiştirmekte olan kamyonlar.</summary>
+        private readonly Dictionary<Transform, Coroutine> m_Moving =
+            new Dictionary<Transform, Coroutine>();
+
+        private IEnumerator MoveRoutine(Transform truck, Vector3 from, Vector3 to)
+        {
+            float elapsed = 0f;
+
+            while (elapsed < m_MoveDuration && truck != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / m_MoveDuration);
+
+                // Yavaşlayarak yerleşsin
+                float eased = 1f - (1f - t) * (1f - t);
+
+                Vector3 position = Vector3.Lerp(from, to, eased);
+                // Yolun ortasında kameraya doğru hafifçe kalk
+                position.z += Mathf.Sin(t * Mathf.PI) * m_MoveArc;
+
+                truck.localPosition = position;
+                yield return null;
+            }
+
+            if (truck != null)
+            {
+                truck.localPosition = to;
+                m_Moving.Remove(truck);
+            }
+        }
+
+        /// <summary>
+        /// Havuzdaki kamyonları öne kaydırarak boşlukları kapatır; kayma animasyonludur.
+        /// </summary>
+        private void CompactPool()
+        {
+            if (m_Pool == null) return;
+
+            var places = m_Pool.Places;
+            int write = 0;
+
+            for (int read = 0; read < places.Count; read++)
+            {
+                TruckSlot source = places[read];
+                if (source == null || source.IsEmpty) continue;
+
+                if (read != write)
+                {
+                    TruckSlot target = places[write];
+                    if (target != null)
+                    {
+                        Color color = source.TruckColor;
+                        MoveTruckInto(target, source.ReleaseTruck(), color);
+                    }
+                }
+
+                write++;
+            }
+        }
+
+        private TruckSlot FindEmptySlot()
+        {
+            if (m_Slots == null) return null;
+
+            foreach (TruckSlot slot in m_Slots.Slots)
+            {
+                if (slot != null && slot.IsEmpty) return slot;
+            }
+
+            return null;
+        }
+
+        #endregion
+
+        #region 💥 Küp Patlatma
+
+        /// <summary>
+        /// Bu renkteki bir küp şu an patlatılabilir mi?
+        /// Kural açıkken slotta rengine uyan, dolmamış bir kamyon gerekir.
+        /// </summary>
+        public bool CanPop(Color cubeColor)
+        {
+            if (!m_RequireMatchingTruck) return true;
+
+            return FindSlotFor(cubeColor) != null;
+        }
+
+        /// <summary>
+        /// Patlatılan küpü rengine uyan kamyona yükler.
+        /// </summary>
+        public void NotifyCubePopped(Color cubeColor)
+        {
+            TruckSlot slot = FindSlotFor(cubeColor);
+            if (slot == null) return;
+
+            TruckCargo cargo = slot.Cargo;
+            if (cargo == null) return;
+
+            cargo.TryLoad(cubeColor, m_ColorThreshold);
+        }
+
+        /// <summary>Bu rengi kabul edebilecek, dolmamış kamyonu taşıyan slotu bulur.</summary>
+        private TruckSlot FindSlotFor(Color cubeColor)
+        {
+            if (m_Slots == null) return null;
+
+            TruckSlot best = null;
+            float bestDistance = float.MaxValue;
+
+            foreach (TruckSlot slot in m_Slots.Slots)
+            {
+                if (slot == null || slot.IsEmpty) continue;
+
+                TruckCargo cargo = slot.Cargo;
+                if (cargo == null || cargo.IsFull) continue;
+
+                float distance = TruckCargo.ColorDistance(cubeColor, cargo.CargoColor);
+                if (distance > m_ColorThreshold) continue;
+
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    best = slot;
+                }
+            }
+
+            return best;
+        }
+
+        #endregion
+
+        #region 🚚 Kalkış
+
+        private void OnCargoFilled(TruckCargo cargo)
+        {
+            cargo.Filled -= OnCargoFilled;
+
+            TruckSlot slot = FindSlotOf(cargo.transform);
+            if (slot == null) return;
+
+            StartCoroutine(DepartRoutine(slot, cargo.transform));
+        }
+
+        private TruckSlot FindSlotOf(Transform truck)
+        {
+            if (m_Slots == null) return null;
+
+            foreach (TruckSlot slot in m_Slots.Slots)
+            {
+                if (slot != null && slot.Truck == truck) return slot;
+            }
+
+            return null;
+        }
+
+        /// <summary>Kamyonu slottan çıkarır, kaydırarak uzaklaştırır ve yok eder.</summary>
+        private IEnumerator DepartRoutine(TruckSlot slot, Transform truck)
+        {
+            // Kapağın kapanmasını bekle
+            yield return new WaitForSeconds(m_DepartDelay);
+
+            slot.ReleaseTruck();
+
+            if (truck == null) yield break;
+
+            Vector3 start = truck.localPosition;
+            // Slot düzleminde sağa doğru, kamyon boyunun birkaç katı kadar uzaklaş
+            float distance = Mathf.Max(400f, Mathf.Abs(start.x) * 2f + 400f);
+            Vector3 end = start + new Vector3(distance, 0f, 0f);
+
+            float elapsed = 0f;
+
+            while (elapsed < m_DepartDuration && truck != null)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / m_DepartDuration);
+                // Hızlanarak çıksın
+                truck.localPosition = Vector3.LerpUnclamped(start, end, t * t);
+                yield return null;
+            }
+
+            if (truck != null) Destroy(truck.gameObject);
+        }
+
+        #endregion
+    }
+}

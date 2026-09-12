@@ -263,7 +263,16 @@ namespace PixelGame
             }
 
             GeneratePixelArt();
+
+            // Bölüme bağlı sistemler (kamyon kuyruğu gibi) kendilerini yenilesin
+            LevelLoaded?.Invoke(levelData);
         }
+
+        /// <summary>
+        /// Bir bölüm yüklenip küpleri oluşturulduğunda tetiklenir.
+        /// Bölümün paletine göre kurulan sistemler bunu dinleyerek kendilerini yeniler.
+        /// </summary>
+        public static event System.Action<PixelLevelData> LevelLoaded;
 
         /// <summary>
         /// Sahnede var olan küplerin renklerini anında günceller.

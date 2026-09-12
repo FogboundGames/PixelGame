@@ -306,14 +306,28 @@ namespace PixelGame
         {
             if (m_IsPopped || !gameObject.activeSelf) return;
 
+            // 0. Kamyon kuralı: rengine uyan bir kamyon slotta yoksa küp patlamaz.
+            //    Dispatcher yoksa kural da yoktur; küp serbestçe patlar.
+            TruckDispatcher dispatcher = TruckDispatcher.Instance;
+            if (dispatcher != null && !dispatcher.CanPop(m_OriginalColor)) return;
+
             // 1. Kendi renginde 3D mini vokseller aşağıya doğru dökülsün
             if (VoxelParticleManager.Instance != null)
             {
                 VoxelParticleManager.Instance.SpawnVoxelBurst(transform.position, transform.lossyScale, m_CurrentColor);
             }
 
-            // 2. Etkileşim yöneticisine bildir
-            PixelCubeInteraction interaction = Object.FindFirstObjectByType<PixelCubeInteraction>();
+            // 2. Küpü rengine uyan kamyonun kasasına yükle
+            if (dispatcher != null)
+            {
+                dispatcher.NotifyCubePopped(m_OriginalColor);
+            }
+
+            // 3. Etkileşim yöneticisine bildir
+            PixelCubeInteraction interaction = PixelCubeInteraction.Instance != null
+                ? PixelCubeInteraction.Instance
+                : Object.FindFirstObjectByType<PixelCubeInteraction>();
+
             if (interaction != null)
             {
                 interaction.RegisterPoppedCube(this);
