@@ -46,6 +46,10 @@ namespace PixelGame
         public static readonly Color White = new Color32(245, 245, 245, 255);
         public static readonly Color Black = new Color32(30, 30, 34, 255);
 
+        [Tooltip("Vagon ve ray materyali cartoon shader ile üretilsin mi? " +
+                 "Palet dokusu _BaseMap üzerinden okunduğu için shader değişimi renk şemasını bozmaz.")]
+        [SerializeField] private bool m_UseCartoonShader = true;
+
         private const string k_MaterialPrefix = "Mat_Truck";
         private const int k_PaletteSize = 4;
 
@@ -250,6 +254,15 @@ namespace PixelGame
             palette.Apply(false, true);
 
             var material = new Material(m_Template) { name = k_MaterialPrefix + "_" + key };
+
+            // Cartoon görünüm: palet dokusu ve renkler aynı property adlarını kullandığı
+            // için shader'ı değiştirmek renk şemasını bozmaz
+            if (m_UseCartoonShader)
+            {
+                Shader cartoon = CartoonShader.Get();
+                if (cartoon != null) material.shader = cartoon;
+            }
+
             if (material.HasProperty(s_BaseMapId)) material.SetTexture(s_BaseMapId, palette);
             if (material.HasProperty(s_MainTexId)) material.SetTexture(s_MainTexId, palette);
             if (material.HasProperty(s_BaseColorId)) material.SetColor(s_BaseColorId, Color.white);

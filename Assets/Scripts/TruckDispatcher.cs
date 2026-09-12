@@ -45,6 +45,32 @@ namespace PixelGame
         [Min(1)]
         [SerializeField] private int m_FallbackTruckCapacity = 16;
 
+        [Header("📦 Küpün Parçalanıp Vagona Dolması")]
+        [Tooltip("Bir küpün en az kaç parçaya bölüneceği")]
+        [Min(1)]
+        [SerializeField] private int m_MinPieces = 2;
+
+        [Tooltip("Bir küpün en fazla kaç parçaya bölüneceği")]
+        [Min(1)]
+        [SerializeField] private int m_MaxPieces = 4;
+
+        [Tooltip("Parça boyutlarının değişim aralığı (temel boyuta göre çarpan). " +
+                 "Geniş aralık iri ve ufak parçaların bir arada olmasını sağlar; " +
+                 "aşırı geniş verilirse gerçek dışı durur.")]
+        [SerializeField] private Vector2 m_PieceSizeRange = new Vector2(0.55f, 1.5f);
+
+        [Tooltip("Parçaların küpün çevresinden ne kadar dağınık kopacağı (dünya birimi)")]
+        [Min(0f)]
+        [SerializeField] private float m_PieceSpread = 0.06f;
+
+        [Tooltip("Parçanın vagona varma süresi")]
+        [Min(0.05f)]
+        [SerializeField] private float m_FlyDuration = 0.45f;
+
+        [Tooltip("Uçuş kavisinin yüksekliği (dünya birimi). Düz çizgi cansız durur; " +
+                 "parça hafifçe yukarı fırlayıp kasaya düşer.")]
+        [SerializeField] private float m_FlyArcHeight = 0.6f;
+
         [Header("🚚 Geçiş")]
         [Tooltip("Kamyonun havuzdan slota (veya havuz içinde ileri) gitme süresi")]
         [Min(0.05f)]
@@ -500,9 +526,9 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Patlatılan küpü rengine uyan kamyona yükler.
+        /// Kırılan küpü rengine uyan vagona yükler ve küpü vagona doğru uçurur.
         /// </summary>
-        public void NotifyCubePopped(Color cubeColor)
+        public void NotifyCubePopped(Color cubeColor, Vector3 worldPosition)
         {
             Color paletteColor = ClassifyToPalette(cubeColor);
 
@@ -512,7 +538,29 @@ namespace PixelGame
             TruckCargo cargo = slot.Cargo;
             if (cargo == null) return;
 
-            cargo.TryLoad(paletteColor, m_ColorThreshold);
+            // Küp birkaç parçaya bölünür; boyutları birbirinden farklı olsun ki
+            // vagona düzgün paketlenmiş değil, kırık moloz gibi dolsun
+            int pieces = Random.Range(m_MinPieces, m_MaxPieces + 1);
+
+            if (!cargo.TryLoad(paletteColor, m_ColorThreshold, pieces)) return;
+
+            CargoStack stack = cargo.Stack;
+            float baseSize = stack != null ? stack.BasePieceWorldSize : 0.1f;
+
+            for (int i = 0; i < pieces; i++)
+            {
+                // Her parça farklı büyüklükte: kimi iri, kimi ufak kırıntı
+                float sizeFactor = Random.Range(m_PieceSizeRange.x, m_PieceSizeRange.y);
+
+                // Parçalar küpün tam merkezinden değil, çevresinden kopsun
+                Vector3 start = worldPosition + Random.insideUnitSphere * m_PieceSpread;
+
+                CargoFlyer.Launch(start, cargo.transform, paletteColor,
+                                  baseSize * sizeFactor,
+                                  m_FlyDuration * Random.Range(0.85f, 1.2f),
+                                  m_FlyArcHeight * Random.Range(0.7f, 1.3f),
+                                  () => { if (cargo != null) cargo.OnPieceArrived(sizeFactor); });
+            }
         }
 
         /// <summary>

@@ -320,7 +320,7 @@ namespace PixelGame
             // 2. Küpü rengine uyan kamyonun kasasına yükle
             if (dispatcher != null)
             {
-                dispatcher.NotifyCubePopped(m_OriginalColor);
+                dispatcher.NotifyCubePopped(m_OriginalColor, transform.position);
             }
 
             // 3. Etkileşim yöneticisine bildir

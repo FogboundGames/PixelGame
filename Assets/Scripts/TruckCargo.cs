@@ -21,6 +21,11 @@ namespace PixelGame
 
         [SerializeField] private int m_Load;
 
+        [Tooltip("Bir küpün kaça bölündüğünün ortalaması. Kasadaki parça boyutu " +
+                 "bu sayıya göre hesaplanır.")]
+        [Min(1)]
+        [SerializeField] private int m_PiecesPerCube = 3;
+
         public Color CargoColor
         {
             get => m_CargoColor;
@@ -40,10 +45,26 @@ namespace PixelGame
         public event Action<TruckCargo> Filled;
 
         private TruckTailgate m_Tailgate;
+        private CargoStack m_Stack;
+
+        /// <summary>Yolda olan (henüz kasaya varmamış) küp sayısı.</summary>
+        private int m_InFlight;
+
+        /// <summary>Kasa dolu ve yolda parça kalmadı mı? Kalkış bunu bekler.</summary>
+        public bool IsSettled => IsFull && m_InFlight == 0;
 
         private void Awake()
         {
             m_Tailgate = GetComponent<TruckTailgate>();
+            EnsureStack();
+        }
+
+        private void EnsureStack()
+        {
+            if (m_Stack != null) return;
+
+            m_Stack = GetComponent<CargoStack>();
+            if (m_Stack == null) m_Stack = gameObject.AddComponent<CargoStack>();
         }
 
         /// <summary>Kamyonu boş bir yük için hazırlar ve kapağını açar.</summary>
@@ -52,28 +73,60 @@ namespace PixelGame
             m_CargoColor = color;
             m_Capacity = Mathf.Max(1, capacity);
             m_Load = 0;
+            m_InFlight = 0;
 
             ApplyPaint();
             OpenTailgate();
+
+            EnsureStack();
+
+            // Kasaya toplam kaç parça düşecek: her küp birkaç parçaya bölünüyor.
+            // Parça boyutu buna göre hesaplanır ki kasa dolsun ama taşmasın.
+            if (m_Stack != null) m_Stack.Setup(m_Capacity * m_PiecesPerCube, color);
         }
 
         /// <summary>
         /// Kasaya bir küp ekler. Kasa dolduysa veya renk tutmuyorsa kabul etmez.
         /// </summary>
-        public bool TryLoad(Color cubeColor, float threshold)
+        public bool TryLoad(Color cubeColor, float threshold, int pieces = 1)
         {
             if (IsFull) return false;
             if (!Matches(cubeColor, threshold)) return false;
 
+            // Sayaç hemen artar: kapasitenin aşılmasını engeller.
+            // Görsel dolum ise parçalar kasaya vardıkça tamamlanır.
             m_Load++;
+            m_InFlight += Mathf.Max(1, pieces);
 
-            if (IsFull)
+            return true;
+        }
+
+        public int PiecesPerCube => Mathf.Max(1, m_PiecesPerCube);
+
+        /// <summary>Kasadaki yığın (parça boyutunu okumak için).</summary>
+        public CargoStack Stack
+        {
+            get { EnsureStack(); return m_Stack; }
+        }
+
+        /// <summary>
+        /// Yoldaki bir parça kasaya vardığında çağrılır: yığına yerleşir ve
+        /// kasa dolup yolda parça kalmadıysa kalkış bildirilir.
+        /// </summary>
+        public void OnPieceArrived(float sizeFactor)
+        {
+            EnsureStack();
+            if (m_Stack != null) m_Stack.AddPiece(sizeFactor);
+
+            m_InFlight = Mathf.Max(0, m_InFlight - 1);
+
+            // Kalkış, yoldaki son parça da varana kadar beklemeli;
+            // yoksa vagon kalkar ve kalan parçalar boşluğa uçar
+            if (IsSettled)
             {
                 CloseTailgate();
                 Filled?.Invoke(this);
             }
-
-            return true;
         }
 
         /// <summary>Küpün rengi bu kamyonun yüküne uyuyor mu?</summary>
