@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using DG.Tweening;
 
 namespace PixelGame
 {
@@ -120,9 +121,23 @@ namespace PixelGame
             {
                 CloseTailgate();
                 Filled?.Invoke(this);
+                PlayCompletionFeedback();
             }
 
             return true;
+        }
+
+        private void PlayCompletionFeedback()
+        {
+            if (m_Badge != null)
+            {
+                m_Badge.PlayCompletionAnimation();
+            }
+
+            // Vagon gövdesine minik tatlı bir zıplama ve yaylanma animasyonu
+            transform.DOKill(true);
+            transform.DOPunchPosition(Vector3.up * 0.14f, 0.35f, 4, 0.4f);
+            transform.DOPunchScale(new Vector3(0.08f, 0.14f, 0.08f), 0.35f, 5, 0.4f);
         }
 
         /// <summary>

@@ -114,7 +114,7 @@ namespace PixelGame
                  "çalışılabileceğini belirler; bölümün zorluğunu en çok bu ayar etkiler. " +
                  "1 verilirse tek vagonlu, çok daha kısıtlayıcı bir bölüm olur.")]
         [Range(1, 8)]
-        [SerializeField] private int m_SlotCount = 3;
+        [SerializeField] private int m_SlotCount = 5;
 
         [Tooltip("Havuzda yan yana kaç kamyon beklesin")]
         [Range(1, 8)]

@@ -376,6 +376,10 @@ namespace PixelGame.Editor
                 importer.alphaIsTransparency = true;
                 importer.filterMode = FilterMode.Bilinear;
                 importer.mipmapEnabled = false;
+                if (path == SlotShadowPath)
+                {
+                    importer.spriteBorder = new Vector4(56, 56, 56, 56);
+                }
                 importer.SaveAndReimport();
             }
         }

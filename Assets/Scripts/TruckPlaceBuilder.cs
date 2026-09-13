@@ -75,19 +75,19 @@ namespace PixelGame
 
         [Header("🌑 Slot Gölgesi (Slot Fake Shadow)")]
         [Tooltip("Slotların altına yumuşak sahte gölge ekler.")]
-        public bool enableShadow = false;
+        public bool enableShadow = true;
 
         [Tooltip("Bireysel slot gölge görseli. Boşsa Assets/UI/SlotShadow.png kullanılır.")]
         public Sprite shadowSprite;
 
         [Tooltip("Slot gölgesinin rengi ve opaklığı.")]
-        public Color shadowColor = new Color(0.02f, 0.03f, 0.06f, 0.52f);
+        public Color shadowColor = new Color(0.04f, 0.07f, 0.14f, 0.35f);
 
         [Tooltip("Slot gölgesinin X ve Y ofseti.")]
-        public Vector2 shadowOffset = new Vector2(0f, -14f);
+        public Vector2 shadowOffset = new Vector2(0f, -10f);
 
         [Tooltip("Slot gölgesinin boyut çarpanı (genişleme oranı).")]
-        public Vector2 shadowScale = new Vector2(1.06f, 1.06f);
+        public Vector2 shadowScale = new Vector2(0.88f, 0.76f);
 
         [Tooltip("Gölgenin slot yüzeyinin arkasında kalacağı Z derinliği.")]
         public float shadowZ = 4f;
@@ -172,12 +172,8 @@ namespace PixelGame
 
             row.sizeDelta = new Vector2(totalWidth, totalHeight);
 
-            // Şerit referans genişliği aşıyorsa ekrana sığdır.
-            // Z de ölçeklenmeli: kamyonlar bu şeridin altında yaşıyor ve
-            // non-uniform ölçek 3B modeli derinlikte ezer.
-            float available = ReferenceWidth * style.rowWidthFill;
-            float fit = totalWidth > available ? available / totalWidth : 1f;
-            row.localScale = new Vector3(fit, fit, fit);
+            // Raylar, portallar ve vagonlar her seviyede daima sabit ve özgün boyutta kalmalıdır.
+            row.localScale = Vector3.one;
 
             float startX = -totalWidth * 0.5f + style.cellSize * 0.5f;
             float startY = totalHeight * 0.5f - style.cellSize * 0.5f;

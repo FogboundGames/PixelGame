@@ -27,8 +27,10 @@ namespace PixelGame
         private Sequence m_ActiveSequence;
 
         /// <summary>
-        /// Parçayı küpten alt rafa (kırmızı işaretli hazneye) fırlatır.
-        /// Yerçekimi ve OutBounce ile rafa konar, DOPunchScale yaylanması yapar ve rafta bekler.
+        /// <summary>
+        /// Parçayı küpten alt rafa fırlatır.
+        /// Önce yerçekimiyle alt rafa düşer (başka yere düşse bile),
+        /// ardından hafifçe belirlenen merkez toplanma alanına doğru çekilip öbeklenir.
         /// </summary>
         public static CargoFlyer LaunchToShelf(
             Vector3 worldStart,
@@ -36,6 +38,19 @@ namespace PixelGame
             Color color,
             float size,
             float fallDuration,
+            Action<CargoFlyer> onLanded)
+        {
+            return LaunchToShelf(worldStart, shelfPosition, shelfPosition, color, size, fallDuration, 0f, onLanded);
+        }
+
+        public static CargoFlyer LaunchToShelf(
+            Vector3 worldStart,
+            Vector3 dropPosition,
+            Vector3 finalShelfPosition,
+            Color color,
+            float size,
+            float fallDuration,
+            float pullDuration,
             Action<CargoFlyer> onLanded)
         {
             CargoFlyer flyer = Rent();
@@ -47,26 +62,68 @@ namespace PixelGame
             flyer.SetColor(color);
             flyer.gameObject.SetActive(true);
 
-            flyer.AnimateToShelf(shelfPosition, size, fallDuration, () => onLanded?.Invoke(flyer));
+            flyer.AnimateToShelfWithPull(dropPosition, finalShelfPosition, size, fallDuration, pullDuration, () => onLanded?.Invoke(flyer));
             return flyer;
         }
 
-        private void AnimateToShelf(Vector3 shelfPosition, float size, float fallDuration, Action onLanded)
+        private void AnimateToShelfWithPull(
+            Vector3 dropPosition,
+            Vector3 finalShelfPosition,
+            float size,
+            float fallDuration,
+            float pullDuration,
+            Action onLanded)
         {
             CleanupTweens();
             m_ActiveSequence = DOTween.Sequence();
 
-            m_ActiveSequence.Append(transform.DOMoveX(shelfPosition.x, fallDuration).SetEase(Ease.OutQuad));
-            m_ActiveSequence.Join(transform.DOMoveY(shelfPosition.y, fallDuration).SetEase(Ease.OutBounce));
-            m_ActiveSequence.Join(transform.DOMoveZ(shelfPosition.z, fallDuration).SetEase(Ease.OutQuad));
-            m_ActiveSequence.Join(transform.DORotate(new Vector3(
-                UnityEngine.Random.Range(-180f, 180f),
-                UnityEngine.Random.Range(-180f, 180f),
-                UnityEngine.Random.Range(-180f, 180f)),
-                fallDuration, RotateMode.FastBeyond360).SetEase(Ease.OutQuad));
+            float distToCenter = Mathf.Abs(finalShelfPosition.x - dropPosition.x);
+            bool hasPull = distToCenter > 0.02f && pullDuration > 0.01f;
 
-            // Rafa temas anında yaylanma
-            m_ActiveSequence.Append(transform.DOPunchScale(new Vector3(0.25f, -0.25f, 0.25f) * size, 0.16f, 6, 0.5f));
+            if (!hasPull)
+            {
+                // Doğrudan hedefe akıcı düşüş ve yumuşak zıplama
+                m_ActiveSequence.Append(transform.DOMoveX(finalShelfPosition.x, fallDuration).SetEase(Ease.OutQuad));
+                m_ActiveSequence.Join(transform.DOMoveY(finalShelfPosition.y, fallDuration).SetEase(Ease.OutBounce));
+                m_ActiveSequence.Join(transform.DOMoveZ(finalShelfPosition.z, fallDuration).SetEase(Ease.OutQuad));
+                m_ActiveSequence.Join(transform.DORotate(new Vector3(
+                    UnityEngine.Random.Range(-180f, 180f),
+                    UnityEngine.Random.Range(-180f, 180f),
+                    UnityEngine.Random.Range(-180f, 180f)),
+                    fallDuration, RotateMode.FastBeyond360).SetEase(Ease.OutQuad));
+                m_ActiveSequence.Append(transform.DOPunchScale(new Vector3(0.12f, -0.12f, 0.12f) * size, 0.08f, 3, 0.5f));
+            }
+            else
+            {
+                // Kesintisiz, pürüzsüz akış: Parça havada düşüş eğrisindeyken merkeze doğru ivmelenir,
+                // yere değer değmez DURAKSAMADAN pürüzsüzce yuvarlanarak/kayarak merkeze toplanır.
+                float slideDuration = Mathf.Clamp(pullDuration * 0.85f, 0.18f, 0.35f);
+                float rollAngle = (finalShelfPosition.x > dropPosition.x ? -1f : 1f) * 200f * Mathf.Clamp01(distToCenter / 0.4f);
+
+                // 1. Havada süzülerek düşüş: Y rafa doğru inerken, X merkeze doğru akışa başlar
+                float intermediateX = Mathf.Lerp(dropPosition.x, finalShelfPosition.x, 0.45f);
+                m_ActiveSequence.Append(transform.DOMoveY(dropPosition.y, fallDuration).SetEase(Ease.InQuad));
+                m_ActiveSequence.Join(transform.DOMoveX(intermediateX, fallDuration).SetEase(Ease.InQuad));
+                m_ActiveSequence.Join(transform.DOMoveZ(Mathf.Lerp(transform.position.z, finalShelfPosition.z, 0.5f), fallDuration).SetEase(Ease.Linear));
+                m_ActiveSequence.Join(transform.DORotate(new Vector3(
+                    UnityEngine.Random.Range(-120f, 120f),
+                    UnityEngine.Random.Range(-120f, 120f),
+                    rollAngle * 0.4f),
+                    fallDuration, RotateMode.FastBeyond360).SetEase(Ease.InQuad));
+
+                // 2. Yere temas: HİÇ DURAKSAMADAN (hitch yok!) anında akıcı kayma ve mikro yaylanma
+                m_ActiveSequence.Append(transform.DOMoveY(finalShelfPosition.y + 0.04f * size, slideDuration * 0.35f).SetEase(Ease.OutQuad));
+                m_ActiveSequence.Append(transform.DOMoveY(finalShelfPosition.y, slideDuration * 0.65f).SetEase(Ease.InQuad));
+
+                // X ve Z hareketi düşüş anından itibaren kesintisiz devam eder (Insert ile tam temas anına bağlanır)
+                m_ActiveSequence.Insert(fallDuration, transform.DOMoveX(finalShelfPosition.x, slideDuration).SetEase(Ease.OutCubic));
+                m_ActiveSequence.Insert(fallDuration, transform.DOMoveZ(finalShelfPosition.z, slideDuration).SetEase(Ease.OutQuad));
+                m_ActiveSequence.Insert(fallDuration, transform.DORotate(new Vector3(0f, 0f, rollAngle), slideDuration, RotateMode.WorldAxisAdd).SetEase(Ease.OutCubic));
+
+                // Hedefe yerleştiğinde hafif tatlı yaylanma
+                m_ActiveSequence.Append(transform.DOPunchScale(new Vector3(0.08f, -0.08f, 0.08f) * size, 0.08f, 2, 0.4f));
+            }
+
             m_ActiveSequence.OnComplete(() => onLanded?.Invoke());
         }
 

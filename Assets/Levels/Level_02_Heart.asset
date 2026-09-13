@@ -19,16 +19,16 @@ MonoBehaviour:
   m_UseNativeResolution: 1
   m_CustomResolution: {x: 24, y: 24}
   m_ColorPalette:
-  - originalColor: {r: 1, g: 0.21568629, b: 0.33333334, a: 1}
-    targetColor: {r: 1, g: 0.21568629, b: 0.33333334, a: 1}
+  - originalColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    targetColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
     pixelCount: 87
     label: 
-  - originalColor: {r: 0.6666667, g: 0.078431375, b: 0.1764706, a: 1}
-    targetColor: {r: 0.6666667, g: 0.078431375, b: 0.1764706, a: 1}
+  - originalColor: {r: 0.7843137, g: 0.0392157, b: 0.3921569, a: 1}
+    targetColor: {r: 0.7843137, g: 0.0392157, b: 0.3921569, a: 1}
     pixelCount: 34
     label: 
-  - originalColor: {r: 1, g: 0.7843138, b: 0.8431373, a: 1}
-    targetColor: {r: 1, g: 0.7843138, b: 0.8431373, a: 1}
+  - originalColor: {r: 1, g: 0.7647059, b: 0.9019608, a: 1}
+    targetColor: {r: 1, g: 0.7647059, b: 0.9019608, a: 1}
     pixelCount: 3
     label: 
   m_TintColor: {r: 1, g: 1, b: 1, a: 1}

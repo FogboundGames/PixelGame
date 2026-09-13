@@ -36,8 +36,8 @@ namespace PixelGame
         [SerializeField] private bool m_ContinuousTrain = true;
 
         [Tooltip("Vagonların ray üzerindeki seyir hızı (şerit birimi / saniye)")]
-        [Range(40f, 500f)]
-        [SerializeField] private float m_TrainSpeed = 160f;
+        [Range(40f, 600f)]
+        [SerializeField] private float m_TrainSpeed = 380f;
 
 
         [Tooltip("Vagonların sol tünel giriş koordinatı (X)")]
@@ -81,18 +81,18 @@ namespace PixelGame
         [Header("📦 Kırmızı Raf: Altta Birikme & Vagona Akma (DOTween)")]
         [Tooltip("Parçaların küpten alt rafa (kırmızı işaretli alan) düşüş süresi")]
         [Min(0.1f)]
-        [SerializeField] private float m_FallToShelfDuration = 0.38f;
+        [SerializeField] private float m_FallToShelfDuration = 0.28f;
 
         [Tooltip("Parçaların raftan vagona akış / uçuş süresi")]
         [Min(0.1f)]
-        [SerializeField] private float m_FlowToCartDuration = 0.42f;
+        [SerializeField] private float m_FlowToCartDuration = 0.20f;
 
         [Tooltip("Raftan vagona uçuş kavis yüksekliği")]
         [SerializeField] private float m_FlowArcHeight = 0.65f;
 
         [Tooltip("Parçaların raftan vagona akarken aralarındaki akış gecikmesi (şelale efekti)")]
         [Range(0.01f, 0.2f)]
-        [SerializeField] private float m_FlowStaggerDelay = 0.06f;
+        [SerializeField] private float m_FlowStaggerDelay = 0.05f;
 
         [Tooltip("Raf dikey ince ayarı (Y ofseti)")]
         [SerializeField] private float m_ShelfYOffset = 0f;
@@ -103,6 +103,13 @@ namespace PixelGame
 
         [Tooltip("Rafta biriken parçaların yatay saçılma yarıçapı")]
         [SerializeField] private float m_ShelfScatterX = 0.45f;
+
+        [Tooltip("Parçaların çerçevenin alt orta kısmında (kırmızı elips alanı) toplanma yarıçapı")]
+        [SerializeField] private float m_ShelfGatherRadius = 0.32f;
+
+        [Tooltip("Parçaların düştükleri yerden orta toplanma alanına doğru hafifçe çekilme süresi")]
+        [Min(0.05f)]
+        [SerializeField] private float m_PullToCenterDuration = 0.22f;
 
         [Tooltip("Rafta biriken parçaların dikey rastgele yığılma yüksekliği")]
         [SerializeField] private float m_ShelfStackHeight = 0.08f;
@@ -498,9 +505,17 @@ namespace PixelGame
         /// Kırılan küp parçalarını doğrudan çerçevenin altındaki kırmızı alana fırlatır.
         /// 1 küpün tüm parçaları tek bir grup altında toplanır.
         /// </summary>
-        public void NotifyCubePopped(Color cubeColor, Vector3 worldPosition)
+        /// <summary>
+        /// Küp patladığında çağrılır:
+        /// 1. Küpü 2-4 adet 3D parçaya böler.
+        /// 2. Parçalar çerçevenin hemen altındaki kırmızı işaretli rafa dökülüp birikir (OutBounce).
+        /// 3. Parçalar vagona akmaya hazır halde raf kuyruğuna kaydedilir.
+        /// Parçalar her zaman patlayan küpün kendi görsel renginde (<paramref name="visualColor"/>) fırlar.
+        /// </summary>
+        public void NotifyCubePopped(Color cubeColor, Vector3 worldPosition, Color? visualColor = null)
         {
             Color paletteColor = ClassifyToPalette(cubeColor);
+            Color pieceColor = visualColor ?? cubeColor;
 
             int pieces = Random.Range(m_MinPieces, m_MaxPieces + 1);
             CargoStack stack = null;
@@ -525,8 +540,17 @@ namespace PixelGame
                 float sizeFactor = Random.Range(m_PieceSizeRange.x, m_PieceSizeRange.y);
                 Vector3 start = worldPosition + Random.insideUnitSphere * m_PieceSpread;
 
+                // 1. İlk düşüş noktası: Küpün alt hizasındaki rafa (hafif doğal yayılmayla)
+                float dropX = Mathf.Clamp(
+                    worldPosition.x + Random.Range(-0.15f, 0.15f),
+                    shelfMinX,
+                    shelfMaxX
+                );
+                Vector3 dropPos = new Vector3(dropX, shelfCenter.y + Random.Range(0f, m_ShelfStackHeight * 0.5f), shelfCenter.z);
+
+                // 2. Nihai toplanma noktası: Belirlediğimiz orta dar alan (kırmızı halka)
                 float targetX = Mathf.Clamp(
-                    worldPosition.x + Random.Range(-m_ShelfScatterX, m_ShelfScatterX),
+                    shelfCenter.x + Random.Range(-m_ShelfGatherRadius, m_ShelfGatherRadius),
                     shelfMinX,
                     shelfMaxX
                 );
@@ -538,10 +562,12 @@ namespace PixelGame
 
                 CargoFlyer.LaunchToShelf(
                     start,
+                    dropPos,
                     shelfTarget,
-                    paletteColor,
+                    pieceColor,
                     baseSize * sizeFactor,
                     m_FallToShelfDuration * Random.Range(0.9f, 1.15f),
+                    m_PullToCenterDuration,
                     (landedFlyer) =>
                     {
                         cubeGroup.Flyers.Add(landedFlyer);
@@ -660,13 +686,16 @@ namespace PixelGame
                 float gridBottomY = worldCenter.y - totalHeight * 0.5f;
                 float frameBottomY = worldCenter.y - worldHeight * 0.5f;
 
-                // Kırmızı halkanın çizildiği yer: tablonun alt sırası ile çerçevenin alt kenarı arası
-                float shelfY = (gridBottomY + frameBottomY) * 0.5f + m_ShelfYOffset;
-                float shelfZ = worldCenter.z - 0.12f;
+                // Kullanıcının kırmızıyla işaretlediği yer: Mavi çerçevenin alt kenarı / iç hazne pervazı
+                // Parçalar çerçevenin dışına taşmaz, doğrudan mavi çerçevenin alt iç pervazına düşer ve toplanır
+                float shelfLedgeY = frameBottomY + worldHeight * 0.05f + m_ShelfYOffset;
+                float shelfZ = worldCenter.z - 0.10f;
 
-                float shelfHalfW = (worldWidth * 0.5f) * m_ShelfWidthFactor;
+                // Mavi çerçevenin iç sol ve sağ sınırları (sınırlar o mavi çerçeve olsun)
+                float frameInnerMarginX = worldWidth * 0.07f;
+                float shelfHalfW = (worldWidth * 0.5f - frameInnerMarginX) * Mathf.Clamp01(m_ShelfWidthFactor);
 
-                shelfCenter = new Vector3(worldCenter.x, shelfY, shelfZ);
+                shelfCenter = new Vector3(worldCenter.x, shelfLedgeY, shelfZ);
                 shelfMinX = worldCenter.x - shelfHalfW;
                 shelfMaxX = worldCenter.x + shelfHalfW;
                 return true;
@@ -688,8 +717,8 @@ namespace PixelGame
         {
             if (GetShelfArea(out Vector3 shelfCenter, out float shelfMinX, out float shelfMaxX))
             {
-                Gizmos.color = new Color(1f, 0.2f, 0.2f, 0.85f); // Kırmızı raf gizmosu
-                float width = Mathf.Abs(shelfMaxX - shelfMinX);
+                Gizmos.color = new Color(1f, 0.2f, 0.2f, 0.85f); // Kırmızı raf gizmosu (Toplanma alanı)
+                float width = m_ShelfGatherRadius * 2f;
                 Gizmos.DrawWireCube(shelfCenter, new Vector3(width, 0.25f + m_ShelfStackHeight, 0.25f));
             }
         }
@@ -711,6 +740,9 @@ namespace PixelGame
             List<PaletteColorOverride> palette = GetPalette();
             if (palette == null || palette.Count == 0) return cubeColor;
 
+            PixelLevelData level = GetLevel();
+            bool hasAdjustment = level != null && (level.ColorBrightness != 1f || level.ColorSaturation != 1f || level.ColorContrast != 1f);
+
             Color best = cubeColor;
             float bestDistance = float.MaxValue;
 
@@ -718,11 +750,21 @@ namespace PixelGame
             {
                 if (entry == null || entry.pixelCount <= 0) continue;
 
-                float distance = TruckCargo.ColorDistance(cubeColor, entry.targetColor);
-                if (distance < bestDistance)
+                Color candidate = entry.targetColor;
+                if (hasAdjustment)
                 {
-                    bestDistance = distance;
-                    best = entry.targetColor;
+                    candidate = PixelCube.AdjustColor(candidate, level.ColorBrightness, level.ColorSaturation, level.ColorContrast);
+                }
+
+                float dAdj = TruckCargo.ColorDistance(cubeColor, candidate);
+                float dRaw = TruckCargo.ColorDistance(cubeColor, entry.targetColor);
+                float dOrig = TruckCargo.ColorDistance(cubeColor, entry.originalColor);
+                float dMin = Mathf.Min(dAdj, Mathf.Min(dRaw, dOrig));
+
+                if (dMin < bestDistance)
+                {
+                    bestDistance = dMin;
+                    best = candidate;
                 }
             }
 
@@ -742,14 +784,9 @@ namespace PixelGame
 
             if (m_Slots != null)
             {
-                if (m_Slots.SlotCount > 0 && (m_Slots.SlotCount == level.SlotCount || level.SlotCount <= 0))
-                {
-                    m_Slots.UpdateShadows();
-                }
-                else
-                {
-                    m_Slots.RebuildPlaces(level.SlotCount > 0 ? level.SlotCount : 5, 1);
-                }
+                // Ray şeridi (m_Slots) sahnedeki tüneller arası sabit ray hattıdır.
+                // Farklı levellarda rayların ve tünellerin boyutu ASLA değişmemeli, hep sabit kalmalı!
+                m_Slots.UpdateShadows();
             }
 
             if (m_Pool != null) m_Pool.RebuildPlaces(level.PoolColumns, level.PoolRows);
@@ -803,17 +840,25 @@ namespace PixelGame
 
             var trucks = new List<TruckOrder>();
             int capacity = GetTruckCapacity();
+            PixelLevelData level = GetLevel();
+            bool hasAdjustment = level != null && (level.ColorBrightness != 1f || level.ColorSaturation != 1f || level.ColorContrast != 1f);
 
             for (int i = 0; i < palette.Count; i++)
             {
                 PaletteColorOverride entry = palette[i];
                 if (entry == null || entry.pixelCount <= 0) continue;
 
+                Color truckColor = entry.targetColor;
+                if (hasAdjustment)
+                {
+                    truckColor = PixelCube.AdjustColor(truckColor, level.ColorBrightness, level.ColorSaturation, level.ColorContrast);
+                }
+
                 int remaining = entry.pixelCount;
                 while (remaining > 0)
                 {
                     int load = Mathf.Min(capacity, remaining);
-                    trucks.Add(new TruckOrder { Color = entry.targetColor, Capacity = load });
+                    trucks.Add(new TruckOrder { Color = truckColor, Capacity = load });
                     remaining -= load;
                 }
             }

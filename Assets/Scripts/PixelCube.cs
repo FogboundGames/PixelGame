@@ -37,6 +37,13 @@ namespace PixelGame
             if (m_Renderer == null) m_Renderer = GetComponent<MeshRenderer>();
             if (m_CubeCollider == null) m_CubeCollider = GetComponent<Collider>();
             EnsureShadowReferences();
+
+            PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (gen != null && !gen.EnableCubeShadows)
+            {
+                if (m_ShadowObject != null) m_ShadowObject.SetActive(false);
+                if (m_ShadowBottomObject != null) m_ShadowBottomObject.SetActive(false);
+            }
         }
 
         public void EnsureShadowReferences()
@@ -205,9 +212,8 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Küpün altına her tarafını çevreleyen (360 derece) yumuşak sahte gölge yerleştirir.
-        /// Hem arka panelde hem de alt zeminde gölge oluşturur (her yerinde).
-        /// Küp patladığında parçalar aşağı dökülürken gölgeler panoda hep sabit kalır.
+        /// Küpün altına yumuşak sahte gölge yerleştirir (Back Quad).
+        /// Küp parçalanmamış haldeyken hafif gölgeli durur, küp patlatıldığında ise arkada hiçbir iz kalmaz.
         /// </summary>
         public void EnsureShadow(Material shadowMaterial, Vector2 offset, float scaleMultiplier, Color shadowColor)
         {
@@ -222,7 +228,7 @@ namespace PixelGame
                 m_ShadowObject = shadowTrans.gameObject;
             }
 
-            // Merkezlenmiş veya hafif ofsetli 360 derece çevreleyen gölge
+            // Hafif ofsetli ve küpün sınırlarında yumuşak sönümlenen gölge
             m_ShadowObject.transform.localPosition = new Vector3(offset.x, offset.y, 0.52f);
             m_ShadowObject.transform.localRotation = Quaternion.identity;
             m_ShadowObject.transform.localScale = new Vector3(scaleMultiplier, scaleMultiplier, 1f);
@@ -233,41 +239,41 @@ namespace PixelGame
                 if (shadowMaterial != null) mr.sharedMaterial = shadowMaterial;
                 mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 mr.receiveShadows = false;
+
+                if (shadowColor.a > 0.001f)
+                {
+                    MaterialPropertyBlock spb = new MaterialPropertyBlock();
+                    mr.GetPropertyBlock(spb);
+                    spb.SetColor("_Color", shadowColor);
+                    spb.SetColor("_BaseColor", shadowColor);
+                    mr.SetPropertyBlock(spb);
+                }
             }
 
-            // 2. Alt Zemin Gölgesi (3D perspektif görünümü için Floor Quad)
+            // 2. Varsa eski CubeShadow_Bottom objesini temizle (Küp patlayınca komşunun boşluğa taşmasını önler)
             Transform bottomTrans = transform.Find("CubeShadow_Bottom");
-            if (bottomTrans == null)
+            if (bottomTrans != null)
             {
-                m_ShadowBottomObject = CreateShadowQuadObject("CubeShadow_Bottom");
+                #if UNITY_EDITOR
+                if (!Application.isPlaying)
+                    DestroyImmediate(bottomTrans.gameObject);
+                else
+                #endif
+                    Destroy(bottomTrans.gameObject);
             }
-            else
-            {
-                m_ShadowBottomObject = bottomTrans.gameObject;
-            }
-
-            m_ShadowBottomObject.transform.localPosition = new Vector3(0f, -0.505f, 0f);
-            m_ShadowBottomObject.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            m_ShadowBottomObject.transform.localScale = new Vector3(scaleMultiplier, scaleMultiplier, 1f);
-
-            MeshRenderer bMr = m_ShadowBottomObject.GetComponent<MeshRenderer>();
-            if (bMr != null)
-            {
-                if (shadowMaterial != null) bMr.sharedMaterial = shadowMaterial;
-                bMr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                bMr.receiveShadows = false;
-            }
+            m_ShadowBottomObject = null;
 
             m_KeepShadowPermanent = false;
         }
 
         #endregion
 
-        #region 💥 Tıklama & Patlama (Voxel Burst & Gölge Sabit Kalma)
+        #region 💥 Tıklama & Patlama (Voxel Burst & Gölge Yönetimi)
 
         /// <summary>
         /// Küp patlatıldığında veya geri yüklendiğinde görsel durumunu ayarlar.
-        /// Küp gizlenip collider'ı kapansa bile sahte gölge panoda hep sabit kalır!
+        /// Parçalandığında küp ve gölgeleri tamamen gizlenir (Arkada hiçbir şey kalmaz!).
+        /// Parçalanmamış halinde ise hafif gölgeli ve 3D derinlikli görünür.
         /// </summary>
         public void SetPoppedVisualState(bool popped)
         {
@@ -283,10 +289,19 @@ namespace PixelGame
                 if (m_Renderer != null) m_Renderer.enabled = false;
                 if (m_CubeCollider != null) m_CubeCollider.enabled = false;
 
-                // Küp patladığında kendi gölgesi de gizlenir (Arkada siyah leke/delik kalmaz!)
-                // Kalan diğer küplerin gölgeleri oyunu ve 3D derinliği tamamlar.
+                // Küp patladığında kendi gölgelerinin tamamı gizlenir (Arkada hiçbir şey kalmaz!)
                 if (m_ShadowObject != null) m_ShadowObject.SetActive(false);
                 if (m_ShadowBottomObject != null) m_ShadowBottomObject.SetActive(false);
+
+                // Garanti olsun diye çocuk objelerdeki tüm gölge nesnelerini devre dışı bırak
+                for (int i = 0; i < transform.childCount; i++)
+                {
+                    Transform child = transform.GetChild(i);
+                    if (child.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        child.gameObject.SetActive(false);
+                    }
+                }
             }
             else
             {
@@ -294,7 +309,6 @@ namespace PixelGame
                 if (m_Renderer != null) m_Renderer.enabled = true;
                 if (m_CubeCollider != null) m_CubeCollider.enabled = true;
                 if (m_ShadowObject != null) m_ShadowObject.SetActive(true);
-                if (m_ShadowBottomObject != null) m_ShadowBottomObject.SetActive(true);
             }
         }
 
@@ -309,7 +323,7 @@ namespace PixelGame
             // 0. Kamyon kuralı: rengine uyan bir kamyon slotta yoksa küp patlamaz.
             //    Dispatcher yoksa kural da yoktur; küp serbestçe patlar.
             TruckDispatcher dispatcher = TruckDispatcher.Instance;
-            if (dispatcher != null && !dispatcher.CanPop(m_OriginalColor)) return;
+            if (dispatcher != null && !dispatcher.CanPop(m_CurrentColor)) return;
 
             // 1. Kendi renginde 3D mini vokseller aşağıya doğru dökülsün
             if (VoxelParticleManager.Instance != null)
@@ -317,10 +331,10 @@ namespace PixelGame
                 VoxelParticleManager.Instance.SpawnVoxelBurst(transform.position, transform.lossyScale, m_CurrentColor);
             }
 
-            // 2. Küpü rengine uyan kamyonun kasasına yükle
+            // 2. Küpü rengine uyan kamyonun kasasına yükle (kırılan parçalar küple %100 aynı renkte uçar)
             if (dispatcher != null)
             {
-                dispatcher.NotifyCubePopped(m_OriginalColor, transform.position);
+                dispatcher.NotifyCubePopped(m_CurrentColor, transform.position, m_CurrentColor);
             }
 
             // 3. Etkileşim yöneticisine bildir

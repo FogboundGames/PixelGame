@@ -97,19 +97,28 @@ namespace PixelGame
 
         [Header("🌑 Küp Altı Sahte Gölge (Fake Shadow - Her Yönde)")]
         [Tooltip("Her bir piksel küpünün altına 360 derece çevreleyen yumuşak sahte gölge yerleştir")]
-        [SerializeField] private bool m_EnableCubeShadows = true;
+        [SerializeField] private bool m_EnableCubeShadows = false;
         [SerializeField] private Material m_CubeShadowMaterial;
-        [SerializeField] private Vector2 m_ShadowOffset = new Vector2(0f, -0.04f); // Doğal, hafif aşağı düşen gerçekçi gölge
-        [SerializeField] private float m_ShadowScale = 1.22f;                     // Doğal temas / ambient occlusion boyutu
-        [SerializeField] private Color m_ShadowColor = new Color(0.08f, 0.12f, 0.22f, 0.22f); // İpeksi pürüzsüz ve yumuşak soft ton
+        [SerializeField] private Vector2 m_ShadowOffset = new Vector2(0.04f, -0.08f); // Sağa ve aşağı düşen belirgin, doğal sahte gölge
+        [SerializeField] private float m_ShadowScale = 1.34f;                     // Küpün altından ve kenarlarından taşarak 3D derinlik katan gölge boyutu
+        [SerializeField] private Color m_ShadowColor = new Color(0.04f, 0.06f, 0.14f, 0.75f); // Belirgin, tok ve estetik sahte gölge tonu
 
         [Header("🌑 Şekil Çevresi Kontur Gölgesi (Figure Contour Shadow)")]
-        [Tooltip("İkinci görseldeki gibi tüm piksel figürünün dış hatlarını saran derin ve yumuşak arka plan gölgesi")]
-        [SerializeField] private bool m_EnableFigureContourShadow = true;
+        [Tooltip("Tüm piksel figürünün arkasını kaplayan genel siluet gölgesi (Küp patlayınca arkada iz kalmaması için varsayılan kapalı)")]
+        [SerializeField] private bool m_EnableFigureContourShadow = false;
         [SerializeField] [Range(0f, 1f)] private float m_FigureShadowOpacity = 0.95f;
         [SerializeField] private Vector2 m_FigureShadowOffset = new Vector2(0f, 0f);
         [SerializeField] [Range(0.9f, 1.4f)] private float m_FigureShadowScale = 1.05f;
         [SerializeField] private Texture2D m_CustomFigureShadowTexture;
+
+        [Header("🖼️ Pano Çevresi Sahte Gölge (Board Frame Shadow)")]
+        [Tooltip("Piksel panosunun 4 kenarını çevreleyen yumuşak sahte gölge (Görselde kırmızı çizilen çerçeve gölgesi)")]
+        [SerializeField] private bool m_EnableBoardShadow = false;
+        [SerializeField] private Material m_BoardShadowMaterial;
+        [SerializeField] private Vector2 m_BoardShadowOffset = new Vector2(0.04f, -0.06f);
+        [SerializeField] [Range(1.0f, 1.35f)] private float m_BoardShadowScale = 1.12f;
+        [SerializeField] [Range(0f, 1f)] private float m_BoardShadowOpacity = 0.85f;
+        [SerializeField] private Color m_BoardShadowColor = new Color(0.04f, 0.06f, 0.14f, 0.85f);
 
         [Header("📂 Kapsayıcı (Container)")]
         [SerializeField] private Transform m_CubesContainer;
@@ -125,6 +134,13 @@ namespace PixelGame
         public Vector2 FigureShadowOffset { get => m_FigureShadowOffset; set { m_FigureShadowOffset = value; UpdateContourShadowLive(); } }
         public float FigureShadowScale { get => m_FigureShadowScale; set { m_FigureShadowScale = value; UpdateContourShadowLive(); } }
         public Texture2D CustomFigureShadowTexture { get => m_CustomFigureShadowTexture; set { m_CustomFigureShadowTexture = value; UpdateContourShadowLive(); } }
+
+        public bool EnableBoardShadow { get => m_EnableBoardShadow; set { m_EnableBoardShadow = value; UpdateBoardShadowLive(); } }
+        public Material BoardShadowMaterial { get => m_BoardShadowMaterial; set { m_BoardShadowMaterial = value; UpdateBoardShadowLive(); } }
+        public Vector2 BoardShadowOffset { get => m_BoardShadowOffset; set { m_BoardShadowOffset = value; UpdateBoardShadowLive(); } }
+        public float BoardShadowScale { get => m_BoardShadowScale; set { m_BoardShadowScale = value; UpdateBoardShadowLive(); } }
+        public float BoardShadowOpacity { get => m_BoardShadowOpacity; set { m_BoardShadowOpacity = value; UpdateBoardShadowLive(); } }
+        public Color BoardShadowColor { get => m_BoardShadowColor; set { m_BoardShadowColor = value; UpdateBoardShadowLive(); } }
 
         public GameObject CubePrefab { get => m_CubePrefab; set => m_CubePrefab = value; }
         public Texture2D SourceTexture { get => m_SourceTexture; set => m_SourceTexture = value; }
@@ -147,6 +163,8 @@ namespace PixelGame
         private void Awake()
         {
             EnsureInteractionComponents();
+            if (!m_EnableBoardShadow) EnsureBoardShadowDisabled();
+            if (!m_EnableFigureContourShadow) EnsureFigureContourShadowDisabled();
         }
 
         private void OnEnable()
@@ -184,6 +202,18 @@ namespace PixelGame
                 {
                     ApplyShadowsToAllExistingCubes();
                 }
+                if (m_EnableBoardShadow)
+                {
+                    UpdateBoardShadowLive();
+                }
+                else
+                {
+                    EnsureBoardShadowDisabled();
+                }
+                if (!m_EnableFigureContourShadow)
+                {
+                    EnsureFigureContourShadowDisabled();
+                }
             }
         }
         #endif
@@ -194,6 +224,10 @@ namespace PixelGame
 
             if (Application.isPlaying)
             {
+                if (!m_EnableBoardShadow) EnsureBoardShadowDisabled();
+                if (!m_EnableFigureContourShadow) EnsureFigureContourShadowDisabled();
+                if (!m_EnableCubeShadows) ApplyShadowsToAllExistingCubes();
+
                 if (m_GenerateOnStart && (m_CubesContainer == null || m_CubesContainer.childCount == 0))
                 {
                     GeneratePixelArt();
@@ -207,6 +241,10 @@ namespace PixelGame
                     if (m_EnableFigureContourShadow)
                     {
                         UpdateContourShadowLive();
+                    }
+                    if (m_EnableBoardShadow)
+                    {
+                        UpdateBoardShadowLive();
                     }
                 }
             }
@@ -236,6 +274,11 @@ namespace PixelGame
                     EditorApplication.delayCall -= DeferredApplyContourShadow;
                     EditorApplication.delayCall += DeferredApplyContourShadow;
                 }
+                if (m_EnableBoardShadow)
+                {
+                    EditorApplication.delayCall -= DeferredApplyBoardShadow;
+                    EditorApplication.delayCall += DeferredApplyBoardShadow;
+                }
                 #endif
             }
         }
@@ -251,6 +294,12 @@ namespace PixelGame
         {
             if (this == null) return;
             UpdateContourShadowLive();
+        }
+
+        private void DeferredApplyBoardShadow()
+        {
+            if (this == null) return;
+            UpdateBoardShadowLive();
         }
         #endif
 
@@ -310,6 +359,10 @@ namespace PixelGame
             if (m_EnableFigureContourShadow)
             {
                 UpdateContourShadowLive();
+            }
+            if (m_EnableBoardShadow)
+            {
+                UpdateBoardShadowLive();
             }
 
             LevelLoaded?.Invoke(levelData);
@@ -503,8 +556,25 @@ namespace PixelGame
                 }
             }
 
-            // 7. İkinci görseldeki gibi tüm şeklin dış hatlarını saran kontur gölgesi (Figure Contour Shadow) ekle
-            EnsureFigureContourShadow(worldCenter, totalWidth, totalHeight);
+            // 7. Kontur gölgesi ayarı açıksa uygula, kapalıysa temizle
+            if (m_EnableFigureContourShadow)
+            {
+                EnsureFigureContourShadow(worldCenter, totalWidth, totalHeight);
+            }
+            else
+            {
+                EnsureFigureContourShadowDisabled();
+            }
+
+            // 8. Pano çevresi sahte gölge (Board Frame Shadow - Kullanıcının kırmızıyla çizdiği 4 kenar gölgesi)
+            if (m_EnableBoardShadow)
+            {
+                EnsureBoardShadow(worldCenter, totalWidth, totalHeight);
+            }
+            else
+            {
+                EnsureBoardShadowDisabled();
+            }
 
             Debug.Log($"<color=#00FFAA><b>[PixelArtGenerator]</b></color> Başarıyla {createdCount} adet küp oluşturuldu! ({cols}x{rows} ızgara)");
         }
@@ -572,23 +642,58 @@ namespace PixelGame
                 {
                     cube.EnsureShadow(shadowMat, m_ShadowOffset, m_ShadowScale, m_ShadowColor);
                 }
-                else if (cube.ShadowObject != null)
+                else
                 {
-                    #if UNITY_EDITOR
-                    if (!Application.isPlaying)
-                        DestroyImmediate(cube.ShadowObject);
-                    else
-                    #endif
-                        Destroy(cube.ShadowObject);
+                    if (cube.ShadowObject != null)
+                    {
+                        #if UNITY_EDITOR
+                        if (!Application.isPlaying)
+                            DestroyImmediate(cube.ShadowObject);
+                        else
+                        #endif
+                            Destroy(cube.ShadowObject);
+                    }
+                    Transform childShadow = cube.transform.Find("CubeShadow");
+                    if (childShadow != null)
+                    {
+                        #if UNITY_EDITOR
+                        if (!Application.isPlaying)
+                            DestroyImmediate(childShadow.gameObject);
+                        else
+                        #endif
+                            Destroy(childShadow.gameObject);
+                    }
                 }
             }
 
-            Camera cam = GetActiveCamera();
-            if (cam != null && CalculateTargetWorldBounds(cam, out Vector3 worldCenter, out float worldWidth, out float worldHeight))
+            if (m_EnableFigureContourShadow)
             {
-                GetEffectiveGridSize(GetActiveTexture(), out int cols, out int rows);
-                float cellSize = Mathf.Min(worldWidth / Mathf.Max(1, cols), worldHeight / Mathf.Max(1, rows));
-                EnsureFigureContourShadow(worldCenter, cols * cellSize, rows * cellSize);
+                Camera cam = GetActiveCamera();
+                if (cam != null && CalculateTargetWorldBounds(cam, out Vector3 worldCenter, out float worldWidth, out float worldHeight))
+                {
+                    GetEffectiveGridSize(GetActiveTexture(), out int cols, out int rows);
+                    float cellSize = Mathf.Min(worldWidth / Mathf.Max(1, cols), worldHeight / Mathf.Max(1, rows));
+                    EnsureFigureContourShadow(worldCenter, cols * cellSize, rows * cellSize);
+                }
+            }
+            else
+            {
+                EnsureFigureContourShadowDisabled();
+            }
+
+            if (m_EnableBoardShadow)
+            {
+                Camera cam = GetActiveCamera();
+                if (cam != null && CalculateTargetWorldBounds(cam, out Vector3 worldCenter, out float worldWidth, out float worldHeight))
+                {
+                    GetEffectiveGridSize(GetActiveTexture(), out int cols, out int rows);
+                    float cellSize = Mathf.Min(worldWidth / Mathf.Max(1, cols), worldHeight / Mathf.Max(1, rows));
+                    EnsureBoardShadow(worldCenter, cols * cellSize, rows * cellSize);
+                }
+            }
+            else
+            {
+                EnsureBoardShadowDisabled();
             }
 
             Debug.Log($"<color=#FFAA00>[PixelGame]</color> {cubes.Length} adet küpün sahte gölgesi (Fake Shadow) güncellendi!");
@@ -924,19 +1029,51 @@ namespace PixelGame
             return shadowTex;
         }
 
+        public void EnsureFigureContourShadowDisabled()
+        {
+            if (m_CubesContainer != null)
+            {
+                Transform shadowTrans = m_CubesContainer.Find("FigureContourShadow");
+                if (shadowTrans != null)
+                {
+                    #if UNITY_EDITOR
+                    if (!Application.isPlaying)
+                        DestroyImmediate(shadowTrans.gameObject);
+                    else
+                    #endif
+                        Destroy(shadowTrans.gameObject);
+                }
+            }
+
+            // Sahne genelinde yetim kalmış FigureContourShadow nesnelerini de temizle
+            GameObject[] allObjs = Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
+            foreach (var go in allObjs)
+            {
+                if (go != null && (go.name == "FigureContourShadow" || go.name.StartsWith("FigureContourShadow")))
+                {
+                    #if UNITY_EDITOR
+                    if (!Application.isPlaying)
+                        DestroyImmediate(go);
+                    else
+                    #endif
+                        Destroy(go);
+                }
+            }
+        }
+
         public void UpdateContourShadowLive()
         {
             if (m_CubesContainer == null) return;
 
+            if (!m_EnableFigureContourShadow)
+            {
+                EnsureFigureContourShadowDisabled();
+                return;
+            }
+
             Transform shadowTrans = m_CubesContainer.Find("FigureContourShadow");
             if (shadowTrans != null)
             {
-                if (!m_EnableFigureContourShadow)
-                {
-                    shadowTrans.gameObject.SetActive(false);
-                    return;
-                }
-
                 shadowTrans.gameObject.SetActive(true);
                 MeshRenderer mr = shadowTrans.GetComponent<MeshRenderer>();
                 if (mr != null && mr.sharedMaterial != null)
@@ -985,14 +1122,14 @@ namespace PixelGame
         {
             if (m_CubesContainer == null) return;
 
-            Transform shadowTrans = m_CubesContainer.Find("FigureContourShadow");
-            GameObject shadowObj;
-
             if (!m_EnableFigureContourShadow)
             {
-                if (shadowTrans != null) shadowTrans.gameObject.SetActive(false);
+                EnsureFigureContourShadowDisabled();
                 return;
             }
+
+            Transform shadowTrans = m_CubesContainer.Find("FigureContourShadow");
+            GameObject shadowObj;
 
             if (shadowTrans == null)
             {
@@ -1056,6 +1193,169 @@ namespace PixelGame
                 totalHeight * m_FigureShadowScale,
                 1f
             );
+        }
+
+        #endregion
+
+        #region 🖼️ Pano Çevresi Sahte Gölge (Board Frame Shadow - 4 Kenarı Saran Sahte Gölge)
+
+        public Material GetOrCreateBoardShadowMaterial()
+        {
+            if (m_BoardShadowMaterial != null) return m_BoardShadowMaterial;
+
+            #if UNITY_EDITOR
+            string[] guids = AssetDatabase.FindAssets("BoardFrameShadow_Mat t:Material");
+            if (guids.Length > 0)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guids[0]);
+                m_BoardShadowMaterial = AssetDatabase.LoadAssetAtPath<Material>(path);
+                if (m_BoardShadowMaterial != null) return m_BoardShadowMaterial;
+            }
+            #endif
+
+            Shader s = Shader.Find("Sprites/Default") ?? Shader.Find("Universal Render Pipeline/Unlit");
+            m_BoardShadowMaterial = new Material(s);
+            m_BoardShadowMaterial.name = "Runtime_BoardFrameShadow_Mat";
+            m_BoardShadowMaterial.renderQueue = 2990;
+            return m_BoardShadowMaterial;
+        }
+
+        public void EnsureBoardShadow(Vector3 worldCenter, float totalWidth, float totalHeight)
+        {
+            if (m_CubesContainer == null) return;
+
+            if (!m_EnableBoardShadow)
+            {
+                EnsureBoardShadowDisabled();
+                return;
+            }
+
+            Transform shadowTrans = m_CubesContainer.Find("BoardGridShadow");
+            GameObject shadowObj;
+
+            if (shadowTrans == null)
+            {
+                shadowObj = new GameObject("BoardGridShadow");
+                #if UNITY_EDITOR
+                Undo.RegisterCreatedObjectUndo(shadowObj, "Create Board Grid Shadow");
+                #endif
+                shadowObj.transform.SetParent(m_CubesContainer, false);
+                shadowObj.transform.SetAsFirstSibling();
+
+                MeshFilter mf = shadowObj.AddComponent<MeshFilter>();
+                #if UNITY_EDITOR
+                Mesh quad = Resources.GetBuiltinResource<Mesh>("Quad.fbx");
+                mf.sharedMesh = quad != null ? quad : GetOrCreateQuadMesh();
+                #else
+                mf.sharedMesh = GetOrCreateQuadMesh();
+                #endif
+
+                shadowObj.AddComponent<MeshRenderer>();
+            }
+            else
+            {
+                shadowObj = shadowTrans.gameObject;
+                shadowObj.transform.SetAsFirstSibling();
+            }
+
+            shadowObj.SetActive(true);
+
+            MeshRenderer mr = shadowObj.GetComponent<MeshRenderer>();
+            Material mat = GetOrCreateBoardShadowMaterial();
+            if (mr != null && mat != null)
+            {
+                mr.sharedMaterial = mat;
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                mr.receiveShadows = false;
+
+                MaterialPropertyBlock block = new MaterialPropertyBlock();
+                mr.GetPropertyBlock(block);
+                Color col = m_BoardShadowColor;
+                col.a = m_BoardShadowOpacity;
+                block.SetColor("_Color", col);
+                block.SetColor("_BaseColor", col);
+                mr.SetPropertyBlock(block);
+            }
+
+            // Pozisyon: Küplerin hemen arkasında (z = m_TargetZ + 0.08f), pano merkezinde
+            shadowObj.transform.position = new Vector3(
+                worldCenter.x + m_BoardShadowOffset.x,
+                worldCenter.y + m_BoardShadowOffset.y,
+                m_TargetZ + 0.08f
+            );
+            shadowObj.transform.rotation = Quaternion.identity;
+            shadowObj.transform.localScale = new Vector3(
+                totalWidth * m_BoardShadowScale,
+                totalHeight * m_BoardShadowScale,
+                1f
+            );
+        }
+
+        public void EnsureBoardShadowDisabled()
+        {
+            if (m_CubesContainer != null)
+            {
+                Transform shadowTrans = m_CubesContainer.Find("BoardGridShadow");
+                if (shadowTrans != null)
+                {
+                    #if UNITY_EDITOR
+                    if (!Application.isPlaying)
+                        DestroyImmediate(shadowTrans.gameObject);
+                    else
+                    #endif
+                        Destroy(shadowTrans.gameObject);
+                }
+            }
+
+            // Sahne genelinde yetim kalmış BoardGridShadow nesnelerini de temizle
+            GameObject[] allObjs = Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
+            foreach (var go in allObjs)
+            {
+                if (go != null && (go.name == "BoardGridShadow" || go.name.StartsWith("BoardGridShadow")))
+                {
+                    #if UNITY_EDITOR
+                    if (!Application.isPlaying)
+                        DestroyImmediate(go);
+                    else
+                    #endif
+                        Destroy(go);
+                }
+            }
+        }
+
+        public void UpdateBoardShadowLive()
+        {
+            if (m_CubesContainer == null) return;
+
+            if (!m_EnableBoardShadow)
+            {
+                EnsureBoardShadowDisabled();
+                return;
+            }
+
+            Transform shadowTrans = m_CubesContainer.Find("BoardGridShadow");
+            if (shadowTrans != null)
+            {
+                MeshRenderer mr = shadowTrans.GetComponent<MeshRenderer>();
+                if (mr != null)
+                {
+                    MaterialPropertyBlock block = new MaterialPropertyBlock();
+                    mr.GetPropertyBlock(block);
+                    Color col = m_BoardShadowColor;
+                    col.a = m_BoardShadowOpacity;
+                    block.SetColor("_Color", col);
+                    block.SetColor("_BaseColor", col);
+                    mr.SetPropertyBlock(block);
+                }
+            }
+
+            Camera cam = GetActiveCamera();
+            if (cam != null && CalculateTargetWorldBounds(cam, out Vector3 worldCenter, out float worldWidth, out float worldHeight))
+            {
+                GetEffectiveGridSize(GetActiveTexture(), out int cols, out int rows);
+                float cellSize = Mathf.Min(worldWidth / Mathf.Max(1, cols), worldHeight / Mathf.Max(1, rows));
+                EnsureBoardShadow(worldCenter, cols * cellSize, rows * cellSize);
+            }
         }
 
         #endregion

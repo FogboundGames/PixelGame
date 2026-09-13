@@ -8,8 +8,9 @@ namespace PixelGame.Editor
 {
     /// <summary>
     /// Kullanıcı dostu, görsel Level Tasarımcısı (Level Designer) Editör Penceresi.
-    /// Farklı görseller üzerinden kolayca yeni bölümler üretilmesini, palet renklerinin tek tek
-    /// değiştirilmesini (recolor), ton kaydırmayı (hue shift) ve canlı test edilmesini sağlar.
+    /// Farklı görseller üzerinden kolayca yeni bölümler üretilmesini, seviyelerin silinmesini/çoğaltılmasını/sıralanmasını,
+    /// palet renklerinin tek tek değiştirilmesini (recolor), ton kaydırmayı (hue shift), Toony Colors Pro entegrasyonunu
+    /// ve canlı test edilmesini sağlar.
     /// </summary>
     public class PixelLevelDesignerWindow : EditorWindow
     {
@@ -17,14 +18,14 @@ namespace PixelGame.Editor
         private PixelLevelData m_SelectedLevel;
         private Vector2 m_SidebarScroll;
         private Vector2 m_DetailScroll;
-        private Texture2D m_PreviewRecoloredTex;
+        private string m_SearchFilter = "";
 
         [MenuItem("Tools/PixelGame/🛠️ Level Designer (Bölüm Tasarımcısı)", priority = 5)]
         [MenuItem("Window/PixelGame/Level Designer")]
         public static void OpenWindow()
         {
             var window = GetWindow<PixelLevelDesignerWindow>("Level Designer");
-            window.minSize = new Vector2(800, 580);
+            window.minSize = new Vector2(860, 600);
             window.Show();
         }
 
@@ -41,13 +42,13 @@ namespace PixelGame.Editor
             // İki sütunlu düzen: Sol (Level Listesi), Sağ (Seçili Level Düzenleyici)
             EditorGUILayout.BeginHorizontal();
 
-            // 1. Sol Sidebar: Level Listesi
-            DrawSidebar(240);
+            // 1. Sol Sidebar: Level Listesi & Hızlı Eylemler
+            DrawSidebar(310);
 
             // Ayırıcı çizgi
             DrawVerticalDivider();
 
-            // 2. Sağ Panel: Seçili Level Detayları & Renk Ayarları
+            // 2. Sağ Panel: Seçili Level Detayları, Renk Ayarları & Toony Colors Pro
             DrawDetailPanel();
 
             EditorGUILayout.EndHorizontal();
@@ -55,19 +56,24 @@ namespace PixelGame.Editor
 
         private void DrawTopToolbar()
         {
-            Rect rect = EditorGUILayout.GetControlRect(false, 38);
+            Rect rect = EditorGUILayout.GetControlRect(false, 40);
             EditorGUI.DrawRect(rect, new Color(0.1f, 0.14f, 0.2f, 1f));
 
             GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel)
             {
                 fontSize = 14,
                 alignment = TextAnchor.MiddleLeft,
-                normal = { textColor = new Color(0.3f, 0.85f, 1f) }
+                normal = { textColor = new Color(0.3f, 0.88f, 1f) }
             };
 
-            GUI.Label(new Rect(rect.x + 12, rect.y, rect.width - 200, rect.height), "🛠️ Pixel Game - Bölüm Tasarımcısı & Renk Editörü", titleStyle);
+            GUI.Label(new Rect(rect.x + 12, rect.y, rect.width - 320, rect.height), "🛠️ Pixel Game - Bölüm Tasarımcısı & Renk Editörü", titleStyle);
 
-            if (GUI.Button(new Rect(rect.xMax - 110, rect.y + 6, 95, 26), "🔄 Listeyi Yenile"))
+            if (GUI.Button(new Rect(rect.xMax - 225, rect.y + 7, 105, 26), "➕ Yeni Bölüm"))
+            {
+                CreateNewLevel();
+            }
+
+            if (GUI.Button(new Rect(rect.xMax - 110, rect.y + 7, 95, 26), "🔄 Listeyi Yenile"))
             {
                 RefreshLevelList();
             }
@@ -78,7 +84,22 @@ namespace PixelGame.Editor
             EditorGUILayout.BeginVertical(GUILayout.Width(width), GUILayout.ExpandHeight(true));
             EditorGUILayout.Space(6);
 
+            // Başlık & Arama Çubuğu
             EditorGUILayout.LabelField($"📋 Kayıtlı Bölümler ({m_AllLevels.Count})", EditorStyles.boldLabel);
+            EditorGUILayout.Space(2);
+
+            EditorGUILayout.BeginHorizontal();
+            m_SearchFilter = EditorGUILayout.TextField(m_SearchFilter, EditorStyles.toolbarSearchField);
+            if (!string.IsNullOrEmpty(m_SearchFilter))
+            {
+                if (GUILayout.Button("✕", EditorStyles.toolbarButton, GUILayout.Width(20)))
+                {
+                    m_SearchFilter = "";
+                    GUI.FocusControl(null);
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+
             EditorGUILayout.Space(4);
 
             m_SidebarScroll = EditorGUILayout.BeginScrollView(m_SidebarScroll, GUILayout.ExpandHeight(true));
@@ -93,37 +114,88 @@ namespace PixelGame.Editor
                 PixelLevelData level = m_AllLevels[i];
                 if (level == null) continue;
 
+                // Arama filtresi kontrolü
+                if (!string.IsNullOrEmpty(m_SearchFilter))
+                {
+                    string term = m_SearchFilter.ToLowerInvariant();
+                    bool matches = level.LevelName.ToLowerInvariant().Contains(term) || 
+                                   level.LevelIndex.ToString().Contains(term);
+                    if (!matches) continue;
+                }
+
                 bool isSelected = (m_SelectedLevel == level);
 
-                GUI.backgroundColor = isSelected ? new Color(0.2f, 0.65f, 1f) : new Color(0.9f, 0.9f, 0.9f);
+                GUI.backgroundColor = isSelected ? new Color(0.2f, 0.65f, 1f) : new Color(0.92f, 0.92f, 0.92f);
 
-                EditorGUILayout.BeginHorizontal("box", GUILayout.Height(44));
+                EditorGUILayout.BeginHorizontal("box", GUILayout.Height(46));
 
                 // Küçük resim önizlemesi (Thumbnail)
                 Texture2D tex = level.GetActiveTexture();
                 if (tex != null)
                 {
-                    Rect thumbRect = EditorGUILayout.GetControlRect(false, 36, GUILayout.Width(36));
+                    Rect thumbRect = EditorGUILayout.GetControlRect(false, 38, GUILayout.Width(38));
                     GUI.DrawTexture(thumbRect, tex, ScaleMode.ScaleToFit);
                 }
                 else
                 {
-                    EditorGUILayout.LabelField("🖼️", GUILayout.Width(24));
+                    EditorGUILayout.LabelField("🖼️", GUILayout.Width(26));
                 }
 
                 // Level adı ve boyut bilgisi
                 EditorGUILayout.BeginVertical();
                 EditorGUILayout.LabelField($"Level {level.LevelIndex}: {level.LevelName}", EditorStyles.boldLabel);
                 Vector2Int res = level.GetGridResolution();
-                EditorGUILayout.LabelField($"{res.x} x {res.y} Piksel", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField($"{res.x}x{res.y} Piksel | {level.ColorPalette.Count} Renk", EditorStyles.miniLabel);
                 EditorGUILayout.EndVertical();
 
-                // Seçim algılama
-                if (Event.current.type == EventType.MouseDown && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
+                // Seçim algılama alanı
+                Rect rowRect = GUILayoutUtility.GetLastRect();
+                if (Event.current.type == EventType.MouseDown && rowRect.Contains(Event.current.mousePosition))
                 {
                     SelectLevel(level);
                     Event.current.Use();
                 }
+
+                // Hızlı Eylem Butonları: Yukarı, Aşağı, Çoğalt, Sil
+                EditorGUILayout.BeginVertical(GUILayout.Width(50));
+                EditorGUILayout.BeginHorizontal();
+
+                // Yukarı Taşı
+                GUI.enabled = (i > 0);
+                if (GUILayout.Button("▲", EditorStyles.miniButtonLeft, GUILayout.Width(24), GUILayout.Height(18)))
+                {
+                    MoveLevel(i, i - 1);
+                    return;
+                }
+                // Aşağı Taşı
+                GUI.enabled = (i < m_AllLevels.Count - 1);
+                if (GUILayout.Button("▼", EditorStyles.miniButtonRight, GUILayout.Width(24), GUILayout.Height(18)))
+                {
+                    MoveLevel(i, i + 1);
+                    return;
+                }
+                GUI.enabled = true;
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.BeginHorizontal();
+                // Çoğalt (Duplicate)
+                GUI.backgroundColor = new Color(0.7f, 0.9f, 1f);
+                if (GUILayout.Button("📋", EditorStyles.miniButtonLeft, GUILayout.Width(24), GUILayout.Height(18)))
+                {
+                    DuplicateLevel(level);
+                    return;
+                }
+                // Sil (Delete)
+                GUI.backgroundColor = new Color(1f, 0.6f, 0.6f);
+                if (GUILayout.Button("🗑️", EditorStyles.miniButtonRight, GUILayout.Width(24), GUILayout.Height(18)))
+                {
+                    DeleteLevel(level);
+                    return;
+                }
+                GUI.backgroundColor = isSelected ? new Color(0.2f, 0.65f, 1f) : Color.white;
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.EndVertical();
 
                 EditorGUILayout.EndHorizontal();
                 GUI.backgroundColor = Color.white;
@@ -135,13 +207,29 @@ namespace PixelGame.Editor
 
             // Yeni Level Ekle Butonu
             GUI.backgroundColor = new Color(0.2f, 0.85f, 0.45f);
-            if (GUILayout.Button("➕ Yeni Level Ekle", GUILayout.Height(36)))
+            if (GUILayout.Button("➕ Yeni Level Ekle", GUILayout.Height(34)))
             {
                 CreateNewLevel();
             }
             GUI.backgroundColor = Color.white;
-            EditorGUILayout.Space(6);
 
+            EditorGUILayout.Space(2);
+
+            EditorGUILayout.BeginHorizontal();
+            GUI.backgroundColor = new Color(0.85f, 0.9f, 0.95f);
+            if (GUILayout.Button("🔢 Numaraları Sırala (1..N)", GUILayout.Height(24)))
+            {
+                AutoRenumberLevels();
+            }
+            if (GUILayout.Button("🔄 LevelManager'a Eşitle", GUILayout.Height(24)))
+            {
+                SyncWithSceneLevelManager();
+                EditorUtility.DisplayDialog("Senkronizasyon Başarılı", "Tüm seviyeler sahnedeki LevelManager ile başarıyla eşitlendi.", "Tamam");
+            }
+            GUI.backgroundColor = Color.white;
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(6);
             EditorGUILayout.EndVertical();
         }
 
@@ -166,21 +254,28 @@ namespace PixelGame.Editor
             m_DetailScroll = EditorGUILayout.BeginScrollView(m_DetailScroll, GUILayout.ExpandHeight(true));
             EditorGUILayout.Space(8);
 
-            // Başlık & Silme Butonu
+            // Başlık, Çoğalt ve Sil Butonları
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField($"✏️ Düzenlenen: Level {m_SelectedLevel.LevelIndex} - {m_SelectedLevel.LevelName}", EditorStyles.boldLabel);
 
-            GUI.backgroundColor = new Color(0.95f, 0.35f, 0.35f);
-            if (GUILayout.Button("🗑️ Leveli Sil", GUILayout.Width(90), GUILayout.Height(24)))
+            GUI.backgroundColor = new Color(0.7f, 0.9f, 1f);
+            if (GUILayout.Button("📋 Bölümü Çoğalt", GUILayout.Width(110), GUILayout.Height(24)))
             {
-                if (EditorUtility.DisplayDialog("Leveli Sil", $"'{m_SelectedLevel.LevelName}' kalıcı olarak silinsin mi?", "Evet, Sil", "Vazgeç"))
-                {
-                    DeleteSelectedLevel();
-                    EditorGUILayout.EndHorizontal();
-                    EditorGUILayout.EndScrollView();
-                    EditorGUILayout.EndVertical();
-                    return;
-                }
+                DuplicateLevel(m_SelectedLevel);
+                EditorGUILayout.EndHorizontal();
+                EditorGUILayout.EndScrollView();
+                EditorGUILayout.EndVertical();
+                return;
+            }
+
+            GUI.backgroundColor = new Color(0.95f, 0.35f, 0.35f);
+            if (GUILayout.Button("🗑️ Bölümü Sil", GUILayout.Width(95), GUILayout.Height(24)))
+            {
+                DeleteLevel(m_SelectedLevel);
+                EditorGUILayout.EndHorizontal();
+                EditorGUILayout.EndScrollView();
+                EditorGUILayout.EndVertical();
+                return;
             }
             GUI.backgroundColor = Color.white;
             EditorGUILayout.EndHorizontal();
@@ -254,22 +349,27 @@ namespace PixelGame.Editor
 
             EditorGUILayout.Space(6);
 
-            // 3. 🎨 RENK PALETİ VE RENK DEĞİŞTİRME (USER REQUESTED FEATURE!)
+            // 3. 🎨 RENK PALETİ VE RENK DEĞİŞTİRME
             DrawColorPaletteSection();
 
             EditorGUILayout.Space(6);
 
-            // 4. ☀️ GENEL RENK & IŞIK AYARLARI
+            // 4. 🎨 TOONY COLORS PRO (KULLANICI TALEBİ: TOON AYARLARI VE TOOL ENTEGRASYONU)
+            DrawToonyColorsProSection();
+
+            EditorGUILayout.Space(6);
+
+            // 5. ☀️ GENEL RENK & IŞIK AYARLARI
             DrawGlobalColorSettingsSection();
 
             EditorGUILayout.Space(6);
 
-            // 5. 📐 PİKSEL UYUMU & IZGARA AYARLARI
+            // 6. 📐 PİKSEL UYUMU & IZGARA AYARLARI
             DrawGridSettingsSection();
 
             EditorGUILayout.Space(6);
 
-            // 6. 🚚 KAMYON DÜZENİ (slot sayısı, havuz sıraları, kapasite)
+            // 7. 🚚 VAGON DÜZENİ (slot sayısı, havuz sıraları, kapasite)
             DrawTruckLayoutSection();
 
             // Değişiklik algılandıysa kaydet ve canlı güncelle
@@ -281,7 +381,7 @@ namespace PixelGame.Editor
 
             EditorGUILayout.Space(12);
 
-            // 6. AKSİYON BUTONLARI (Büyük ve Belirgin)
+            // 8. AKSİYON BUTONLARI (Büyük ve Belirgin)
             DrawActionButtons();
 
             EditorGUILayout.Space(16);
@@ -290,8 +390,137 @@ namespace PixelGame.Editor
         }
 
         /// <summary>
-        /// Görselden çıkarılan tüm renkleri listeleyen ve tek tek değiştirmeye olanak tanıyan palet alanı.
+        /// Toony Colors Pro tool ve shader parametrelerinin doğrudan Level Designer içinden ayarlanması.
         /// </summary>
+        private void DrawToonyColorsProSection()
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("🎨 Toony Colors Pro (Toon Görünüm & Gölgelendirme)", EditorStyles.boldLabel);
+
+            GUI.backgroundColor = new Color(0.2f, 0.75f, 1f);
+            if (GUILayout.Button("🚀 TCP2 Tool'u Aç", GUILayout.Width(130), GUILayout.Height(22)))
+            {
+                EditorApplication.ExecuteMenuItem("Tools/Toony Colors Pro/Shader Generator 2");
+            }
+            GUI.backgroundColor = Color.white;
+            EditorGUILayout.EndHorizontal();
+
+            Material cartoonMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/PixelCube_Cartoon.mat");
+            if (cartoonMat == null)
+            {
+                string[] guids = AssetDatabase.FindAssets("PixelCube_Cartoon t:Material");
+                if (guids.Length > 0)
+                {
+                    cartoonMat = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(guids[0]));
+                }
+            }
+
+            if (cartoonMat == null)
+            {
+                EditorGUILayout.HelpBox("PixelCube_Cartoon.mat materyali bulunamadı.", MessageType.Warning);
+                EditorGUILayout.EndVertical();
+                return;
+            }
+
+            EditorGUILayout.HelpBox("Küp parçalarının Toon (çizgi roman / cel-shaded) ton, ışık ve gölgelendirme eşiklerini buradan canlı olarak ayarlayabilirsiniz.", MessageType.None);
+            EditorGUILayout.Space(4);
+
+            EditorGUI.BeginChangeCheck();
+
+            // Highlight Color (_HColor)
+            Color hColor = cartoonMat.HasProperty("_HColor") ? cartoonMat.GetColor("_HColor") : Color.white;
+            Color newHColor = EditorGUILayout.ColorField("Aydınlık Tonu (Highlight / HColor)", hColor);
+
+            // Shadow Color (_SColor)
+            Color sColor = cartoonMat.HasProperty("_SColor") ? cartoonMat.GetColor("_SColor") : new Color(0.643f, 0.655f, 0.714f);
+            Color newSColor = EditorGUILayout.ColorField("Toon Gölge Rengi (Shadow / SColor)", sColor);
+
+            // Ramp Threshold (_RampThreshold)
+            float rampThreshold = cartoonMat.HasProperty("_RampThreshold") ? cartoonMat.GetFloat("_RampThreshold") : 0.5f;
+            float newRampThreshold = EditorGUILayout.Slider("Gölge Eşiği (Ramp Threshold)", rampThreshold, 0f, 1f);
+
+            // Ramp Smoothing (_RampSmoothing)
+            float rampSmoothing = cartoonMat.HasProperty("_RampSmoothing") ? cartoonMat.GetFloat("_RampSmoothing") : 0.5f;
+            float newRampSmoothing = EditorGUILayout.Slider("Toon Yumuşatma (Ramp Smoothing)", rampSmoothing, 0.001f, 1f);
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(cartoonMat, "Modify Toony Colors Material");
+                if (cartoonMat.HasProperty("_HColor")) cartoonMat.SetColor("_HColor", newHColor);
+                if (cartoonMat.HasProperty("_SColor")) cartoonMat.SetColor("_SColor", newSColor);
+                if (cartoonMat.HasProperty("_RampThreshold")) cartoonMat.SetFloat("_RampThreshold", newRampThreshold);
+                if (cartoonMat.HasProperty("_RampSmoothing")) cartoonMat.SetFloat("_RampSmoothing", newRampSmoothing);
+                EditorUtility.SetDirty(cartoonMat);
+                SceneView.RepaintAll();
+            }
+
+            EditorGUILayout.Space(4);
+
+            // Hazır Toon Ayarları (Presets)
+            EditorGUILayout.LabelField("Toony Colors Hızlı Hazır Ayarları (Presets):", EditorStyles.miniBoldLabel);
+            EditorGUILayout.BeginHorizontal();
+
+            if (GUILayout.Button("💥 Çizgi Roman (Cel)"))
+            {
+                Undo.RecordObject(cartoonMat, "Toon Preset Cel");
+                cartoonMat.SetColor("_HColor", Color.white);
+                cartoonMat.SetColor("_SColor", new Color(0.55f, 0.57f, 0.68f));
+                cartoonMat.SetFloat("_RampThreshold", 0.50f);
+                cartoonMat.SetFloat("_RampSmoothing", 0.05f);
+                EditorUtility.SetDirty(cartoonMat);
+                SceneView.RepaintAll();
+            }
+            if (GUILayout.Button("☁️ Yumuşak Toon"))
+            {
+                Undo.RecordObject(cartoonMat, "Toon Preset Soft");
+                cartoonMat.SetColor("_HColor", Color.white);
+                cartoonMat.SetColor("_SColor", new Color(0.70f, 0.72f, 0.78f));
+                cartoonMat.SetFloat("_RampThreshold", 0.50f);
+                cartoonMat.SetFloat("_RampSmoothing", 0.65f);
+                EditorUtility.SetDirty(cartoonMat);
+                SceneView.RepaintAll();
+            }
+            if (GUILayout.Button("☀️ Sıcak Gün Işığı"))
+            {
+                Undo.RecordObject(cartoonMat, "Toon Preset Warm");
+                cartoonMat.SetColor("_HColor", new Color(1f, 0.98f, 0.92f));
+                cartoonMat.SetColor("_SColor", new Color(0.75f, 0.65f, 0.58f));
+                cartoonMat.SetFloat("_RampThreshold", 0.45f);
+                cartoonMat.SetFloat("_RampSmoothing", 0.35f);
+                EditorUtility.SetDirty(cartoonMat);
+                SceneView.RepaintAll();
+            }
+            if (GUILayout.Button("🎮 Keskin Anime"))
+            {
+                Undo.RecordObject(cartoonMat, "Toon Preset Anime");
+                cartoonMat.SetColor("_HColor", Color.white);
+                cartoonMat.SetColor("_SColor", new Color(0.48f, 0.50f, 0.60f));
+                cartoonMat.SetFloat("_RampThreshold", 0.52f);
+                cartoonMat.SetFloat("_RampSmoothing", 0.005f);
+                EditorUtility.SetDirty(cartoonMat);
+                SceneView.RepaintAll();
+            }
+
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(4);
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("🎨 Ramp Generator'ı Aç", GUILayout.Height(22)))
+            {
+                EditorApplication.ExecuteMenuItem("Tools/Toony Colors Pro/Ramp Generator");
+            }
+            if (GUILayout.Button("🔍 Materyali Inspector'da Göster", GUILayout.Height(22)))
+            {
+                Selection.activeObject = cartoonMat;
+                EditorGUIUtility.PingObject(cartoonMat);
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.EndVertical();
+        }
+
         private void DrawColorPaletteSection()
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
@@ -493,15 +722,11 @@ namespace PixelGame.Editor
                 new GUIContent("Vagon Kapasitesi", "Bir vagonun kasasına kaç küp sığar"),
                 m_SelectedLevel.TruckCapacity, 1, 64);
 
-            // Bölümün bu ayarlarla kaç kamyon gerektirdiğini göster: oyunun uzunluğu budur
             DrawTruckSummary();
 
             EditorGUILayout.EndVertical();
         }
 
-        /// <summary>
-        /// Seçili ayarlarla bölümün kaç kamyon gerektirdiğini ve olası sorunları gösterir.
-        /// </summary>
         private void DrawTruckSummary()
         {
             int required = m_SelectedLevel.GetRequiredTruckCount();
@@ -527,7 +752,6 @@ namespace PixelGame.Editor
                     MessageType.Info);
             }
 
-            // Havuz, slotları dolduramayacak kadar küçükse oyuncu kilitlenebilir
             if (m_SelectedLevel.PoolPlaceCount < m_SelectedLevel.SlotCount)
             {
                 EditorGUILayout.HelpBox(
@@ -555,6 +779,7 @@ namespace PixelGame.Editor
             {
                 EditorUtility.SetDirty(m_SelectedLevel);
                 AssetDatabase.SaveAssets();
+                SyncWithSceneLevelManager();
                 Debug.Log($"<color=#00FF00>[LevelDesigner]</color> '{m_SelectedLevel.LevelName}' başarıyla kaydedildi.");
             }
 
@@ -621,6 +846,8 @@ namespace PixelGame.Editor
             {
                 SelectLevel(m_AllLevels[0]);
             }
+
+            SyncWithSceneLevelManager();
         }
 
         private void SelectLevel(PixelLevelData level)
@@ -634,7 +861,7 @@ namespace PixelGame.Editor
             }
         }
 
-        private void CreateNewLevel()
+        public void CreateNewLevel()
         {
             if (!AssetDatabase.IsValidFolder("Assets/Levels"))
             {
@@ -658,17 +885,99 @@ namespace PixelGame.Editor
             Debug.Log($"<color=#00FFAA><b>[LevelDesigner]</b></color> Yeni level oluşturuldu: {assetPath}");
         }
 
-        private void DeleteSelectedLevel()
+        public void DuplicateLevel(PixelLevelData source)
         {
-            if (m_SelectedLevel == null) return;
+            if (source == null) return;
 
-            string path = AssetDatabase.GetAssetPath(m_SelectedLevel);
+            if (!AssetDatabase.IsValidFolder("Assets/Levels"))
+            {
+                AssetDatabase.CreateFolder("Assets", "Levels");
+            }
+
+            int nextIndex = m_AllLevels.Count + 1;
+            string safeName = source.LevelName.Replace(" ", "_");
+            string assetPath = AssetDatabase.GenerateUniqueAssetPath($"Assets/Levels/Level_{nextIndex:D2}_{safeName}_Copy.asset");
+
+            PixelLevelData newLevel = ScriptableObject.Instantiate(source);
+            newLevel.LevelName = $"{source.LevelName} (Kopya)";
+            newLevel.LevelIndex = nextIndex;
+
+            AssetDatabase.CreateAsset(newLevel, assetPath);
+            AssetDatabase.SaveAssets();
+
+            RefreshLevelList();
+            SelectLevel(newLevel);
+
+            Debug.Log($"<color=#00FFAA><b>[LevelDesigner]</b></color> Bölüm başarıyla çoğaltıldı: {assetPath}");
+        }
+
+        public void DeleteLevel(PixelLevelData level)
+        {
+            if (level == null) return;
+
+            if (!EditorUtility.DisplayDialog("Bölümü Sil", 
+                $"'{level.LevelName}' (Level {level.LevelIndex}) kalıcı olarak silinsin mi?", 
+                "Evet, Kalıcı Olarak Sil", "Vazgeç"))
+            {
+                return;
+            }
+
+            string path = AssetDatabase.GetAssetPath(level);
             if (!string.IsNullOrEmpty(path))
             {
                 AssetDatabase.DeleteAsset(path);
                 AssetDatabase.SaveAssets();
-                m_SelectedLevel = null;
+                if (m_SelectedLevel == level) m_SelectedLevel = null;
                 RefreshLevelList();
+                Debug.Log($"<color=yellow><b>[LevelDesigner]</b></color> Bölüm silindi: {path}");
+            }
+        }
+
+        private void MoveLevel(int fromIndex, int toIndex)
+        {
+            if (fromIndex < 0 || fromIndex >= m_AllLevels.Count || toIndex < 0 || toIndex >= m_AllLevels.Count) return;
+
+            PixelLevelData item = m_AllLevels[fromIndex];
+            m_AllLevels.RemoveAt(fromIndex);
+            m_AllLevels.Insert(toIndex, item);
+
+            AutoRenumberLevels();
+        }
+
+        private void AutoRenumberLevels()
+        {
+            for (int i = 0; i < m_AllLevels.Count; i++)
+            {
+                if (m_AllLevels[i] != null)
+                {
+                    m_AllLevels[i].LevelIndex = i + 1;
+                    EditorUtility.SetDirty(m_AllLevels[i]);
+                }
+            }
+            AssetDatabase.SaveAssets();
+            SyncWithSceneLevelManager();
+            Debug.Log("<color=#00FFAA><b>[LevelDesigner]</b></color> Seviye numaraları sıralandı (1.." + m_AllLevels.Count + ").");
+        }
+
+        private void SyncWithSceneLevelManager()
+        {
+            LevelManager lm = Object.FindFirstObjectByType<LevelManager>();
+            if (lm != null)
+            {
+                SerializedObject so = new SerializedObject(lm);
+                SerializedProperty prop = so.FindProperty("m_Levels");
+                if (prop != null)
+                {
+                    prop.ClearArray();
+                    for (int i = 0; i < m_AllLevels.Count; i++)
+                    {
+                        prop.InsertArrayElementAtIndex(i);
+                        prop.GetArrayElementAtIndex(i).objectReferenceValue = m_AllLevels[i];
+                    }
+                    so.ApplyModifiedProperties();
+                    EditorUtility.SetDirty(lm);
+                    EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+                }
             }
         }
 

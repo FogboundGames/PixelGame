@@ -13,11 +13,12 @@ namespace PixelGame.Editor
     {
         private const string PrefabPath = "Assets/Prefabs/MainCube.prefab";
         private const string ShadowMatPath = "Assets/Materials/SoftVoxelShadow_Mat.mat";
-        private const string RunKey = "MainCube_AllAround_Shadow_Setup_v9";
+        private const string RunKey = "MainCube_VisibleFakeShadow_Setup_v15";
 
         static SetupMainCubePrefabShadow()
         {
-            EditorApplication.delayCall += ApplyShadowToPrefabAndScene;
+            // Kullanıcı gölgeleri kapattığı için otomatik gölge oluşturucu devre dışı bırakıldı
+            // EditorApplication.delayCall += ApplyShadowToPrefabAndScene;
         }
 
         private static GameObject CreateShadowQuad(string name, Transform parent)
@@ -39,21 +40,22 @@ namespace PixelGame.Editor
             ApplyShadowToPrefab(force: true);
             ApplyShadowsToSceneCubes();
             EditorUtility.DisplayDialog("Canlı Önizleme Hazır!", 
-                "Piksel resmi, tüm şekil kontur gölgesi ve küp gölgeleri sahneye başarıyla yerleştirildi!\n\n" +
-                "- Şeklin dış hatları ikinci görseldeki gibi belirgin ve yumuşak kontur gölgesine sahiptir.\n" +
-                "- Oyunu başlatmadan da Scene view üzerinde tam görsel önizleme yapabilirsiniz.\n" +
-                "- Küp patladığında parçalar dökülür, gölgeler panoda sabit kalır.", "Harika!");
+                "Tüm sahte gölgeler başarıyla uygulandı!\n\n" +
+                "- Her parça altında 3D fake shadow ve bevel.\n" +
+                "- Panonun 4 kenarını çevreleyen yumuşak Board Frame Shadow.\n" +
+                "- Parçalandığında arkada hiçbir iz kalmıyor.", "Harika!");
         }
 
-        [MenuItem("Tools/PixelGame/🌑 MainCube Prefabına Fake Shadow Ekle (Kalıcı ve Her Yönde)")]
+        [MenuItem("Tools/PixelGame/🌑 MainCube Prefabına Belirgin Fake Shadow Ayarla")]
         public static void ApplyManual()
         {
             ApplyShadowToPrefab(force: true);
             ApplyShadowsToSceneCubes();
-            EditorUtility.DisplayDialog("Fake Shadow Prefab'a Eklendi", 
-                "MainCube prefab'ına ve sahnedeki tüm küplere 360 derece Fake Shadow başarıyla eklendi!\n\n" +
-                "- Hem arka panelde hem de 3D alt zeminde gölge hazırlandı.\n" +
-                "- Küp patlatıldığında parçaları aşağı dökülür, gölge ise panoda hep sabit kalır.", "Tamam");
+            EditorUtility.DisplayDialog("Fake Shadow Ayarlandı", 
+                "MainCube prefab'ına, sahnedeki küplere ve panonun 4 kenarına sahte gölge uygulandı!\n\n" +
+                "- Küp altı ve kenar sahte gölgeleri aktif.\n" +
+                "- Pano çevresi yumuşak çerçeve gölgesi aktif.\n" +
+                "- Parça patlayınca arkada leke kalmaz.", "Tamam");
         }
 
         public static void ApplyShadowToPrefabAndScene()
@@ -74,7 +76,7 @@ namespace PixelGame.Editor
                 return;
             }
 
-            // Material bul
+            // Material bul ve gölge rengini/opaklığını ayarla
             Material shadowMat = AssetDatabase.LoadAssetAtPath<Material>(ShadowMatPath);
             if (shadowMat == null)
             {
@@ -82,6 +84,28 @@ namespace PixelGame.Editor
                 if (guids.Length > 0)
                 {
                     shadowMat = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(guids[0]));
+                }
+            }
+
+            if (shadowMat != null)
+            {
+                Color sc = new Color(0.04f, 0.06f, 0.14f, 0.75f);
+                if (shadowMat.HasProperty("_Color")) shadowMat.SetColor("_Color", sc);
+                if (shadowMat.HasProperty("_BaseColor")) shadowMat.SetColor("_BaseColor", sc);
+                shadowMat.color = sc;
+                EditorUtility.SetDirty(shadowMat);
+            }
+
+            // Küp malzemesine bevel & gölge dokusunu (_BaseMap) bağla
+            Material cubeMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/PixelCube_Cartoon.mat");
+            if (cubeMat != null)
+            {
+                Texture2D bevelTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/VoxelCube_BevelShadow.png");
+                if (bevelTex != null)
+                {
+                    cubeMat.SetTexture("_BaseMap", bevelTex);
+                    cubeMat.mainTexture = bevelTex;
+                    EditorUtility.SetDirty(cubeMat);
                 }
             }
 
@@ -98,14 +122,14 @@ namespace PixelGame.Editor
                 }
                 pixelCube.KeepShadowPermanent = false;
 
-                // 2. CubeShadow (Arka Pano 360 derece çevreleyen gölge)
+                // 2. CubeShadow (Her parçaya belirgin sahte gölge)
                 Transform shadowTrans = root.transform.Find("CubeShadow");
                 GameObject shadowObj = shadowTrans != null ? shadowTrans.gameObject : CreateShadowQuad("CubeShadow", root.transform);
 
-                // Gerçekçi, soft ve doğal sönümlü gölge
-                shadowObj.transform.localPosition = new Vector3(0f, -0.04f, 0.52f);
+                // Sağa ve aşağı düşen, küpün kenarlarından taşarak belirginleşen sahte gölge
+                shadowObj.transform.localPosition = new Vector3(0.04f, -0.08f, 0.52f);
                 shadowObj.transform.localRotation = Quaternion.identity;
-                shadowObj.transform.localScale = new Vector3(1.22f, 1.22f, 1f);
+                shadowObj.transform.localScale = new Vector3(1.34f, 1.34f, 1f);
 
                 MeshRenderer mr = shadowObj.GetComponent<MeshRenderer>();
                 if (mr != null)
@@ -115,26 +139,17 @@ namespace PixelGame.Editor
                     mr.receiveShadows = false;
                 }
 
-                // 3. CubeShadow_Bottom (3D Perspektif Zemin Gölgesi)
+                // 3. CubeShadow_Bottom varsa kaldır (Küp patlayınca komşunun boşluğa sarkmasını engeller)
                 Transform bottomTrans = root.transform.Find("CubeShadow_Bottom");
-                GameObject bottomObj = bottomTrans != null ? bottomTrans.gameObject : CreateShadowQuad("CubeShadow_Bottom", root.transform);
-
-                bottomObj.transform.localPosition = new Vector3(0f, -0.505f, 0f);
-                bottomObj.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-                bottomObj.transform.localScale = new Vector3(1.22f, 1.22f, 1f);
-
-                MeshRenderer bMr = bottomObj.GetComponent<MeshRenderer>();
-                if (bMr != null)
+                if (bottomTrans != null)
                 {
-                    if (shadowMat != null) bMr.sharedMaterial = shadowMat;
-                    bMr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                    bMr.receiveShadows = false;
+                    Object.DestroyImmediate(bottomTrans.gameObject);
                 }
 
-                pixelCube.SetShadowObjects(shadowObj, bottomObj);
+                pixelCube.SetShadowObjects(shadowObj, null);
 
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
-                Debug.Log("<color=#00FFAA><b>[PixelGame]</b></color> MainCube prefab'ına her yönde (360 derece + zemin) Fake Shadow kaydedildi!");
+                Debug.Log("<color=#00FFAA><b>[PixelGame]</b></color> MainCube prefab'ına her parçada belirgin Fake Shadow kaydedildi!");
             }
             finally
             {
@@ -150,7 +165,10 @@ namespace PixelGame.Editor
             PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
             if (gen != null)
             {
-                gen.GeneratePixelArt();
+                gen.EnsureFigureContourShadowDisabled();
+                gen.ShadowOffset = new Vector2(0.04f, -0.08f);
+                gen.EnableBoardShadow = false;
+                gen.EnsureBoardShadowDisabled();
                 gen.ApplyShadowsToAllExistingCubes();
             }
 
@@ -158,6 +176,18 @@ namespace PixelGame.Editor
             foreach (var c in allCubes)
             {
                 c.KeepShadowPermanent = false;
+                Transform bottomTrans = c.transform.Find("CubeShadow_Bottom");
+                if (bottomTrans != null)
+                {
+                    Object.DestroyImmediate(bottomTrans.gameObject);
+                }
+
+                Transform shadowTrans = c.transform.Find("CubeShadow");
+                if (shadowTrans != null)
+                {
+                    shadowTrans.localPosition = new Vector3(0.04f, -0.08f, 0.52f);
+                    shadowTrans.localScale = new Vector3(1.34f, 1.34f, 1f);
+                }
             }
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());

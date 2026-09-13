@@ -382,7 +382,8 @@ namespace PixelGame
 
                 if (img.sprite == null || img.sprite != shadowSprite)
                     img.sprite = shadowSprite;
-                img.preserveAspect = true;
+                img.type = Image.Type.Sliced;
+                img.preserveAspect = false;
                 img.raycastTarget = false;
 
                 // Eğer elle ayarlama modu açıksa ve nesne zaten sahnede varsa, kullanıcının elle verdiği pozisyon/boyut/rengi ezme!

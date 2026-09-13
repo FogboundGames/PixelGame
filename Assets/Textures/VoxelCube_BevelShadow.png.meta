@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: c7489a203f1548beaa238472910fae12
+guid: e8a1f290d4c34b1a8291f0c2a7b81920
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -31,7 +31,7 @@ TextureImporter:
   cubemapConvolution: 0
   seamlessCubemap: 0
   textureFormat: 1
-  maxTextureSize: 2048
+  maxTextureSize: 256
   textureSettings:
     serializedVersion: 2
     filterMode: 1
@@ -39,22 +39,22 @@ TextureImporter:
     mipBias: 0
     wrapU: 1
     wrapV: 1
-    wrapW: 0
+    wrapW: 1
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 1
+  spriteMode: 0
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
-  spriteBorder: {x: 56, y: 56, z: 56, w: 56}
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
-  alphaIsTransparency: 1
+  alphaIsTransparency: 0
   spriteTessellationDetail: -1
-  textureType: 8
+  textureType: 0
   textureShape: 1
   singleChannelComponent: 0
   flipbookRows: 1
@@ -67,11 +67,11 @@ TextureImporter:
   swizzle: 50462976
   cookieLightType: 0
   platformSettings:
-  - serializedVersion: 4
+  - serializedVersion: 3
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 2048
+    maxTextureSize: 256
     resizeAlgorithm: 0
-    textureFormat: -1
+    format: -1
     textureCompression: 1
     compressionQuality: 50
     crunchedCompression: 0
@@ -80,25 +80,6 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
-  spriteSheet:
-    serializedVersion: 2
-    sprites: []
-    outline: []
-    customData: 
-    physicsShape: []
-    bones: []
-    spriteID: 0a1b2c3d4e5f60718293a4b5c6d7e8f9
-    internalID: 0
-    vertices: []
-    indices: 
-    edges: []
-    weights: []
-    secondaryTextures: []
-    spriteCustomMetadata:
-      entries: []
-    nameFileIdTable: {}
-  mipmapLimitGroupName: 
-  pSDRemoveMatte: 0
   userData: 
   assetBundleName: 
   assetBundleVariant: 

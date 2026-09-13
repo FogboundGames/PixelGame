@@ -67,16 +67,17 @@ namespace PixelGame
 
             if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
 
-            // Aydınlık ton: rengin biraz açığı, gölge tonu: biraz koyusu ve soğuğu
+            // PixelCube_Cartoon.mat ile birebir aynı toon aydınlık ve gölge tonlaması:
+            // _HColor saf beyaz (1,1,1) kalmalıdır; albedo ile çarpıldığında rengi karartmaz.
+            // _SColor ise küplerle aynı hafif soğuk gölge tonudur.
             if (material.HasProperty("_HColor"))
             {
-                material.SetColor("_HColor", Color.Lerp(color, Color.white, 0.18f));
+                material.SetColor("_HColor", Color.white);
             }
 
             if (material.HasProperty("_SColor"))
             {
-                Color shade = Color.Lerp(color, new Color(0.15f, 0.18f, 0.32f), 0.42f);
-                material.SetColor("_SColor", shade);
+                material.SetColor("_SColor", new Color(0.643f, 0.6556f, 0.7144f, 1f));
             }
         }
     }
