@@ -41,7 +41,9 @@ MonoBehaviour:
   m_CubeDepth: 0.4
   m_InnerPadding: 0.08
   m_SkipTransparent: 1
+  m_SlotSprite: {fileID: 0}
   m_SlotCount: 5
   m_PoolColumns: 4
   m_PoolRows: 2
   m_TruckCapacity: 16
+  m_FigureShadowTexture: {fileID: 0}

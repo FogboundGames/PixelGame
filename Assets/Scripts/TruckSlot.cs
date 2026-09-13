@@ -126,6 +126,12 @@ namespace PixelGame
             if (m_Truck != null)
             {
                 m_Truck.SetParent(SlotRect, false);
+
+                WagonClickTarget clickTarget = m_Truck.GetComponent<WagonClickTarget>();
+                if (clickTarget != null)
+                {
+                    clickTarget.PoolPlace = this;
+                }
             }
 
             AlignTruck();

@@ -23,10 +23,12 @@ namespace PixelGame.Editor
         private const string k_CartModelPath = k_ModelsFolder + "MineCart/MineCart.fbx";
         private const string k_TrackModelPath = k_ModelsFolder + "Track/Track.fbx";
         private const string k_PortalModelPath = k_ModelsFolder + "MinePortal/MinePortal.fbx";
+        private const string k_MinerModelPath = k_ModelsFolder + "MechaMiner/MechaMiner.fbx";
         private const string k_TruckPrefabPath = "Assets/Prefabs/ToyTruck.prefab";
         private const string k_CartPrefabPath = "Assets/Prefabs/MineCart.prefab";
         private const string k_TrackPrefabPath = "Assets/Prefabs/Track.prefab";
         private const string k_PortalPrefabPath = "Assets/Prefabs/MinePortal.prefab";
+        private const string k_MinerPrefabPath = "Assets/Prefabs/MechaMiner.prefab";
 
         // URP'nin kendi FBX materyal işlemcisinden sonra çalışsın ki palet bağlantısı ezilmesin.
         public override int GetPostprocessOrder() => 100;
@@ -70,15 +72,26 @@ namespace PixelGame.Editor
             importer.animationType = ModelImporterAnimationType.Generic;
             importer.materialImportMode = ModelImporterMaterialImportMode.ImportViaMaterialDescription;
 
-            if (assetPath == k_CartModelPath)
+            if (assetPath == k_MinerModelPath)
             {
-                // MineCart_Roll klibi sürekli dönen bir hareket, döngüye alınsın
+                // Madenci karakter skinli bir mesh; blend shape yok, mobilde 4 kemik ağırlığı yeter
+                importer.importBlendShapes = false;
+                importer.importVisibility = false;
+                importer.skinWeights = ModelImporterSkinWeights.Standard;
+            }
+
+            if (assetPath == k_CartModelPath || assetPath == k_MinerModelPath)
+            {
+                // MineCart_Roll ve MechaMiner_Run sürekli tekrarlayan hareketler, döngüye alınsın.
+                // MechaMiner_Jump tek seferlik bir hareket, döngüye girmesin.
                 ModelImporterClipAnimation[] clips = importer.defaultClipAnimations;
                 if (clips != null && clips.Length > 0)
                 {
                     for (int i = 0; i < clips.Length; i++)
                     {
-                        clips[i].loopTime = true;
+                        string clipName = clips[i].name ?? string.Empty;
+                        clips[i].loopTime = clipName.IndexOf("Run", System.StringComparison.OrdinalIgnoreCase) >= 0
+                                            || clipName.IndexOf("Roll", System.StringComparison.OrdinalIgnoreCase) >= 0;
                     }
                     importer.clipAnimations = clips;
                 }
@@ -131,7 +144,66 @@ namespace PixelGame.Editor
             CreatePrefab(k_PortalModelPath, k_PortalPrefabPath, "MinePortal", withTailgate: false, withMover: false);
         }
 
-        private static void CreatePrefab(string modelPath, string prefabPath, string objectName, bool withTailgate, bool withMover)
+        [MenuItem("Tools/Toy Truck/Create Mecha Miner Prefab")]
+        private static void CreateMinerPrefab()
+        {
+            CreatePrefab(k_MinerModelPath, k_MinerPrefabPath, "MechaMiner",
+                         withTailgate: false, withMover: false, withAnimator: true);
+        }
+
+        /// <summary>
+        /// FBX'in içindeki koşu klibini oynatan tek durumlu bir Animator controller döndürür,
+        /// yoksa oluşturur.
+        /// </summary>
+        private static RuntimeAnimatorController GetOrCreateMinerController()
+        {
+            const string controllerPath = "Assets/Prefabs/MechaMiner.controller";
+            var existing = AssetDatabase.LoadAssetAtPath<UnityEditor.Animations.AnimatorController>(controllerPath);
+            if (existing != null)
+            {
+                return existing;
+            }
+
+            AnimationClip runClip = null;
+            AnimationClip jumpClip = null;
+            AnimationClip firstClip = null;
+            foreach (Object asset in AssetDatabase.LoadAllAssetsAtPath(k_MinerModelPath))
+            {
+                if (!(asset is AnimationClip candidate) || candidate.name.StartsWith("__preview__"))
+                {
+                    continue;
+                }
+                if (firstClip == null) firstClip = candidate;
+                if (candidate.name.IndexOf("Jump", System.StringComparison.OrdinalIgnoreCase) >= 0) jumpClip = candidate;
+                else if (candidate.name.IndexOf("Run", System.StringComparison.OrdinalIgnoreCase) >= 0) runClip = candidate;
+            }
+
+            AnimationClip defaultClip = runClip ?? firstClip;
+            if (defaultClip == null)
+            {
+                Debug.LogWarning("[ToyAssets] " + k_MinerModelPath + " içinde animasyon klibi bulunamadı.");
+                return null;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(controllerPath));
+            UnityEditor.Animations.AnimatorController created =
+                UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPathWithClip(controllerPath, defaultClip);
+
+            // Zıplama klibi de controller'a bir durum olarak eklensin; geçişini oyun kodu kursun
+            if (jumpClip != null && created.layers.Length > 0)
+            {
+                UnityEditor.Animations.AnimatorState jumpState =
+                    created.layers[0].stateMachine.AddState(jumpClip.name);
+                jumpState.motion = jumpClip;
+                EditorUtility.SetDirty(created);
+                AssetDatabase.SaveAssets();
+            }
+
+            return created;
+        }
+
+        private static void CreatePrefab(string modelPath, string prefabPath, string objectName,
+                                         bool withTailgate, bool withMover, bool withAnimator = false)
         {
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
             if (model == null)
@@ -147,6 +219,16 @@ namespace PixelGame.Editor
                 if (instance.GetComponent<TruckPaint>() == null) instance.AddComponent<TruckPaint>();
                 if (withTailgate && instance.GetComponent<TruckTailgate>() == null) instance.AddComponent<TruckTailgate>();
                 if (withMover && instance.GetComponent<MineCartMover>() == null) instance.AddComponent<MineCartMover>();
+
+                if (withAnimator)
+                {
+                    RuntimeAnimatorController controller = GetOrCreateMinerController();
+                    var animator = instance.GetComponent<Animator>();
+                    if (animator == null) animator = instance.AddComponent<Animator>();
+                    animator.runtimeAnimatorController = controller;
+                    animator.applyRootMotion = false;
+                    animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+                }
 
                 Directory.CreateDirectory(Path.GetDirectoryName(prefabPath));
                 GameObject prefab = PrefabUtility.SaveAsPrefabAsset(instance, prefabPath);

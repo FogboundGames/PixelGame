@@ -25,12 +25,24 @@ namespace PixelGame
 
         public void TriggerDispatch()
         {
-            if (PoolPlace == null || PoolPlace.IsEmpty) return;
+            // Vagon yer değiştirdiyse ebeveyn slottan güncel referansı al
+            TruckSlot currentSlot = PoolPlace;
+            if (transform.parent != null)
+            {
+                TruckSlot parentSlot = transform.parent.GetComponent<TruckSlot>();
+                if (parentSlot != null)
+                {
+                    currentSlot = parentSlot;
+                    PoolPlace = parentSlot;
+                }
+            }
+
+            if (currentSlot == null || currentSlot.IsEmpty) return;
 
             TruckDispatcher dispatcher = TruckDispatcher.Instance;
             if (dispatcher != null)
             {
-                dispatcher.SendToSlot(PoolPlace);
+                dispatcher.SendToSlot(currentSlot);
             }
         }
     }

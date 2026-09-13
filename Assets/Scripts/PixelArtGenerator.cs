@@ -159,6 +159,7 @@ namespace PixelGame
         public SamplingMode Sampling { get => m_SamplingMode; set => m_SamplingMode = value; }
         public bool SkipTransparent { get => m_SkipTransparent; set => m_SkipTransparent = value; }
         public Transform CubesContainer => m_CubesContainer;
+        public float TargetZ => m_TargetZ;
 
         private void Awake()
         {
@@ -1379,6 +1380,8 @@ namespace PixelGame
         [ContextMenu("Küpleri Temizle")]
         public void ClearCubes()
         {
+            Miner.InvalidateLayoutCache();
+
             if (m_CubesContainer == null) return;
 
             #if UNITY_EDITOR

@@ -125,6 +125,34 @@ namespace PixelGame
         [SerializeField] private float m_DepartExtraDistance = 600f;
         [SerializeField] private float m_DepartDelay = 0.35f;
 
+        [Header("⛏️ Madenci (Miner) Sistemi")]
+        [Tooltip("Vagonlardan çıkacak madenci karakter prefab'ı (boşsa geçici kapsül veya MechaMiner kullanılır).")]
+        [SerializeField] private GameObject m_MinerPrefab;
+
+        [Tooltip("Madencilerin vagon ölçeğine göre genel boyut çarpanı.")]
+        [SerializeField] private float m_MinerScaleFactor = 1.15f;
+
+        [Tooltip("Madencilerin vagondan sırayla atlama gecikmesi (saniye).")]
+        [SerializeField] private float m_MinerSpawnDelay = 0.18f;
+
+        [Tooltip("Madencilerin küplere koşu hızı (yavaşlatılmış ve dengelenmiş).")]
+        [SerializeField] private float m_MinerRunSpeed = 0.95f;
+
+        public GameObject MinerPrefab
+        {
+            get
+            {
+                if (m_MinerPrefab != null) return m_MinerPrefab;
+
+                #if UNITY_EDITOR
+                m_MinerPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/MechaMiner.prefab");
+                if (m_MinerPrefab != null) return m_MinerPrefab;
+                #endif
+
+                return m_MinerPrefab;
+            }
+        }
+
         #region 🚂 Hareketli Vagon Sınıfı & Veri Yapıları
 
         [System.Serializable]
@@ -137,6 +165,8 @@ namespace PixelGame
             public MineCartMover Mover;
             public Animator Animator;
             public float PositionX;
+            public bool IsDeployingMiners = false;
+            public bool HasStartedDeploying = false;
         }
 
         public class ShelfCubeGroup
@@ -255,6 +285,8 @@ namespace PixelGame
 
         private void ClearMovingTrain()
         {
+            Miner.ClearAllActiveMiners();
+
             for (int i = 0; i < m_MovingWagons.Count; i++)
             {
                 if (m_MovingWagons[i] != null && m_MovingWagons[i].GameObject != null)
@@ -391,15 +423,6 @@ namespace PixelGame
 
             Vector3 targetLocalPos = new Vector3(startX, m_WagonY, m_WagonZ);
 
-            // Havuzdan raya tatlı bir zıplama animasyonu
-            truck.DOKill();
-            truck.DOLocalRotateQuaternion(m_WagonRotation, 0.32f);
-            truck.DOScale(m_WagonScale, 0.32f);
-            truck.DOLocalJump(targetLocalPos, 120f, 1, 0.36f).SetEase(Ease.OutQuad).OnComplete(() =>
-            {
-                if (truck != null) truck.localPosition = targetLocalPos;
-            });
-
             TruckCargo cargo = truck.GetComponent<TruckCargo>();
             if (cargo == null) cargo = truck.gameObject.AddComponent<TruckCargo>();
             cargo.EnsureBadge();
@@ -421,9 +444,9 @@ namespace PixelGame
             if (mover != null) mover.StopMoving();
 
             Animator anim = truck.GetComponent<Animator>();
-            if (anim != null) anim.speed = 1f;
+            if (anim != null) anim.speed = 0f;
 
-            m_MovingWagons.Add(new MovingWagon
+            MovingWagon movingWagon = new MovingWagon
             {
                 GameObject = truck.gameObject,
                 Transform = truck,
@@ -431,7 +454,27 @@ namespace PixelGame
                 Paint = paint,
                 Mover = mover,
                 Animator = anim,
-                PositionX = startX
+                PositionX = startX,
+                IsDeployingMiners = false,
+                HasStartedDeploying = false
+            };
+            m_MovingWagons.Add(movingWagon);
+
+            // Havuzdan raya tatlı bir zıplama animasyonu
+            truck.DOKill();
+            truck.DOLocalRotateQuaternion(m_WagonRotation, 0.32f);
+            truck.DOScale(m_WagonScale, 0.32f);
+            truck.DOLocalJump(targetLocalPos, 120f, 1, 0.36f).SetEase(Ease.OutQuad).OnComplete(() =>
+            {
+                if (truck != null)
+                {
+                    truck.localPosition = targetLocalPos;
+
+                    // Vagon ray hattına oturdu. Madenci indirmesi tünel/portal başında değil,
+                    // vagon istasyon alanına (pano önüne / kırmızı girişlerin altına) vardığında yapılır.
+                    movingWagon.IsDeployingMiners = false;
+                    movingWagon.HasStartedDeploying = false;
+                }
             });
 
             return true;
@@ -448,6 +491,34 @@ namespace PixelGame
             {
                 MovingWagon wagon = m_MovingWagons[i];
                 if (wagon == null || wagon.Transform == null) continue;
+
+                // Vagon istasyon alanına (pano önüne / kırmızı girişlerin altına) vardığında madencileri indirir.
+                // Tünel ve portal yakınlarında madencilerin ASLA inmemesini sağlar!
+                bool inStationZone = Mathf.Abs(wagon.PositionX) <= 220f;
+
+                if (!wagon.HasStartedDeploying && wagon.Cargo != null && !wagon.Cargo.IsFull && inStationZone)
+                {
+                    if (Miner.HasAccessibleMatchingCube(wagon.Cargo.CargoColor, m_ColorThreshold))
+                    {
+                        wagon.HasStartedDeploying = true;
+                        wagon.IsDeployingMiners = true;
+                        if (wagon.Animator != null) wagon.Animator.speed = 0f;
+
+                        MinerCrew crew = wagon.Transform.GetComponent<MinerCrew>();
+                        if (crew == null) crew = wagon.Transform.gameObject.AddComponent<MinerCrew>();
+                        crew.StartJumpingOutSequence(m_ColorThreshold, m_MinerSpawnDelay, m_MinerRunSpeed, () =>
+                        {
+                            wagon.IsDeployingMiners = false;
+                        });
+                    }
+                }
+
+                // Madenciler vagondan inene kadar vagon olduğu yerde sabit durur
+                if (wagon.IsDeployingMiners)
+                {
+                    if (wagon.Animator != null) wagon.Animator.speed = 0f;
+                    continue;
+                }
 
                 // Öndeki vagon ile güvenli takip mesafesi
                 float moveStep = step;
@@ -735,7 +806,7 @@ namespace PixelGame
             return FindSlotFor(ClassifyToPalette(cubeColor)) != null;
         }
 
-        private Color ClassifyToPalette(Color cubeColor)
+        public Color ClassifyToPalette(Color cubeColor)
         {
             List<PaletteColorOverride> palette = GetPalette();
             if (palette == null || palette.Count == 0) return cubeColor;
@@ -910,6 +981,11 @@ namespace PixelGame
 
             cargo.EnsureBadge();
             cargo.UpdateBadge(false);
+
+            // Vagon henüz havuzdayken içine oturacak görsel madencileri yerleştir
+            MinerCrew crew = truck.GetComponent<MinerCrew>();
+            if (crew == null) crew = truck.AddComponent<MinerCrew>();
+            crew.PopulateSeatedMiners(cargo, MinerPrefab, m_MinerScaleFactor, m_MinerRunSpeed);
 
             MineCartMover mover = truck.GetComponent<MineCartMover>();
             if (mover != null) mover.StopMoving();

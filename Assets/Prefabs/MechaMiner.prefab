@@ -1,0 +1,121 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &3781787323672762751
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 6a6bcdfa56f806e17bbfe7a10f002909, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 6a6bcdfa56f806e17bbfe7a10f002909, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 6a6bcdfa56f806e17bbfe7a10f002909, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 6a6bcdfa56f806e17bbfe7a10f002909, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 6a6bcdfa56f806e17bbfe7a10f002909, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 6a6bcdfa56f806e17bbfe7a10f002909, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 6a6bcdfa56f806e17bbfe7a10f002909, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 6a6bcdfa56f806e17bbfe7a10f002909, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 6a6bcdfa56f806e17bbfe7a10f002909, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 6a6bcdfa56f806e17bbfe7a10f002909, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 6a6bcdfa56f806e17bbfe7a10f002909, type: 3}
+      propertyPath: m_Name
+      value: MechaMiner
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 6a6bcdfa56f806e17bbfe7a10f002909, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7844720274775094896}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 6a6bcdfa56f806e17bbfe7a10f002909, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1167784241300449795}
+  m_SourcePrefab: {fileID: 100100000, guid: 6a6bcdfa56f806e17bbfe7a10f002909, type: 3}
+--- !u!1 &4087846077462094894 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 6a6bcdfa56f806e17bbfe7a10f002909, type: 3}
+  m_PrefabInstance: {fileID: 3781787323672762751}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7844720274775094896
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4087846077462094894}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 577416688ab6ed34b8b18dba311ceb4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPaint
+  m_UseCartoonShader: 1
+  m_Cabin: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+  m_Cargo: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+  m_Tires: {r: 0.19607843, g: 0.19607843, b: 0.21568628, a: 1}
+  m_Rims: {r: 0.7647059, g: 0.77254903, b: 0.7921569, a: 1}
+  m_Glass: {r: 0.3529412, g: 0.43137255, b: 0.50980395, a: 1}
+  m_Headlights: {r: 0.9882353, g: 0.98039216, b: 0.93333334, a: 1}
+  m_Taillights: {r: 0.5294118, g: 0.09411765, b: 0.11764706, a: 1}
+  m_Chassis: {r: 0.23529412, g: 0.23529412, b: 0.25882354, a: 1}
+  m_Stone: {r: 0.5019608, g: 0.5176471, b: 0.54901963, a: 1}
+  m_StoneDark: {r: 0.3764706, g: 0.3882353, b: 0.42352942, a: 1}
+  m_Wood: {r: 0.47058824, g: 0.30588236, b: 0.1882353, a: 1}
+  m_Dark: {r: 0.07058824, g: 0.0627451, b: 0.08627451, a: 1}
+  m_MechaBody: {r: 0.34509805, g: 0.3764706, b: 0.42352942, a: 1}
+  m_Helmet: {r: 0.9882353, g: 0.74509805, b: 0.10980392, a: 1}
+  m_HelmetDark: {r: 0.17254902, g: 0.17254902, b: 0.20392157, a: 1}
+  m_Lamp: {r: 1, g: 0.9647059, b: 0.78431374, a: 1}
+--- !u!95 &1167784241300449795
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4087846077462094894}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 7d9ee2c2226baec83b29e96dbd5c3fe1, type: 2}
+  m_CullingMode: 1
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0

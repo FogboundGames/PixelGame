@@ -21,7 +21,11 @@ namespace PixelGame
         Stone,
         Wood,
         Dark,
-        StoneDark
+        StoneDark,
+        MechaBody,
+        Helmet,
+        HelmetDark,
+        Lamp
     }
 
     /// <summary>
@@ -68,6 +72,10 @@ namespace PixelGame
             new Vector2Int(1, 2), // Wood (ahşap tahkimat + ray traversleri)
             new Vector2Int(2, 2), // Dark (maden girişinin karanlık içi)
             new Vector2Int(3, 2), // StoneDark (taşların koyu tonu)
+            new Vector2Int(0, 3), // MechaBody (madenci karakterin gövdesi)
+            new Vector2Int(1, 3), // Helmet (baret kubbesi + siperlik)
+            new Vector2Int(2, 3), // HelmetDark (baret farının gövdesi)
+            new Vector2Int(3, 3), // Lamp (baret farının merceği)
         };
 
         private static readonly Dictionary<string, Material> s_MaterialsByScheme = new Dictionary<string, Material>();
@@ -95,6 +103,12 @@ namespace PixelGame
         [SerializeField] private Color m_StoneDark = new Color32(96, 99, 108, 255);
         [SerializeField] private Color m_Wood = new Color32(120, 78, 48, 255);
         [SerializeField] private Color m_Dark = new Color32(18, 16, 22, 255);
+
+        [Header("Madenci Karakter")]
+        [SerializeField] private Color m_MechaBody = new Color32(88, 96, 108, 255);
+        [SerializeField] private Color m_Helmet = new Color32(252, 190, 28, 255);
+        [SerializeField] private Color m_HelmetDark = new Color32(44, 44, 52, 255);
+        [SerializeField] private Color m_Lamp = new Color32(255, 246, 200, 255);
 
         private readonly List<Renderer> m_Renderers = new List<Renderer>();
         private Material m_Template;
@@ -130,6 +144,10 @@ namespace PixelGame
                 case TruckPart.Wood: return m_Wood;
                 case TruckPart.Dark: return m_Dark;
                 case TruckPart.StoneDark: return m_StoneDark;
+                case TruckPart.MechaBody: return m_MechaBody;
+                case TruckPart.Helmet: return m_Helmet;
+                case TruckPart.HelmetDark: return m_HelmetDark;
+                case TruckPart.Lamp: return m_Lamp;
                 default: return m_Cargo;
             }
         }
@@ -150,6 +168,10 @@ namespace PixelGame
                 case TruckPart.Wood: m_Wood = color; break;
                 case TruckPart.Dark: m_Dark = color; break;
                 case TruckPart.StoneDark: m_StoneDark = color; break;
+                case TruckPart.MechaBody: m_MechaBody = color; break;
+                case TruckPart.Helmet: m_Helmet = color; break;
+                case TruckPart.HelmetDark: m_HelmetDark = color; break;
+                case TruckPart.Lamp: m_Lamp = color; break;
             }
             m_Dirty = true;
         }
@@ -159,6 +181,14 @@ namespace PixelGame
         {
             m_Cabin = color;
             m_Cargo = color;
+            m_Dirty = true;
+        }
+
+        /// <summary>Madenci karakterin gövdesini ve baretini boyar.</summary>
+        public void SetMinerColors(Color bodyColor, Color helmetColor)
+        {
+            m_MechaBody = bodyColor;
+            m_Helmet = helmetColor;
             m_Dirty = true;
         }
 
