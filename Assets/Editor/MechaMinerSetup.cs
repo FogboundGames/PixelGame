@@ -171,9 +171,8 @@ namespace PixelGame.Editor
                 toPunch.canTransitionToSelf = false;
 
                 AnimatorStateTransition back = punchState.AddTransition(runState);
-                back.hasExitTime = true;
-                back.exitTime = 0.9f;
-                back.duration = 0.15f;
+                back.hasExitTime = false;
+                back.duration = 0.20f;
             }
 
             EditorUtility.SetDirty(controller);

@@ -653,7 +653,7 @@ namespace PixelGame
         /// <summary>
         /// Kırma noktası: Bloğun kesinlikle dış tarafında (Alt, Sol, Sağ veya Üst)
         /// madencinin duracağı noktayı hesaplar. Bloğun üstüne veya altına girmesini engeller.
-        /// Kullanıcının isteği doğrultusunda bloğun hemen dibine (0.65x) kadar yanaşır.
+        /// Karakterin bloğun içine yapışmasını önleyecek, vuruş menziline uygun doğal duruş mesafesi (0.92x).
         /// </summary>
         public static Vector3 GetMiningStandPosition(PixelCube cube, Dictionary<(int, int), PixelCube> gridMap)
         {
@@ -661,7 +661,7 @@ namespace PixelGame
 
             Vector3 cubePos = cube.transform.position;
             float cubeScale = Mathf.Max(0.35f, cube.transform.localScale.x);
-            float offset = cubeScale * 0.65f;
+            float offset = cubeScale * 0.92f;
 
             int x = cube.GridX;
             int y = cube.GridY;
@@ -1197,11 +1197,14 @@ namespace PixelGame
                 return;
             }
 
+            bool isLastWaypoint = (m_CurrentWaypointIndex == m_PathWaypoints.Count - 1);
             Vector3 targetWaypoint = m_PathWaypoints[m_CurrentWaypointIndex];
             Vector3 dir = (targetWaypoint - m_BasePosition);
             float distance = dir.magnitude;
 
-            if (distance < 0.15f)
+            // Ara noktalarda koridor köşelerini yumuşak dönmek için 0.15f toleransı kullanılır.
+            // Son noktada (küp önü kırma pozisyonunda) ise madenci tam hedefe kadar yavaşlayarak yanaşır.
+            if (!isLastWaypoint && distance < 0.15f)
             {
                 m_CurrentWaypointIndex++;
                 if (m_CurrentWaypointIndex >= m_PathWaypoints.Count)
@@ -1209,23 +1212,74 @@ namespace PixelGame
                     StartMiningState();
                     return;
                 }
+                isLastWaypoint = (m_CurrentWaypointIndex == m_PathWaypoints.Count - 1);
                 targetWaypoint = m_PathWaypoints[m_CurrentWaypointIndex];
                 dir = (targetWaypoint - m_BasePosition);
                 distance = dir.magnitude;
             }
 
-            Vector3 normDir = dir.normalized;
-            float step = m_RunSpeed * Time.deltaTime;
+            Vector3 normDir = dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector3.zero;
+
+            // Hedefe yaklaşırken yumuşak yavaşlama (Ease-Out Deceleration) ve sekme sönümleme
+            float speedMultiplier = 1.0f;
+            float bounceDamping = 1.0f;
+
+            if (isLastWaypoint)
+            {
+                const float k_DecelDist = 0.50f;
+                if (distance < k_DecelDist)
+                {
+                    float t = Mathf.Clamp01(distance / k_DecelDist);
+                    // Pürüzsüz hız eğrisi: minimum %25 hızla durma noktasına nazikçe yanaşır
+                    speedMultiplier = Mathf.Lerp(0.25f, 1.0f, Mathf.SmoothStep(0f, 1f, t));
+                    bounceDamping = Mathf.SmoothStep(0f, 1f, t);
+                }
+            }
+
+            float currentSpeed = m_RunSpeed * speedMultiplier;
+            float step = currentSpeed * Time.deltaTime;
+
+            // Son noktaya varış kontrolü: Kademeli yavaşlama bittiğinde hedefe tam oturur
+            if (isLastWaypoint && distance <= Mathf.Max(0.02f, step))
+            {
+                m_BasePosition = targetWaypoint;
+                transform.position = targetWaypoint;
+                StartMiningState();
+                return;
+            }
+
             m_BasePosition += normDir * Mathf.Min(step, distance);
 
-            // Zıplama ritmi (Sinüs dalgası)
+            // Zıplama ritmi (hedefe varırken pürüzsüzce sönümlenir, zemine yumuşakça basar)
             m_RunTimer += Time.deltaTime;
-            float bounceOffset = Mathf.Abs(Mathf.Sin(m_RunTimer * m_BounceFrequency)) * m_BounceHeight;
+            float bounceOffset = Mathf.Abs(Mathf.Sin(m_RunTimer * m_BounceFrequency)) * m_BounceHeight * bounceDamping;
 
             transform.position = m_BasePosition + Vector3.back * bounceOffset;
 
-            // Karakterin şu anki koridor yönüne pürüzsüz dönmesi (aniden sert takılma yapmaz)
-            if (dir.sqrMagnitude > 0.005f)
+            // Karakter yönü: Koşarken koridor yönüne döner, son yaklaşmada hedef küpe doğru yumuşakça hizalanır
+            if (isLastWaypoint && m_TargetCube != null && distance < 0.50f)
+            {
+                Vector3 faceDir = (m_TargetCube.transform.position - m_MiningStandPosition);
+                if (faceDir.x != 0f || faceDir.y != 0f)
+                {
+                    float faceYaw = Mathf.Atan2(faceDir.x, faceDir.y) * Mathf.Rad2Deg;
+                    Quaternion faceRot = Quaternion.Euler(0f, faceYaw, 0f);
+
+                    if (dir.sqrMagnitude > 0.005f)
+                    {
+                        float moveYaw = Mathf.Atan2(dir.x, dir.y) * Mathf.Rad2Deg;
+                        Quaternion moveRot = Quaternion.Euler(0f, moveYaw, 0f);
+                        float blendT = 1f - Mathf.Clamp01(distance / 0.50f);
+                        Quaternion blendedTarget = Quaternion.Slerp(moveRot, faceRot, blendT * 0.85f);
+                        transform.rotation = Quaternion.Slerp(transform.rotation, blendedTarget, 12.0f * Time.deltaTime);
+                    }
+                    else
+                    {
+                        transform.rotation = Quaternion.Slerp(transform.rotation, faceRot, 12.0f * Time.deltaTime);
+                    }
+                }
+            }
+            else if (dir.sqrMagnitude > 0.005f)
             {
                 float targetYaw = Mathf.Atan2(dir.x, dir.y) * Mathf.Rad2Deg;
                 Quaternion targetRot = Quaternion.Euler(0f, targetYaw, 0f);
@@ -1236,26 +1290,27 @@ namespace PixelGame
         private void StartMiningState()
         {
             m_State = State.Mining;
+            m_BasePosition = m_MiningStandPosition;
+            transform.position = m_MiningStandPosition;
+
             if (m_TargetCube != null)
             {
-                m_BasePosition = m_MiningStandPosition;
-
-                // Kırılacak bloğa yumuşakça dön
+                // Kırılacak bloğa yumuşak ve doğal bir kavisle dön (0.28s, Ease.OutQuad)
                 Vector3 faceDir = (m_TargetCube.transform.position - m_MiningStandPosition);
                 if (faceDir.x != 0f || faceDir.y != 0f)
                 {
                     float targetYaw = Mathf.Atan2(faceDir.x, faceDir.y) * Mathf.Rad2Deg;
-                    transform.DORotate(new Vector3(0f, targetYaw, 0f), 0.10f).SetEase(Ease.OutQuad);
+                    transform.DORotate(new Vector3(0f, targetYaw, 0f), 0.28f).SetEase(Ease.OutQuad);
                 }
             }
 
-            // Blok önünde koşma durur, vurma/kazma animasyonu pürüzsüz crossfade ile başlar
+            // Blok önünde koşma durur, vurma/kazma animasyonu pürüzsüz crossfade (0.25s) ile başlar (wind-up atlanmaz)
             if (m_Animator != null && m_Animator.isActiveAndEnabled)
             {
                 m_Animator.enabled = true;
                 m_Animator.speed = 1.0f * m_IndividualSpeedMultiplier;
                 SetAnimatorBoolParameter(s_IsRunningHash, false, null);
-                TriggerAnimatorParameter(s_AttackTriggerHash, s_AttackHashes, 0.12f, UnityEngine.Random.Range(0f, 0.15f));
+                TriggerAnimatorParameter(s_AttackTriggerHash, s_AttackHashes, 0.25f, 0f);
             }
 
             m_StateCoroutine = StartCoroutine(MiningRoutine());
@@ -1316,7 +1371,8 @@ namespace PixelGame
                 m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.25f * m_IndividualSpeedMultiplier, 0.70f, 1.45f);
                 m_Animator.ResetTrigger(s_JumpTriggerHash);
                 m_Animator.ResetTrigger(s_AttackTriggerHash);
-                SetAnimatorBoolParameter(s_IsRunningHash, true, s_RunHashes, 0.15f);
+                SetAnimatorBoolParameter(s_IsRunningHash, true, s_RunHashes, 0.20f);
+                CrossFadeAnimation(s_RunHashes, 0.20f);
             }
         }
 
