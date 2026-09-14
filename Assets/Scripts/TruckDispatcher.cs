@@ -496,7 +496,10 @@ namespace PixelGame
                 // Tünel ve portal yakınlarında madencilerin ASLA inmemesini sağlar!
                 bool inStationZone = Mathf.Abs(wagon.PositionX) <= 220f;
 
-                if (!wagon.HasStartedDeploying && wagon.Cargo != null && !wagon.Cargo.IsFull && inStationZone)
+                MinerCrew crew = wagon.Transform.GetComponent<MinerCrew>();
+                bool hasMinersToDeploy = crew == null || crew.RemainingMinersToDeploy > 0;
+
+                if (!wagon.HasStartedDeploying && wagon.Cargo != null && !wagon.Cargo.IsFull && hasMinersToDeploy && inStationZone)
                 {
                     if (Miner.HasAccessibleMatchingCube(wagon.Cargo.CargoColor, m_ColorThreshold))
                     {
@@ -504,7 +507,6 @@ namespace PixelGame
                         wagon.IsDeployingMiners = true;
                         if (wagon.Animator != null) wagon.Animator.speed = 0f;
 
-                        MinerCrew crew = wagon.Transform.GetComponent<MinerCrew>();
                         if (crew == null) crew = wagon.Transform.gameObject.AddComponent<MinerCrew>();
                         crew.StartJumpingOutSequence(m_ColorThreshold, m_MinerSpawnDelay, m_MinerRunSpeed, () =>
                         {
@@ -537,6 +539,12 @@ namespace PixelGame
 
                 wagon.PositionX += moveStep;
 
+                // İstasyon bölgesini geçtikten sonra (sağa doğru ilerlerken) indirme bayrağını sıfırla
+                if (wagon.PositionX > 220f)
+                {
+                    wagon.HasStartedDeploying = false;
+                }
+
                 // Sağ portaldan çıkan vagonun durumu
                 if (wagon.PositionX > m_PortalRightX)
                 {
@@ -552,6 +560,7 @@ namespace PixelGame
                     {
                         // Henüz dolmamış vagon döngüye devam eder: soldan tekrar hatta girer
                         wagon.PositionX = m_PortalLeftX + (wagon.PositionX - m_PortalRightX);
+                        wagon.HasStartedDeploying = false;
                     }
                 }
 

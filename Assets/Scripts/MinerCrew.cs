@@ -27,6 +27,9 @@ namespace PixelGame
         private float m_ColorThreshold = 0.04f;
         private readonly List<Miner> m_SeatedMiners = new List<Miner>();
         private Coroutine m_SpawnCoroutine;
+        private int m_DeployedMinersCount = 0;
+
+        public int RemainingMinersToDeploy => m_Cargo != null ? Mathf.Max(0, m_Cargo.Capacity - m_DeployedMinersCount) : 0;
 
         /// <summary>
         /// Vagon kasanın üst açık hacmine uygun olarak görsel madencileri yerleştirir.
@@ -38,6 +41,7 @@ namespace PixelGame
             float runSpeed = 0.85f)
         {
             ClearSeatedMiners();
+            m_DeployedMinersCount = 0;
 
             m_Cargo = cargo;
             m_MinerPrefab = minerPrefab;
@@ -49,8 +53,10 @@ namespace PixelGame
             Transform body = GetWagonBody(transform);
             TryGetLocalBounds(body, out Bounds bounds);
 
-            int capacity = m_Cargo.Capacity;
-            int visualCount = Mathf.Min(capacity, 6);
+            int remaining = m_Cargo.RemainingCapacity;
+            int visualCount = Mathf.Clamp(remaining, 0, 6);
+            if (visualCount <= 0) return;
+
             int cols = 3;
             int maxRows = Mathf.CeilToInt((float)visualCount / cols);
 
@@ -110,6 +116,11 @@ namespace PixelGame
             m_SpawnDelay = spawnDelay;
             m_RunSpeed = runSpeed;
 
+            if (m_Cargo == null)
+            {
+                m_Cargo = GetComponent<TruckCargo>();
+            }
+
             if (m_SpawnCoroutine != null)
             {
                 StopCoroutine(m_SpawnCoroutine);
@@ -119,29 +130,47 @@ namespace PixelGame
 
         private IEnumerator JumpOutSequenceRoutine(System.Action onComplete)
         {
-            if (m_Cargo != null)
+            if (m_Cargo != null && !m_Cargo.IsFull && RemainingMinersToDeploy > 0)
             {
-                int totalToSpawn = m_Cargo.Capacity;
+                int maxToSpawn = RemainingMinersToDeploy;
                 Transform body = GetWagonBody(transform);
                 TryGetLocalBounds(body, out Bounds bounds);
                 float extraMinerScale = (bounds.size.x > 0.001f) ? (bounds.size.y * 0.42f * m_ScaleFactor) : (0.35f * m_ScaleFactor);
 
-                for (int i = 0; i < totalToSpawn; i++)
+                for (int i = 0; i < maxToSpawn; i++)
                 {
-                    // Vagon dolduysa üretimi durdur
-                    if (m_Cargo == null || m_Cargo.IsFull || m_Cargo.RemainingCapacity <= 0)
+                    // Vagon dolduysa veya kalan madenci hakkı bittiyse üretimi durdur
+                    if (m_Cargo == null || m_Cargo.IsFull || RemainingMinersToDeploy <= 0)
+                    {
+                        break;
+                    }
+
+                    // Henüz dışarı atlayabilecek açık/erişilebilir uygun renkli küp var mı?
+                    if (!Miner.HasAccessibleMatchingCube(m_Cargo.CargoColor, m_ColorThreshold))
                     {
                         break;
                     }
 
                     Miner miner = null;
-                    if (i < m_SeatedMiners.Count)
+                    bool fromSeatedList = false;
+
+                    // m_SeatedMiners içinden vagonda oturan ilk geçerli madenciyi al
+                    while (m_SeatedMiners.Count > 0)
                     {
-                        miner = m_SeatedMiners[i];
+                        Miner candidate = m_SeatedMiners[0];
+                        m_SeatedMiners.RemoveAt(0);
+
+                        if (candidate != null && candidate.gameObject != null && candidate.CurrentState == Miner.State.SeatedInWagon)
+                        {
+                            miner = candidate;
+                            fromSeatedList = true;
+                            break;
+                        }
                     }
-                    else
+
+                    // Oturan görsel madenci kalmadıysa ek madenci oluşturup zıplat
+                    if (miner == null)
                     {
-                        // Görsel madenciler bittiyse havuza kayıtlı ek madenci üretip zıplat
                         miner = Miner.CreateSeatedMiner(
                             body,
                             Vector3.up * 0.45f,
@@ -152,9 +181,26 @@ namespace PixelGame
                         );
                     }
 
-                    if (miner != null && miner.CurrentState == Miner.State.SeatedInWagon)
+                    if (miner != null)
                     {
-                        miner.JumpOutFromWagon(m_Cargo.CargoColor, m_ColorThreshold, m_RunSpeed);
+                        bool jumped = miner.JumpOutFromWagon(m_Cargo.CargoColor, m_ColorThreshold, m_RunSpeed);
+                        if (!jumped)
+                        {
+                            // Küp bulunamadı veya rezerve edilemedi
+                            if (fromSeatedList)
+                            {
+                                m_SeatedMiners.Insert(0, miner);
+                            }
+                            else
+                            {
+                                miner.Release();
+                            }
+                            // Açıkta kırılacak küp kalmadığı için bu turdaki indirmeyi bitir
+                            break;
+                        }
+
+                        // Madenci başarıyla vagondan ayrıldı
+                        m_DeployedMinersCount++;
                     }
 
                     yield return new WaitForSeconds(m_SpawnDelay);

@@ -62,6 +62,13 @@ namespace PixelGame
         private Color m_MinerColor = Color.white;
         private float m_ColorThreshold = 0.04f;
 
+        private static readonly int[] s_IdleHashes =
+        {
+            Animator.StringToHash("Idle"),
+            Animator.StringToHash("MechaMiner_Idle"),
+            Animator.StringToHash("Armature|Idle")
+        };
+
         private static readonly int[] s_JumpHashes =
         {
             Animator.StringToHash("Jump"),
@@ -102,32 +109,63 @@ namespace PixelGame
         public State CurrentState => m_State;
         public PixelCube TargetCube => m_TargetCube;
 
-        private void PlayAnimation(int[] hashes, float normalizedTime = 0f)
+        private void CrossFadeAnimation(int[] hashes, float transitionDuration = 0.12f)
         {
             if (m_Animator == null || !m_Animator.isActiveAndEnabled) return;
+
+            // Zaten bu animasyondaysa veya bu animasyona geçiş halindeyse tekrar tetikleyip takılma yaratma
+            if (IsCurrentOrNextStateAny(m_Animator, hashes)) return;
 
             for (int i = 0; i < hashes.Length; i++)
             {
                 if (m_Animator.HasState(0, hashes[i]))
                 {
-                    m_Animator.Play(hashes[i], 0, normalizedTime);
+                    m_Animator.CrossFadeInFixedTime(hashes[i], transitionDuration, 0);
                     return;
                 }
             }
         }
 
-        private static bool IsCurrentStateAny(Animator animator, int[] hashes)
+        private static bool IsCurrentOrNextStateAny(Animator animator, int[] hashes)
         {
             if (animator == null) return false;
-            AnimatorStateInfo info = animator.GetCurrentAnimatorStateInfo(0);
+            AnimatorStateInfo current = animator.GetCurrentAnimatorStateInfo(0);
             for (int i = 0; i < hashes.Length; i++)
             {
-                if (info.shortNameHash == hashes[i] || info.fullPathHash == hashes[i])
+                if (current.shortNameHash == hashes[i] || current.fullPathHash == hashes[i])
                 {
                     return true;
                 }
             }
+            if (animator.IsInTransition(0))
+            {
+                AnimatorStateInfo next = animator.GetNextAnimatorStateInfo(0);
+                for (int i = 0; i < hashes.Length; i++)
+                {
+                    if (next.shortNameHash == hashes[i] || next.fullPathHash == hashes[i])
+                    {
+                        return true;
+                    }
+                }
+            }
             return false;
+        }
+
+        private static void MaintainLoop(Animator animator, int[] hashes)
+        {
+            if (animator == null || !animator.isActiveAndEnabled) return;
+            AnimatorStateInfo info = animator.GetCurrentAnimatorStateInfo(0);
+            if (!info.loop && info.normalizedTime >= 0.95f)
+            {
+                for (int i = 0; i < hashes.Length; i++)
+                {
+                    if (info.shortNameHash == hashes[i] || info.fullPathHash == hashes[i])
+                    {
+                        animator.CrossFadeInFixedTime(hashes[i], 0.10f, 0, 0f);
+                        return;
+                    }
+                }
+            }
         }
 
         #region 🚀 Başlatma & Havuzlama (Spawning & Pooling)
@@ -149,10 +187,10 @@ namespace PixelGame
             miner.m_RunSpeed = runSpeed;
             miner.m_State = State.SeatedInWagon;
 
-            // Vagon kasasının çocuğu olarak dik oturt (Eğik duruşu nötralize eden -25 derece pitch ofseti)
+            // Vagon kasasının çocuğu olarak dik oturt
             miner.transform.SetParent(bodyTransform, false);
             miner.transform.localPosition = localSeatPos;
-            miner.transform.localRotation = Quaternion.Euler(-25f, 180f, 0f);
+            miner.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
             miner.transform.localScale = Vector3.one * Mathf.Max(0.02f, localScale);
 
             // Renk uygulaması
@@ -161,7 +199,9 @@ namespace PixelGame
 
             if (miner.m_Animator != null)
             {
-                miner.m_Animator.enabled = false;
+                miner.m_Animator.enabled = true;
+                miner.m_Animator.speed = 1f;
+                miner.m_Animator.Play("Armature|Idle", 0, 0f);
             }
 
             s_ActiveMiners.Add(miner);
@@ -185,8 +225,7 @@ namespace PixelGame
             PixelCube target = FindAndReserveClosestCube(spawnWorldPos, cargoColor, colorThreshold);
             if (target == null)
             {
-                // Kırılacak uygun küp kalmadıysa madenci sessizce havuza döner
-                Release();
+                // Kırılacak uygun küp kalmadıysa false dön (oturan madenci vagonda kalmaya devam eder)
                 return false;
             }
 
@@ -265,6 +304,12 @@ namespace PixelGame
             m_IsExitingLeft = false;
 
             s_ActiveMiners.Remove(this);
+
+            if (m_Animator != null)
+            {
+                m_Animator.speed = 1f;
+                m_Animator.Play("Armature|Idle", 0, 0f);
+            }
 
             if (gameObject != null)
             {
@@ -912,8 +957,7 @@ namespace PixelGame
             {
                 m_Animator.enabled = true;
                 m_Animator.speed = 1f;
-                m_Animator.Rebind();
-                PlayAnimation(s_JumpHashes, 0f);
+                CrossFadeAnimation(s_JumpHashes, 0.08f);
             }
 
             BoardLayout layout = CalculateBoardLayout(null);
@@ -967,7 +1011,7 @@ namespace PixelGame
             {
                 m_Animator.enabled = true;
                 m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.25f, 0.75f, 1.4f);
-                PlayAnimation(s_RunHashes, 0f);
+                CrossFadeAnimation(s_RunHashes, 0.12f);
             }
         }
 
@@ -1009,15 +1053,15 @@ namespace PixelGame
                 m_CurrentWaypointIndex = 0;
             }
 
-            // Koşma animasyonunun kesintisiz döngüde kalması
+            // Koşma animasyonunun kesintisiz ve pürüzsüz akması (takılma/resetleme yapmaz)
             if (m_Animator != null)
             {
                 m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.25f, 0.75f, 1.4f);
-                AnimatorStateInfo info = m_Animator.GetCurrentAnimatorStateInfo(0);
-                if (!IsCurrentStateAny(m_Animator, s_RunHashes) || (!info.loop && info.normalizedTime >= 0.95f))
+                if (!IsCurrentOrNextStateAny(m_Animator, s_RunHashes))
                 {
-                    PlayAnimation(s_RunHashes, 0f);
+                    CrossFadeAnimation(s_RunHashes, 0.12f);
                 }
+                MaintainLoop(m_Animator, s_RunHashes);
             }
 
             if (m_PathWaypoints == null || m_CurrentWaypointIndex >= m_PathWaypoints.Count)
@@ -1053,11 +1097,12 @@ namespace PixelGame
 
             transform.position = m_BasePosition + Vector3.back * bounceOffset;
 
-            // Karakterin şu anki koridor yönüne dönmesi
+            // Karakterin şu anki koridor yönüne pürüzsüz dönmesi (aniden sert takılma yapmaz)
             if (dir.x != 0f || dir.y != 0f)
             {
                 float targetYaw = Mathf.Atan2(dir.x, dir.y) * Mathf.Rad2Deg;
-                transform.rotation = Quaternion.Euler(0f, targetYaw, 0f);
+                Quaternion targetRot = Quaternion.Euler(0f, targetYaw, 0f);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, 720f * Time.deltaTime);
             }
         }
 
@@ -1069,21 +1114,21 @@ namespace PixelGame
                 m_BasePosition = m_MiningStandPosition;
                 transform.position = m_MiningStandPosition;
 
-                // Kırılacak bloğa tam yüzünü dön
+                // Kırılacak bloğa yumuşakça dön
                 Vector3 faceDir = (m_TargetCube.transform.position - m_MiningStandPosition);
                 if (faceDir.x != 0f || faceDir.y != 0f)
                 {
                     float targetYaw = Mathf.Atan2(faceDir.x, faceDir.y) * Mathf.Rad2Deg;
-                    transform.rotation = Quaternion.Euler(0f, targetYaw, 0f);
+                    transform.DORotate(new Vector3(0f, targetYaw, 0f), 0.10f).SetEase(Ease.OutQuad);
                 }
             }
 
-            // Blok önünde koşma kesinlikle durur, vurma/kazma animasyonu oynar
+            // Blok önünde koşma durur, vurma/kazma animasyonu pürüzsüz crossfade ile başlar
             if (m_Animator != null)
             {
                 m_Animator.enabled = true;
                 m_Animator.speed = 1.0f;
-                PlayAnimation(s_AttackHashes, 0f);
+                CrossFadeAnimation(s_AttackHashes, 0.12f);
             }
 
             m_StateCoroutine = StartCoroutine(MiningRoutine());
@@ -1146,7 +1191,7 @@ namespace PixelGame
             {
                 m_Animator.enabled = true;
                 m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.25f, 0.75f, 1.4f);
-                PlayAnimation(s_RunHashes, 0f);
+                CrossFadeAnimation(s_RunHashes, 0.12f);
             }
         }
 
@@ -1189,11 +1234,11 @@ namespace PixelGame
             if (m_Animator != null)
             {
                 m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.25f, 0.75f, 1.4f);
-                AnimatorStateInfo info = m_Animator.GetCurrentAnimatorStateInfo(0);
-                if (!IsCurrentStateAny(m_Animator, s_RunHashes) || (!info.loop && info.normalizedTime >= 0.95f))
+                if (!IsCurrentOrNextStateAny(m_Animator, s_RunHashes))
                 {
-                    PlayAnimation(s_RunHashes, 0f);
+                    CrossFadeAnimation(s_RunHashes, 0.12f);
                 }
+                MaintainLoop(m_Animator, s_RunHashes);
             }
 
             Vector3 targetWaypoint = m_PathWaypoints[m_CurrentWaypointIndex];
@@ -1244,10 +1289,12 @@ namespace PixelGame
 
             transform.position = m_BasePosition + Vector3.back * bounceOffset;
 
+            // Karakterin şu anki koridor yönüne pürüzsüz dönmesi (aniden sert takılma yapmaz)
             if (dir.x != 0f || dir.y != 0f)
             {
                 float targetYaw = Mathf.Atan2(dir.x, dir.y) * Mathf.Rad2Deg;
-                transform.rotation = Quaternion.Euler(0f, targetYaw, 0f);
+                Quaternion targetRot = Quaternion.Euler(0f, targetYaw, 0f);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, 720f * Time.deltaTime);
             }
         }
 
@@ -1264,8 +1311,7 @@ namespace PixelGame
             {
                 m_Animator.enabled = true;
                 m_Animator.speed = 1f;
-                m_Animator.Rebind();
-                PlayAnimation(s_JumpHashes, 0f);
+                CrossFadeAnimation(s_JumpHashes, 0.08f);
             }
 
             BoardLayout layout = CalculateBoardLayout(null);
@@ -1283,7 +1329,7 @@ namespace PixelGame
             float targetLandingY = Mathf.Clamp(currentPos.y, layout.bottomCorridorY, layout.topCorridorY);
             Vector3 outsideLanding = new Vector3(outsideLandingX, targetLandingY, -0.30f);
 
-            // Zıplarken sola (-90) veya sağa (+90) yüzünü dön
+            // Zıplarken sola (-90) veya sağa (+90) yüzünü yumuşakça dön
             float targetYaw = isLeft ? -90f : 90f;
             transform.rotation = Quaternion.Euler(0f, targetYaw, 0f);
 
@@ -1320,7 +1366,7 @@ namespace PixelGame
             {
                 m_Animator.enabled = true;
                 m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.25f, 0.75f, 1.4f);
-                PlayAnimation(s_RunHashes, 0f);
+                CrossFadeAnimation(s_RunHashes, 0.12f);
             }
         }
 
