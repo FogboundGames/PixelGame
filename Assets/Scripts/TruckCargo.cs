@@ -134,10 +134,13 @@ namespace PixelGame
                 m_Badge.PlayCompletionAnimation();
             }
 
-            // Vagon gövdesine minik tatlı bir zıplama ve yaylanma animasyonu
-            transform.DOKill(true);
-            transform.DOPunchPosition(Vector3.up * 0.14f, 0.35f, 4, 0.4f);
-            transform.DOPunchScale(new Vector3(0.08f, 0.14f, 0.08f), 0.35f, 5, 0.4f);
+            // Vagon gövdesine minik tatlı bir yaylanma animasyonu (hareket eden kök pozisyonu sarsmaz)
+            Transform body = transform.Find("MineCart_Body");
+            if (body == null) body = transform.Find("Truck_Cargo");
+            Transform targetAnim = body != null ? body : transform;
+
+            targetAnim.DOKill(true);
+            targetAnim.DOPunchScale(new Vector3(0.08f, 0.14f, 0.08f), 0.35f, 5, 0.4f);
         }
 
         /// <summary>

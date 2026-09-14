@@ -132,80 +132,94 @@ namespace PixelGame
         {
             if (m_Cargo != null && !m_Cargo.IsFull && RemainingMinersToDeploy > 0)
             {
-                int maxToSpawn = RemainingMinersToDeploy;
                 Transform body = GetWagonBody(transform);
                 TryGetLocalBounds(body, out Bounds bounds);
                 float extraMinerScale = (bounds.size.x > 0.001f) ? (bounds.size.y * 0.42f * m_ScaleFactor) : (0.35f * m_ScaleFactor);
 
-                for (int i = 0; i < maxToSpawn; i++)
+                float waitTimeWithoutSpawn = 0f;
+                const float maxWaitTimeForNewCubes = 15.0f;
+
+                while (RemainingMinersToDeploy > 0 && m_Cargo != null && !m_Cargo.IsFull)
                 {
-                    // Vagon dolduysa veya kalan madenci hakkı bittiyse üretimi durdur
-                    if (m_Cargo == null || m_Cargo.IsFull || RemainingMinersToDeploy <= 0)
+                    // 1. Dışarı atlayabilecek açık/erişilebilir uygun küp var mı?
+                    if (Miner.HasAccessibleMatchingCube(m_Cargo.CargoColor, m_ColorThreshold))
                     {
-                        break;
-                    }
+                        waitTimeWithoutSpawn = 0f;
 
-                    // Henüz dışarı atlayabilecek açık/erişilebilir uygun renkli küp var mı?
-                    if (!Miner.HasAccessibleMatchingCube(m_Cargo.CargoColor, m_ColorThreshold))
-                    {
-                        break;
-                    }
+                        Miner miner = null;
+                        bool fromSeatedList = false;
 
-                    Miner miner = null;
-                    bool fromSeatedList = false;
-
-                    // m_SeatedMiners içinden vagonda oturan ilk geçerli madenciyi al
-                    while (m_SeatedMiners.Count > 0)
-                    {
-                        Miner candidate = m_SeatedMiners[0];
-                        m_SeatedMiners.RemoveAt(0);
-
-                        if (candidate != null && candidate.gameObject != null && candidate.CurrentState == Miner.State.SeatedInWagon)
+                        // m_SeatedMiners içinden vagonda oturan ilk geçerli madenciyi al
+                        while (m_SeatedMiners.Count > 0)
                         {
-                            miner = candidate;
-                            fromSeatedList = true;
-                            break;
-                        }
-                    }
+                            Miner candidate = m_SeatedMiners[0];
+                            m_SeatedMiners.RemoveAt(0);
 
-                    // Oturan görsel madenci kalmadıysa ek madenci oluşturup zıplat
-                    if (miner == null)
-                    {
-                        miner = Miner.CreateSeatedMiner(
-                            body,
-                            Vector3.up * 0.45f,
-                            extraMinerScale,
-                            m_Cargo.CargoColor,
-                            m_MinerPrefab,
-                            m_RunSpeed
-                        );
-                    }
-
-                    if (miner != null)
-                    {
-                        bool jumped = miner.JumpOutFromWagon(m_Cargo.CargoColor, m_ColorThreshold, m_RunSpeed);
-                        if (!jumped)
-                        {
-                            // Küp bulunamadı veya rezerve edilemedi
-                            if (fromSeatedList)
+                            if (candidate != null && candidate.gameObject != null && candidate.CurrentState == Miner.State.SeatedInWagon)
                             {
-                                m_SeatedMiners.Insert(0, miner);
+                                miner = candidate;
+                                fromSeatedList = true;
+                                break;
+                            }
+                        }
+
+                        // Oturan görsel madenci kalmadıysa ek madenci oluşturup zıplat
+                        if (miner == null)
+                        {
+                            miner = Miner.CreateSeatedMiner(
+                                body,
+                                Vector3.up * 0.45f,
+                                extraMinerScale,
+                                m_Cargo.CargoColor,
+                                m_MinerPrefab,
+                                m_RunSpeed
+                            );
+                        }
+
+                        if (miner != null)
+                        {
+                            bool jumped = miner.JumpOutFromWagon(m_Cargo.CargoColor, m_ColorThreshold, m_RunSpeed);
+                            if (jumped)
+                            {
+                                m_DeployedMinersCount++;
+                                yield return new WaitForSeconds(m_SpawnDelay);
+                                continue;
                             }
                             else
                             {
-                                miner.Release();
+                                if (fromSeatedList)
+                                {
+                                    m_SeatedMiners.Insert(0, miner);
+                                }
+                                else
+                                {
+                                    miner.Release();
+                                }
                             }
-                            // Açıkta kırılacak küp kalmadığı için bu turdaki indirmeyi bitir
-                            break;
                         }
-
-                        // Madenci başarıyla vagondan ayrıldı
-                        m_DeployedMinersCount++;
                     }
 
-                    yield return new WaitForSeconds(m_SpawnDelay);
+                    // 2. Şu an dışarıda açık küp yok, ancak panoda bu renkten kırılmamış iç küpler var mı
+                    // VE sahada küplere doğru koşan madenciler var mı?
+                    if (Miner.HasMatchingUnpoppedCube(m_Cargo.CargoColor, m_ColorThreshold) &&
+                        Miner.HasActiveMinersTargetingColor(m_Cargo.CargoColor, m_ColorThreshold))
+                    {
+                        waitTimeWithoutSpawn += 0.2f;
+                        if (waitTimeWithoutSpawn < maxWaitTimeForNewCubes)
+                        {
+                            // Koşan madencilerin küpü vurup yeni iç küpleri açığa çıkarmasını bekle
+                            yield return new WaitForSeconds(0.2f);
+                            continue;
+                        }
+                    }
+
+                    // Seviyede bu renkten hiç blok kalmadı veya bekleyecek madenci yok
+                    break;
                 }
             }
+
+            // İndirme tamamlandıktan sonra kasada kalan görsel oturucu varsa temizle (vagon temiz gitsin)
+            ClearSeatedMiners();
 
             m_SpawnCoroutine = null;
             onComplete?.Invoke();

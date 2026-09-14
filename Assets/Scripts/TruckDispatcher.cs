@@ -167,6 +167,8 @@ namespace PixelGame
             public float PositionX;
             public bool IsDeployingMiners = false;
             public bool HasStartedDeploying = false;
+            public bool HasCompletedInitialDeployment = false;
+            public bool IsJumpingToTrack = false;
         }
 
         public class ShelfCubeGroup
@@ -409,16 +411,37 @@ namespace PixelGame
 
             truck.SetParent(m_WagonsRoot, true);
 
-            // Ray hattındaki başlangıç pozisyonu
-            float startX = m_PortalLeftX + 220f;
+            // Ray hattındaki başlangıç pozisyonu:
+            // İstasyon durağı merkezdedir (x = 0f).
+            // Eğer merkez boşsa ve soldan merkeze doğru yaklaşan başka vagon yoksa doğrudan merkeze (x = 0f) iner.
+            // Eğer merkez doluysa veya sırada bekleyen/yaklaşan vagon varsa, en arkadaki vagonun arkasına sıraya geçer.
+            float startX = 0f;
             if (m_MovingWagons.Count > 0)
             {
                 float minX = float.MaxValue;
+                bool centerBlocked = false;
+
                 for (int i = 0; i < m_MovingWagons.Count; i++)
                 {
-                    if (m_MovingWagons[i].PositionX < minX) minX = m_MovingWagons[i].PositionX;
+                    float wx = m_MovingWagons[i].PositionX;
+                    if (wx < minX) minX = wx;
+
+                    // Merkeze çok yakın veya merkezde duran bir vagon var mı?
+                    if (Mathf.Abs(wx - 0f) < m_MinWagonSpacing * 0.85f)
+                    {
+                        centerBlocked = true;
+                    }
                 }
-                startX = Mathf.Max(m_PortalLeftX + 40f, minX - m_MinWagonSpacing);
+
+                // Merkez doluysa veya merkezin solunda bekleyen/gelen vagon varsa arkaya sıraya geç
+                if (centerBlocked || minX < 0f)
+                {
+                    startX = Mathf.Max(m_PortalLeftX + 40f, minX - m_MinWagonSpacing);
+                }
+                else
+                {
+                    startX = 0f;
+                }
             }
 
             Vector3 targetLocalPos = new Vector3(startX, m_WagonY, m_WagonZ);
@@ -456,7 +479,8 @@ namespace PixelGame
                 Animator = anim,
                 PositionX = startX,
                 IsDeployingMiners = false,
-                HasStartedDeploying = false
+                HasStartedDeploying = false,
+                IsJumpingToTrack = true
             };
             m_MovingWagons.Add(movingWagon);
 
@@ -470,8 +494,7 @@ namespace PixelGame
                 {
                     truck.localPosition = targetLocalPos;
 
-                    // Vagon ray hattına oturdu. Madenci indirmesi tünel/portal başında değil,
-                    // vagon istasyon alanına (pano önüne / kırmızı girişlerin altına) vardığında yapılır.
+                    movingWagon.IsJumpingToTrack = false;
                     movingWagon.IsDeployingMiners = false;
                     movingWagon.HasStartedDeploying = false;
                 }
@@ -490,39 +513,17 @@ namespace PixelGame
             for (int i = 0; i < m_MovingWagons.Count; i++)
             {
                 MovingWagon wagon = m_MovingWagons[i];
-                if (wagon == null || wagon.Transform == null) continue;
+                if (wagon == null || wagon.Transform == null || wagon.IsJumpingToTrack) continue;
 
-                // Vagon istasyon alanına (pano önüne / kırmızı girişlerin altına) vardığında madencileri indirir.
-                // Tünel ve portal yakınlarında madencilerin ASLA inmemesini sağlar!
-                bool inStationZone = Mathf.Abs(wagon.PositionX) <= 220f;
-
-                MinerCrew crew = wagon.Transform.GetComponent<MinerCrew>();
-                bool hasMinersToDeploy = crew == null || crew.RemainingMinersToDeploy > 0;
-
-                if (!wagon.HasStartedDeploying && wagon.Cargo != null && !wagon.Cargo.IsFull && hasMinersToDeploy && inStationZone)
-                {
-                    if (Miner.HasAccessibleMatchingCube(wagon.Cargo.CargoColor, m_ColorThreshold))
-                    {
-                        wagon.HasStartedDeploying = true;
-                        wagon.IsDeployingMiners = true;
-                        if (wagon.Animator != null) wagon.Animator.speed = 0f;
-
-                        if (crew == null) crew = wagon.Transform.gameObject.AddComponent<MinerCrew>();
-                        crew.StartJumpingOutSequence(m_ColorThreshold, m_MinerSpawnDelay, m_MinerRunSpeed, () =>
-                        {
-                            wagon.IsDeployingMiners = false;
-                        });
-                    }
-                }
-
-                // Madenciler vagondan inene kadar vagon olduğu yerde sabit durur
+                // Madenciler vagondan inene kadar vagon olduğu yerde (merkez istasyonunda) sabit durur
                 if (wagon.IsDeployingMiners)
                 {
+                    wagon.Transform.localPosition = new Vector3(wagon.PositionX, m_WagonY, m_WagonZ);
                     if (wagon.Animator != null) wagon.Animator.speed = 0f;
                     continue;
                 }
 
-                // Öndeki vagon ile güvenli takip mesafesi
+                // Öndeki vagon ile güvenli takip mesafesi (kuyruk mantığı)
                 float moveStep = step;
                 for (int j = 0; j < m_MovingWagons.Count; j++)
                 {
@@ -537,12 +538,55 @@ namespace PixelGame
                     }
                 }
 
+                MinerCrew crew = wagon.Transform.GetComponent<MinerCrew>();
+                bool hasMinersToDeploy = crew == null || crew.RemainingMinersToDeploy > 0;
+
+                // Seçenek A: İndirme yapacak vagon soldan yaklaşırken tam ortaya (x = 0f merkez durağına) yanaşır
+                // SADECE İLK GEÇİŞİNDE (HasCompletedInitialDeployment == false) ve henüz indirme yapmadıysa durur.
+                // 2. geçişte (raftan taş toplarken) ASLA durmaz, akışta taşları toplayarak ilerler!
+                if (!wagon.HasCompletedInitialDeployment && !wagon.HasStartedDeploying && wagon.Cargo != null && !wagon.Cargo.IsFull && hasMinersToDeploy)
+                {
+                    // Vagon soldan gelirken 0f merkez durağını aşmaması için adımı tam merkeze ayarla
+                    if (wagon.PositionX < 0f && (wagon.PositionX + moveStep) >= 0f)
+                    {
+                        moveStep = -wagon.PositionX;
+                    }
+
+                    // Vagon merkeze ulaştığında (x = 0f durağında)
+                    if (Mathf.Abs(wagon.PositionX + moveStep) <= 0.05f || (wagon.PositionX >= -0.05f && wagon.PositionX <= 0.05f))
+                    {
+                        if (Miner.HasAccessibleMatchingCube(wagon.Cargo.CargoColor, m_ColorThreshold) ||
+                            Miner.HasMatchingUnpoppedCube(wagon.Cargo.CargoColor, m_ColorThreshold))
+                        {
+                            wagon.PositionX = 0f;
+                            wagon.Transform.localPosition = new Vector3(0f, m_WagonY, m_WagonZ);
+                            wagon.HasStartedDeploying = true;
+                            wagon.IsDeployingMiners = true;
+                            if (wagon.Animator != null) wagon.Animator.speed = 0f;
+
+                            if (crew == null) crew = wagon.Transform.gameObject.AddComponent<MinerCrew>();
+                            crew.StartJumpingOutSequence(m_ColorThreshold, m_MinerSpawnDelay, m_MinerRunSpeed, () =>
+                            {
+                                wagon.IsDeployingMiners = false;
+                                wagon.HasCompletedInitialDeployment = true;
+                            });
+
+                            continue;
+                        }
+                        else
+                        {
+                            wagon.HasStartedDeploying = true;
+                            wagon.HasCompletedInitialDeployment = true;
+                        }
+                    }
+                }
+
                 wagon.PositionX += moveStep;
 
-                // İstasyon bölgesini geçtikten sonra (sağa doğru ilerlerken) indirme bayrağını sıfırla
-                if (wagon.PositionX > 220f)
+                // İstasyon durağını geçtikten sonra (sağa doğru ilerlerken) ilk indirme tamamlanmış olarak mühürlenir
+                if (wagon.PositionX > 50f && wagon.HasStartedDeploying)
                 {
-                    wagon.HasStartedDeploying = false;
+                    wagon.HasCompletedInitialDeployment = true;
                 }
 
                 // Sağ portaldan çıkan vagonun durumu
@@ -558,9 +602,8 @@ namespace PixelGame
                     }
                     else
                     {
-                        // Henüz dolmamış vagon döngüye devam eder: soldan tekrar hatta girer
+                        // Henüz dolmamış vagon döngüye devam eder: soldan tekrar hatta girer (akışta taş toplamaya devam)
                         wagon.PositionX = m_PortalLeftX + (wagon.PositionX - m_PortalRightX);
-                        wagon.HasStartedDeploying = false;
                     }
                 }
 

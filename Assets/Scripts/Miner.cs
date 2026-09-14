@@ -403,6 +403,53 @@ namespace PixelGame
             return false;
         }
 
+        /// <summary>
+        /// Panoda (açık veya içte) henüz kırılmamış ve rezerve edilmemiş eşleşen küp var mı?
+        /// </summary>
+        public static bool HasMatchingUnpoppedCube(Color cargoColor, float threshold)
+        {
+            PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (gen == null || gen.CubesContainer == null) return false;
+
+            PixelCube[] allCubes = gen.CubesContainer.GetComponentsInChildren<PixelCube>();
+            if (allCubes == null || allCubes.Length == 0) return false;
+
+            for (int i = 0; i < allCubes.Length; i++)
+            {
+                PixelCube cube = allCubes[i];
+                if (cube == null || cube.IsPopped || s_ReservedCubes.Contains(cube)) continue;
+
+                if (IsCubeMatchingCargo(cube, cargoColor, threshold))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Sahada şu anda bu renkteki küplere doğru koşan veya kırmaya hazırlanan madenci var mı?
+        /// Bu madenciler küpleri vurduğunda yeni iç küpler açığa çıkacaktır.
+        /// </summary>
+        public static bool HasActiveMinersTargetingColor(Color cargoColor, float threshold)
+        {
+            for (int i = 0; i < s_ActiveMiners.Count; i++)
+            {
+                Miner miner = s_ActiveMiners[i];
+                if (miner == null || !miner.gameObject.activeSelf) continue;
+
+                if (miner.m_State == State.Jumping || miner.m_State == State.Running || miner.m_State == State.Mining)
+                {
+                    if (TruckCargo.ColorDistance(miner.m_MinerColor, cargoColor) <= threshold)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         public struct BoardLayout
         {
             public int cols;
@@ -1382,21 +1429,23 @@ namespace PixelGame
             if (paint != null)
             {
                 paint.SetBodyColor(color);
+                paint.SetMinerColors(color, color);
                 paint.Apply();
                 return;
             }
 
-            if (m_Renderer == null) m_Renderer = GetComponentInChildren<MeshRenderer>();
-            if (m_Renderer == null) return;
-
-            if (m_Material == null)
+            Renderer rend = GetComponentInChildren<Renderer>();
+            if (rend != null)
             {
-                m_Material = CartoonShader.CreateMaterial(color, "Miner_Mat");
-                m_Renderer.sharedMaterial = m_Material;
-            }
-            else
-            {
-                CartoonShader.ApplyColor(m_Material, color);
+                if (m_Material == null)
+                {
+                    m_Material = CartoonShader.CreateMaterial(color, "Miner_Mat");
+                    rend.sharedMaterial = m_Material;
+                }
+                else
+                {
+                    CartoonShader.ApplyColor(m_Material, color);
+                }
             }
         }
 

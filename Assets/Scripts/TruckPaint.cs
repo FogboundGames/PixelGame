@@ -176,11 +176,13 @@ namespace PixelGame
             m_Dirty = true;
         }
 
-        /// <summary>Kabin ve kasayı aynı renge boyar.</summary>
+        /// <summary>Kabin ve kasayı (ve varsa madenci gövde ve baretini) aynı renge boyar.</summary>
         public void SetBodyColor(Color color)
         {
             m_Cabin = color;
             m_Cargo = color;
+            m_MechaBody = color;
+            m_Helmet = color;
             m_Dirty = true;
         }
 
