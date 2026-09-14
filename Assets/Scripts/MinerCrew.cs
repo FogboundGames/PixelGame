@@ -14,13 +14,13 @@ namespace PixelGame
     {
         [Header("⚙️ Müfreze Ayarları")]
         [Tooltip("Madencilerin vagondan sırayla atlama aralığı (saniye)")]
-        [SerializeField] private float m_SpawnDelay = 0.18f;
+        [SerializeField] private float m_SpawnDelay = 0.45f;
 
         [Tooltip("Madenci ölçek çarpanı")]
         [SerializeField] private float m_ScaleFactor = 1f;
 
         [Tooltip("Madenci koşu hızı (yavaşlatılmış ve dengeli)")]
-        [SerializeField] private float m_RunSpeed = 0.95f;
+        [SerializeField] private float m_RunSpeed = 0.85f;
 
         private TruckCargo m_Cargo;
         private GameObject m_MinerPrefab;
@@ -35,7 +35,7 @@ namespace PixelGame
             TruckCargo cargo,
             GameObject minerPrefab,
             float scaleFactor = 1f,
-            float runSpeed = 1.5f)
+            float runSpeed = 0.85f)
         {
             ClearSeatedMiners();
 
@@ -102,8 +102,8 @@ namespace PixelGame
         /// </summary>
         public void StartJumpingOutSequence(
             float colorThreshold,
-            float spawnDelay = 0.18f,
-            float runSpeed = 2.8f,
+            float spawnDelay = 0.45f,
+            float runSpeed = 0.85f,
             System.Action onComplete = null)
         {
             m_ColorThreshold = colorThreshold;

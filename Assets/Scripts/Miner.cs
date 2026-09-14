@@ -33,23 +33,56 @@ namespace PixelGame
         private static readonly HashSet<PixelCube> s_ReservedCubes = new HashSet<PixelCube>();
         private static Transform s_PoolRoot;
 
+        [Header("🦘 Zıplama Ayarları")]
+        [Tooltip("Vagondan ve çerçeve üstünden atlama süresi (saniye)")]
+        [SerializeField] private float m_JumpDuration = 0.65f;
+
+        [Tooltip("Vagondan ve çerçeve üstünden atlama yayının tepe yüksekliği")]
+        [SerializeField] private float m_JumpPower = 0.60f;
+
         [Header("🏃 Hareket & Ritim Ayarları")]
         [Tooltip("Madencinin yatay ve dikey koşu hızı (yavaşlatılmış ve dengelenmiş)")]
-        [SerializeField] private float m_RunSpeed = 0.95f;
+        [SerializeField] private float m_RunSpeed = 0.85f;
 
         [Tooltip("Koşma sırasındaki dikey zıplama frekansı")]
-        [SerializeField] private float m_BounceFrequency = 12f;
+        [SerializeField] private float m_BounceFrequency = 10f;
 
         [Tooltip("Koşma sırasındaki dikey zıplama yüksekliği")]
-        [SerializeField] private float m_BounceHeight = 0.08f;
+        [SerializeField] private float m_BounceHeight = 0.05f;
 
-        [Tooltip("Küpe ulaşınca kazma/kırma öncesi bekleme süresi")]
-        [SerializeField] private float m_MiningDuration = 0.25f;
+        [Header("⛏️ Madencilik / Vurma Ayarları")]
+        [Tooltip("Blok önünde vurma animasyonunun temas anına kadarki süresi (saniye)")]
+        [SerializeField] private float m_PunchImpactDelay = 0.55f;
+
+        [Tooltip("Küp patladıktan sonra vuruşu tamamlayıp kaçmaya başlama öncesi bekleme süresi (saniye)")]
+        [SerializeField] private float m_PostPunchDelay = 0.35f;
 
         private State m_State = State.Idle;
         private PixelCube m_TargetCube;
         private Color m_MinerColor = Color.white;
         private float m_ColorThreshold = 0.04f;
+
+        private static readonly int[] s_JumpHashes =
+        {
+            Animator.StringToHash("Jump"),
+            Animator.StringToHash("MechaMiner_Jump"),
+            Animator.StringToHash("Armature|Jump")
+        };
+
+        private static readonly int[] s_RunHashes =
+        {
+            Animator.StringToHash("Running"),
+            Animator.StringToHash("MechaMiner_Run"),
+            Animator.StringToHash("Armature|Running")
+        };
+
+        private static readonly int[] s_AttackHashes =
+        {
+            Animator.StringToHash("ZombiePunching"),
+            Animator.StringToHash("Attack"),
+            Animator.StringToHash("Armature|ZombiePunching"),
+            Animator.StringToHash("MechaMiner_Attack")
+        };
 
         private Animator m_Animator;
         private MeshRenderer m_Renderer;
@@ -63,9 +96,39 @@ namespace PixelGame
         private int m_CurrentWaypointIndex;
         private float m_RunTimer;
         private Coroutine m_StateCoroutine;
+        private bool m_HasJumpedOutside;
+        private bool m_IsExitingLeft;
 
         public State CurrentState => m_State;
         public PixelCube TargetCube => m_TargetCube;
+
+        private void PlayAnimation(int[] hashes, float normalizedTime = 0f)
+        {
+            if (m_Animator == null || !m_Animator.isActiveAndEnabled) return;
+
+            for (int i = 0; i < hashes.Length; i++)
+            {
+                if (m_Animator.HasState(0, hashes[i]))
+                {
+                    m_Animator.Play(hashes[i], 0, normalizedTime);
+                    return;
+                }
+            }
+        }
+
+        private static bool IsCurrentStateAny(Animator animator, int[] hashes)
+        {
+            if (animator == null) return false;
+            AnimatorStateInfo info = animator.GetCurrentAnimatorStateInfo(0);
+            for (int i = 0; i < hashes.Length; i++)
+            {
+                if (info.shortNameHash == hashes[i] || info.fullPathHash == hashes[i])
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
 
         #region 🚀 Başlatma & Havuzlama (Spawning & Pooling)
 
@@ -79,7 +142,7 @@ namespace PixelGame
             float localScale,
             Color cargoColor,
             GameObject minerPrefab = null,
-            float runSpeed = 2.8f)
+            float runSpeed = 0.85f)
         {
             Miner miner = Rent(minerPrefab);
             miner.m_MinerColor = cargoColor;
@@ -108,7 +171,7 @@ namespace PixelGame
         /// <summary>
         /// Vagonda oturan madenciyi dışarı fırlatır ve küpe koşmaya başlatır.
         /// </summary>
-        public bool JumpOutFromWagon(Color cargoColor, float colorThreshold, float runSpeed = 2.8f)
+        public bool JumpOutFromWagon(Color cargoColor, float colorThreshold, float runSpeed = 0.85f)
         {
             if (m_State != State.SeatedInWagon) return false;
 
@@ -198,6 +261,8 @@ namespace PixelGame
         {
             CleanupState();
             UnreserveTarget();
+            m_HasJumpedOutside = false;
+            m_IsExitingLeft = false;
 
             s_ActiveMiners.Remove(this);
 
@@ -365,8 +430,9 @@ namespace PixelGame
 
                 layout.bottomCorridorY = (layout.frameBottomY + layout.lowestCubeBottom) * 0.5f;
                 layout.topCorridorY = (frameTopY + layout.highestCubeTop) * 0.5f;
-                layout.leftCorridorX = (frameLeftX + layout.leftmostCubeLeft) * 0.5f;
-                layout.rightCorridorX = (frameRightX + layout.rightmostCubeRight) * 0.5f;
+                float takeoffMargin = Mathf.Max(0.55f, layout.cellSize * 2.2f);
+                layout.leftCorridorX = frameLeftX + takeoffMargin;
+                layout.rightCorridorX = frameRightX - takeoffMargin;
 
                 s_CachedLayout = layout;
                 s_LayoutCached = true;
@@ -430,8 +496,9 @@ namespace PixelGame
 
             layout.bottomCorridorY = (layout.frameBottomY + layout.lowestCubeBottom) * 0.5f;
             layout.topCorridorY = (fTopY + layout.highestCubeTop) * 0.5f;
-            layout.leftCorridorX = (fLeftX + layout.leftmostCubeLeft) * 0.5f;
-            layout.rightCorridorX = (fRightX + layout.rightmostCubeRight) * 0.5f;
+            float fallbackTakeoffMargin = Mathf.Max(0.55f, layout.cellSize * 2.2f);
+            layout.leftCorridorX = fLeftX + fallbackTakeoffMargin;
+            layout.rightCorridorX = fRightX - fallbackTakeoffMargin;
 
             s_CachedLayout = layout;
             s_LayoutCached = true;
@@ -546,106 +613,59 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Madencilerin vagondan inince YALNIZCA alttaki kırmızı ile işaretli açıklıklardan girmesini,
-        /// kırmızı yerlerin solundaki, sağındaki veya ortasındaki mavi borulardan ASLA geçmemesini,
-        /// blokların üstüne veya altına ASLA basmadan iç açık koridorlardan ilerlemesini sağlar.
+        /// <summary>
+        /// Madencinin iniş yaptığı iç alt koridordan hedef küpün stand noktasına
+        /// boş hücreler ve açık koridorlar üzerinden giden BFS yolunu oluşturur.
         /// </summary>
         public static List<Vector3> GeneratePathWaypoints(Vector3 startPos, Vector3 targetStandPos, PixelCube[] allCubes)
         {
             List<Vector3> path = new List<Vector3>();
-
             BoardLayout layout = CalculateBoardLayout(allCubes);
 
-            GetFrameGatePositions(allCubes,
-                out Vector3 leftBottomEntrance,
-                out Vector3 rightBottomEntrance,
-                out _,
-                out _,
-                out _,
-                out _,
-                out _);
-
-            // Hedef küpün X konumuna göre en uygun kırmızı alt giriş kapısını seç (sol veya sağ)
-            Vector3 chosenEntrance = (targetStandPos.x <= layout.frameCenter.x) ? leftBottomEntrance : rightBottomEntrance;
-
-            // Madenci çerçevenin altında veya pano sınırlarının dışındaysa (vagondan yeni inmiş veya dışarıdaysa):
-            bool isOutside = (startPos.y < layout.lowestCubeBottom) ||
-                             (startPos.x < layout.leftmostCubeLeft) ||
-                             (startPos.x > layout.rightmostCubeRight);
-
-            if (isOutside)
+            // Madenci çerçevenin altındaysa (dışarıdaysa), alt koridora geçiş noktası ekle
+            if (startPos.y < layout.frameBottomY)
             {
-                // 1. Mavi borulara çarpmamak için aşağıda (güvenli Y mesafesinde) kalarak
-                //    seçilen kırmızı giriş kapısının tam X koordinatı hizasına yürü
-                float safeY = Mathf.Min(startPos.y, layout.frameBottomY - 0.40f);
-                Vector3 alignPoint = new Vector3(chosenEntrance.x, safeY, -0.30f);
-
-                if ((alignPoint - startPos).sqrMagnitude > 0.03f)
-                {
-                    path.Add(alignPoint);
-                }
-
-                // 2. Kırmızı giriş kapısının tam ortasından dikey olarak içeri doğru adım at (mavi borulardan asla geçmez)
-                path.Add(new Vector3(chosenEntrance.x, layout.frameBottomY, -0.30f));
-
-                // 3. Çerçevenin iç alt koridoruna geçiş noktası (KESİNLİKLE blokların altındaki açık koridorda)
-                Vector3 innerCorridorPoint = new Vector3(chosenEntrance.x, layout.bottomCorridorY, -0.30f);
-                path.Add(innerCorridorPoint);
-
-                // 4. Çerçeve içindeki açık koridorlar ve boşluklardan hedef küpe ulaşan BFS yolu
-                List<Vector3> insidePath = FindEmptyCellPath(innerCorridorPoint, targetStandPos, allCubes);
+                float entryX = Mathf.Clamp(targetStandPos.x, layout.leftmostCubeLeft, layout.rightmostCubeRight);
+                Vector3 entryPoint = new Vector3(entryX, layout.bottomCorridorY, -0.30f);
+                path.Add(entryPoint);
+                List<Vector3> insidePath = FindEmptyCellPath(entryPoint, targetStandPos, allCubes);
                 path.AddRange(insidePath);
-            }
-            else
-            {
-                // Madenci zaten pano içindeyse (hedef güncellemesi vs.) doğrudan boş hücrelerden hedefe git
-                List<Vector3> insidePath = FindEmptyCellPath(startPos, targetStandPos, allCubes);
-                path.AddRange(insidePath);
+                return path;
             }
 
+            // Madenci zaten çerçevenin içindeyse (ortaya atlayarak inmişse) doğrudan boş koridorlardan hedefe git
+            List<Vector3> directPath = FindEmptyCellPath(startPos, targetStandPos, allCubes);
+            path.AddRange(directPath);
             return path;
         }
 
         /// <summary>
-        /// Madenci bloğu kırdıktan sonra YALNIZCA yan yeşil çıkış kapılarından (sol veya sağ)
-        /// dışarı çıkıp kaçma yolunu hesaplar. Blokların üstünden veya altından geçmez.
+        /// Madenci bloğu kırdıktan sonra çerçevenin kenarına (sol veya sağ yan koridora) ulaşıp
+        /// oradan çerçevenin üstünden dışarı (sola veya sağa) atlayacağı atlama noktasına kadar olan yolu hesaplar.
+        /// Çıkışlar KESİNLİKLE SOL veya SAĞ taraftan yapılır; alttan çıkış yapılmaz.
         /// </summary>
         public static List<Vector3> GenerateEscapeWaypoints(Vector3 currentStandPos, PixelCube[] allCubes)
         {
             List<Vector3> path = new List<Vector3>();
-
             BoardLayout layout = CalculateBoardLayout(allCubes);
 
-            GetFrameGatePositions(allCubes,
-                out _,
-                out _,
-                out Vector3 leftSideExit,
-                out Vector3 rightSideExit,
-                out _,
-                out _,
-                out _);
-
+            // Çıkış kesinlikle sol veya sağ yan koridor üzerinden yapılır
             bool isLeft = currentStandPos.x <= layout.frameCenter.x;
-            Vector3 chosenExit = isLeft ? leftSideExit : rightSideExit;
 
-            // 1. Çerçeve içi kenar açık koridorda kapının hemen önündeki yaklaşma noktası
-            Vector3 innerApproach = new Vector3(isLeft ? layout.leftCorridorX : layout.rightCorridorX, chosenExit.y, -0.30f);
+            float targetSideY = Mathf.Clamp(currentStandPos.y, layout.bottomCorridorY, layout.topCorridorY);
+            Vector3 chosenEdgePoint = isLeft
+                ? new Vector3(layout.leftCorridorX, targetSideY, -0.30f)
+                : new Vector3(layout.rightCorridorX, targetSideY, -0.30f);
 
-            // İçerideki boş hücrelerden ve koridorlardan yeşil kapının önüne ulaş
-            List<Vector3> insidePath = FindEmptyCellPath(currentStandPos, innerApproach, allCubes);
+            // Çerçeve içindeki boş koridorlardan seçilen yan kenar atlama noktasına ulaş
+            List<Vector3> insidePath = FindEmptyCellPath(currentStandPos, chosenEdgePoint, allCubes);
             path.AddRange(insidePath);
 
-            // 2. Yeşil çıkış kapısının tam ortasından dışarı adım at
-            path.Add(new Vector3(chosenExit.x, chosenExit.y, -0.30f));
-
-            // 3. Çerçevenin hemen dışındaki nokta (dış koridor)
-            float outerXOffset = isLeft ? -0.35f : 0.35f;
-            Vector3 outerPoint = new Vector3(chosenExit.x + outerXOffset, chosenExit.y, -0.30f);
-            path.Add(outerPoint);
-
-            // 4. Ekranın sol/sağ alt tarafına doğru koşarak kamera görüş alanından çık
-            Vector3 offscreenTarget = outerPoint + (isLeft ? new Vector3(-2.0f, -4.5f, 0f) : new Vector3(2.0f, -4.5f, 0f));
-            path.Add(offscreenTarget);
+            // Atlama noktası son yol noktası olarak eklenir
+            if (path.Count == 0 || (path[path.Count - 1] - chosenEdgePoint).sqrMagnitude > 0.01f)
+            {
+                path.Add(chosenEdgePoint);
+            }
 
             return path;
         }
@@ -884,6 +904,8 @@ namespace PixelGame
         private void StartJumpState(Vector3 startPos)
         {
             m_State = State.Jumping;
+            m_HasJumpedOutside = false;
+            m_IsExitingLeft = false;
             CleanupState();
 
             if (m_Animator != null)
@@ -891,23 +913,29 @@ namespace PixelGame
                 m_Animator.enabled = true;
                 m_Animator.speed = 1f;
                 m_Animator.Rebind();
-                m_Animator.Play("MechaMiner_Jump", 0, 0f);
+                PlayAnimation(s_JumpHashes, 0f);
             }
 
             BoardLayout layout = CalculateBoardLayout(null);
 
-            // Vagondan dışarı zıplama hedefi:
-            // Tünel/portal yönlerine veya mavi borulara ASLA zıplamaz!
-            // Daima tablonun altındaki güvenli orta açıklık alanına (kırmızı girişlerin hizasına) iner.
-            float minJumpX = layout.frameCenter.x - layout.fullWidth * 0.30f;
-            float maxJumpX = layout.frameCenter.x + layout.fullWidth * 0.30f;
-            float targetX = Mathf.Clamp(startPos.x + UnityEngine.Random.Range(-0.25f, 0.25f), minJumpX, maxJumpX);
-            float safeLandingY = Mathf.Min(startPos.y - 0.15f, layout.frameBottomY - 0.40f);
-            Vector3 jumpTarget = new Vector3(targetX, safeLandingY, -0.30f);
+            // Çerçevenin hemen öte tarafına (iç alt tabana) zıplayıp karşıya iner:
+            float targetX = Mathf.Clamp(startPos.x + UnityEngine.Random.Range(-0.15f, 0.15f), layout.leftmostCubeLeft, layout.rightmostCubeRight);
+            float landingY = layout.frameBottomY + 0.35f;
+            Vector3 jumpTarget = new Vector3(targetX, landingY, -0.30f);
 
             m_JumpSequence = DOTween.Sequence();
-            m_JumpSequence.Join(transform.DOJump(jumpTarget, 0.5f, 1, 0.4f).SetEase(Ease.OutQuad));
-            m_JumpSequence.Join(transform.DOScale(m_TargetRunningScale, 0.4f).SetEase(Ease.OutQuad));
+            m_JumpSequence.Join(transform.DOJump(jumpTarget, m_JumpPower, 1, m_JumpDuration).SetEase(Ease.OutQuad));
+            m_JumpSequence.Join(transform.DOScale(m_TargetRunningScale, m_JumpDuration).SetEase(Ease.OutQuad));
+
+            // Zıplarken yüzünü iniş yönüne çevir
+            Vector3 jumpDir = (jumpTarget - startPos);
+            jumpDir.z = 0f;
+            if (jumpDir.sqrMagnitude > 0.001f)
+            {
+                float targetYaw = Mathf.Atan2(jumpDir.x, jumpDir.y) * Mathf.Rad2Deg;
+                m_JumpSequence.Join(transform.DORotate(new Vector3(0f, targetYaw, 0f), 0.25f));
+            }
+
             m_JumpSequence.OnComplete(() =>
             {
                 m_BasePosition = new Vector3(transform.position.x, transform.position.y, -0.30f);
@@ -938,8 +966,8 @@ namespace PixelGame
             if (m_Animator != null)
             {
                 m_Animator.enabled = true;
-                m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.35f, 0.8f, 2.2f);
-                m_Animator.Play("MechaMiner_Run", 0, 0f);
+                m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.25f, 0.75f, 1.4f);
+                PlayAnimation(s_RunHashes, 0f);
             }
         }
 
@@ -984,11 +1012,11 @@ namespace PixelGame
             // Koşma animasyonunun kesintisiz döngüde kalması
             if (m_Animator != null)
             {
-                m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.35f, 0.8f, 2.2f);
+                m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.25f, 0.75f, 1.4f);
                 AnimatorStateInfo info = m_Animator.GetCurrentAnimatorStateInfo(0);
-                if (info.normalizedTime >= 0.90f || !info.IsName("MechaMiner_Run"))
+                if (!IsCurrentStateAny(m_Animator, s_RunHashes) || (!info.loop && info.normalizedTime >= 0.95f))
                 {
-                    m_Animator.Play("MechaMiner_Run", 0, 0f);
+                    PlayAnimation(s_RunHashes, 0f);
                 }
             }
 
@@ -1050,9 +1078,12 @@ namespace PixelGame
                 }
             }
 
+            // Blok önünde koşma kesinlikle durur, vurma/kazma animasyonu oynar
             if (m_Animator != null)
             {
-                m_Animator.speed = 1.2f;
+                m_Animator.enabled = true;
+                m_Animator.speed = 1.0f;
+                PlayAnimation(s_AttackHashes, 0f);
             }
 
             m_StateCoroutine = StartCoroutine(MiningRoutine());
@@ -1060,8 +1091,10 @@ namespace PixelGame
 
         private IEnumerator MiningRoutine()
         {
-            yield return new WaitForSeconds(m_MiningDuration);
+            // 1) Blok önünde durur, vurma animasyonu başlar ve darbe hedefe iner
+            yield return new WaitForSeconds(m_PunchImpactDelay);
 
+            // 2) Darbe temas anında hedef küp patlar
             if (m_TargetCube != null && !m_TargetCube.IsPopped)
             {
                 m_TargetCube.BurstAndDestroy();
@@ -1069,16 +1102,40 @@ namespace PixelGame
 
             UnreserveTarget();
             
-            // Küp kırıldıktan sonra en yakın alt boşluktan dışarı kaçış durumuna geç
+            // 3) Vuruş hareketini tamamlayana kadar kısa bir an duraklar
+            yield return new WaitForSeconds(m_PostPunchDelay);
+
+            // 4) Vuruş tamamlanınca tekrar koşma durumuna geçerek panodan dışarı kaçar
             StartEscapingState();
         }
 
         private void StartEscapingState()
         {
             m_State = State.Escaping;
+            m_HasJumpedOutside = false;
             m_RunTimer = 0f;
             m_CurrentWaypointIndex = 0;
             m_BasePosition = transform.position;
+
+            BoardLayout layout = CalculateBoardLayout(null);
+            m_IsExitingLeft = transform.position.x <= layout.frameCenter.x;
+
+            float frameLeftX = layout.frameCenter.x - layout.fullWidth * 0.5f;
+            float frameRightX = layout.frameCenter.x + layout.fullWidth * 0.5f;
+            float takeoffMargin = Mathf.Max(0.55f, layout.cellSize * 2.2f);
+            float takeoffX = m_IsExitingLeft ? (frameLeftX + takeoffMargin) : (frameRightX - takeoffMargin);
+
+            // Madenci zaten atlayış çizgisinde veya daha kenardaysa (boru dibindeyse),
+            // boruya doğru yürümeye devam etmek yerine HEMEN geriden zıplamayı başlat
+            bool isAlreadyAtEdge = m_IsExitingLeft
+                ? (transform.position.x <= takeoffX + 0.05f)
+                : (transform.position.x >= takeoffX - 0.05f);
+
+            if (isAlreadyAtEdge)
+            {
+                StartEscapeJump();
+                return;
+            }
 
             PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
             PixelCube[] allCubes = gen != null && gen.CubesContainer != null ? gen.CubesContainer.GetComponentsInChildren<PixelCube>() : null;
@@ -1088,28 +1145,55 @@ namespace PixelGame
             if (m_Animator != null)
             {
                 m_Animator.enabled = true;
-                m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.35f, 0.8f, 2.2f);
-                m_Animator.Play("MechaMiner_Run", 0, 0f);
+                m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.25f, 0.75f, 1.4f);
+                PlayAnimation(s_RunHashes, 0f);
             }
         }
 
         private void UpdateEscaping()
         {
-            if (m_Animator != null)
+            BoardLayout layout = CalculateBoardLayout(null);
+            float frameLeftX = layout.frameCenter.x - layout.fullWidth * 0.5f;
+            float frameRightX = layout.frameCenter.x + layout.fullWidth * 0.5f;
+            float takeoffMargin = Mathf.Max(0.55f, layout.cellSize * 2.2f);
+            float takeoffX = m_IsExitingLeft ? (frameLeftX + takeoffMargin) : (frameRightX - takeoffMargin);
+
+            // 1) Eğer çerçevenin dışına zaten zıpladıysa (m_HasJumpedOutside == true)
+            if (m_HasJumpedOutside)
             {
-                m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.35f, 0.8f, 2.2f);
-                AnimatorStateInfo info = m_Animator.GetCurrentAnimatorStateInfo(0);
-                if (info.normalizedTime >= 0.90f || !info.IsName("MechaMiner_Run"))
+                bool isPastOffscreen = m_IsExitingLeft
+                    ? (m_BasePosition.x < frameLeftX - 3.0f)
+                    : (m_BasePosition.x > frameRightX + 3.0f);
+
+                if (isPastOffscreen || m_PathWaypoints == null || m_CurrentWaypointIndex >= m_PathWaypoints.Count)
                 {
-                    m_Animator.Play("MechaMiner_Run", 0, 0f);
+                    m_State = State.Done;
+                    Release();
+                    return;
+                }
+            }
+            // 2) Eğer henüz çerçevenin içindeyse ve kenar atlama çizgisine ulaştıysa (daha geriden zıpla!)
+            else
+            {
+                bool reachedTakeoffX = m_IsExitingLeft
+                    ? (m_BasePosition.x <= takeoffX + 0.05f)
+                    : (m_BasePosition.x >= takeoffX - 0.05f);
+
+                if (reachedTakeoffX || m_PathWaypoints == null || m_CurrentWaypointIndex >= m_PathWaypoints.Count)
+                {
+                    StartEscapeJump();
+                    return;
                 }
             }
 
-            if (m_PathWaypoints == null || m_CurrentWaypointIndex >= m_PathWaypoints.Count)
+            if (m_Animator != null)
             {
-                m_State = State.Done;
-                Release();
-                return;
+                m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.25f, 0.75f, 1.4f);
+                AnimatorStateInfo info = m_Animator.GetCurrentAnimatorStateInfo(0);
+                if (!IsCurrentStateAny(m_Animator, s_RunHashes) || (!info.loop && info.normalizedTime >= 0.95f))
+                {
+                    PlayAnimation(s_RunHashes, 0f);
+                }
             }
 
             Vector3 targetWaypoint = m_PathWaypoints[m_CurrentWaypointIndex];
@@ -1121,8 +1205,15 @@ namespace PixelGame
                 m_CurrentWaypointIndex++;
                 if (m_CurrentWaypointIndex >= m_PathWaypoints.Count)
                 {
-                    m_State = State.Done;
-                    Release();
+                    if (m_HasJumpedOutside)
+                    {
+                        m_State = State.Done;
+                        Release();
+                    }
+                    else
+                    {
+                        StartEscapeJump();
+                    }
                     return;
                 }
                 targetWaypoint = m_PathWaypoints[m_CurrentWaypointIndex];
@@ -1134,6 +1225,20 @@ namespace PixelGame
             float step = m_RunSpeed * Time.deltaTime;
             m_BasePosition += normDir * Mathf.Min(step, distance);
 
+            // Henüz dışarı zıplamadıysa ve bu adımda atlama çizgisini geçtiyse hemen zıpla (borunun içine girmesin!)
+            if (!m_HasJumpedOutside)
+            {
+                bool crossedTakeoff = m_IsExitingLeft
+                    ? (m_BasePosition.x <= takeoffX)
+                    : (m_BasePosition.x >= takeoffX);
+
+                if (crossedTakeoff)
+                {
+                    StartEscapeJump();
+                    return;
+                }
+            }
+
             m_RunTimer += Time.deltaTime;
             float bounceOffset = Mathf.Abs(Mathf.Sin(m_RunTimer * m_BounceFrequency)) * m_BounceHeight;
 
@@ -1144,17 +1249,78 @@ namespace PixelGame
                 float targetYaw = Mathf.Atan2(dir.x, dir.y) * Mathf.Rad2Deg;
                 transform.rotation = Quaternion.Euler(0f, targetYaw, 0f);
             }
+        }
 
-            // Kamera görüş alanının altına geçti mi kontrol et
-            Camera cam = Camera.main;
-            if (cam != null)
+        /// <summary>
+        /// Madenci sol veya sağ çerçeve kenarına ulaştığında çerçevenin üstünden dışarı (sola veya sağa) zıplayarak karşıya iner.
+        /// Borunun içine girmeden daha geriden zıplar ve borunun üzerinden aşarak dış zemine konar.
+        /// </summary>
+        private void StartEscapeJump()
+        {
+            m_State = State.Jumping; // State.Jumping yaparak UpdateEscaping döngüsünü durduruyoruz
+            CleanupState();
+
+            if (m_Animator != null)
             {
-                Vector3 vp = cam.WorldToViewportPoint(transform.position);
-                if (vp.y < -0.05f || vp.x < -0.1f || vp.x > 1.1f)
-                {
-                    m_State = State.Done;
-                    Release();
-                }
+                m_Animator.enabled = true;
+                m_Animator.speed = 1f;
+                m_Animator.Rebind();
+                PlayAnimation(s_JumpHashes, 0f);
+            }
+
+            BoardLayout layout = CalculateBoardLayout(null);
+            Vector3 currentPos = transform.position;
+
+            float frameLeftX = layout.frameCenter.x - layout.fullWidth * 0.5f;
+            float frameRightX = layout.frameCenter.x + layout.fullWidth * 0.5f;
+
+            // Merkezin solundaysa sola, sağındaysa sağa atlayarak çerçeveden çıkar
+            bool isLeft = m_IsExitingLeft || (currentPos.x <= layout.frameCenter.x);
+            m_IsExitingLeft = isLeft;
+
+            // Dışarı iniş noktası: Borunun tamamen dışına, temiz zemine iner
+            float outsideLandingX = isLeft ? (frameLeftX - 0.85f) : (frameRightX + 0.85f);
+            float targetLandingY = Mathf.Clamp(currentPos.y, layout.bottomCorridorY, layout.topCorridorY);
+            Vector3 outsideLanding = new Vector3(outsideLandingX, targetLandingY, -0.30f);
+
+            // Zıplarken sola (-90) veya sağa (+90) yüzünü dön
+            float targetYaw = isLeft ? -90f : 90f;
+            transform.rotation = Quaternion.Euler(0f, targetYaw, 0f);
+
+            // Geriden atlayıp borunun üzerinden yüksek ve temiz bir yayla geçsin:
+            float jumpDuration = Mathf.Max(0.70f, m_JumpDuration);
+            float jumpPower = Mathf.Max(0.70f, m_JumpPower);
+
+            m_JumpSequence = DOTween.Sequence();
+            m_JumpSequence.Join(transform.DOJump(outsideLanding, jumpPower, 1, jumpDuration).SetEase(Ease.OutQuad));
+
+            m_JumpSequence.OnComplete(() =>
+            {
+                m_HasJumpedOutside = true;
+                // Dışarı karşıya indi! Şimdi koşarak ekranın soluna veya sağına doğru uzaklaşsın
+                StartRunAwayState(outsideLanding, isLeft);
+            });
+        }
+
+        private void StartRunAwayState(Vector3 startRunPos, bool isLeft)
+        {
+            m_State = State.Escaping;
+            m_HasJumpedOutside = true;
+            m_IsExitingLeft = isLeft;
+            m_RunTimer = 0f;
+            m_CurrentWaypointIndex = 0;
+            m_BasePosition = startRunPos;
+
+            // Dışarıda sola veya sağa doğru ekran dışına koşma hedefi
+            float offscreenX = isLeft ? (startRunPos.x - 4.5f) : (startRunPos.x + 4.5f);
+            Vector3 offscreenTarget = new Vector3(offscreenX, startRunPos.y, -0.30f);
+            m_PathWaypoints = new List<Vector3> { offscreenTarget };
+
+            if (m_Animator != null)
+            {
+                m_Animator.enabled = true;
+                m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.25f, 0.75f, 1.4f);
+                PlayAnimation(s_RunHashes, 0f);
             }
         }
 

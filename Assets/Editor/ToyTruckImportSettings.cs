@@ -147,63 +147,11 @@ namespace PixelGame.Editor
         [MenuItem("Tools/Toy Truck/Create Mecha Miner Prefab")]
         private static void CreateMinerPrefab()
         {
-            CreatePrefab(k_MinerModelPath, k_MinerPrefabPath, "MechaMiner",
-                         withTailgate: false, withMover: false, withAnimator: true);
-        }
-
-        /// <summary>
-        /// FBX'in içindeki koşu klibini oynatan tek durumlu bir Animator controller döndürür,
-        /// yoksa oluşturur.
-        /// </summary>
-        private static RuntimeAnimatorController GetOrCreateMinerController()
-        {
-            const string controllerPath = "Assets/Prefabs/MechaMiner.controller";
-            var existing = AssetDatabase.LoadAssetAtPath<UnityEditor.Animations.AnimatorController>(controllerPath);
-            if (existing != null)
-            {
-                return existing;
-            }
-
-            AnimationClip runClip = null;
-            AnimationClip jumpClip = null;
-            AnimationClip firstClip = null;
-            foreach (Object asset in AssetDatabase.LoadAllAssetsAtPath(k_MinerModelPath))
-            {
-                if (!(asset is AnimationClip candidate) || candidate.name.StartsWith("__preview__"))
-                {
-                    continue;
-                }
-                if (firstClip == null) firstClip = candidate;
-                if (candidate.name.IndexOf("Jump", System.StringComparison.OrdinalIgnoreCase) >= 0) jumpClip = candidate;
-                else if (candidate.name.IndexOf("Run", System.StringComparison.OrdinalIgnoreCase) >= 0) runClip = candidate;
-            }
-
-            AnimationClip defaultClip = runClip ?? firstClip;
-            if (defaultClip == null)
-            {
-                Debug.LogWarning("[ToyAssets] " + k_MinerModelPath + " içinde animasyon klibi bulunamadı.");
-                return null;
-            }
-
-            Directory.CreateDirectory(Path.GetDirectoryName(controllerPath));
-            UnityEditor.Animations.AnimatorController created =
-                UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPathWithClip(controllerPath, defaultClip);
-
-            // Zıplama klibi de controller'a bir durum olarak eklensin; geçişini oyun kodu kursun
-            if (jumpClip != null && created.layers.Length > 0)
-            {
-                UnityEditor.Animations.AnimatorState jumpState =
-                    created.layers[0].stateMachine.AddState(jumpClip.name);
-                jumpState.motion = jumpClip;
-                EditorUtility.SetDirty(created);
-                AssetDatabase.SaveAssets();
-            }
-
-            return created;
+            MechaMinerSetup.Setup();
         }
 
         private static void CreatePrefab(string modelPath, string prefabPath, string objectName,
-                                         bool withTailgate, bool withMover, bool withAnimator = false)
+                                         bool withTailgate, bool withMover)
         {
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
             if (model == null)
@@ -219,16 +167,6 @@ namespace PixelGame.Editor
                 if (instance.GetComponent<TruckPaint>() == null) instance.AddComponent<TruckPaint>();
                 if (withTailgate && instance.GetComponent<TruckTailgate>() == null) instance.AddComponent<TruckTailgate>();
                 if (withMover && instance.GetComponent<MineCartMover>() == null) instance.AddComponent<MineCartMover>();
-
-                if (withAnimator)
-                {
-                    RuntimeAnimatorController controller = GetOrCreateMinerController();
-                    var animator = instance.GetComponent<Animator>();
-                    if (animator == null) animator = instance.AddComponent<Animator>();
-                    animator.runtimeAnimatorController = controller;
-                    animator.applyRootMotion = false;
-                    animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
-                }
 
                 Directory.CreateDirectory(Path.GetDirectoryName(prefabPath));
                 GameObject prefab = PrefabUtility.SaveAsPrefabAsset(instance, prefabPath);

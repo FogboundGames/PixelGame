@@ -133,10 +133,10 @@ namespace PixelGame
         [SerializeField] private float m_MinerScaleFactor = 1.15f;
 
         [Tooltip("Madencilerin vagondan sırayla atlama gecikmesi (saniye).")]
-        [SerializeField] private float m_MinerSpawnDelay = 0.18f;
+        [SerializeField] private float m_MinerSpawnDelay = 0.45f;
 
         [Tooltip("Madencilerin küplere koşu hızı (yavaşlatılmış ve dengelenmiş).")]
-        [SerializeField] private float m_MinerRunSpeed = 0.95f;
+        [SerializeField] private float m_MinerRunSpeed = 0.85f;
 
         public GameObject MinerPrefab
         {
