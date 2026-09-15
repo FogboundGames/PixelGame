@@ -1027,8 +1027,16 @@ namespace PixelGame
             TruckPaint paint = truck.GetComponent<TruckPaint>();
             if (paint != null)
             {
-                paint.SetBodyColor(order.Color);
-                paint.Apply();
+                PixelLevelData lvl = GetLevel();
+                if (lvl != null && lvl.ColorTheme != null)
+                {
+                    paint.ApplyTheme(lvl.ColorTheme, order.Color);
+                }
+                else
+                {
+                    paint.SetBodyColor(order.Color);
+                    paint.Apply();
+                }
             }
 
             cargo.EnsureBadge();

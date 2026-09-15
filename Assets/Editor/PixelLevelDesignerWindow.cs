@@ -20,6 +20,16 @@ namespace PixelGame.Editor
         private Vector2 m_DetailScroll;
         private string m_SearchFilter = "";
 
+        private enum DetailTab
+        {
+            LevelSetup = 0,
+            ColorStudio = 1,
+            TruckLayout = 2
+        }
+
+        private DetailTab m_CurrentTab = DetailTab.ColorStudio;
+        private Color m_PreviewBlockColor = new Color32(230, 40, 40, 255);
+
         [MenuItem("Tools/PixelGame/🛠️ Level Designer (Bölüm Tasarımcısı)", priority = 5)]
         [MenuItem("Window/PixelGame/Level Designer")]
         public static void OpenWindow()
@@ -282,95 +292,119 @@ namespace PixelGame.Editor
 
             EditorGUILayout.Space(6);
 
+            // Sekme Seçimi (Tabs)
+            EditorGUILayout.BeginHorizontal();
+            GUIStyle tabStyle = new GUIStyle(EditorStyles.toolbarButton)
+            {
+                fontSize = 12,
+                fontStyle = FontStyle.Bold,
+                fixedHeight = 30
+            };
+
+            DrawTabButton(DetailTab.LevelSetup, "📋 Bölüm & Izgara", tabStyle);
+            DrawTabButton(DetailTab.ColorStudio, "🎨 Renk Ayarları (Color Studio)", tabStyle);
+            DrawTabButton(DetailTab.TruckLayout, "🚚 Vagon & Ray Düzeni", tabStyle);
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(8);
+
             EditorGUI.BeginChangeCheck();
 
-            // 1. Temel Bilgiler
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("📋 Genel Bilgiler", EditorStyles.boldLabel);
-            m_SelectedLevel.LevelName = EditorGUILayout.TextField("Level Adı", m_SelectedLevel.LevelName);
-            m_SelectedLevel.LevelIndex = EditorGUILayout.IntField("Level Numarası", m_SelectedLevel.LevelIndex);
-            EditorGUILayout.EndVertical();
-
-            EditorGUILayout.Space(6);
-
-            // 2. Görsel Seçici & Canlı Önizleme
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("🖼️ Kaynak Piksel Görseli", EditorStyles.boldLabel);
-
-            Texture2D newTex = (Texture2D)EditorGUILayout.ObjectField("Görsel (Texture2D)", m_SelectedLevel.LevelTexture, typeof(Texture2D), false);
-            if (newTex != m_SelectedLevel.LevelTexture)
+            if (m_CurrentTab == DetailTab.LevelSetup)
             {
-                m_SelectedLevel.LevelTexture = newTex;
-                if (newTex != null)
+                // 1. Temel Bilgiler
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                EditorGUILayout.LabelField("📋 Genel Bilgiler", EditorStyles.boldLabel);
+                m_SelectedLevel.LevelName = EditorGUILayout.TextField("Level Adı", m_SelectedLevel.LevelName);
+                m_SelectedLevel.LevelIndex = EditorGUILayout.IntField("Level Numarası", m_SelectedLevel.LevelIndex);
+                EditorGUILayout.EndVertical();
+
+                EditorGUILayout.Space(6);
+
+                // 2. Görsel Seçici & Canlı Önizleme
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                EditorGUILayout.LabelField("🖼️ Kaynak Piksel Görseli", EditorStyles.boldLabel);
+
+                Texture2D newTex = (Texture2D)EditorGUILayout.ObjectField("Görsel (Texture2D)", m_SelectedLevel.LevelTexture, typeof(Texture2D), false);
+                if (newTex != m_SelectedLevel.LevelTexture)
                 {
-                    m_SelectedLevel.ExtractPaletteFromTexture();
-                }
-            }
-
-            Texture2D activeTex = m_SelectedLevel.GetActiveTexture();
-            if (activeTex != null)
-            {
-                EditorGUILayout.Space(4);
-                EditorGUILayout.BeginHorizontal();
-
-                // Önizleme kutusu
-                Rect previewRect = EditorGUILayout.GetControlRect(false, 96, GUILayout.Width(96));
-                EditorGUI.DrawRect(previewRect, new Color(0.12f, 0.12f, 0.12f, 1f));
-                GUI.DrawTexture(previewRect, activeTex, ScaleMode.ScaleToFit);
-
-                EditorGUILayout.BeginVertical();
-                EditorGUILayout.LabelField($"Boyut: {activeTex.width} x {activeTex.height} Piksel", EditorStyles.boldLabel);
-                EditorGUILayout.LabelField($"Toplam Küp: {activeTex.width * activeTex.height} adet");
-
-                string path = AssetDatabase.GetAssetPath(activeTex);
-                TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
-                if (importer != null && !importer.isReadable)
-                {
-                    EditorGUILayout.HelpBox("⚠️ Görsel 'Read/Write' iznine sahip değil.", MessageType.Warning);
-                    if (GUILayout.Button("🔧 Görseli Okunabilir Yap", GUILayout.Height(22)))
+                    m_SelectedLevel.LevelTexture = newTex;
+                    if (newTex != null)
                     {
-                        importer.isReadable = true;
-                        importer.SaveAndReimport();
                         m_SelectedLevel.ExtractPaletteFromTexture();
                     }
                 }
+
+                Texture2D activeTex = m_SelectedLevel.GetActiveTexture();
+                if (activeTex != null)
+                {
+                    EditorGUILayout.Space(4);
+                    EditorGUILayout.BeginHorizontal();
+
+                    // Önizleme kutusu
+                    Rect previewRect = EditorGUILayout.GetControlRect(false, 96, GUILayout.Width(96));
+                    EditorGUI.DrawRect(previewRect, new Color(0.12f, 0.12f, 0.12f, 1f));
+                    GUI.DrawTexture(previewRect, activeTex, ScaleMode.ScaleToFit);
+
+                    EditorGUILayout.BeginVertical();
+                    EditorGUILayout.LabelField($"Boyut: {activeTex.width} x {activeTex.height} Piksel", EditorStyles.boldLabel);
+                    EditorGUILayout.LabelField($"Toplam Küp: {activeTex.width * activeTex.height} adet");
+
+                    string path = AssetDatabase.GetAssetPath(activeTex);
+                    TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+                    if (importer != null && !importer.isReadable)
+                    {
+                        EditorGUILayout.HelpBox("⚠️ Görsel 'Read/Write' iznine sahip değil.", MessageType.Warning);
+                        if (GUILayout.Button("🔧 Görseli Okunabilir Yap", GUILayout.Height(22)))
+                        {
+                            importer.isReadable = true;
+                            importer.SaveAndReimport();
+                            m_SelectedLevel.ExtractPaletteFromTexture();
+                        }
+                    }
+                    else
+                    {
+                        EditorGUILayout.LabelField("✅ Görsel piksel okumaya hazır.", EditorStyles.miniLabel);
+                    }
+                    EditorGUILayout.EndVertical();
+                    EditorGUILayout.EndHorizontal();
+                }
                 else
                 {
-                    EditorGUILayout.LabelField("✅ Görsel piksel okumaya hazır.", EditorStyles.miniLabel);
+                    EditorGUILayout.HelpBox("Lütfen bu levelde küplerle çizilecek bir piksel resmi sürükleyip bırakın.", MessageType.Info);
                 }
                 EditorGUILayout.EndVertical();
-                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.Space(6);
+
+                // 3. 📐 PİKSEL UYUMU & IZGARA AYARLARI
+                DrawGridSettingsSection();
             }
-            else
+            else if (m_CurrentTab == DetailTab.ColorStudio)
             {
-                EditorGUILayout.HelpBox("Lütfen bu levelde küplerle çizilecek bir piksel resmi sürükleyip bırakın.", MessageType.Info);
+                // 1. 🎨 VAGON, MADENCİ & RAY ÖZEL RENK AYARLARI ("Vagon Ne Renkse O" Dinamik Ayarı Dahil)
+                DrawThemeColorSection();
+
+                EditorGUILayout.Space(6);
+
+                // 2. 🎨 BÖLÜM RENK PALETİ VE RENK DEĞİŞTİRME
+                DrawColorPaletteSection();
+
+                EditorGUILayout.Space(6);
+
+                // 3. ☀️ GENEL RENK & IŞIK AYARLARI (Parlaklık, Doygunluk, Kontrast)
+                DrawGlobalColorSettingsSection();
+
+                EditorGUILayout.Space(6);
+
+                // 4. 🎨 TOONY COLORS PRO
+                DrawToonyColorsProSection();
             }
-            EditorGUILayout.EndVertical();
-
-            EditorGUILayout.Space(6);
-
-            // 3. 🎨 RENK PALETİ VE RENK DEĞİŞTİRME
-            DrawColorPaletteSection();
-
-            EditorGUILayout.Space(6);
-
-            // 4. 🎨 TOONY COLORS PRO (KULLANICI TALEBİ: TOON AYARLARI VE TOOL ENTEGRASYONU)
-            DrawToonyColorsProSection();
-
-            EditorGUILayout.Space(6);
-
-            // 5. ☀️ GENEL RENK & IŞIK AYARLARI
-            DrawGlobalColorSettingsSection();
-
-            EditorGUILayout.Space(6);
-
-            // 6. 📐 PİKSEL UYUMU & IZGARA AYARLARI
-            DrawGridSettingsSection();
-
-            EditorGUILayout.Space(6);
-
-            // 7. 🚚 VAGON DÜZENİ (slot sayısı, havuz sıraları, kapasite)
-            DrawTruckLayoutSection();
+            else if (m_CurrentTab == DetailTab.TruckLayout)
+            {
+                // 🚚 VAGON DÜZENİ (slot sayısı, havuz sıraları, kapasite)
+                DrawTruckLayoutSection();
+            }
 
             // Değişiklik algılandıysa kaydet ve canlı güncelle
             if (EditorGUI.EndChangeCheck())
@@ -387,6 +421,205 @@ namespace PixelGame.Editor
             EditorGUILayout.Space(16);
             EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
+        }
+
+        private void DrawTabButton(DetailTab tab, string label, GUIStyle style)
+        {
+            bool isSelected = m_CurrentTab == tab;
+            GUI.backgroundColor = isSelected ? new Color(0.25f, 0.75f, 1f) : new Color(0.85f, 0.85f, 0.9f);
+            if (GUILayout.Button(label, style))
+            {
+                m_CurrentTab = tab;
+            }
+            GUI.backgroundColor = Color.white;
+        }
+
+        /// <summary>
+        /// Vagon, Madenci, Ray parçalarının renklerini ve dinamik 'Vagon Rengini Kullan' ayarlarını yöneten özel sekme.
+        /// </summary>
+        private void DrawThemeColorSection()
+        {
+            if (m_SelectedLevel == null) return;
+            LevelColorTheme theme = m_SelectedLevel.ColorTheme;
+            if (theme == null) return;
+
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            // Üst Başlık & Hızlı Butonlar
+            EditorGUILayout.BeginHorizontal();
+            GUIStyle headerStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                fontSize = 13,
+                normal = { textColor = new Color(0.2f, 0.8f, 1f) }
+            };
+            EditorGUILayout.LabelField("🎨 Vagon, Madenci & Ray Parça Renkleri", headerStyle);
+
+            GUI.backgroundColor = new Color(0.3f, 0.88f, 0.45f);
+            if (GUILayout.Button("⚡ Tümünü Vagon Rengine Bağla", GUILayout.Width(195), GUILayout.Height(22)))
+            {
+                foreach (var p in theme.Parts)
+                {
+                    p.matchBlockColor = true;
+                }
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+            }
+
+            GUI.backgroundColor = new Color(0.85f, 0.9f, 0.98f);
+            if (GUILayout.Button("🎯 Klasik Şablon", GUILayout.Width(110), GUILayout.Height(22)))
+            {
+                theme.ResetToDefault();
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+            }
+            GUI.backgroundColor = Color.white;
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(2);
+            EditorGUILayout.HelpBox(
+                "Her bir parça için sabit bir özel renk belirleyebilir veya '✓ Vagon Rengini Kullan' " +
+                "butonuna basarak parçanın o an gelen vagonun/hedef bloğun rengine otomatik bürünmesini sağlayabilirsiniz.",
+                MessageType.Info
+            );
+            EditorGUILayout.Space(6);
+
+            // 🧪 Canlı Test / Önizleme Bloğu Çubuğu
+            DrawTestBlockColorBar();
+
+            EditorGUILayout.Space(8);
+
+            // 1. 🚚 VAGON PARÇALARI
+            DrawPartGroupHeader("🚚 Vagon (MineCart / ToyTruck) Parçaları");
+            DrawPartColorRow(theme, TruckPart.Cabin, "Kabin (Kabin + Kaput)", "🚛");
+            DrawPartColorRow(theme, TruckPart.Cargo, "Kasa (Cargo + Arka Kapak)", "📦");
+            DrawPartColorRow(theme, TruckPart.Rims, "Jantlar (Rims)", "⚙️");
+            DrawPartColorRow(theme, TruckPart.Tires, "Tekerlekler (Tires)", "🛞");
+            DrawPartColorRow(theme, TruckPart.Glass, "Camlar (Glass)", "🪟");
+            DrawPartColorRow(theme, TruckPart.Headlights, "Ön Farlar (Headlights)", "💡");
+            DrawPartColorRow(theme, TruckPart.Taillights, "Arka Stoplar (Taillights)", "🔴");
+            DrawPartColorRow(theme, TruckPart.Chassis, "Şasi / Alt Gövde", "🔧");
+
+            EditorGUILayout.Space(8);
+
+            // 2. ⛏️ MADENCİ KARAKTERİ
+            DrawPartGroupHeader("⛏️ Madenci (MechaMiner) Parçaları");
+            DrawPartColorRow(theme, TruckPart.MechaBody, "Karakter Gövdesi (Zırh)", "🤖");
+            DrawPartColorRow(theme, TruckPart.Helmet, "Baret (Kubbe & Siperlik)", "⛑️");
+            DrawPartColorRow(theme, TruckPart.HelmetDark, "Baret Detayı / Koyu Ton", "🕶️");
+            DrawPartColorRow(theme, TruckPart.Lamp, "Baret Fener Lambası", "🔦");
+
+            EditorGUILayout.Space(8);
+
+            // 3. 🛤️ RAY VE MADEN GİRİŞİ
+            DrawPartGroupHeader("🛤️ Ray & Maden Girişi (Portal) Parçaları");
+            DrawPartColorRow(theme, TruckPart.Stone, "Portal Taşları", "🪨");
+            DrawPartColorRow(theme, TruckPart.StoneDark, "Taşların Koyu Tonu", "⬛");
+            DrawPartColorRow(theme, TruckPart.Wood, "Ahşap Traversler & Direkler", "🪵");
+            DrawPartColorRow(theme, TruckPart.Dark, "Maden Girişi İç Karanlığı", "🕳️");
+
+            EditorGUILayout.EndVertical();
+        }
+
+        private void DrawTestBlockColorBar()
+        {
+            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+            GUILayout.Label("🧪 Canlı Test Rengi (Önizleme):", EditorStyles.boldLabel, GUILayout.Width(190));
+
+            Color[] quickColors = new Color[]
+            {
+                new Color32(230, 40, 40, 255),  // Kırmızı
+                new Color32(40, 110, 235, 255), // Mavi
+                new Color32(255, 196, 30, 255), // Sarı
+                new Color32(60, 190, 80, 255),  // Yeşil
+                new Color32(150, 70, 220, 255), // Mor
+                new Color32(255, 128, 30, 255), // Turuncu
+            };
+
+            foreach (Color qc in quickColors)
+            {
+                GUI.backgroundColor = qc;
+                if (GUILayout.Button("", GUILayout.Width(22), GUILayout.Height(18)))
+                {
+                    m_PreviewBlockColor = qc;
+                    NotifyLiveSceneUpdate();
+                }
+            }
+            GUI.backgroundColor = Color.white;
+
+            GUILayout.Space(6);
+            Color newTest = EditorGUILayout.ColorField(GUIContent.none, m_PreviewBlockColor, false, false, false, GUILayout.Width(70));
+            if (newTest != m_PreviewBlockColor)
+            {
+                m_PreviewBlockColor = newTest;
+                NotifyLiveSceneUpdate();
+            }
+
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private void DrawPartGroupHeader(string title)
+        {
+            Rect r = EditorGUILayout.GetControlRect(false, 22);
+            EditorGUI.DrawRect(r, new Color(0.18f, 0.22f, 0.28f, 1f));
+            GUIStyle st = new GUIStyle(EditorStyles.boldLabel)
+            {
+                normal = { textColor = new Color(0.4f, 0.85f, 1f) },
+                alignment = TextAnchor.MiddleLeft
+            };
+            GUI.Label(new Rect(r.x + 8, r.y + 2, r.width - 16, r.height), title, st);
+        }
+
+        private void DrawPartColorRow(LevelColorTheme theme, TruckPart part, string displayName, string icon)
+        {
+            TruckPartColorSetting setting = theme.GetSetting(part);
+            Color resolvedColor = theme.ResolveColor(part, m_PreviewBlockColor);
+
+            EditorGUILayout.BeginHorizontal();
+
+            // İkon ve İsim
+            GUILayout.Label($"{icon} {displayName}", GUILayout.Width(210));
+
+            // "Vagon / Blok Rengini Kullan" Butonu / Toggle
+            GUI.backgroundColor = setting.matchBlockColor ? new Color(0.25f, 0.85f, 0.45f) : new Color(0.85f, 0.85f, 0.88f);
+            string btnText = setting.matchBlockColor ? "✓ Vagon Rengini Kullan" : "  Vagon Rengini Kullan";
+            if (GUILayout.Button(btnText, GUILayout.Width(170), GUILayout.Height(20)))
+            {
+                setting.matchBlockColor = !setting.matchBlockColor;
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+            }
+            GUI.backgroundColor = Color.white;
+
+            GUILayout.Space(8);
+
+            // Renk Seçici veya Dinamik Çözümleme Rozeti
+            if (setting.matchBlockColor)
+            {
+                Rect badgeRect = EditorGUILayout.GetControlRect(false, 18, GUILayout.Width(90));
+                EditorGUI.DrawRect(badgeRect, resolvedColor);
+                GUIStyle badgeText = new GUIStyle(EditorStyles.miniBoldLabel)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = (resolvedColor.grayscale > 0.5f) ? Color.black : Color.white }
+                };
+                GUI.Label(badgeRect, "⚡ Vagon Rengi", badgeText);
+                GUILayout.Label("(Dinamik: blok rengini alır)", EditorStyles.miniLabel);
+            }
+            else
+            {
+                Color newCol = EditorGUILayout.ColorField(GUIContent.none, setting.customColor, false, false, false, GUILayout.Width(90));
+                if (newCol != setting.customColor)
+                {
+                    setting.customColor = newCol;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+                GUILayout.Label("(Sabit özel renk)", EditorStyles.miniLabel);
+            }
+
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
         }
 
         /// <summary>
@@ -817,8 +1050,19 @@ namespace PixelGame.Editor
                 gen.CubeDepth = m_SelectedLevel.CubeDepth;
                 gen.InnerPadding = m_SelectedLevel.InnerPadding;
                 gen.UpdateExistingCubesLive();
-                SceneView.RepaintAll();
             }
+
+            // Sahnedeki vagon, madenci veya ray parçalarını canlı güncelle
+            TruckPaint[] paints = Object.FindObjectsByType<TruckPaint>(FindObjectsSortMode.None);
+            foreach (var paint in paints)
+            {
+                if (paint != null && m_SelectedLevel != null && m_SelectedLevel.ColorTheme != null)
+                {
+                    paint.ApplyTheme(m_SelectedLevel.ColorTheme, m_PreviewBlockColor);
+                }
+            }
+
+            SceneView.RepaintAll();
         }
 
         private void RefreshLevelList()

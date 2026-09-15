@@ -18,6 +18,22 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 		_RampSmoothing ("Smoothing", Range(0.001,1)) = 0.5
 		[TCP2Separator]
 		
+		[TCP2HeaderHelp(Specular)]
+		[TCP2ColorNoAlpha] _SpecularColor ("Specular Color", Color) = (0,0,0,1)
+		_SpecularRoughnessPBR ("Roughness", Range(0,1)) = 0.5
+		[TCP2Separator]
+		
+		[TCP2HeaderHelp(Rim Lighting)]
+		[TCP2ColorNoAlpha] _RimColor ("Rim Color", Color) = (0,0,0,0.5)
+		_RimMin ("Rim Min", Range(0,2)) = 0.5
+		_RimMax ("Rim Max", Range(0,2)) = 1
+		[TCP2Separator]
+		
+		[TCP2HeaderHelp(MatCap)]
+		[NoScaleOffset] [NoScaleOffset] _MatCapTex ("MatCap (RGB)", 2D) = "gray" {}
+		[TCP2ColorNoAlpha] _MatCapColor ("MatCap Color", Color) = (0,0,0,1)
+		[TCP2Separator]
+		
 		[ToggleOff(_RECEIVE_SHADOWS_OFF)] _ReceiveShadowsOff ("Receive Shadows", Float) = 1
 
 		// Avoid compile error if the properties are ending with a drawer
@@ -61,18 +77,47 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 
 		// Shader Properties
 		TCP2_TEX2D_WITH_SAMPLER(_BaseMap);
+		TCP2_TEX2D_WITH_SAMPLER(_MatCapTex);
 
 		CBUFFER_START(UnityPerMaterial)
 			
 			// Shader Properties
 			float4 _BaseMap_ST;
 			fixed4 _BaseColor;
+			fixed4 _MatCapColor;
 			float _RampThreshold;
 			float _RampSmoothing;
+			float _RimMin;
+			float _RimMax;
+			fixed4 _RimColor;
+			float _SpecularRoughnessPBR;
+			fixed4 _SpecularColor;
 			fixed4 _SColor;
 			fixed4 _HColor;
 		CBUFFER_END
 
+		//Specular help functions (from UnityStandardBRDF.cginc)
+		inline float3 SpecSafeNormalize(float3 inVec)
+		{
+			half dp3 = max(0.001f, dot(inVec, inVec));
+			return inVec * rsqrt(dp3);
+		}
+		
+			//GGX
+			#define TCP2_PI			3.14159265359
+			#define TCP2_INV_PI		0.31830988618f
+			#if defined(SHADER_API_MOBILE)
+				#define TCP2_EPSILON 1e-4f
+			#else
+				#define TCP2_EPSILON 1e-7f
+			#endif
+			inline half GGX(half NdotH, half roughness)
+			{
+				half a2 = roughness * roughness;
+				half d = (NdotH * a2 - NdotH) * NdotH + 1.0f;
+				return TCP2_INV_PI * a2 / (d * d + TCP2_EPSILON);
+			}
+		
 		// Built-in renderer (CG) to SRP (HLSL) bindings
 		#define UnityObjectToClipPos TransformObjectToHClip
 		#define _WorldSpaceLightPos0 _MainLightPosition
@@ -140,7 +185,7 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 			#ifdef _ADDITIONAL_LIGHTS_VERTEX
 				half3 vertexLights : TEXCOORD2;
 			#endif
-				float2 pack0 : TEXCOORD3; /* pack0.xy = texcoord0 */
+				float4 pack0 : TEXCOORD3; /* pack0.xy = texcoord0  pack0.zw = matcap */
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 				UNITY_VERTEX_OUTPUT_STEREO
 			};
@@ -165,6 +210,7 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 				// Texture Coordinates
 				output.pack0.xy.xy = input.texcoord0.xy * _BaseMap_ST.xy + _BaseMap_ST.zw;
 
+				float3 worldPos = mul(UNITY_MATRIX_M, input.vertex).xyz;
 				VertexPositionInputs vertexInput = GetVertexPositionInputs(input.vertex.xyz);
 			#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
 				output.shadowCoord = GetShadowCoord(vertexInput);
@@ -185,6 +231,11 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 				// clip position
 				output.positionCS = vertexInput.positionCS;
 
+				//MatCap
+				float3 worldNorm = normalize(UNITY_MATRIX_I_M[0].xyz * input.normal.x + UNITY_MATRIX_I_M[1].xyz * input.normal.y + UNITY_MATRIX_I_M[2].xyz * input.normal.z);
+				worldNorm = mul((float3x3)UNITY_MATRIX_V, worldNorm);
+				output.pack0.zw = worldNorm.xy * 0.5 + 0.5;
+
 				return output;
 			}
 
@@ -196,16 +247,27 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 
 				float3 positionWS = input.worldPosAndFog.xyz;
 				float3 normalWS = normalize(input.normal);
+				half3 viewDirWS = GetWorldSpaceNormalizeViewDir(positionWS);
 
 				// Shader Properties Sampling
 				float4 __albedo = ( TCP2_TEX2D_SAMPLE(_BaseMap, _BaseMap, input.pack0.xy).rgba );
 				float4 __mainColor = ( _BaseColor.rgba );
 				float __alpha = ( __albedo.a * __mainColor.a );
 				float __ambientIntensity = ( 1.0 );
+				float3 __matcapColor = ( _MatCapColor.rgb );
 				float __rampThreshold = ( _RampThreshold );
 				float __rampSmoothing = ( _RampSmoothing );
+				float __rimMin = ( _RimMin );
+				float __rimMax = ( _RimMax );
+				float3 __rimColor = ( _RimColor.rgb );
+				float __rimStrength = ( 1.0 );
+				float __specularRoughnessPbr = ( _SpecularRoughnessPBR );
+				float3 __specularColor = ( _SpecularColor.rgb );
 				float3 __shadowColor = ( _SColor.rgb );
 				float3 __highlightColor = ( _HColor.rgb );
+
+				half ndv = abs(dot(viewDirWS, normalWS));
+				half ndvRaw = ndv;
 
 				// main texture
 				half3 albedo = __albedo.rgb;
@@ -251,6 +313,11 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 				half3 indirectDiffuse = bakedGI;
 				indirectDiffuse *= occlusion * albedo * __ambientIntensity;
 
+				//MatCap
+				half2 capCoord = input.pack0.zw;
+				half3 matcap = ( TCP2_TEX2D_SAMPLE(_MatCapTex, _MatCapTex, capCoord).rgb ) * __matcapColor;
+				emission += matcap;
+
 				half3 lightDir = mainLight.direction;
 				half3 lightColor = mainLight.color.rgb;
 
@@ -268,8 +335,37 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 				ramp *= atten;
 
 				half3 color = half3(0,0,0);
+				// Rim Lighting
+				half rim = 1 - ndvRaw;
+				rim = ( rim );
+				half rimMin = __rimMin;
+				half rimMax = __rimMax;
+				rim = smoothstep(rimMin, rimMax, rim);
+				half3 rimColor = __rimColor;
+				half rimStrength = __rimStrength;
+				emission.rgb += rim * rimColor * rimStrength;
 				half3 accumulatedRamp = ramp * max(lightColor.r, max(lightColor.g, lightColor.b));
 				half3 accumulatedColors = ramp * lightColor.rgb;
+
+				half3 halfDir = SpecSafeNormalize(float3(lightDir) + float3(viewDirWS));
+				
+				//Specular: GGX
+				half roughness = __specularRoughnessPbr*__specularRoughnessPbr;
+				half nh = saturate(dot(normalWS, halfDir));
+				half spec = GGX(nh, saturate(roughness));
+				spec *= TCP2_PI * 0.05;
+				#ifdef UNITY_COLORSPACE_GAMMA
+					spec = max(0, sqrt(max(1e-4h, spec)));
+					half surfaceReduction = 1.0 - 0.28 * roughness * __specularRoughnessPbr;
+				#else
+					half surfaceReduction = 1.0 / (roughness*roughness + 1.0);
+				#endif
+				spec = max(0, spec * ndl);
+				spec *= surfaceReduction;
+				spec *= atten;
+				
+				//Apply specular
+				emission.rgb += spec * lightColor.rgb * __specularColor;
 
 				// Additional lights loop
 			#ifdef _ADDITIONAL_LIGHTS
@@ -314,6 +410,25 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 							accumulatedRamp += ramp * max(lightColor.r, max(lightColor.g, lightColor.b));
 							accumulatedColors += ramp * lightColor.rgb;
 
+							half3 halfDir = SpecSafeNormalize(float3(lightDir) + float3(viewDirWS));
+							
+							//Specular: GGX
+							half roughness = __specularRoughnessPbr*__specularRoughnessPbr;
+							half nh = saturate(dot(normalWS, halfDir));
+							half spec = GGX(nh, saturate(roughness));
+							spec *= TCP2_PI * 0.05;
+							#ifdef UNITY_COLORSPACE_GAMMA
+								spec = max(0, sqrt(max(1e-4h, spec)));
+								half surfaceReduction = 1.0 - 0.28 * roughness * __specularRoughnessPbr;
+							#else
+								half surfaceReduction = 1.0 / (roughness*roughness + 1.0);
+							#endif
+							spec = max(0, spec * ndl);
+							spec *= surfaceReduction;
+							spec *= atten;
+							
+							//Apply specular
+							emission.rgb += spec * lightColor.rgb * __specularColor;
 						}
 					}
 
@@ -357,6 +472,25 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 					accumulatedRamp += ramp * max(lightColor.r, max(lightColor.g, lightColor.b));
 					accumulatedColors += ramp * lightColor.rgb;
 
+					half3 halfDir = SpecSafeNormalize(float3(lightDir) + float3(viewDirWS));
+					
+					//Specular: GGX
+					half roughness = __specularRoughnessPbr*__specularRoughnessPbr;
+					half nh = saturate(dot(normalWS, halfDir));
+					half spec = GGX(nh, saturate(roughness));
+					spec *= TCP2_PI * 0.05;
+					#ifdef UNITY_COLORSPACE_GAMMA
+						spec = max(0, sqrt(max(1e-4h, spec)));
+						half surfaceReduction = 1.0 - 0.28 * roughness * __specularRoughnessPbr;
+					#else
+						half surfaceReduction = 1.0 / (roughness*roughness + 1.0);
+					#endif
+					spec = max(0, spec * ndl);
+					spec *= surfaceReduction;
+					spec *= atten;
+					
+					//Apply specular
+					emission.rgb += spec * lightColor.rgb * __specularColor;
 				}
 				LIGHT_LOOP_END
 			#endif
@@ -403,10 +537,12 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 			struct Varyings
 			{
 				float4 positionCS     : SV_POSITION;
+				float3 normal         : NORMAL;
 			#if defined(DEPTH_NORMALS_PASS)
 				float3 normalWS : TEXCOORD0;
 			#endif
-				float2 pack0 : TEXCOORD1; /* pack0.xy = texcoord0 */
+				float3 pack0 : TEXCOORD1; /* pack0.xyz = positionWS */
+				float4 pack1 : TEXCOORD2; /* pack1.xy = texcoord0  pack1.zw = matcap */
 			#if defined(DEPTH_ONLY_PASS)
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 				UNITY_VERTEX_OUTPUT_STEREO
@@ -442,8 +578,15 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 					UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 				#endif
 
+				float3 worldNormalUv = mul(UNITY_MATRIX_M, float4(input.normal, 1.0)).xyz;
+
 				// Texture Coordinates
-				output.pack0.xy.xy = input.texcoord0.xy * _BaseMap_ST.xy + _BaseMap_ST.zw;
+				output.pack1.xy.xy = input.texcoord0.xy * _BaseMap_ST.xy + _BaseMap_ST.zw;
+
+				float3 worldPos = mul(UNITY_MATRIX_M, input.vertex).xyz;
+				VertexPositionInputs vertexInput = GetVertexPositionInputs(input.vertex.xyz);
+				output.normal = normalize(worldNormalUv);
+				output.pack0.xyz = vertexInput.positionWS;
 
 				#if defined(DEPTH_ONLY_PASS)
 					output.positionCS = TransformObjectToHClip(input.vertex.xyz);
@@ -475,10 +618,17 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 					UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 				#endif
 
+				float3 positionWS = input.pack0.xyz;
+				float3 normalWS = normalize(input.normal);
+
 				// Shader Properties Sampling
-				float4 __albedo = ( TCP2_TEX2D_SAMPLE(_BaseMap, _BaseMap, input.pack0.xy).rgba );
+				float4 __albedo = ( TCP2_TEX2D_SAMPLE(_BaseMap, _BaseMap, input.pack1.xy).rgba );
 				float4 __mainColor = ( _BaseColor.rgba );
 				float __alpha = ( __albedo.a * __mainColor.a );
+
+				half3 viewDirWS = GetWorldSpaceNormalizeViewDir(positionWS);
+				half ndv = abs(dot(viewDirWS, normalWS));
+				half ndvRaw = ndv;
 
 				half3 albedo = half3(1,1,1);
 				half alpha = __alpha;
@@ -662,5 +812,5 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 	CustomEditor "ToonyColorsPro.ShaderGenerator.MaterialInspector_SG2"
 }
 
-/* TCP_DATA u config(ver:"2.9.21";unity:"6000.3.6f1";tmplt:"SG2_Template_URP";features:list["UNITY_5_4","UNITY_5_5","UNITY_5_6","UNITY_2017_1","UNITY_2018_1","UNITY_2018_2","UNITY_2018_3","UNITY_2019_1","UNITY_2019_2","UNITY_2019_3","UNITY_2019_4","UNITY_2020_1","UNITY_2021_1","UNITY_2021_2","UNITY_2022_2","UNITY_6000_2","UNITY_6000_1","UNITY_6000_0","ENABLE_DEPTH_NORMALS_PASS","ENABLE_FORWARD_PLUS","TEMPLATE_LWRP"];flags:list[];flags_extra:dict[];keywords:dict[RENDER_TYPE="Opaque",RampTextureDrawer="[TCP2Gradient]",RampTextureLabel="Ramp Texture",SHADER_TARGET="3.0"];shaderProperties:list[];customTextures:list[];codeInjection:codeInjection(injectedFiles:list[];mark:False);matLayers:list[]) */
-/* TCP_HASH 0cbdda23469f53f94fc4db547a5d0f39 */
+/* TCP_DATA u config(ver:"2.9.21";unity:"6000.3.6f1";tmplt:"SG2_Template_URP";features:list["UNITY_5_4","UNITY_5_5","UNITY_5_6","UNITY_2017_1","UNITY_2018_1","UNITY_2018_2","UNITY_2018_3","UNITY_2019_1","UNITY_2019_2","UNITY_2019_3","UNITY_2019_4","UNITY_2020_1","UNITY_2021_1","UNITY_2021_2","UNITY_2022_2","UNITY_6000_2","UNITY_6000_1","UNITY_6000_0","ENABLE_DEPTH_NORMALS_PASS","ENABLE_FORWARD_PLUS","SPEC_PBR_GGX","SPECULAR","RIM","MATCAP_ADD","MATCAP","TEMPLATE_LWRP"];flags:list[];flags_extra:dict[];keywords:dict[RENDER_TYPE="Opaque",RampTextureDrawer="[TCP2Gradient]",RampTextureLabel="Ramp Texture",SHADER_TARGET="3.0",RIM_LABEL="Rim Lighting"];shaderProperties:list[,,,,,,,,sp(name:"Specular Color";imps:list[imp_mp_color(def:RGBA(0, 0, 0, 1);hdr:False;cc:3;chan:"RGB";prop:"_SpecularColor";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"26bb281c-d06a-4fcc-a5bc-f83b4625113b";op:Multiply;lbl:"Specular Color";gpu_inst:False;dots_inst:False;locked:False;impl_index:0)];layers:list[];unlocked:list[];layer_blend:dict[];custom_blend:dict[];clones:dict[];isClone:False),,sp(name:"Rim Color";imps:list[imp_mp_color(def:RGBA(0, 0, 0, 0.5);hdr:False;cc:3;chan:"RGB";prop:"_RimColor";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"02bd8f43-7413-456f-9622-5a088607f07e";op:Multiply;lbl:"Rim Color";gpu_inst:False;dots_inst:False;locked:False;impl_index:0)];layers:list[];unlocked:list[];layer_blend:dict[];custom_blend:dict[];clones:dict[];isClone:False),,,,,sp(name:"MatCap Color";imps:list[imp_mp_color(def:RGBA(0, 0, 0, 1);hdr:False;cc:3;chan:"RGB";prop:"_MatCapColor";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"cbd70552-8c09-4761-b210-357f6f4a729d";op:Multiply;lbl:"MatCap Color";gpu_inst:False;dots_inst:False;locked:False;impl_index:0)];layers:list[];unlocked:list[];layer_blend:dict[];custom_blend:dict[];clones:dict[];isClone:False)];customTextures:list[];codeInjection:codeInjection(injectedFiles:list[];mark:False);matLayers:list[]) */
+/* TCP_HASH 8b2323e1b014dbd9d7a3d23c1db4a003 */

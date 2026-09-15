@@ -1934,9 +1934,18 @@ namespace PixelGame
 
             if (paint != null)
             {
-                paint.SetBodyColor(color);
-                paint.SetMinerColors(color, color);
-                paint.Apply();
+                PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
+                PixelLevelData level = gen != null ? gen.ActiveLevelData : null;
+                if (level != null && level.ColorTheme != null)
+                {
+                    paint.ApplyTheme(level.ColorTheme, color);
+                }
+                else
+                {
+                    paint.SetBodyColor(color);
+                    paint.SetMinerColors(color, color);
+                    paint.Apply();
+                }
                 return;
             }
 

@@ -208,6 +208,28 @@ namespace PixelGame
             m_Dirty = true;
         }
 
+        /// <summary>
+        /// Seviyenin renk temasını o anki vagon/blok rengiyle harmanlayarak uygular.
+        /// Dinamik parçalar (matchBlockColor == true) blockColor'ı alır, diğer parçalar özel rengini korur.
+        /// </summary>
+        public void ApplyTheme(LevelColorTheme theme, Color blockColor)
+        {
+            if (theme == null)
+            {
+                SetBodyColor(blockColor);
+                Apply();
+                return;
+            }
+
+            Array allParts = Enum.GetValues(typeof(TruckPart));
+            foreach (TruckPart part in allParts)
+            {
+                Color resolved = theme.ResolveColor(part, blockColor);
+                SetColor(part, resolved);
+            }
+            Apply();
+        }
+
         /// <summary>Renkleri hemen uygular (normalde kare sonunda otomatik uygulanır).</summary>
         public void Apply()
         {

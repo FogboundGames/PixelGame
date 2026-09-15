@@ -33,6 +33,124 @@ namespace PixelGame
         }
     }
 
+    [Serializable]
+    public class TruckPartColorSetting
+    {
+        public TruckPart part;
+        [Tooltip("İşaretliyse bu parça sabit renk yerine o anki vagonun/hedef bloğun rengini alır.")]
+        public bool matchBlockColor = false;
+        public Color customColor = Color.white;
+
+        public TruckPartColorSetting() { }
+
+        public TruckPartColorSetting(TruckPart part, bool matchBlockColor, Color customColor)
+        {
+            this.part = part;
+            this.matchBlockColor = matchBlockColor;
+            this.customColor = customColor;
+        }
+    }
+
+    [Serializable]
+    public class LevelColorTheme
+    {
+        [SerializeField] private List<TruckPartColorSetting> m_Parts = new List<TruckPartColorSetting>();
+
+        public List<TruckPartColorSetting> Parts => m_Parts;
+
+        public LevelColorTheme()
+        {
+            ResetToDefault();
+        }
+
+        public void ResetToDefault()
+        {
+            m_Parts = new List<TruckPartColorSetting>();
+            AddPart(TruckPart.Cabin, true, new Color32(230, 40, 40, 255));
+            AddPart(TruckPart.Cargo, true, new Color32(230, 40, 40, 255));
+            AddPart(TruckPart.Tires, false, new Color32(50, 50, 55, 255));
+            AddPart(TruckPart.Rims, false, new Color32(195, 197, 202, 255));
+            AddPart(TruckPart.Glass, false, new Color32(90, 110, 130, 255));
+            AddPart(TruckPart.Headlights, false, new Color32(252, 250, 238, 255));
+            AddPart(TruckPart.Taillights, false, new Color32(135, 24, 30, 255));
+            AddPart(TruckPart.Chassis, false, new Color32(60, 60, 66, 255));
+            AddPart(TruckPart.Stone, false, new Color32(128, 132, 140, 255));
+            AddPart(TruckPart.StoneDark, false, new Color32(96, 99, 108, 255));
+            AddPart(TruckPart.Wood, false, new Color32(120, 78, 48, 255));
+            AddPart(TruckPart.Dark, false, new Color32(18, 16, 22, 255));
+            AddPart(TruckPart.MechaBody, true, new Color32(88, 96, 108, 255));
+            AddPart(TruckPart.Helmet, true, new Color32(252, 190, 28, 255));
+            AddPart(TruckPart.HelmetDark, false, new Color32(44, 44, 52, 255));
+            AddPart(TruckPart.Lamp, false, new Color32(255, 246, 200, 255));
+        }
+
+        private void AddPart(TruckPart part, bool matchBlock, Color color)
+        {
+            m_Parts.Add(new TruckPartColorSetting(part, matchBlock, color));
+        }
+
+        public TruckPartColorSetting GetSetting(TruckPart part)
+        {
+            EnsureAllPartsPresent();
+            for (int i = 0; i < m_Parts.Count; i++)
+            {
+                if (m_Parts[i].part == part) return m_Parts[i];
+            }
+            var s = new TruckPartColorSetting(part, false, GetDefaultPartColor(part));
+            m_Parts.Add(s);
+            return s;
+        }
+
+        public Color ResolveColor(TruckPart part, Color blockColor)
+        {
+            var setting = GetSetting(part);
+            return setting.matchBlockColor ? blockColor : setting.customColor;
+        }
+
+        public void EnsureAllPartsPresent()
+        {
+            if (m_Parts == null) m_Parts = new List<TruckPartColorSetting>();
+            Array allValues = Enum.GetValues(typeof(TruckPart));
+            foreach (TruckPart p in allValues)
+            {
+                bool exists = false;
+                for (int i = 0; i < m_Parts.Count; i++)
+                {
+                    if (m_Parts[i].part == p) { exists = true; break; }
+                }
+                if (!exists)
+                {
+                    bool match = (p == TruckPart.Cabin || p == TruckPart.Cargo || p == TruckPart.MechaBody || p == TruckPart.Helmet);
+                    m_Parts.Add(new TruckPartColorSetting(p, match, GetDefaultPartColor(p)));
+                }
+            }
+        }
+
+        public static Color GetDefaultPartColor(TruckPart part)
+        {
+            switch (part)
+            {
+                case TruckPart.Tires: return new Color32(50, 50, 55, 255);
+                case TruckPart.Rims: return new Color32(195, 197, 202, 255);
+                case TruckPart.Glass: return new Color32(90, 110, 130, 255);
+                case TruckPart.Headlights: return new Color32(252, 250, 238, 255);
+                case TruckPart.Taillights: return new Color32(135, 24, 30, 255);
+                case TruckPart.Chassis: return new Color32(60, 60, 66, 255);
+                case TruckPart.Cabin: return new Color32(230, 40, 40, 255);
+                case TruckPart.Cargo: return new Color32(230, 40, 40, 255);
+                case TruckPart.Stone: return new Color32(128, 132, 140, 255);
+                case TruckPart.StoneDark: return new Color32(96, 99, 108, 255);
+                case TruckPart.Wood: return new Color32(120, 78, 48, 255);
+                case TruckPart.Dark: return new Color32(18, 16, 22, 255);
+                case TruckPart.MechaBody: return new Color32(88, 96, 108, 255);
+                case TruckPart.Helmet: return new Color32(252, 190, 28, 255);
+                case TruckPart.HelmetDark: return new Color32(44, 44, 52, 255);
+                case TruckPart.Lamp: return new Color32(255, 246, 200, 255);
+                default: return Color.white;
+            }
+        }
+    }
+
     /// <summary>
     /// Tek bir piksel sanatı bölümünü (Level) temsil eden ScriptableObject veri varlığı.
     /// Renk paletini çıkarma, renk değiştirme (recolor), ton kaydırma (hue shift) ve filtreleme yeteneklerine sahiptir.
@@ -98,6 +216,10 @@ namespace PixelGame
         [Range(0.05f, 2f)]
         [SerializeField] private float m_CubeDepth = 0.4f;
 
+        [Tooltip("Panonun X eksenindeki 3D eğim açısı (derece). Küplerin alt/ön et kalınlığının kameraya görünmesini sağlar.")]
+        [Range(-45f, 45f)]
+        [SerializeField] private float m_BoardTiltAngle = 18f;
+
         [Tooltip("Mavi çerçevenin iç kenar payı")]
         [Range(0f, 0.3f)]
         [SerializeField] private float m_InnerPadding = 0.08f;
@@ -133,12 +255,25 @@ namespace PixelGame
         [Tooltip("Bu bölüme özel kontur gölgesi dokusu (Boş bırakılırsa görselden otomatik üretilir)")]
         [SerializeField] private Texture2D m_FigureShadowTexture;
 
+        [Header("🎨 Vagon, Madenci & Çevre Renk Teması")]
+        [SerializeField] private LevelColorTheme m_ColorTheme = new LevelColorTheme();
+
         // Public Properties
         public string LevelName { get => m_LevelName; set => m_LevelName = value; }
         public int LevelIndex { get => m_LevelIndex; set => m_LevelIndex = value; }
         public Texture2D LevelTexture { get => m_LevelTexture; set => m_LevelTexture = value; }
         public Sprite LevelSprite { get => m_LevelSprite; set => m_LevelSprite = value; }
         public Texture2D FigureShadowTexture { get => m_FigureShadowTexture; set => m_FigureShadowTexture = value; }
+        public LevelColorTheme ColorTheme
+        {
+            get
+            {
+                if (m_ColorTheme == null) m_ColorTheme = new LevelColorTheme();
+                m_ColorTheme.EnsureAllPartsPresent();
+                return m_ColorTheme;
+            }
+            set => m_ColorTheme = value;
+        }
         public bool UseNativeResolution { get => m_UseNativeResolution; set => m_UseNativeResolution = value; }
         public Vector2Int CustomResolution { get => m_CustomResolution; set => m_CustomResolution = value; }
         public List<PaletteColorOverride> ColorPalette => m_ColorPalette;
@@ -150,6 +285,7 @@ namespace PixelGame
         public float EmissionIntensity { get => m_EmissionIntensity; set => m_EmissionIntensity = value; }
         public float CubeSpacing { get => m_CubeSpacing; set => m_CubeSpacing = value; }
         public float CubeDepth { get => m_CubeDepth; set => m_CubeDepth = value; }
+        public float BoardTiltAngle { get => m_BoardTiltAngle; set => m_BoardTiltAngle = value; }
         public float InnerPadding { get => m_InnerPadding; set => m_InnerPadding = value; }
         public bool SkipTransparent { get => m_SkipTransparent; set => m_SkipTransparent = value; }
 

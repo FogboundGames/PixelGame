@@ -6,7 +6,15 @@
     "CustomOutputPath": "/JMO Assets/Toony Colors Pro/Shaders Generated/",
     "LastImplementationExportImportPath": "/home/emre/Belgeler/GitHub/PixelGame/Assets",
     "OpenedFoldouts": [
-        "SURFACE"
+        "SURFACE",
+        "STYLIZATION",
+        "TERRAIN",
+        "SPECIAL EFFECTS",
+        "TRANSPARENCY/BLENDING",
+        "SHADER STATES",
+        "OPTIONS",
+        "THIRD PARTY PLUGINS",
+        "LIGHTING"
     ],
     "UseCustomFont": true,
     "CustomFont": {
