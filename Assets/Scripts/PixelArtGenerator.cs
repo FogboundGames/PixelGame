@@ -188,15 +188,9 @@ namespace PixelGame
         {
             if (this == null || Application.isPlaying) return;
 
-            Texture2D activeTex = GetActiveTexture();
-            GetEffectiveGridSize(activeTex, out int cols, out int rows);
-            int expectedCount = cols * rows;
-
-            if (m_CubesContainer == null || m_CubesContainer.childCount < expectedCount * 0.8f)
-            {
-                GeneratePixelArt();
-            }
-            else
+            // Sahnede zaten küpler mevcutsa editör açılışında veya domain reload sırasında
+            // bunları boş yere silip sıfırdan oluşturma! Sadece canlı önizleme ve gölgeleri güncelle.
+            if (m_CubesContainer != null && m_CubesContainer.childCount > 0)
             {
                 UpdateExistingCubesLive();
                 if (m_EnableCubeShadows)
@@ -215,7 +209,11 @@ namespace PixelGame
                 {
                     EnsureFigureContourShadowDisabled();
                 }
+                return;
             }
+
+            // Sahnede hiç küp yoksa sıfırdan oluştur
+            GeneratePixelArt();
         }
         #endif
 
@@ -461,9 +459,18 @@ namespace PixelGame
                     ScheduleGenerateRetry();
                     return;
                 }
-
+                #if UNITY_EDITOR
+                else
+                {
+                    // Editör açılışında GameView veya Canvas henüz hazır değilse biraz sonra tekrar denesin
+                    EditorApplication.delayCall -= EnsureScenePreviewInEditor;
+                    EditorApplication.delayCall += EnsureScenePreviewInEditor;
+                    return;
+                }
+                #else
                 Debug.LogError("[PixelArtGenerator] Hedef çerçevenin dünya koordinatları hesaplanamadı!");
                 return;
+                #endif
             }
 
             // 2. Izgara boyutlarını belirle (1:1 piksel koruması)
@@ -1411,10 +1418,12 @@ namespace PixelGame
             if (m_TargetFrameRect == null || cam == null)
                 return false;
 
-            // Canvas düzeni henüz hesaplanmamış olabilir: Overlay Canvas'ın ölçeğini
-            // CanvasScaler çalışma anında belirler ve ilk karede sıfır olur.
-            // O anda köşeler üst üste biner; hizalama yapılırsa küpler ekranın
-            // sol alt köşesine minik bir yığın halinde düşer. Bu yüzden başarısız dönüyoruz.
+            if (cam.pixelWidth < 50 || cam.pixelHeight < 50)
+                return false;
+
+            // Canvas düzenini güncel duruma zorla
+            Canvas.ForceUpdateCanvases();
+
             Rect frame = m_TargetFrameRect.rect;
             Vector3 frameScale = m_TargetFrameRect.lossyScale;
 
@@ -1433,6 +1442,18 @@ namespace PixelGame
 
             if (canvas != null && canvas.renderMode == RenderMode.ScreenSpaceOverlay)
             {
+                float frameScreenWidth = Mathf.Abs(corners[2].x - corners[0].x);
+                float frameScreenHeight = Mathf.Abs(corners[2].y - corners[0].y);
+                float frameScreenCenterY = (corners[0].y + corners[2].y) * 0.5f;
+
+                // Editör açılışında canvas henüz ölçeklenmemişse veya köşeler (0,0) civarına yığılmışsa reddet
+                if (frameScreenWidth < cam.pixelWidth * 0.2f || 
+                    frameScreenHeight < cam.pixelHeight * 0.1f || 
+                    frameScreenCenterY < cam.pixelHeight * 0.25f)
+                {
+                    return false;
+                }
+
                 for (int i = 0; i < 4; i++)
                 {
                     corners[i] = cam.ScreenToWorldPoint(new Vector3(corners[i].x, corners[i].y, camDist));
@@ -1453,6 +1474,12 @@ namespace PixelGame
             worldCenter = (bottomLeft + topRight) * 0.5f;
             worldWidth = Mathf.Abs(topRight.x - bottomLeft.x);
             worldHeight = Mathf.Abs(topRight.y - bottomLeft.y);
+
+            // Mantıklı bir çerçeve boyutu kontrolü (en az 0.5 dünya birimi olmalı)
+            if (worldWidth < 0.5f || worldHeight < 0.5f)
+            {
+                return false;
+            }
 
             float padX = worldWidth * m_InnerPadding;
             float padY = worldHeight * m_InnerPadding;

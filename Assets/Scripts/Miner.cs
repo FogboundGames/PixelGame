@@ -57,6 +57,19 @@ namespace PixelGame
         [Tooltip("Küp patladıktan sonra vuruşu tamamlayıp kaçmaya başlama öncesi bekleme süresi (saniye)")]
         [SerializeField] private float m_PostPunchDelay = 0.35f;
 
+        [Tooltip("Animasyon klipleri oyun süresinden uzun olduğunda hızlandırılır ki hareket " +
+                 "ortasından kesilmeyip baştan sona görünsün. Bu, izin verilen en yüksek " +
+                 "hızlandırma çarpanıdır. 1 = hiç hızlandırma yapma.")]
+        [Range(1f, 6f)]
+        [SerializeField] private float m_MaxClipSpeedUp = 3.5f;
+
+        [Tooltip("Koşu klibinde ayağın, model ölçeği 1 iken zemini süpürme hızı (birim/sn). " +
+                 "Klipten ölçülür: adım uzunluğu / adım süresi. Miner_Run için 0.703 / 0.317 = 2.22. " +
+                 "Animasyon oynatma hızı buna göre ölçeklenir, böylece ayaklar zeminde kaymaz. " +
+                 "Koşu klibini değiştirirsen bu değeri de yeni klibe göre güncelle.")]
+        [Min(0.01f)]
+        [SerializeField] private float m_RunStrideSpeed = 2.22f;
+
         private State m_State = State.Idle;
         private PixelCube m_TargetCube;
         private Color m_MinerColor = Color.white;
@@ -94,6 +107,8 @@ namespace PixelGame
         private static readonly int s_IsRunningHash = Animator.StringToHash("IsRunning");
         private static readonly int s_JumpTriggerHash = Animator.StringToHash("Jump");
         private static readonly int s_AttackTriggerHash = Animator.StringToHash("Attack");
+        private static readonly int s_RunSpeedMulHash = Animator.StringToHash("RunSpeedMul");
+        private static readonly int s_ClipSpeedHash = Animator.StringToHash("ClipSpeed");
 
         private Animator m_Animator;
         private MeshRenderer m_Renderer;
@@ -106,14 +121,175 @@ namespace PixelGame
         private List<Vector3> m_PathWaypoints;
         private int m_CurrentWaypointIndex;
         private float m_RunTimer;
+
+        /// <summary>
+        /// Zıplama ritminin kişisel hız çarpanı.
+        /// Madenciler senkron zıplamasın diye kullanılır. Eskiden bunun için zamanlayıcı
+        /// rastgele bir değerden başlatılıyordu; o zaman koşuya geçilen ilk karede
+        /// zıplama ofseti sıfırdan değil rastgele bir noktadan başlıyor ve madenci
+        /// derinlik ekseninde anlık sıçrıyordu. Hızı çeşitlemek aynı dağınıklığı
+        /// sıçrama olmadan sağlar.
+        /// </summary>
+        private float m_BounceSpeedMultiplier = 1f;
+
+        /// <summary>
+        /// Yol noktasına "varıldı" sayılacak mesafe. Izgara hücre boyutundan türetilir.
+        /// Sabit bir değer (0.15) kullanılırsa hücre boyutundan büyük kalıp madencinin
+        /// hedefe varmadan yön değiştirmesine, keskin köşelerde geri sıçramasına yol açar.
+        /// </summary>
+        private float m_ReachDistance = -1f;
+
+        /// <summary>Izgara hücre boyutuna göre hesaplanan varış mesafesi (bir kez hesaplanır).</summary>
+        private float ReachDistance
+        {
+            get
+            {
+                if (m_ReachDistance <= 0f)
+                {
+                    BoardLayout layout = CalculateBoardLayout(null);
+                    m_ReachDistance = Mathf.Max(0.02f, layout.cellSize * 0.6f);
+                }
+
+                return m_ReachDistance;
+            }
+        }
+
+        /// <summary>
+        /// Bir yol noktasına "varıldı" sayılacak mesafe.
+        ///
+        /// Izgara hücresine bağlı sabit bir değer yeterli değil: yol noktaları köşelerde
+        /// birbirine hücre boyutundan çok daha yakın düşebiliyor (ölçümde 0.099 birim
+        /// aralıklı noktalar görüldü, eşik ise 0.15'ti). Eşik aralıktan büyük olduğunda
+        /// aynı karede birden fazla nokta atlanıyor, madenci köşeyi kesip yön sıçratıyor.
+        ///
+        /// Bu yüzden eşik, madencinin o karede kat ettiği mesafeye bağlanır: bir adımdan
+        /// biraz fazlasına yaklaşınca varılmış sayılır. Böylece hiçbir nokta atlanmaz ve
+        /// hız ne olursa olsun titreme oluşmaz.
+        /// </summary>
+        private float GetReachDistance(float step)
+        {
+            return Mathf.Max(0.02f, Mathf.Min(step * 1.5f, ReachDistance));
+        }
+
+        private static readonly Dictionary<string, float> s_ClipLengths = new Dictionary<string, float>();
+
+        /// <summary>
+        /// Adı verilen animasyon klibinin süresini döndürür (ilk okumada önbelleğe alınır).
+        /// </summary>
+        private static float GetClipLength(Animator animator, string clipNamePart)
+        {
+            if (animator == null || animator.runtimeAnimatorController == null) return 0f;
+
+            string key = animator.runtimeAnimatorController.name + "/" + clipNamePart;
+            if (s_ClipLengths.TryGetValue(key, out float cached)) return cached;
+
+            float found = 0f;
+            AnimationClip[] clips = animator.runtimeAnimatorController.animationClips;
+            for (int i = 0; i < clips.Length; i++)
+            {
+                if (clips[i] != null &&
+                    clips[i].name.IndexOf(clipNamePart, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    found = clips[i].length;
+                    break;
+                }
+            }
+
+            s_ClipLengths[key] = found;
+            return found;
+        }
+
+        /// <summary>
+        /// Bir animasyon klibini verilen oyun süresine sığdıracak animatör hızı.
+        ///
+        /// Klipler oyun pencerelerinden çok daha uzun: ölçümde zıplama klibi 2.17 sn
+        /// ama zıplama yayı 0.70 sn, vurma klibi 3.83 sn ama vuruş penceresi 0.90 sn
+        /// sürüyordu. Bu yüzden her hareket ortasından kesiliyor, madenci zıplama
+        /// pozunda yerde kayıyor ve yumruk hiç tamamlanmıyordu. Hız klip uzunluğuna
+        /// göre ölçeklenince hareket baştan sona görünür.
+        /// </summary>
+        private float GetClipFitSpeed(string clipNamePart, float targetDuration)
+        {
+            float length = GetClipLength(m_Animator, clipNamePart);
+            if (length <= 0.01f || targetDuration <= 0.01f) return 1f;
+
+            return Mathf.Clamp(length / targetDuration, 0.5f, Mathf.Max(1f, m_MaxClipSpeedUp));
+        }
+
+        /// <summary>
+        /// Koşma klibinin oynatma çarpanı (RunSpeedMul parametresine yazılır).
+        ///
+        /// Eskiden sabit bir katsayıydı (m_RunSpeed * 1.25) ve ölçekle hiç ilgisi yoktu.
+        /// Ölçümde madenciler dünya ölçeği 0.175'te koşuyordu; klibin adımı bu ölçekte
+        /// saniyede 0.39 birim süpürürken yer hızı 0.85 birimdi. Yani madenciler
+        /// bacaklarının taşıdığından 2.2 kat hızlı gidiyor, ayakları buz üstünde
+        /// kayıyormuş gibi görünüyordu.
+        ///
+        /// Artık oynatma hızı yer hızından türetiliyor: hızı veya madenci ölçeğini
+        /// değiştirsen de ayaklar kaymaz.
+        /// </summary>
+        private float RunAnimationSpeed
+        {
+            get
+            {
+                float footSpeed = m_RunStrideSpeed * m_RunWorldScale;
+                if (footSpeed <= 0.0001f) return 1f;
+
+                return Mathf.Clamp(EffectiveRunSpeed / footSpeed, 0.5f, 3.0f);
+            }
+        }
+
+        /// <summary>
+        /// Koşu animasyon hızının hesabında kullanılan dünya ölçeği.
+        /// Koşuya girişte BİR KEZ yakalanır, her karede okunmaz: madenci vagondan
+        /// zıplarken DOScale ile küçülüyor, havuza dönerken de ölçeği düşüyor
+        /// (ölçümde 0.00096'ya kadar). Ölçeği her karede okumak, bu anlarda
+        /// animasyon hızını üst sınıra çarptırıp yeni bir sıçrama yaratıyordu.
+        /// </summary>
+        private void CaptureRunScale()
+        {
+            float scale = Mathf.Abs(transform.lossyScale.x);
+            if (scale > 0.0001f) m_RunWorldScale = scale;
+        }
+
+        /// <summary>
+        /// Bir float animatör parametresini yazar (parametre yoksa sessizce atlar).
+        ///
+        /// Klip hızları neden Animator.speed ile değil parametreyle sürülüyor:
+        /// Animator.speed TÜM katmanı çarpar. Yumruk/zıplama için onu 3-4 katına
+        /// çıkarmak, o anda sönmekte olan koşu klibini de aynı oranda hızlandırıyor
+        /// ve geçiş sırasında 2-4 karelik gözle görülür bir "fırıldak" sıçraması
+        /// yaratıyordu. Durum bazlı hız parametresi bu karışmayı tamamen kaldırır.
+        /// </summary>
+        private void SetAnimatorFloatParameter(int paramHash, float value)
+        {
+            if (m_Animator == null || !m_Animator.isActiveAndEnabled) return;
+
+            foreach (AnimatorControllerParameter p in m_Animator.parameters)
+            {
+                if (p.nameHash == paramHash && p.type == AnimatorControllerParameterType.Float)
+                {
+                    m_Animator.SetFloat(paramHash, value);
+                    return;
+                }
+            }
+        }
         private Coroutine m_StateCoroutine;
         private bool m_HasJumpedOutside;
         private bool m_IsExitingLeft;
         private float m_IndividualSpeedMultiplier = 1.0f;
         private bool m_HasMinedOneCube = false;
+        private float m_RunWorldScale = 1f;
 
         public State CurrentState => m_State;
         public PixelCube TargetCube => m_TargetCube;
+
+        /// <summary>
+        /// Madencinin gerçek yer hızı. Animatör hızı da aynı kişisel çarpanla
+        /// ölçeklendiği için, bu çarpanı yalnızca animasyona uygulamak ayakların
+        /// zeminde kaymasına (ve hareketin tekliyormuş gibi görünmesine) yol açıyordu.
+        /// </summary>
+        private float EffectiveRunSpeed => m_RunSpeed * m_IndividualSpeedMultiplier;
 
         private void TriggerAnimatorParameter(int triggerHash, int[] fallbackHashes, float transitionDuration = 0.12f, float normalizedTimeOffset = -1f)
         {
@@ -299,6 +475,8 @@ namespace PixelGame
                 if (pooled != null && pooled.gameObject != null)
                 {
                     pooled.m_IndividualSpeedMultiplier = UnityEngine.Random.Range(0.93f, 1.07f);
+                    // Bölüm değişmiş olabilir: varış mesafesi yeni ızgaraya göre yeniden hesaplansın
+                    pooled.m_ReachDistance = -1f;
                     return pooled;
                 }
             }
@@ -396,6 +574,65 @@ namespace PixelGame
 
         #region 🎯 Küp Rezervasyonu & Arama
 
+        #region 🧭 Navigasyon Önbelleği
+
+        private static PixelCube[] s_CubeCache;
+        private static int s_CubeCacheFrame = -1;
+
+        private static Dictionary<(int, int), PixelCube> s_GridMapCache;
+        private static int s_GridMapCacheFrame = -1;
+
+        /// <summary>
+        /// Sahnedeki küpleri kare başına yalnızca bir kez toplar; tüm madenciler paylaşır.
+        ///
+        /// Önceden her madenci her karede kendi başına sahneyi tarayıp küpleri topluyordu.
+        /// 20 madenci ve 576 küplü bir tabloda bu, kare başına 20 sahne taraması ve
+        /// 20 dizi tahsisi demekti; hareketin takılmasının ana sebebi buydu.
+        /// </summary>
+        public static PixelCube[] GetCubesCached()
+        {
+            if (s_CubeCacheFrame == Time.frameCount && s_CubeCache != null)
+            {
+                return s_CubeCache;
+            }
+
+            PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
+
+            s_CubeCache = gen != null && gen.CubesContainer != null
+                ? gen.CubesContainer.GetComponentsInChildren<PixelCube>()
+                : null;
+
+            s_CubeCacheFrame = Time.frameCount;
+            return s_CubeCache;
+        }
+
+        /// <summary>
+        /// Izgara haritasını kare başına bir kez kurar; tüm madenciler paylaşır.
+        /// Küpler kırıldıkça harita değişir, bu yüzden önbellek kare bazlıdır.
+        /// </summary>
+        public static Dictionary<(int, int), PixelCube> GetGridMapCached()
+        {
+            if (s_GridMapCacheFrame == Time.frameCount && s_GridMapCache != null)
+            {
+                return s_GridMapCache;
+            }
+
+            s_GridMapCache = BuildCubeGridMap(GetCubesCached());
+            s_GridMapCacheFrame = Time.frameCount;
+            return s_GridMapCache;
+        }
+
+        /// <summary>Bölüm değiştiğinde önbelleği geçersiz kılar.</summary>
+        public static void InvalidateNavigationCache()
+        {
+            s_CubeCache = null;
+            s_CubeCacheFrame = -1;
+            s_GridMapCache = null;
+            s_GridMapCacheFrame = -1;
+        }
+
+        #endregion
+
         public static Dictionary<(int, int), PixelCube> BuildCubeGridMap(PixelCube[] allCubes)
         {
             var map = new Dictionary<(int, int), PixelCube>();
@@ -434,13 +671,10 @@ namespace PixelGame
 
         public static bool HasAccessibleMatchingCube(Color cargoColor, float threshold)
         {
-            PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
-            if (gen == null || gen.CubesContainer == null) return false;
-
-            PixelCube[] allCubes = gen.CubesContainer.GetComponentsInChildren<PixelCube>();
+            PixelCube[] allCubes = GetCubesCached();
             if (allCubes == null || allCubes.Length == 0) return false;
 
-            var gridMap = BuildCubeGridMap(allCubes);
+            var gridMap = GetGridMapCached();
 
             for (int i = 0; i < allCubes.Length; i++)
             {
@@ -461,10 +695,7 @@ namespace PixelGame
         /// </summary>
         public static bool HasMatchingUnpoppedCube(Color cargoColor, float threshold)
         {
-            PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
-            if (gen == null || gen.CubesContainer == null) return false;
-
-            PixelCube[] allCubes = gen.CubesContainer.GetComponentsInChildren<PixelCube>();
+            PixelCube[] allCubes = GetCubesCached();
             if (allCubes == null || allCubes.Length == 0) return false;
 
             for (int i = 0; i < allCubes.Length; i++)
@@ -528,6 +759,9 @@ namespace PixelGame
 
         public static void InvalidateLayoutCache()
         {
+            // Bölüm değişiminde küp listesi ve ızgara haritası da geçersizdir
+            InvalidateNavigationCache();
+
             s_LayoutCached = false;
         }
 
@@ -573,11 +807,18 @@ namespace PixelGame
                 float frameRightX = layout.frameCenter.x + layout.fullWidth * 0.5f;
                 float frameTopY = layout.frameCenter.y + layout.fullHeight * 0.5f;
 
-                layout.bottomCorridorY = (layout.frameBottomY + layout.lowestCubeBottom) * 0.5f;
-                layout.topCorridorY = (frameTopY + layout.highestCubeTop) * 0.5f;
-                float takeoffMargin = Mathf.Max(0.55f, layout.cellSize * 2.2f);
-                layout.leftCorridorX = frameLeftX + takeoffMargin;
-                layout.rightCorridorX = frameRightX - takeoffMargin;
+                // Koridor noktaları ızgaranın doğal devamı olmalıdır: gx=-1 hücresi
+                // gx=0'ın tam bir hücre solunda, gx=cols ise son sütunun bir hücre sağında.
+                //
+                // Önceden koridor çerçeve kenarından içeri doğru (frameLeftX + margin)
+                // hesaplanıyordu. Küpler çerçeveyi tamamen doldurduğu için sol koridor
+                // en sol küp sütununun SAĞINA düşüyordu; yol bulma "gx=-1" adımını sola
+                // sanıyor ama dünyada sağa gidiyordu. Kenar bölgelerinde madencilerin
+                // ileri geri savrulmasının sebebi buydu.
+                layout.leftCorridorX = layout.gridOrigin.x - layout.cellSize;
+                layout.rightCorridorX = layout.gridOrigin.x + layout.cols * layout.cellSize;
+                layout.bottomCorridorY = layout.gridOrigin.y - layout.cellSize;
+                layout.topCorridorY = layout.gridOrigin.y + layout.rows * layout.cellSize;
 
                 s_CachedLayout = layout;
                 s_LayoutCached = true;
@@ -634,16 +875,12 @@ namespace PixelGame
                 layout.highestCubeTop = b.max.y;
             }
 
-            // Çerçeve boruları ile bloklar arasındaki açık iç koridorların merkezleri:
-            float fLeftX = layout.frameCenter.x - layout.fullWidth * 0.5f;
-            float fRightX = layout.frameCenter.x + layout.fullWidth * 0.5f;
-            float fTopY = layout.frameCenter.y + layout.fullHeight * 0.5f;
-
-            layout.bottomCorridorY = (layout.frameBottomY + layout.lowestCubeBottom) * 0.5f;
-            layout.topCorridorY = (fTopY + layout.highestCubeTop) * 0.5f;
-            float fallbackTakeoffMargin = Mathf.Max(0.55f, layout.cellSize * 2.2f);
-            layout.leftCorridorX = fLeftX + fallbackTakeoffMargin;
-            layout.rightCorridorX = fRightX - fallbackTakeoffMargin;
+            // Koridorlar ızgaranın doğal devamıdır (ana yoldaki hesapla aynı kural):
+            // gx=-1 ve gy=-1 hücreleri ızgaranın bir hücre dışında yer alır.
+            layout.leftCorridorX = layout.gridOrigin.x - layout.cellSize;
+            layout.rightCorridorX = layout.gridOrigin.x + layout.cols * layout.cellSize;
+            layout.bottomCorridorY = layout.gridOrigin.y - layout.cellSize;
+            layout.topCorridorY = layout.gridOrigin.y + layout.rows * layout.cellSize;
 
             s_CachedLayout = layout;
             s_LayoutCached = true;
@@ -767,21 +1004,50 @@ namespace PixelGame
             List<Vector3> path = new List<Vector3>();
             BoardLayout layout = CalculateBoardLayout(allCubes);
 
-            // Madenci çerçevenin altındaysa (dışarıdaysa), alt koridora geçiş noktası ekle
+            // Madenci çerçevenin altındaysa (dışarıdaysa), alt koridora geçiş noktası ekle.
+            //
+            // Geçiş noktası HEDEFİN değil MADENCİNİN x hizasında olmalı: hedefin hizasına
+            // sabitlendiğinde madenci koridora inerken hedefe doğru bir adım atıyor, ama
+            // BFS iç alanı dolu bulup yan koridordan dolaşmaya karar verdiğinde hemen
+            // ardından ters yöne dönüyordu. Bu, koşunun başında gözle görülür bir
+            // "gidip geri gelme" hareketi yaratıyordu. Yönü artık tamamen BFS seçiyor.
             if (startPos.y < layout.frameBottomY)
             {
-                float entryX = Mathf.Clamp(targetStandPos.x, layout.leftmostCubeLeft, layout.rightmostCubeRight);
+                float entryX = Mathf.Clamp(startPos.x, layout.leftmostCubeLeft, layout.rightmostCubeRight);
                 Vector3 entryPoint = new Vector3(entryX, layout.bottomCorridorY, -0.30f);
                 path.Add(entryPoint);
                 List<Vector3> insidePath = FindEmptyCellPath(entryPoint, targetStandPos, allCubes);
                 path.AddRange(insidePath);
+                EnsurePathEndsAtTarget(path, targetStandPos);
                 return path;
             }
 
             // Madenci zaten çerçevenin içindeyse (ortaya atlayarak inmişse) doğrudan boş koridorlardan hedefe git
             List<Vector3> directPath = FindEmptyCellPath(startPos, targetStandPos, allCubes);
             path.AddRange(directPath);
+            EnsurePathEndsAtTarget(path, targetStandPos);
             return path;
+        }
+
+        /// <summary>
+        /// Rotanın son noktasını tam kazma pozisyonuna oturtur.
+        ///
+        /// Yol bulma ızgara hücre merkezlerinden geçtiği için son nokta, küpün önündeki
+        /// gerçek duruş noktasından sapıyordu (ölçümde 0.07 birim fark görüldü). Madenci
+        /// o noktaya varıp Mining durumuna geçince pozisyon farkı kadar ışınlanıyordu.
+        /// </summary>
+        private static void EnsurePathEndsAtTarget(List<Vector3> path, Vector3 targetStandPos)
+        {
+            if (path.Count == 0)
+            {
+                path.Add(targetStandPos);
+                return;
+            }
+
+            if ((path[path.Count - 1] - targetStandPos).sqrMagnitude > 0.0001f)
+            {
+                path.Add(targetStandPos);
+            }
         }
 
         /// <summary>
@@ -829,7 +1095,7 @@ namespace PixelGame
             }
 
             BoardLayout layout = CalculateBoardLayout(allCubes);
-            var gridMap = BuildCubeGridMap(allCubes);
+            var gridMap = GetGridMapCached();
 
             (int x, int y) WorldToGrid(Vector3 wPos)
             {
@@ -877,6 +1143,37 @@ namespace PixelGame
                     return false; // Dolu kırılmamış küp var
                 }
                 return true; // Kırılmış/boş alan
+            }
+
+            // İki ızgara düğümü arasındaki düz çizgi tamamen geçilebilir hücrelerden
+            // geçiyor mu? Örnekleme noktasının dokunduğu DÖRT hücre de kontrol edilir,
+            // böylece iki dolu küpün köşesi arasından sızmak imkânsız olur.
+            bool HasClearLine(int ax, int ay, int bx, int by)
+            {
+                float dx = bx - ax;
+                float dy = by - ay;
+                int steps = Mathf.CeilToInt(Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) * 4f);
+                if (steps <= 0) return true;
+
+                for (int s = 0; s <= steps; s++)
+                {
+                    float t = (float)s / steps;
+                    float fx = ax + dx * t;
+                    float fy = ay + dy * t;
+
+                    int x0 = Mathf.FloorToInt(fx);
+                    int x1 = Mathf.CeilToInt(fx);
+                    int y0 = Mathf.FloorToInt(fy);
+                    int y1 = Mathf.CeilToInt(fy);
+
+                    if (!IsPassable(x0, y0) || !IsPassable(x1, y0) ||
+                        !IsPassable(x0, y1) || !IsPassable(x1, y1))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
             }
 
             (int startGx, int startGy) = WorldToGrid(startWorldPos);
@@ -930,18 +1227,33 @@ namespace PixelGame
                 }
                 gridPath.Reverse();
 
-                (int x, int y) prevDir = (0, 0);
-                for (int i = 0; i < gridPath.Count; i++)
-                {
-                    var p = gridPath[i];
-                    var prevNode = i == 0 ? startNode : gridPath[i - 1];
-                    (int x, int y) curDir = (p.x - prevNode.x, p.y - prevNode.y);
+                // Tam düğüm dizisi (başlangıç dahil) üzerinde görüş hattı sadeleştirmesi
+                // yapılır: bir düğümden düz çizgiyle görülebilen EN UZAK düğüme atlanır.
+                //
+                // Eskiden yalnızca "yön değişen düğüm" eklenirdi; ancak eklenen düğüm
+                // köşenin kendisi değil ONDAN SONRAKİ düğüm oluyordu. Bu yüzden rota
+                // köşeleri çapraz kesiyor, madenci dolu küplerin köşesine sürterek
+                // ilerliyor ve her köşede gözle görülür şekilde takılıp yön değiştiriyordu.
+                List<(int x, int y)> nodes = new List<(int x, int y)>(gridPath.Count + 1);
+                nodes.Add(startNode);
+                nodes.AddRange(gridPath);
 
-                    if (curDir != prevDir || i == gridPath.Count - 1)
+                int cursor = 0;
+                while (cursor < nodes.Count - 1)
+                {
+                    int next = cursor + 1;
+
+                    for (int far = nodes.Count - 1; far > cursor + 1; far--)
                     {
-                        waypoints.Add(GridToWorld(p.x, p.y));
-                        prevDir = curDir;
+                        if (HasClearLine(nodes[cursor].x, nodes[cursor].y, nodes[far].x, nodes[far].y))
+                        {
+                            next = far;
+                            break;
+                        }
                     }
+
+                    waypoints.Add(GridToWorld(nodes[next].x, nodes[next].y));
+                    cursor = next;
                 }
             }
             else
@@ -961,9 +1273,32 @@ namespace PixelGame
 
             // Hedef son noktayı ekle (kesinlikle blok üstünde olmayan güvenli Z)
             Vector3 finalPoint = new Vector3(targetWorldPos.x, targetWorldPos.y, -0.30f);
-            if (waypoints.Count == 0 || (waypoints[waypoints.Count - 1] - finalPoint).sqrMagnitude > 0.01f)
+
+            if (waypoints.Count == 0)
             {
                 waypoints.Add(finalPoint);
+            }
+            else
+            {
+                Vector3 last = waypoints[waypoints.Count - 1];
+                float gap = (last - finalPoint).magnitude;
+
+                if (gap > 0.01f)
+                {
+                    // Son yol noktası hedefin ızgaraya yuvarlanmış hâliyse, ONU DEĞİŞTİR.
+                    // Eski hâlde arkasına ekleniyordu: madenci hücre merkezine kadar
+                    // koşup hemen ardından kazma noktasına geri adım atıyordu. Bu geri
+                    // adım tam kırma animasyonuna girerken oluyor ve gözle görülür bir
+                    // takılma/geri sıçrama olarak fark ediliyordu.
+                    if (gap < layout.cellSize * 0.95f)
+                    {
+                        waypoints[waypoints.Count - 1] = finalPoint;
+                    }
+                    else
+                    {
+                        waypoints.Add(finalPoint);
+                    }
+                }
             }
 
             return waypoints;
@@ -973,14 +1308,10 @@ namespace PixelGame
 
         public static PixelCube FindAndReserveClosestCube(Vector3 fromPosition, Color cargoColor, float threshold)
         {
-            PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
-
-            if (gen == null || gen.CubesContainer == null) return null;
-
-            PixelCube[] allCubes = gen.CubesContainer.GetComponentsInChildren<PixelCube>();
+            PixelCube[] allCubes = GetCubesCached();
             if (allCubes == null || allCubes.Length == 0) return null;
 
-            var gridMap = BuildCubeGridMap(allCubes);
+            var gridMap = GetGridMapCached();
             PixelCube bestCube = null;
             float bestScore = float.MaxValue;
 
@@ -1077,7 +1408,8 @@ namespace PixelGame
             if (m_Animator != null && m_Animator.isActiveAndEnabled)
             {
                 m_Animator.enabled = true;
-                m_Animator.speed = 1f * m_IndividualSpeedMultiplier;
+                m_Animator.speed = m_IndividualSpeedMultiplier;
+                SetAnimatorFloatParameter(s_ClipSpeedHash, GetClipFitSpeed("Jump", m_JumpDuration));
                 SetAnimatorBoolParameter(s_IsRunningHash, false, null);
                 TriggerAnimatorParameter(s_JumpTriggerHash, s_JumpHashes, 0.08f, UnityEngine.Random.Range(0f, 0.25f));
             }
@@ -1112,12 +1444,16 @@ namespace PixelGame
         private void StartRunningState()
         {
             m_State = State.Running;
-            m_RunTimer = UnityEngine.Random.Range(0f, 10f);
+            CaptureRunScale();
+            // Zamanlayıcı sıfırdan başlar: ilk karede zıplama ofseti de sıfır olur,
+            // böylece koşuya geçişte anlık sıçrama olmaz. Senkronsuzluk artık
+            // zamanlayıcıyı kaydırarak değil, zıplama hızını çeşitleyerek sağlanıyor.
+            m_RunTimer = 0f;
+            m_BounceSpeedMultiplier = UnityEngine.Random.Range(0.82f, 1.22f);
             m_CurrentWaypointIndex = 0;
 
-            PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
-            PixelCube[] allCubes = gen != null && gen.CubesContainer != null ? gen.CubesContainer.GetComponentsInChildren<PixelCube>() : null;
-            var gridMap = BuildCubeGridMap(allCubes);
+            PixelCube[] allCubes = GetCubesCached();
+            var gridMap = GetGridMapCached();
 
             if (m_TargetCube != null)
             {
@@ -1132,7 +1468,8 @@ namespace PixelGame
             if (m_Animator != null && m_Animator.isActiveAndEnabled)
             {
                 m_Animator.enabled = true;
-                m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.25f * m_IndividualSpeedMultiplier, 0.70f, 1.45f);
+                m_Animator.speed = m_IndividualSpeedMultiplier;
+                SetAnimatorFloatParameter(s_RunSpeedMulHash, RunAnimationSpeed);
                 m_Animator.ResetTrigger(s_JumpTriggerHash);
                 m_Animator.ResetTrigger(s_AttackTriggerHash);
                 SetAnimatorBoolParameter(s_IsRunningHash, true, s_RunHashes, 0.12f);
@@ -1153,8 +1490,7 @@ namespace PixelGame
 
         private void UpdateRunning()
         {
-            PixelArtGenerator genObj = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
-            PixelCube[] cubes = genObj != null && genObj.CubesContainer != null ? genObj.CubesContainer.GetComponentsInChildren<PixelCube>() : null;
+            PixelCube[] cubes = GetCubesCached();
 
             // Hedef küp geçerliliğini koruyor mu?
             if (m_TargetCube == null || m_TargetCube.IsPopped)
@@ -1178,7 +1514,7 @@ namespace PixelGame
                 }
 
                 // Yeni hedef için yol noktalarını yeniden hesapla (bulunduğu anlık konumdan hesaplanır)
-                var map = BuildCubeGridMap(cubes);
+                var map = GetGridMapCached();
                 m_MiningStandPosition = GetMiningStandPosition(m_TargetCube, map);
                 m_BasePosition = transform.position;
                 m_PathWaypoints = GeneratePathWaypoints(transform.position, m_MiningStandPosition, cubes);
@@ -1188,7 +1524,8 @@ namespace PixelGame
             // Koşma animasyonunun kesintisiz ve pürüzsüz akması için sadece hız güncellenir
             if (m_Animator != null)
             {
-                m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.25f * m_IndividualSpeedMultiplier, 0.70f, 1.45f);
+                m_Animator.speed = m_IndividualSpeedMultiplier;
+                SetAnimatorFloatParameter(s_RunSpeedMulHash, RunAnimationSpeed);
             }
 
             if (m_PathWaypoints == null || m_CurrentWaypointIndex >= m_PathWaypoints.Count)
@@ -1204,7 +1541,7 @@ namespace PixelGame
 
             // Ara noktalarda koridor köşelerini yumuşak dönmek için 0.15f toleransı kullanılır.
             // Son noktada (küp önü kırma pozisyonunda) ise madenci tam hedefe kadar yavaşlayarak yanaşır.
-            if (!isLastWaypoint && distance < 0.15f)
+            if (!isLastWaypoint && distance < GetReachDistance(EffectiveRunSpeed * Time.deltaTime))
             {
                 m_CurrentWaypointIndex++;
                 if (m_CurrentWaypointIndex >= m_PathWaypoints.Count)
@@ -1236,7 +1573,7 @@ namespace PixelGame
                 }
             }
 
-            float currentSpeed = m_RunSpeed * speedMultiplier;
+            float currentSpeed = EffectiveRunSpeed * speedMultiplier;
             float step = currentSpeed * Time.deltaTime;
 
             // Son noktaya varış kontrolü: Kademeli yavaşlama bittiğinde hedefe tam oturur
@@ -1252,9 +1589,22 @@ namespace PixelGame
 
             // Zıplama ritmi (hedefe varırken pürüzsüzce sönümlenir, zemine yumuşakça basar)
             m_RunTimer += Time.deltaTime;
-            float bounceOffset = Mathf.Abs(Mathf.Sin(m_RunTimer * m_BounceFrequency)) * m_BounceHeight * bounceDamping;
+            float bounceOffset = Mathf.Abs(Mathf.Sin(m_RunTimer * m_BounceFrequency * m_BounceSpeedMultiplier)) * m_BounceHeight * bounceDamping;
 
-            transform.position = m_BasePosition + Vector3.back * bounceOffset;
+            // Zıplama EKRAN YUKARISINA (+Y) uygulanır, kameraya doğru (-Z) DEĞİL.
+            //
+            // Kamera (0, 1, -10) konumunda, rotasyonsuz, tam +Z'ye bakıyor. Zıplama
+            // -Z'de olduğunda madenci kameraya yaklaşıp uzaklaşıyor; perspektif de
+            // sahneyi o nokta etrafında büyütüp küçültüyordu. Ölçümde dünya hızı
+            // ±%0.5 sabitken ekrandaki hız 17.6 ↔ 21.9 piksel arasında, saniyede
+            // ~3 kez salınıyordu (%11 hız değişimi) ve bu "ilerleyip takılıp yine
+            // ilerleme" olarak görünüyordu. Etki ekran merkezinden uzaklaştıkça
+            // büyüdüğü için tahtanın sol/sağ kenarlarında en belirgindi.
+            //
+            // Buna karşılık zıplamanın görünür faydası yoktu: ekran Y'si yalnızca
+            // 1.5 piksel oynuyordu. +Y'de ise zıplama gerçekten görünür ve derinlik
+            // hiç değişmediği için yatay hareket kusursuz düzgün akar.
+            transform.position = m_BasePosition + Vector3.up * bounceOffset;
 
             // Karakter yönü: Koşarken koridor yönüne döner, son yaklaşmada hedef küpe doğru yumuşakça hizalanır
             if (isLastWaypoint && m_TargetCube != null && distance < 0.50f)
@@ -1308,7 +1658,8 @@ namespace PixelGame
             if (m_Animator != null && m_Animator.isActiveAndEnabled)
             {
                 m_Animator.enabled = true;
-                m_Animator.speed = 1.0f * m_IndividualSpeedMultiplier;
+                m_Animator.speed = m_IndividualSpeedMultiplier;
+                SetAnimatorFloatParameter(s_ClipSpeedHash, GetClipFitSpeed("Punch", m_PunchImpactDelay + m_PostPunchDelay));
                 SetAnimatorBoolParameter(s_IsRunningHash, false, null);
                 TriggerAnimatorParameter(s_AttackTriggerHash, s_AttackHashes, 0.25f, 0f);
             }
@@ -1340,8 +1691,13 @@ namespace PixelGame
         private void StartEscapingState()
         {
             m_State = State.Escaping;
+            CaptureRunScale();
             m_HasJumpedOutside = false;
-            m_RunTimer = UnityEngine.Random.Range(0f, 10f);
+            // Zamanlayıcı sıfırdan başlar: ilk karede zıplama ofseti de sıfır olur,
+            // böylece koşuya geçişte anlık sıçrama olmaz. Senkronsuzluk artık
+            // zamanlayıcıyı kaydırarak değil, zıplama hızını çeşitleyerek sağlanıyor.
+            m_RunTimer = 0f;
+            m_BounceSpeedMultiplier = UnityEngine.Random.Range(0.82f, 1.22f);
             m_CurrentWaypointIndex = 0;
             m_BasePosition = transform.position;
 
@@ -1360,19 +1716,20 @@ namespace PixelGame
                 return;
             }
 
-            PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
-            PixelCube[] allCubes = gen != null && gen.CubesContainer != null ? gen.CubesContainer.GetComponentsInChildren<PixelCube>() : null;
+            PixelCube[] allCubes = GetCubesCached();
 
             m_PathWaypoints = GenerateEscapeWaypoints(transform.position, allCubes);
 
             if (m_Animator != null && m_Animator.isActiveAndEnabled)
             {
                 m_Animator.enabled = true;
-                m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.25f * m_IndividualSpeedMultiplier, 0.70f, 1.45f);
+                m_Animator.speed = m_IndividualSpeedMultiplier;
+                SetAnimatorFloatParameter(s_RunSpeedMulHash, RunAnimationSpeed);
                 m_Animator.ResetTrigger(s_JumpTriggerHash);
                 m_Animator.ResetTrigger(s_AttackTriggerHash);
+                // Durum makinesine bırakılır. Ek bir CrossFade, bool ile başlayan
+                // geçişin üstüne ikinci bir zorlamalı geçiş bindirip takılma yaratıyordu.
                 SetAnimatorBoolParameter(s_IsRunningHash, true, s_RunHashes, 0.20f);
-                CrossFadeAnimation(s_RunHashes, 0.20f);
             }
         }
 
@@ -1400,7 +1757,8 @@ namespace PixelGame
             // Koşma animasyonunun kesintisiz ve pürüzsüz akması için sadece hız güncellenir
             if (m_Animator != null)
             {
-                m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.25f * m_IndividualSpeedMultiplier, 0.70f, 1.45f);
+                m_Animator.speed = m_IndividualSpeedMultiplier;
+                SetAnimatorFloatParameter(s_RunSpeedMulHash, RunAnimationSpeed);
             }
 
             Vector3 targetWaypoint = m_PathWaypoints != null && m_CurrentWaypointIndex < m_PathWaypoints.Count
@@ -1412,7 +1770,33 @@ namespace PixelGame
             Vector3 dir = (targetWaypoint - m_BasePosition);
             float distance = dir.magnitude;
 
-            if (distance < 0.15f)
+            bool isLastWaypoint = m_PathWaypoints != null &&
+                                  m_CurrentWaypointIndex == m_PathWaypoints.Count - 1;
+
+            float step = EffectiveRunSpeed * Time.deltaTime;
+
+            // Son yol noktası kenardaki zıplama noktasıdır; oraya tam oturmalı,
+            // yoksa kaçış zıplaması yanlış yerden başlar
+            if (isLastWaypoint && distance <= Mathf.Max(0.02f, step))
+            {
+                m_BasePosition = targetWaypoint;
+
+                if (m_HasJumpedOutside)
+                {
+                    m_State = State.Done;
+                    Release();
+                }
+                else
+                {
+                    StartEscapeJump();
+                }
+                return;
+            }
+
+            // Ara noktalarda köşeyi yumuşak dönmek için hücre boyutuna bağlı tolerans.
+            // Sabit bir tolerans hücreden büyük kalırsa madenci hedefe varmadan
+            // yön değiştirir ve keskin köşelerde bir kare geri sıçrar.
+            if (!isLastWaypoint && distance < GetReachDistance(step))
             {
                 m_CurrentWaypointIndex++;
                 if (m_PathWaypoints == null || m_CurrentWaypointIndex >= m_PathWaypoints.Count)
@@ -1434,13 +1818,25 @@ namespace PixelGame
             }
 
             Vector3 normDir = dir.normalized;
-            float step = m_RunSpeed * Time.deltaTime;
             m_BasePosition += normDir * Mathf.Min(step, distance);
 
             m_RunTimer += Time.deltaTime;
-            float bounceOffset = Mathf.Abs(Mathf.Sin(m_RunTimer * m_BounceFrequency)) * m_BounceHeight;
+            float bounceOffset = Mathf.Abs(Mathf.Sin(m_RunTimer * m_BounceFrequency * m_BounceSpeedMultiplier)) * m_BounceHeight;
 
-            transform.position = m_BasePosition + Vector3.back * bounceOffset;
+            // Zıplama EKRAN YUKARISINA (+Y) uygulanır, kameraya doğru (-Z) DEĞİL.
+            //
+            // Kamera (0, 1, -10) konumunda, rotasyonsuz, tam +Z'ye bakıyor. Zıplama
+            // -Z'de olduğunda madenci kameraya yaklaşıp uzaklaşıyor; perspektif de
+            // sahneyi o nokta etrafında büyütüp küçültüyordu. Ölçümde dünya hızı
+            // ±%0.5 sabitken ekrandaki hız 17.6 ↔ 21.9 piksel arasında, saniyede
+            // ~3 kez salınıyordu (%11 hız değişimi) ve bu "ilerleyip takılıp yine
+            // ilerleme" olarak görünüyordu. Etki ekran merkezinden uzaklaştıkça
+            // büyüdüğü için tahtanın sol/sağ kenarlarında en belirgindi.
+            //
+            // Buna karşılık zıplamanın görünür faydası yoktu: ekran Y'si yalnızca
+            // 1.5 piksel oynuyordu. +Y'de ise zıplama gerçekten görünür ve derinlik
+            // hiç değişmediği için yatay hareket kusursuz düzgün akar.
+            transform.position = m_BasePosition + Vector3.up * bounceOffset;
 
             // Karakterin şu anki koridor yönüne pürüzsüz dönmesi (aniden sert takılma yapmaz)
             if (dir.sqrMagnitude > 0.005f)
@@ -1463,7 +1859,8 @@ namespace PixelGame
             if (m_Animator != null && m_Animator.isActiveAndEnabled)
             {
                 m_Animator.enabled = true;
-                m_Animator.speed = 1f * m_IndividualSpeedMultiplier;
+                m_Animator.speed = m_IndividualSpeedMultiplier;
+                SetAnimatorFloatParameter(s_ClipSpeedHash, GetClipFitSpeed("Jump", Mathf.Max(0.70f, m_JumpDuration)));
                 SetAnimatorBoolParameter(s_IsRunningHash, false, null);
                 TriggerAnimatorParameter(s_JumpTriggerHash, s_JumpHashes, 0.08f, UnityEngine.Random.Range(0f, 0.25f));
             }
@@ -1505,6 +1902,7 @@ namespace PixelGame
         private void StartRunAwayState(Vector3 startRunPos, bool isLeft)
         {
             m_State = State.Escaping;
+            CaptureRunScale();
             m_HasJumpedOutside = true;
             m_IsExitingLeft = isLeft;
             m_RunTimer = 0f;
@@ -1519,7 +1917,8 @@ namespace PixelGame
             if (m_Animator != null && m_Animator.isActiveAndEnabled)
             {
                 m_Animator.enabled = true;
-                m_Animator.speed = Mathf.Clamp(m_RunSpeed * 1.25f * m_IndividualSpeedMultiplier, 0.70f, 1.45f);
+                m_Animator.speed = m_IndividualSpeedMultiplier;
+                SetAnimatorFloatParameter(s_RunSpeedMulHash, RunAnimationSpeed);
                 SetAnimatorBoolParameter(s_IsRunningHash, true, s_RunHashes, 0.12f);
             }
         }
