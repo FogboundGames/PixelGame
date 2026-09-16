@@ -148,6 +148,8 @@ Material:
     - _PlasticHighlightIntensity: 2.0
     - _PlasticHighlightSize: 0.35
     - _PlasticTopLight: 0.25
+    - _ProceduralBevelIntensity: 0.8
+    - _ProceduralBevelWidth: 0.05
     - _QueueOffset: 0
     - _RampBands: 4
     - _RampBandsSmoothing: 0.1

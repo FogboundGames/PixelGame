@@ -39,7 +39,7 @@ namespace PixelGame
             EnsureShadowReferences();
 
             PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
-            if (gen != null && !gen.EnableCubeShadows)
+            if (gen != null && !gen.EvaluateShadowMode())
             {
                 if (m_ShadowObject != null) m_ShadowObject.SetActive(false);
                 if (m_ShadowBottomObject != null) m_ShadowBottomObject.SetActive(false);

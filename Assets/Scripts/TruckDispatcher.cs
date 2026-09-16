@@ -103,6 +103,7 @@ namespace PixelGame
 
         [Tooltip("Rafta biriken parçaların yatay saçılma yarıçapı")]
         [SerializeField] private float m_ShelfScatterX = 0.45f;
+        public float ShelfScatterX => m_ShelfScatterX;
 
         [Tooltip("Parçaların çerçevenin alt orta kısmında (kırmızı elips alanı) toplanma yarıçapı")]
         [SerializeField] private float m_ShelfGatherRadius = 0.32f;
@@ -270,6 +271,7 @@ namespace PixelGame
             RebuildStrips();
             BuildQueue();
             RefillPool();
+            if (m_Pool != null) m_Pool.UpdateRowVisuals();
         }
 
         private void Update()
@@ -484,11 +486,11 @@ namespace PixelGame
             };
             m_MovingWagons.Add(movingWagon);
 
-            // Havuzdan raya tatlı bir zıplama animasyonu
+            // Havuzdan raya akıcı, direkt geçiş animasyonu
             truck.DOKill();
-            truck.DOLocalRotateQuaternion(m_WagonRotation, 0.32f);
-            truck.DOScale(m_WagonScale, 0.32f);
-            truck.DOLocalJump(targetLocalPos, 120f, 1, 0.36f).SetEase(Ease.OutQuad).OnComplete(() =>
+            truck.DOLocalRotateQuaternion(m_WagonRotation, 0.28f);
+            truck.DOScale(m_WagonScale, 0.28f);
+            truck.DOLocalMove(targetLocalPos, 0.28f).SetEase(Ease.OutQuad).OnComplete(() =>
             {
                 if (truck != null)
                 {
@@ -958,12 +960,25 @@ namespace PixelGame
         public void BuildQueue()
         {
             m_Queue.Clear();
+            PixelLevelData level = GetLevel();
+
+            // 1. Manuel Vagon Sırası: Eğer seviyede özel sıra tanımlanmışsa BİREBİR o sırayı kullan!
+            if (level != null && level.UseCustomWagonSequence && level.WagonSequence != null && level.WagonSequence.Count > 0)
+            {
+                foreach (WagonSequenceEntry seq in level.WagonSequence)
+                {
+                    if (seq == null) continue;
+                    m_Queue.Enqueue(new TruckOrder { Color = seq.wagonColor, Capacity = seq.capacity });
+                }
+                return;
+            }
+
+            // 2. Varsayılan otomatik üret ve karıştır
             List<PaletteColorOverride> palette = GetPalette();
             if (palette == null || palette.Count == 0) return;
 
             var trucks = new List<TruckOrder>();
             int capacity = GetTruckCapacity();
-            PixelLevelData level = GetLevel();
             bool hasAdjustment = level != null && (level.ColorBrightness != 1f || level.ColorSaturation != 1f || level.ColorContrast != 1f);
 
             for (int i = 0; i < palette.Count; i++)
@@ -1062,9 +1077,21 @@ namespace PixelGame
         {
             if (place == null || place.IsEmpty) return false;
 
+            // 🔒 En ön sıra kuralı: Sadece en ön sıradaki (Row 0) vagonlar slota/raya gönderilebilir!
+            if (m_Pool != null && !m_Pool.IsFrontRowPlace(place))
+            {
+                if (place.Truck != null)
+                {
+                    StartCoroutine(AnimateLockedWobble(place.Truck));
+                }
+                return false;
+            }
+
             if (m_ContinuousTrain)
             {
-                return SendWagonToMovingFlow(place);
+                bool sent = SendWagonToMovingFlow(place);
+                if (sent && m_Pool != null) m_Pool.UpdateRowVisuals();
+                return sent;
             }
 
             if (m_Slots == null) return false;
@@ -1085,7 +1112,27 @@ namespace PixelGame
 
             CompactPool();
             RefillPool();
+            if (m_Pool != null) m_Pool.UpdateRowVisuals();
             return true;
+        }
+
+        private System.Collections.IEnumerator AnimateLockedWobble(Transform target)
+        {
+            if (target == null) yield break;
+            Vector3 origLocal = target.localPosition;
+            float elapsed = 0f;
+            float duration = 0.22f;
+
+            while (elapsed < duration)
+            {
+                if (target == null) yield break;
+                elapsed += Time.deltaTime;
+                float percent = elapsed / duration;
+                float offset = Mathf.Sin(percent * Mathf.PI * 8f) * 0.12f * (1f - percent);
+                target.localPosition = origLocal + new Vector3(offset, 0f, 0f);
+                yield return null;
+            }
+            if (target != null) target.localPosition = origLocal;
         }
 
         private void MoveTruckInto(TruckSlot target, Transform truck, Color color)

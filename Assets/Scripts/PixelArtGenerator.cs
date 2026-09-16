@@ -405,6 +405,39 @@ namespace PixelGame
         }
 
         /// <summary>
+        /// Projenin mevcut URP / Işık gölge durumunu kontrol eder.
+        /// Eğer Directional Light üzerinde gerçek zamanlı yumuşak gölgeler aktifse (PC/High),
+        /// her bir küpün altındaki sahte gölgeleri (Fake Shadow Quad'ları) otomatik gizleyerek/temizleyerek
+        /// gereksiz 1200+ Overdraw ve Draw Call oluşmasını engeller.
+        /// Gerçek gölgeler pasifse (Mobile/Low) Sahte Gölgelerin çizilmesine izin verir.
+        /// </summary>
+        public bool EvaluateShadowMode()
+        {
+            if (!m_EnableCubeShadows) return false;
+
+            Light mainLight = RenderSettings.sun;
+            if (mainLight == null)
+            {
+                Light[] lights = Object.FindObjectsByType<Light>(FindObjectsSortMode.None);
+                foreach (var l in lights)
+                {
+                    if (l.type == LightType.Directional && l.enabled)
+                    {
+                        mainLight = l;
+                        break;
+                    }
+                }
+            }
+
+            if (mainLight != null && mainLight.shadows != LightShadows.None && mainLight.shadowStrength > 0.1f)
+            {
+                return false; // Real-time URP shadow active -> disable fake shadow quads to avoid overdraw!
+            }
+
+            return true; // Real-time shadow off -> enable fake shadow quads
+        }
+
+        /// <summary>
         /// Küpleri mavi çerçeveye göre hesaplayarak 1:1 piksel uyumuyla oluşturur.
         /// </summary>
         [ContextMenu("Piksel Resmi Oluştur")]
@@ -508,7 +541,8 @@ namespace PixelGame
             // 5. Kapsayıcıyı hazırla
             EnsureContainer();
 
-            Material shadowMat = m_EnableCubeShadows ? GetOrCreateShadowMaterial() : null;
+            bool useFakeShadows = EvaluateShadowMode();
+            Material shadowMat = useFakeShadows ? GetOrCreateShadowMaterial() : null;
 
             // 6. Pikselleri oku ve küpleri oluştur
             int createdCount = 0;
@@ -555,7 +589,7 @@ namespace PixelGame
                     pixelCube.ApplyColor(adjustedColor, m_EmissionIntensity);
 
                     // Küp altına sahte gölge (Fake Shadow) ekle
-                    if (m_EnableCubeShadows && shadowMat != null)
+                    if (useFakeShadows && shadowMat != null)
                     {
                         pixelCube.EnsureShadow(shadowMat, m_ShadowOffset, m_ShadowScale, m_ShadowColor);
                     }
@@ -639,14 +673,15 @@ namespace PixelGame
         {
             if (m_CubesContainer == null) return;
 
-            Material shadowMat = m_EnableCubeShadows ? GetOrCreateShadowMaterial() : null;
+            bool useFakeShadows = EvaluateShadowMode();
+            Material shadowMat = useFakeShadows ? GetOrCreateShadowMaterial() : null;
             PixelCube[] cubes = m_CubesContainer.GetComponentsInChildren<PixelCube>(true);
 
             foreach (var cube in cubes)
             {
                 if (cube == null) continue;
 
-                if (m_EnableCubeShadows && shadowMat != null)
+                if (useFakeShadows && shadowMat != null)
                 {
                     cube.EnsureShadow(shadowMat, m_ShadowOffset, m_ShadowScale, m_ShadowColor);
                 }

@@ -79,6 +79,17 @@ namespace PixelGame
             {
                 material.SetColor("_SColor", new Color(0.643f, 0.6556f, 0.7144f, 1f));
             }
+
+            if (material.HasProperty("_StylizedPlasticOn"))
+            {
+                material.SetFloat("_StylizedPlasticOn", 1f);
+                if (material.HasProperty("_PlasticTopLight")) material.SetFloat("_PlasticTopLight", 0.25f);
+                if (material.HasProperty("_PlasticBevelAO")) material.SetFloat("_PlasticBevelAO", 0.4f);
+                if (material.HasProperty("_ProceduralBevelWidth")) material.SetFloat("_ProceduralBevelWidth", 0.05f);
+                if (material.HasProperty("_ProceduralBevelIntensity")) material.SetFloat("_ProceduralBevelIntensity", 0.8f);
+                if (material.HasProperty("_SpecularColor")) material.SetColor("_SpecularColor", Color.white);
+                if (material.HasProperty("_SpecularRoughnessPBR")) material.SetFloat("_SpecularRoughnessPBR", 0.3f);
+            }
         }
     }
 }

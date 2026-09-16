@@ -20,6 +20,9 @@ namespace PixelGame.Editor
         private Vector2 m_DetailScroll;
         private string m_SearchFilter = "";
 
+        private bool m_WagonGridViewMode = true;
+        private int m_GridColumnsPerRow = 4;
+
         private enum DetailTab
         {
             LevelSetup = 0,
@@ -1021,6 +1024,7 @@ namespace PixelGame.Editor
                 m_SelectedLevel.TruckCapacity, 1, 64);
 
             DrawTruckSummary();
+            DrawWagonSequenceSection();
 
             EditorGUILayout.EndVertical();
         }
@@ -1057,6 +1061,999 @@ namespace PixelGame.Editor
                     "Oyuncu tüm yerleri dolduramaz.",
                     MessageType.Warning);
             }
+        }
+
+        private void DrawAIAssistantSection()
+        {
+            if (m_SelectedLevel == null) return;
+
+            EditorGUILayout.BeginVertical("box");
+
+            // AI Header
+            EditorGUILayout.BeginHorizontal();
+            GUIStyle aiHeaderStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                fontSize = 13,
+                normal = { textColor = new Color(0.95f, 0.75f, 0.2f) }
+            };
+            EditorGUILayout.LabelField("🤖 Yapay Zeka (AI) Level Asistanı & Canlı Analizör", aiHeaderStyle);
+
+            GUI.backgroundColor = new Color(0.9f, 0.6f, 0.1f);
+            if (GUILayout.Button("🧠 AI İle Akıllı Sıra Oluştur", GUILayout.Width(190), GUILayout.Height(22)))
+            {
+                Undo.RecordObject(m_SelectedLevel, "AI Generate Smart Wagon Sequence");
+                m_SelectedLevel.GenerateInterleavedWagonSequenceFromPalette();
+                m_SelectedLevel.UseCustomWagonSequence = true;
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+                Debug.Log("<color=#FFD700>[AI Level Assistant]</color> Akıllı vagon sırası ve denge analizi başarıyla oluşturuldu.");
+            }
+            GUI.backgroundColor = Color.white;
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(4);
+
+            int totalCubes = m_SelectedLevel.GetTotalCubeCountInPalette();
+            int totalCap = m_SelectedLevel.GetTotalWagonCapacity();
+
+            List<string> missingColorsInfo = new List<string>();
+            List<string> excessColorsInfo = new List<string>();
+            int unassignedTotal = 0;
+
+            if (m_SelectedLevel.ColorPalette != null)
+            {
+                foreach (var entry in m_SelectedLevel.ColorPalette)
+                {
+                    if (entry == null || entry.pixelCount <= 0) continue;
+                    Color c = entry.targetColor;
+                    if (m_SelectedLevel.ColorBrightness != 1f || m_SelectedLevel.ColorSaturation != 1f || m_SelectedLevel.ColorContrast != 1f)
+                    {
+                        c = PixelCube.AdjustColor(c, m_SelectedLevel.ColorBrightness, m_SelectedLevel.ColorSaturation, m_SelectedLevel.ColorContrast);
+                    }
+                    int assigned = m_SelectedLevel.GetTotalAssignedCapacityForColor(c);
+                    int diff = entry.pixelCount - assigned;
+                    string cName = string.IsNullOrEmpty(entry.label) ? "Renk" : entry.label;
+
+                    if (diff > 0)
+                    {
+                        missingColorsInfo.Add($"{cName} ({diff} küp eksik)");
+                        unassignedTotal += diff;
+                    }
+                    else if (diff < 0)
+                    {
+                        excessColorsInfo.Add($"{cName} (+{Mathf.Abs(diff)} kapasite)");
+                    }
+                }
+            }
+
+            // Asistan Konuşma Kutusu
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            string aiStatusMessage;
+            MessageType aiMsgType;
+
+            if (totalCap == totalCubes && totalCubes > 0 && missingColorsInfo.Count == 0)
+            {
+                aiStatusMessage = $"💬 AI Asistan: \"'{m_SelectedLevel.LevelName}' bölümü MÜKEMMEL DENGEDE! Toplam {totalCubes} küp için tam {totalCap} kapasitelik vagon dizisi mevcut. Oyuncular bu seviyeyi takılmadan akıcı bir şekilde tamamlayabilir.\"";
+                aiMsgType = MessageType.Info;
+            }
+            else if (missingColorsInfo.Count > 0)
+            {
+                string missingListStr = string.Join(", ", missingColorsInfo);
+                aiStatusMessage = $"💬 AI Asistan Uyarısı: \"DİKKAT! Resimde kırılması gereken {totalCubes} küp var ancak vagonların kapasitesi {totalCap}! Kalan {unassignedTotal} küp için vagon eksik!\nEksik Renkler: {missingListStr}\n💡 Tavsiye: Aşağıdaki '➕ Vagon Ekle' veya '🧠 AI İle Akıllı Sıra Oluştur' butonuna basarak eksikleri anında tamamlayabilirsiniz.\"";
+                aiMsgType = MessageType.Warning;
+            }
+            else
+            {
+                string excessListStr = string.Join(", ", excessColorsInfo);
+                aiStatusMessage = $"💬 AI Asistan Bilgisi: \"Bu bölümde {totalCubes} küp bulunuyor. Vagon kapasitesi ise {totalCap} ({totalCap - totalCubes} fazla kapasite). Oyuncu rahatça kazanacaktır.\nFazla Kapasiteli Renkler: {excessListStr}\"";
+                aiMsgType = MessageType.Info;
+            }
+
+            EditorGUILayout.HelpBox(aiStatusMessage, aiMsgType);
+
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.EndVertical();
+        }
+
+        private void DrawColorGridMatrixSection()
+        {
+            if (m_SelectedLevel == null || m_SelectedLevel.ColorPalette == null || m_SelectedLevel.ColorPalette.Count == 0) return;
+
+            EditorGUILayout.BeginVertical("box");
+            EditorGUILayout.LabelField("🎨 Grid Palet Matrisi (Izgara Üzerinden Renk ve Sayı Düzenleme)", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("Aşağıdaki ızgara üzerinden resimdeki her rengin hedeflenen küp sayısını (pixelCount) ve renklerini doğrudan düzenleyebilirsiniz.", MessageType.None);
+            EditorGUILayout.Space(4);
+
+            int columns = 3;
+            var palette = m_SelectedLevel.ColorPalette;
+            int count = palette.Count;
+
+            for (int i = 0; i < count; i += columns)
+            {
+                EditorGUILayout.BeginHorizontal();
+                for (int c = 0; c < columns; c++)
+                {
+                    int index = i + c;
+                    if (index >= count)
+                    {
+                        GUILayout.FlexibleSpace();
+                        continue;
+                    }
+
+                    var entry = palette[index];
+                    if (entry == null) continue;
+
+                    EditorGUILayout.BeginVertical("box", GUILayout.Width(230));
+
+                    // Üst Satır: Renk Kutusu ve Label
+                    EditorGUILayout.BeginHorizontal();
+                    Rect colorBoxRect = EditorGUILayout.GetControlRect(false, 20, GUILayout.Width(28));
+                    Color effectiveColor = entry.targetColor;
+                    if (m_SelectedLevel.ColorBrightness != 1f || m_SelectedLevel.ColorSaturation != 1f || m_SelectedLevel.ColorContrast != 1f)
+                    {
+                        effectiveColor = PixelCube.AdjustColor(effectiveColor, m_SelectedLevel.ColorBrightness, m_SelectedLevel.ColorSaturation, m_SelectedLevel.ColorContrast);
+                    }
+                    EditorGUI.DrawRect(colorBoxRect, effectiveColor);
+
+                    string lbl = string.IsNullOrEmpty(entry.label) ? $"Renk #{index + 1}" : entry.label;
+                    entry.label = EditorGUILayout.TextField(lbl, GUILayout.Width(100));
+
+                    Color newTarget = EditorGUILayout.ColorField(GUIContent.none, entry.targetColor, true, false, false, GUILayout.Width(45));
+                    if (newTarget != entry.targetColor)
+                    {
+                        entry.targetColor = newTarget;
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                        NotifyLiveSceneUpdate();
+                    }
+                    EditorGUILayout.EndHorizontal();
+
+                    // Alt Satır: Kırılacak Küp Sayısı (pixelCount)
+                    EditorGUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField("Küp Sayısı:", GUILayout.Width(65));
+
+                    if (GUILayout.Button("-10", GUILayout.Width(32), GUILayout.Height(18)))
+                    {
+                        entry.pixelCount = Mathf.Max(0, entry.pixelCount - 10);
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                        NotifyLiveSceneUpdate();
+                    }
+                    int newCount = EditorGUILayout.IntField(entry.pixelCount, GUILayout.Width(45));
+                    if (newCount != entry.pixelCount)
+                    {
+                        entry.pixelCount = Mathf.Max(0, newCount);
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                        NotifyLiveSceneUpdate();
+                    }
+                    if (GUILayout.Button("+10", GUILayout.Width(34), GUILayout.Height(18)))
+                    {
+                        entry.pixelCount += 10;
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                        NotifyLiveSceneUpdate();
+                    }
+                    EditorGUILayout.EndHorizontal();
+
+                    // Atanmış Vagon Kapasitesi Durumu
+                    int assigned = m_SelectedLevel.GetTotalAssignedCapacityForColor(effectiveColor);
+                    int remainingCubes = entry.pixelCount - assigned;
+
+                    EditorGUILayout.BeginHorizontal();
+                    if (remainingCubes == 0)
+                    {
+                        GUI.contentColor = new Color(0.2f, 0.9f, 0.3f);
+                        EditorGUILayout.LabelField($"✓ Vagon Kapasitesi: {assigned} (Tam)", EditorStyles.miniBoldLabel);
+                    }
+                    else if (remainingCubes > 0)
+                    {
+                        GUI.contentColor = new Color(1f, 0.3f, 0.3f);
+                        EditorGUILayout.LabelField($"⚠ Kalan: {remainingCubes} Küp Eksik!", EditorStyles.miniBoldLabel);
+                    }
+                    else
+                    {
+                        GUI.contentColor = new Color(0.3f, 0.7f, 1f);
+                        EditorGUILayout.LabelField($"ℹ Fazla: +{Mathf.Abs(remainingCubes)} Kapasite", EditorStyles.miniBoldLabel);
+                    }
+                    GUI.contentColor = Color.white;
+                    EditorGUILayout.EndHorizontal();
+
+                    EditorGUILayout.EndVertical();
+                }
+                EditorGUILayout.EndHorizontal();
+            }
+
+            EditorGUILayout.EndVertical();
+        }
+
+        private void AddWagonRow(int colCount)
+        {
+            if (m_SelectedLevel == null) return;
+            Undo.RecordObject(m_SelectedLevel, "Add Wagon Row");
+            if (m_SelectedLevel.WagonSequence == null) m_SelectedLevel.WagonSequence = new List<WagonSequenceEntry>();
+
+            var sequence = m_SelectedLevel.WagonSequence;
+            var palette = m_SelectedLevel.ColorPalette;
+            int cap = Mathf.Max(1, m_SelectedLevel.TruckCapacity);
+
+            for (int i = 0; i < colCount; i++)
+            {
+                Color wColor = Color.yellow;
+                string wLabel = $"Vagon #{sequence.Count + 1}";
+                if (palette != null && palette.Count > 0)
+                {
+                    var pEntry = palette[sequence.Count % palette.Count];
+                    wColor = pEntry.targetColor;
+                    if (m_SelectedLevel.ColorBrightness != 1f || m_SelectedLevel.ColorSaturation != 1f || m_SelectedLevel.ColorContrast != 1f)
+                    {
+                        wColor = PixelCube.AdjustColor(wColor, m_SelectedLevel.ColorBrightness, m_SelectedLevel.ColorSaturation, m_SelectedLevel.ColorContrast);
+                    }
+                    if (!string.IsNullOrEmpty(pEntry.label))
+                    {
+                        wLabel = $"{pEntry.label} (#{sequence.Count + 1})";
+                    }
+                }
+                sequence.Add(new WagonSequenceEntry(wColor, cap, 0, wLabel));
+            }
+            m_SelectedLevel.UseCustomWagonSequence = true;
+            EditorUtility.SetDirty(m_SelectedLevel);
+            NotifyLiveSceneUpdate();
+        }
+
+        private void DeleteWagonRow(int rowIndex, int colCount)
+        {
+            if (m_SelectedLevel == null || m_SelectedLevel.WagonSequence == null) return;
+            Undo.RecordObject(m_SelectedLevel, "Delete Wagon Row");
+            var sequence = m_SelectedLevel.WagonSequence;
+            int start = rowIndex * colCount;
+            if (start < 0 || start >= sequence.Count) return;
+
+            int count = Mathf.Min(colCount, sequence.Count - start);
+            sequence.RemoveRange(start, count);
+            m_SelectedLevel.UseCustomWagonSequence = true;
+            EditorUtility.SetDirty(m_SelectedLevel);
+            NotifyLiveSceneUpdate();
+        }
+
+        private void MoveWagonRow(int rowIndex, int targetRowIndex, int colCount)
+        {
+            if (m_SelectedLevel == null || m_SelectedLevel.WagonSequence == null) return;
+            Undo.RecordObject(m_SelectedLevel, "Move Wagon Row");
+            var sequence = m_SelectedLevel.WagonSequence;
+
+            int row1Start = rowIndex * colCount;
+            int row1Count = Mathf.Min(colCount, sequence.Count - row1Start);
+
+            int row2Start = targetRowIndex * colCount;
+            int row2Count = Mathf.Min(colCount, sequence.Count - row2Start);
+
+            if (row1Start < 0 || row2Start < 0 || row1Start >= sequence.Count || row2Start >= sequence.Count) return;
+
+            List<WagonSequenceEntry> row1 = sequence.GetRange(row1Start, row1Count);
+            List<WagonSequenceEntry> row2 = sequence.GetRange(row2Start, row2Count);
+
+            if (rowIndex < targetRowIndex)
+            {
+                sequence.RemoveRange(row2Start, row2Count);
+                sequence.RemoveRange(row1Start, row1Count);
+                sequence.InsertRange(row1Start, row2);
+                sequence.InsertRange(row1Start + row2Count, row1);
+            }
+            else
+            {
+                sequence.RemoveRange(row1Start, row1Count);
+                sequence.RemoveRange(row2Start, row2Count);
+                sequence.InsertRange(row2Start, row1);
+                sequence.InsertRange(row2Start + row1Count, row2);
+            }
+            m_SelectedLevel.UseCustomWagonSequence = true;
+            EditorUtility.SetDirty(m_SelectedLevel);
+            NotifyLiveSceneUpdate();
+        }
+
+        private void DrawQuickPaletteWagonAdder()
+        {
+            if (m_SelectedLevel == null || m_SelectedLevel.ColorPalette == null || m_SelectedLevel.ColorPalette.Count == 0) return;
+
+            EditorGUILayout.BeginVertical("box");
+            EditorGUILayout.BeginHorizontal();
+            GUIStyle headerStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                normal = { textColor = new Color(0.25f, 0.85f, 1f) }
+            };
+            EditorGUILayout.LabelField("🎨 Paletten Hızlı Vagon Ekle (Sıfırdan Manuel Tasarım Araçları):", headerStyle);
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(2);
+            EditorGUILayout.BeginHorizontal();
+
+            foreach (var entry in m_SelectedLevel.ColorPalette)
+            {
+                if (entry == null || entry.pixelCount <= 0) continue;
+
+                Color c = entry.targetColor;
+                if (m_SelectedLevel.ColorBrightness != 1f || m_SelectedLevel.ColorSaturation != 1f || m_SelectedLevel.ColorContrast != 1f)
+                {
+                    c = PixelCube.AdjustColor(c, m_SelectedLevel.ColorBrightness, m_SelectedLevel.ColorSaturation, m_SelectedLevel.ColorContrast);
+                }
+                string colorName = string.IsNullOrEmpty(entry.label) ? "Renk" : entry.label;
+
+                GUI.backgroundColor = c;
+                GUIStyle btnStyle = new GUIStyle(GUI.skin.button)
+                {
+                    fontStyle = FontStyle.Bold,
+                    fontSize = 11,
+                    normal = { textColor = (c.grayscale > 0.5f) ? Color.black : Color.white }
+                };
+
+                if (GUILayout.Button($"➕ {colorName}", btnStyle, GUILayout.Height(24), GUILayout.MinWidth(85)))
+                {
+                    Undo.RecordObject(m_SelectedLevel, "Add Palette Wagon");
+                    int cap = Mathf.Max(1, m_SelectedLevel.TruckCapacity);
+                    m_SelectedLevel.WagonSequence.Add(new WagonSequenceEntry(c, cap, 0, $"{colorName} (#{m_SelectedLevel.WagonSequence.Count + 1})"));
+                    m_SelectedLevel.UseCustomWagonSequence = true;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+            }
+
+            GUI.backgroundColor = Color.white;
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.EndVertical();
+        }
+
+        private void Draw2DGridWagonMatrixSection()
+        {
+            if (m_SelectedLevel == null) return;
+
+            if (m_SelectedLevel.WagonSequence == null)
+            {
+                m_SelectedLevel.WagonSequence = new List<WagonSequenceEntry>();
+            }
+
+            var sequence = m_SelectedLevel.WagonSequence;
+
+            // 🎨 Paletten Hızlı Vagon Ekleme Çubuğu (Sıfırdan Tasarım)
+            DrawQuickPaletteWagonAdder();
+
+            EditorGUILayout.Space(4);
+
+            EditorGUILayout.BeginVertical("box");
+
+            // Izgara Kontrol Barı
+            EditorGUILayout.BeginHorizontal();
+            GUIStyle subHeaderStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                normal = { textColor = new Color(0.2f, 0.85f, 1f) }
+            };
+            EditorGUILayout.LabelField("🎛️ 2D Izgara Matrisi (Çoklu Sıra & Satır Vagon Tasarımı):", subHeaderStyle, GUILayout.Width(360));
+
+            EditorGUILayout.LabelField("Satır Başına Vagon (Kolon):", GUILayout.Width(155));
+            int newCols = EditorGUILayout.IntSlider(m_GridColumnsPerRow, 2, 6, GUILayout.Width(150));
+            if (newCols != m_GridColumnsPerRow)
+            {
+                m_GridColumnsPerRow = newCols;
+            }
+
+            GUILayout.FlexibleSpace();
+
+            if (GUILayout.Button(m_WagonGridViewMode ? "📋 Düz Liste Modu" : "🎛️ 2D Grid Modu", GUILayout.Width(130), GUILayout.Height(22)))
+            {
+                m_WagonGridViewMode = !m_WagonGridViewMode;
+            }
+
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(4);
+
+            if (!m_WagonGridViewMode)
+            {
+                DrawWagonFlatListEditor();
+                EditorGUILayout.EndVertical();
+                return;
+            }
+
+            int colCount = Mathf.Clamp(m_GridColumnsPerRow, 2, 6);
+            int totalWagons = sequence.Count;
+            int rowCount = Mathf.Max(0, Mathf.CeilToInt((float)totalWagons / colCount));
+
+            EditorGUILayout.HelpBox($"Vagonlar {colCount}'li gruplar halinde {rowCount} ayrı Satır/Sıra (Dalga) olarak ızgaraya dizilmiştir. Satır başındaki butonlar (⬆️ ⬇️ 🗑️) ile tüm sırayı yukarı/aşağı taşıyabilir veya silebilirsiniz.", MessageType.None);
+            EditorGUILayout.Space(4);
+
+            for (int r = 0; r < rowCount; r++)
+            {
+                int startIdx = r * colCount;
+                int endIdx = Mathf.Min(totalWagons, (r + 1) * colCount);
+
+                EditorGUILayout.BeginVertical("box");
+
+                // Satır Başlığı ve Satır Seviyesi İşlem Butonları
+                EditorGUILayout.BeginHorizontal();
+                GUIStyle rowHeaderStyle = new GUIStyle(EditorStyles.boldLabel)
+                {
+                    normal = { textColor = new Color(0.3f, 0.8f, 1f) }
+                };
+                EditorGUILayout.LabelField($"📦 Satır #{r + 1} (Sıra / Dalga #{r + 1}) — Vagonlar #{startIdx + 1} .. #{endIdx}", rowHeaderStyle);
+
+                GUILayout.FlexibleSpace();
+
+                // Satırı Yukarı Taşı (⬆️)
+                GUI.enabled = r > 0;
+                if (GUILayout.Button("⬆️ Yukarı", GUILayout.Width(75), GUILayout.Height(20)))
+                {
+                    MoveWagonRow(r, r - 1, colCount);
+                    GUI.enabled = true;
+                    EditorGUILayout.EndHorizontal();
+                    EditorGUILayout.EndVertical();
+                    break;
+                }
+
+                // Satırı Aşağı Taşı (⬇️)
+                GUI.enabled = r < rowCount - 1;
+                if (GUILayout.Button("⬇️ Aşağı", GUILayout.Width(75), GUILayout.Height(20)))
+                {
+                    MoveWagonRow(r, r + 1, colCount);
+                    GUI.enabled = true;
+                    EditorGUILayout.EndHorizontal();
+                    EditorGUILayout.EndVertical();
+                    break;
+                }
+                GUI.enabled = true;
+
+                // Satıra 1 Vagon Ekle (➕)
+                GUI.backgroundColor = new Color(0.3f, 0.85f, 0.5f);
+                if (GUILayout.Button($"➕ Vagon Ekle", GUILayout.Width(95), GUILayout.Height(20)))
+                {
+                    Undo.RecordObject(m_SelectedLevel, "Add Wagon to Row");
+                    Color defaultColor = (m_SelectedLevel.ColorPalette.Count > 0) ? m_SelectedLevel.ColorPalette[endIdx % m_SelectedLevel.ColorPalette.Count].targetColor : Color.yellow;
+                    sequence.Insert(endIdx, new WagonSequenceEntry(defaultColor, m_SelectedLevel.TruckCapacity, 0, $"Vagon #{endIdx + 1}"));
+                    m_SelectedLevel.UseCustomWagonSequence = true;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                    GUI.backgroundColor = Color.white;
+                    EditorGUILayout.EndHorizontal();
+                    EditorGUILayout.EndVertical();
+                    break;
+                }
+
+                // Satırı Sil (🗑️)
+                GUI.backgroundColor = new Color(1f, 0.4f, 0.4f);
+                if (GUILayout.Button($"🗑️ Satırı Sil", GUILayout.Width(85), GUILayout.Height(20)))
+                {
+                    DeleteWagonRow(r, colCount);
+                    GUI.backgroundColor = Color.white;
+                    EditorGUILayout.EndHorizontal();
+                    EditorGUILayout.EndVertical();
+                    break;
+                }
+                GUI.backgroundColor = Color.white;
+
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.Space(2);
+
+                EditorGUILayout.BeginHorizontal();
+                for (int c = 0; c < colCount; c++)
+                {
+                    int index = startIdx + c;
+                    if (index >= totalWagons)
+                    {
+                        GUILayout.FlexibleSpace();
+                        continue;
+                    }
+
+                    var wagon = sequence[index];
+                    if (wagon == null) continue;
+
+                    EditorGUILayout.BeginVertical("box", GUILayout.Width(190));
+
+                    // Üst Satır: #Index & Renk Rozeti & Label & ColorPicker
+                    EditorGUILayout.BeginHorizontal();
+                    Rect badgeRect = EditorGUILayout.GetControlRect(false, 20, GUILayout.Width(28));
+                    EditorGUI.DrawRect(badgeRect, wagon.wagonColor);
+                    GUIStyle numStyle = new GUIStyle(EditorStyles.boldLabel)
+                    {
+                        alignment = TextAnchor.MiddleCenter,
+                        normal = { textColor = (wagon.wagonColor.grayscale > 0.5f) ? Color.black : Color.white }
+                    };
+                    GUI.Label(badgeRect, $"#{index + 1}", numStyle);
+
+                    wagon.label = EditorGUILayout.TextField(wagon.label, GUILayout.Width(90));
+
+                    Color newColor = EditorGUILayout.ColorField(GUIContent.none, wagon.wagonColor, true, false, false, GUILayout.Width(40));
+                    if (newColor != wagon.wagonColor)
+                    {
+                        wagon.wagonColor = newColor;
+                        m_SelectedLevel.UseCustomWagonSequence = true;
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                        NotifyLiveSceneUpdate();
+                    }
+                    EditorGUILayout.EndHorizontal();
+
+                    // Orta Satır: Kapasite Butonları
+                    EditorGUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField("Kap:", GUILayout.Width(30));
+
+                    if (GUILayout.Button("-1", GUILayout.Width(22), GUILayout.Height(18)))
+                    {
+                        wagon.capacity = Mathf.Max(1, wagon.capacity - 1);
+                        m_SelectedLevel.UseCustomWagonSequence = true;
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                        NotifyLiveSceneUpdate();
+                    }
+
+                    int newCap = EditorGUILayout.IntField(wagon.capacity, GUILayout.Width(35));
+                    if (newCap != wagon.capacity)
+                    {
+                        wagon.capacity = Mathf.Max(1, newCap);
+                        m_SelectedLevel.UseCustomWagonSequence = true;
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                        NotifyLiveSceneUpdate();
+                    }
+
+                    if (GUILayout.Button("+1", GUILayout.Width(24), GUILayout.Height(18)))
+                    {
+                        wagon.capacity += 1;
+                        m_SelectedLevel.UseCustomWagonSequence = true;
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                        NotifyLiveSceneUpdate();
+                    }
+                    if (GUILayout.Button("+5", GUILayout.Width(24), GUILayout.Height(18)))
+                    {
+                        wagon.capacity += 5;
+                        m_SelectedLevel.UseCustomWagonSequence = true;
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                        NotifyLiveSceneUpdate();
+                    }
+                    EditorGUILayout.EndHorizontal();
+
+                    // Alt Satır: Yön Butonları (◄ ▲ ▼ ►) & Sil
+                    EditorGUILayout.BeginHorizontal();
+
+                    // Sola Kaydır (◄)
+                    GUI.enabled = index > 0;
+                    if (GUILayout.Button("◄", GUILayout.Width(22), GUILayout.Height(20)))
+                    {
+                        (sequence[index], sequence[index - 1]) = (sequence[index - 1], sequence[index]);
+                        m_SelectedLevel.UseCustomWagonSequence = true;
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                        NotifyLiveSceneUpdate();
+                    }
+
+                    // Üst Satıra Taşı (▲)
+                    GUI.enabled = index >= colCount;
+                    if (GUILayout.Button("▲", GUILayout.Width(22), GUILayout.Height(20)))
+                    {
+                        (sequence[index], sequence[index - colCount]) = (sequence[index - colCount], sequence[index]);
+                        m_SelectedLevel.UseCustomWagonSequence = true;
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                        NotifyLiveSceneUpdate();
+                    }
+
+                    // Alt Satıra Taşı (▼)
+                    GUI.enabled = index + colCount < totalWagons;
+                    if (GUILayout.Button("▼", GUILayout.Width(22), GUILayout.Height(20)))
+                    {
+                        (sequence[index], sequence[index + colCount]) = (sequence[index + colCount], sequence[index]);
+                        m_SelectedLevel.UseCustomWagonSequence = true;
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                        NotifyLiveSceneUpdate();
+                    }
+
+                    // Sağa Kaydır (►)
+                    GUI.enabled = index < totalWagons - 1;
+                    if (GUILayout.Button("►", GUILayout.Width(22), GUILayout.Height(20)))
+                    {
+                        (sequence[index], sequence[index + 1]) = (sequence[index + 1], sequence[index]);
+                        m_SelectedLevel.UseCustomWagonSequence = true;
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                        NotifyLiveSceneUpdate();
+                    }
+                    GUI.enabled = true;
+
+                    GUILayout.FlexibleSpace();
+
+                    // Sil
+                    GUI.backgroundColor = new Color(1f, 0.6f, 0.6f);
+                    if (GUILayout.Button("✕", GUILayout.Width(22), GUILayout.Height(20)))
+                    {
+                        sequence.RemoveAt(index);
+                        m_SelectedLevel.UseCustomWagonSequence = true;
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                        NotifyLiveSceneUpdate();
+                        GUI.backgroundColor = Color.white;
+                        EditorGUILayout.EndHorizontal();
+                        EditorGUILayout.EndVertical();
+                        break;
+                    }
+                    GUI.backgroundColor = Color.white;
+
+                    EditorGUILayout.EndHorizontal();
+
+                    EditorGUILayout.EndVertical();
+                }
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.Space(2);
+            }
+
+            // Alt İşlem Çubuğu (Satır Ekle / AI Dengele / Sırayı Sıfırla)
+            EditorGUILayout.Space(4);
+            EditorGUILayout.BeginHorizontal();
+
+            GUI.backgroundColor = new Color(0.2f, 0.8f, 0.4f);
+            if (GUILayout.Button($"➕ Yeni Satır / Sıra (Dalga #{rowCount + 1}) Ekle ({colCount} Vagon)", GUILayout.Height(28)))
+            {
+                AddWagonRow(colCount);
+            }
+
+            GUI.backgroundColor = new Color(0.9f, 0.6f, 0.1f);
+            if (GUILayout.Button("🧠 AI İle Sırayı Yeniden Dengele", GUILayout.Height(28)))
+            {
+                Undo.RecordObject(m_SelectedLevel, "AI Rebalance Sequence");
+                m_SelectedLevel.GenerateInterleavedWagonSequenceFromPalette();
+                m_SelectedLevel.UseCustomWagonSequence = true;
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+            }
+
+            GUI.backgroundColor = new Color(0.9f, 0.3f, 0.3f);
+            if (GUILayout.Button("🧹 Sırayı Sıfırla", GUILayout.Width(110), GUILayout.Height(28)))
+            {
+                if (EditorUtility.DisplayDialog("Vagon Sırasını Temizle", "Tüm manuel vagon sırasını silmek istediğinize emin misiniz?", "Evet", "Hayır"))
+                {
+                    Undo.RecordObject(m_SelectedLevel, "Clear Wagon Sequence");
+                    sequence.Clear();
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+            }
+            GUI.backgroundColor = Color.white;
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.EndVertical();
+        }
+
+        private void DrawWagonFlatListEditor()
+        {
+            var sequence = m_SelectedLevel.WagonSequence;
+            EditorGUILayout.LabelField("📋 Vagon Geliş Sırası (Sahnede Bu Sırayla Gelirler):", EditorStyles.boldLabel);
+
+            for (int i = 0; i < sequence.Count; i++)
+            {
+                var wagon = sequence[i];
+                if (wagon == null) continue;
+
+                EditorGUILayout.BeginHorizontal("box");
+
+                Rect badgeRect = EditorGUILayout.GetControlRect(false, 22, GUILayout.Width(36));
+                EditorGUI.DrawRect(badgeRect, wagon.wagonColor);
+                GUIStyle numStyle = new GUIStyle(EditorStyles.boldLabel)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = (wagon.wagonColor.grayscale > 0.5f) ? Color.black : Color.white }
+                };
+                GUI.Label(badgeRect, $"#{i + 1}", numStyle);
+
+                wagon.label = EditorGUILayout.TextField(wagon.label, GUILayout.Width(110));
+
+                Color newColor = EditorGUILayout.ColorField(GUIContent.none, wagon.wagonColor, true, false, false, GUILayout.Width(50));
+                if (newColor != wagon.wagonColor)
+                {
+                    wagon.wagonColor = newColor;
+                    m_SelectedLevel.UseCustomWagonSequence = true;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+
+                EditorGUILayout.LabelField("Kapasite:", GUILayout.Width(55));
+
+                if (GUILayout.Button("-5", GUILayout.Width(24), GUILayout.Height(20)))
+                {
+                    wagon.capacity = Mathf.Max(1, wagon.capacity - 5);
+                    m_SelectedLevel.UseCustomWagonSequence = true;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+                if (GUILayout.Button("-1", GUILayout.Width(24), GUILayout.Height(20)))
+                {
+                    wagon.capacity = Mathf.Max(1, wagon.capacity - 1);
+                    m_SelectedLevel.UseCustomWagonSequence = true;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+
+                int newCap = EditorGUILayout.IntField(wagon.capacity, GUILayout.Width(40));
+                if (newCap != wagon.capacity)
+                {
+                    wagon.capacity = Mathf.Max(1, newCap);
+                    m_SelectedLevel.UseCustomWagonSequence = true;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+
+                if (GUILayout.Button("+1", GUILayout.Width(26), GUILayout.Height(20)))
+                {
+                    wagon.capacity += 1;
+                    m_SelectedLevel.UseCustomWagonSequence = true;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+                if (GUILayout.Button("+5", GUILayout.Width(26), GUILayout.Height(20)))
+                {
+                    wagon.capacity += 5;
+                    m_SelectedLevel.UseCustomWagonSequence = true;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+
+                GUILayout.FlexibleSpace();
+
+                GUI.enabled = i > 0;
+                if (GUILayout.Button("▲", GUILayout.Width(24), GUILayout.Height(20)))
+                {
+                    (sequence[i], sequence[i - 1]) = (sequence[i - 1], sequence[i]);
+                    m_SelectedLevel.UseCustomWagonSequence = true;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+
+                GUI.enabled = i < sequence.Count - 1;
+                if (GUILayout.Button("▼", GUILayout.Width(24), GUILayout.Height(20)))
+                {
+                    (sequence[i], sequence[i + 1]) = (sequence[i + 1], sequence[i]);
+                    m_SelectedLevel.UseCustomWagonSequence = true;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+                GUI.enabled = true;
+
+                GUI.backgroundColor = new Color(1f, 0.6f, 0.6f);
+                if (GUILayout.Button("✕", GUILayout.Width(24), GUILayout.Height(20)))
+                {
+                    sequence.RemoveAt(i);
+                    m_SelectedLevel.UseCustomWagonSequence = true;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                    GUI.backgroundColor = Color.white;
+                    EditorGUILayout.EndHorizontal();
+                    break;
+                }
+                GUI.backgroundColor = Color.white;
+
+                EditorGUILayout.EndHorizontal();
+            }
+        }
+
+        private void DrawWagonSequenceSection()
+        {
+            if (m_SelectedLevel == null) return;
+
+            EditorGUILayout.Space(8);
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            // Başlık
+            EditorGUILayout.BeginHorizontal();
+            GUIStyle headerStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                fontSize = 13,
+                normal = { textColor = new Color(0.2f, 0.85f, 1f) }
+            };
+            EditorGUILayout.LabelField("🚚 Manuel Vagon & Maden Arabası Sıra Tasarımı", headerStyle);
+
+            EditorGUI.BeginChangeCheck();
+            bool useCustom = EditorGUILayout.ToggleLeft("⚡ Manuel Özel Sıra Aktif", m_SelectedLevel.UseCustomWagonSequence, EditorStyles.boldLabel, GUILayout.Width(190));
+            if (EditorGUI.EndChangeCheck())
+            {
+                m_SelectedLevel.UseCustomWagonSequence = useCustom;
+                if (useCustom && (m_SelectedLevel.WagonSequence == null || m_SelectedLevel.WagonSequence.Count == 0))
+                {
+                    m_SelectedLevel.GenerateInterleavedWagonSequenceFromPalette();
+                }
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(6);
+
+            // 🎯 İKİ ANA TASARIM MODU BUTONU: 🤖 AI Destekli vs ✨ Sıfırdan Manuel Boş Tuval
+            EditorGUILayout.BeginHorizontal();
+
+            // AI Destekli Sıra Tasarımı
+            GUI.backgroundColor = new Color(0.95f, 0.65f, 0.15f);
+            if (GUILayout.Button("🤖 Yapay Zeka (AI) İle Akıllı Sıra Tasarla", GUILayout.Height(34)))
+            {
+                Undo.RecordObject(m_SelectedLevel, "AI Generate Smart Wagon Sequence");
+                m_SelectedLevel.GenerateInterleavedWagonSequenceFromPalette();
+                m_SelectedLevel.UseCustomWagonSequence = true;
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+                Debug.Log("<color=#FFD700>[AI Assistant]</color> AI Akıllı Sıra Tasarımı başarıyla uygulandı.");
+            }
+
+            // Sıfırdan Boş Manuel Tuval
+            GUI.backgroundColor = new Color(0.2f, 0.75f, 1f);
+            if (GUILayout.Button("✨ Sıfırdan Boş Tuval Başlat (Manuel Sıra)", GUILayout.Height(34)))
+            {
+                if (EditorUtility.DisplayDialog("Sıfırdan Boş Tuval", "Vagon sırası temizlenip boş bir alan oluşturulacak. Sıfırdan vagon eklemek istiyor musunuz?", "Evet, Temizle ve Başlat", "İptal"))
+                {
+                    Undo.RecordObject(m_SelectedLevel, "Start Blank Wagon Sequence");
+                    m_SelectedLevel.WagonSequence.Clear();
+                    AddWagonRow(m_GridColumnsPerRow);
+                    m_SelectedLevel.UseCustomWagonSequence = true;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+            }
+            GUI.backgroundColor = Color.white;
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(6);
+
+            // 1. YAPAY ZEKA (AI) LEVEL ASİSTANI & CANLI ANALİZÖR
+            DrawAIAssistantSection();
+
+            EditorGUILayout.Space(6);
+
+            // 2. GRID PALET MATRİSİ (IZGARA ÜZERİNDEN RENK VE SAYI DÜZENLEME)
+            DrawColorGridMatrixSection();
+
+            EditorGUILayout.Space(6);
+
+            if (!m_SelectedLevel.UseCustomWagonSequence)
+            {
+                EditorGUILayout.HelpBox("💡 Bilgi: Manuel Vagon Sırası şu an pasif (oyunda vagonlar renklere göre rastgele karıştırılarak gelecektir).\nAşağıdaki ızgara üzerinden herhangi bir değişiklik yaptığınızda 'Manuel Özel Sıra' otomatik olarak aktifleşir.", MessageType.Info);
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("Aşağıdaki vagonlar oyuna ve ray üzerine BİREBİR burada sıraladığınız düzende gelir. Her renk için kaç küp kırılacağını ve vagon taşıma kapasitelerini buradan anlık izleyebilir ve düzenleyebilirsiniz.", MessageType.None);
+            }
+            EditorGUILayout.Space(6);
+
+            // 4. KÜP & VAGON DENGE ÖZET PANORAMASI (DASHBOARD)
+            EditorGUILayout.BeginVertical("box");
+            EditorGUILayout.LabelField("📊 Level Küp & Vagon Kapasite Denge Paneli", EditorStyles.boldLabel);
+            EditorGUILayout.Space(2);
+
+            int totalCubes = m_SelectedLevel.GetTotalCubeCountInPalette();
+            int totalCapacity = m_SelectedLevel.GetTotalWagonCapacity();
+            int totalWagonCount = m_SelectedLevel.WagonSequence != null ? m_SelectedLevel.WagonSequence.Count : 0;
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField($"Total Küp: {totalCubes}", EditorStyles.boldLabel, GUILayout.Width(130));
+            EditorGUILayout.LabelField($"Vagon Kapasitesi: {totalCapacity}", EditorStyles.boldLabel, GUILayout.Width(160));
+            EditorGUILayout.LabelField($"Vagon Sayısı: {totalWagonCount}", EditorStyles.boldLabel, GUILayout.Width(120));
+
+            if (totalCapacity == totalCubes && totalCubes > 0)
+            {
+                GUI.backgroundColor = new Color(0.2f, 0.9f, 0.3f);
+                GUILayout.Box("🟢 %100 DENGELİ", EditorStyles.boldLabel, GUILayout.Height(20));
+            }
+            else if (totalCapacity < totalCubes)
+            {
+                GUI.backgroundColor = new Color(1f, 0.3f, 0.3f);
+                GUILayout.Box($"🔴 EKSİK KAPASİTE (-{totalCubes - totalCapacity} Küp)", EditorStyles.boldLabel, GUILayout.Height(20));
+            }
+            else
+            {
+                GUI.backgroundColor = new Color(0.3f, 0.7f, 1f);
+                GUILayout.Box($"🔵 FAZLA KAPASİTE (+{totalCapacity - totalCubes})", EditorStyles.boldLabel, GUILayout.Height(20));
+            }
+            GUI.backgroundColor = Color.white;
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(4);
+
+            // Renk Bazlı Detay Dağılım Tablosu
+            if (m_SelectedLevel.ColorPalette != null && m_SelectedLevel.ColorPalette.Count > 0)
+            {
+                EditorGUILayout.LabelField("Renk Bazlı Küp / Kapasite Durumu:", EditorStyles.miniBoldLabel);
+
+                foreach (var entry in m_SelectedLevel.ColorPalette)
+                {
+                    if (entry == null || entry.pixelCount <= 0) continue;
+
+                    Color c = entry.targetColor;
+                    if (m_SelectedLevel.ColorBrightness != 1f || m_SelectedLevel.ColorSaturation != 1f || m_SelectedLevel.ColorContrast != 1f)
+                    {
+                        c = PixelCube.AdjustColor(c, m_SelectedLevel.ColorBrightness, m_SelectedLevel.ColorSaturation, m_SelectedLevel.ColorContrast);
+                    }
+
+                    int assignedCap = m_SelectedLevel.GetTotalAssignedCapacityForColor(c);
+                    int requiredCubes = entry.pixelCount;
+                    string colorName = string.IsNullOrEmpty(entry.label) ? "Renk" : entry.label;
+
+                    EditorGUILayout.BeginHorizontal();
+
+                    // Renk rozeti
+                    Rect r = EditorGUILayout.GetControlRect(false, 18, GUILayout.Width(22));
+                    EditorGUI.DrawRect(r, c);
+
+                    EditorGUILayout.LabelField(colorName, EditorStyles.boldLabel, GUILayout.Width(110));
+                    EditorGUILayout.LabelField($"Kırılacak: {requiredCubes} Küp", GUILayout.Width(130));
+                    EditorGUILayout.LabelField($"Vagon Kapasitesi: {assignedCap}", GUILayout.Width(140));
+
+                    if (assignedCap == requiredCubes)
+                    {
+                        GUI.contentColor = new Color(0.1f, 0.8f, 0.2f);
+                        EditorGUILayout.LabelField("✓ Tam Dengeli", EditorStyles.boldLabel, GUILayout.Width(110));
+                    }
+                    else if (assignedCap < requiredCubes)
+                    {
+                        GUI.contentColor = new Color(1f, 0.2f, 0.2f);
+                        EditorGUILayout.LabelField($"⚠ Eksik (-{requiredCubes - assignedCap})", EditorStyles.boldLabel, GUILayout.Width(110));
+                    }
+                    else
+                    {
+                        GUI.contentColor = new Color(0.2f, 0.6f, 1f);
+                        EditorGUILayout.LabelField($"ℹ Fazla (+{assignedCap - requiredCubes})", EditorStyles.boldLabel, GUILayout.Width(110));
+                    }
+                    GUI.contentColor = Color.white;
+
+                    // Hızlı Vagon Ekle Butonu
+                    GUI.backgroundColor = new Color(0.3f, 0.85f, 0.5f);
+                    if (GUILayout.Button($"➕ Vagon Ekle", GUILayout.Width(95), GUILayout.Height(18)))
+                    {
+                        Undo.RecordObject(m_SelectedLevel, "Add Wagon for Color");
+                        int defaultCap = Mathf.Min(m_SelectedLevel.TruckCapacity, Mathf.Max(1, requiredCubes - assignedCap));
+                        if (defaultCap <= 0) defaultCap = m_SelectedLevel.TruckCapacity;
+
+                        m_SelectedLevel.WagonSequence.Add(new WagonSequenceEntry(c, defaultCap, 0, $"{colorName} ({m_SelectedLevel.WagonSequence.Count + 1})"));
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                        NotifyLiveSceneUpdate();
+                    }
+                    GUI.backgroundColor = Color.white;
+
+                    EditorGUILayout.EndHorizontal();
+                }
+            }
+
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.Space(6);
+
+            // 5. OTOMATİK SIRA ÜRETME BUTONLARI
+            EditorGUILayout.BeginHorizontal();
+            GUI.backgroundColor = new Color(0.25f, 0.75f, 1f);
+            if (GUILayout.Button("🔄 Paletten Tam Otomatik Sıra Üret (Gruplu)", GUILayout.Height(26)))
+            {
+                Undo.RecordObject(m_SelectedLevel, "Auto-Generate Grouped Wagon Sequence");
+                m_SelectedLevel.GenerateDefaultWagonSequenceFromPalette();
+                m_SelectedLevel.UseCustomWagonSequence = true;
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+            }
+            if (GUILayout.Button("🔀 Paletten Karışık Denge Sırası Üret (Round-Robin)", GUILayout.Height(26)))
+            {
+                Undo.RecordObject(m_SelectedLevel, "Auto-Generate Interleaved Wagon Sequence");
+                m_SelectedLevel.GenerateInterleavedWagonSequenceFromPalette();
+                m_SelectedLevel.UseCustomWagonSequence = true;
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+            }
+            GUI.backgroundColor = Color.white;
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(6);
+
+            // 6. 2D GRİDSEL ÇOKLU SIRA VAGON MATRİSİ
+            Draw2DGridWagonMatrixSection();
+
+            EditorGUILayout.Space(4);
+            EditorGUILayout.BeginHorizontal();
+            GUI.backgroundColor = new Color(0.3f, 0.85f, 0.5f);
+            if (GUILayout.Button("➕ Yeni Boş Vagon Ekle", GUILayout.Height(24)))
+            {
+                Color defaultColor = (m_SelectedLevel.ColorPalette.Count > 0) ? m_SelectedLevel.ColorPalette[0].targetColor : Color.yellow;
+                m_SelectedLevel.WagonSequence.Add(new WagonSequenceEntry(defaultColor, m_SelectedLevel.TruckCapacity, 0, $"Vagon #{m_SelectedLevel.WagonSequence.Count + 1}"));
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+            }
+            GUI.backgroundColor = Color.white;
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.EndVertical();
         }
 
         private void DrawActionButtons()

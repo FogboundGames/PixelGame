@@ -176,13 +176,17 @@ namespace PixelGame
             m_Dirty = true;
         }
 
-        /// <summary>Kabin ve kasayı (ve varsa madenci gövde ve baretini) aynı renge boyar.</summary>
+        /// <summary>Kabin ve kasayı (ve varsa madenci gövdesini) vagon rengine boyar; baret ve kazma sabit renk kalır.</summary>
         public void SetBodyColor(Color color)
         {
             m_Cabin = color;
             m_Cargo = color;
             m_MechaBody = color;
-            m_Helmet = color;
+            m_Helmet = new Color32(255, 200, 0, 255);
+            m_HelmetDark = new Color32(40, 44, 52, 255);
+            m_Lamp = new Color32(255, 248, 200, 255);
+            m_Rims = new Color32(195, 197, 202, 255);
+            m_Wood = new Color32(120, 78, 48, 255);
             m_Dirty = true;
         }
 
@@ -227,6 +231,14 @@ namespace PixelGame
                 Color resolved = theme.ResolveColor(part, blockColor);
                 SetColor(part, resolved);
             }
+
+            // Baret, baret lambası, kazma başı (çelik) ve kazma sapı (ahşap) sabit ve belirgin madenci renklerindedir
+            m_Helmet = new Color32(255, 200, 0, 255);       // Parlak Güvenlik Sarısı
+            m_HelmetDark = new Color32(40, 44, 52, 255);    // Koyu Gri Siperlik
+            m_Lamp = new Color32(255, 248, 200, 255);       // Açık Krem Headlamp
+            m_Rims = new Color32(195, 197, 202, 255);       // Kazma Metal Ucu (Çelik)
+            m_Wood = new Color32(120, 78, 48, 255);        // Kazma Sapı (Ahşap)
+
             Apply();
         }
 
@@ -238,7 +250,7 @@ namespace PixelGame
             {
                 CollectRenderers();
             }
-            if (m_Template == null)
+            if (m_Template == null && m_Renderers.Count == 0)
             {
                 return;
             }
@@ -246,7 +258,10 @@ namespace PixelGame
             Material material = GetOrCreateMaterial();
             foreach (Renderer target in m_Renderers)
             {
-                target.sharedMaterial = material;
+                if (target != null)
+                {
+                    target.sharedMaterial = material;
+                }
             }
         }
 
@@ -255,20 +270,19 @@ namespace PixelGame
             m_Renderers.Clear();
             foreach (Renderer target in GetComponentsInChildren<Renderer>(true))
             {
-                Material material = target.sharedMaterial;
-                if (material != null && material.name.StartsWith(k_MaterialPrefix, StringComparison.Ordinal))
+                if (target is MeshRenderer || target is SkinnedMeshRenderer)
                 {
                     m_Renderers.Add(target);
-                    if (m_Template == null)
+                    if (m_Template == null && target.sharedMaterial != null)
                     {
-                        m_Template = material;
+                        m_Template = target.sharedMaterial;
                     }
                 }
             }
 
             if (m_Renderers.Count == 0)
             {
-                Debug.LogWarning($"[TruckPaint] '{name}' altında '{k_MaterialPrefix}' materyalini kullanan renderer bulunamadı.", this);
+                Debug.LogWarning($"[TruckPaint] '{name}' altında renderer bulunamadı.", this);
             }
         }
 
@@ -314,7 +328,11 @@ namespace PixelGame
             if (m_UseCartoonShader)
             {
                 Shader cartoon = CartoonShader.Get();
-                if (cartoon != null) material.shader = cartoon;
+                if (cartoon != null)
+                {
+                    material.shader = cartoon;
+                    CartoonShader.ApplyColor(material, Color.white);
+                }
             }
 
             if (material.HasProperty(s_BaseMapId)) material.SetTexture(s_BaseMapId, palette);

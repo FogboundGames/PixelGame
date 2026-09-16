@@ -15,6 +15,8 @@ namespace PixelGame
     {
         [Header("🅿️ Havuz Yerleri")]
         [SerializeField] private List<TruckSlot> m_Places = new List<TruckSlot>();
+        [SerializeField] private int m_Columns = 1;
+        [SerializeField] private int m_Rows = 1;
 
         [Header("🎨 Görünüm")]
         [Tooltip("Bekleme yerlerinin boyutu, aralığı ve görünümü. " +
@@ -23,6 +25,8 @@ namespace PixelGame
 
         public List<TruckSlot> Places => m_Places;
         public TruckPlaceStyle Style => m_Style;
+        public int Columns => m_Columns;
+        public int Rows => m_Rows;
 
         /// <summary>
         /// Havuzu verilen sütun/sıra sayısına göre yeniden kurar.
@@ -30,6 +34,9 @@ namespace PixelGame
         /// </summary>
         public void RebuildPlaces(int columns, int rows)
         {
+            m_Columns = Mathf.Max(1, columns);
+            m_Rows = Mathf.Max(1, rows);
+
             RectTransform rect = transform as RectTransform;
             if (rect == null) return;
 
@@ -38,9 +45,73 @@ namespace PixelGame
             m_Style.showSprite = false;
             m_Style.interactive = true;
 
-            m_Places = TruckPlaceBuilder.Build(rect, m_Style, columns, rows, "Place");
+            m_Places = TruckPlaceBuilder.Build(rect, m_Style, m_Columns, m_Rows, "Place");
         }
         public int PlaceCount => m_Places != null ? m_Places.Count : 0;
+
+        private int GetCurrentPoolColumns()
+        {
+            if (m_Columns > 0) return m_Columns;
+
+            if (LevelManager.Instance != null && LevelManager.Instance.CurrentLevel != null)
+            {
+                return Mathf.Max(1, LevelManager.Instance.CurrentLevel.PoolColumns);
+            }
+
+            PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (gen != null && gen.ActiveLevelData != null)
+            {
+                return Mathf.Max(1, gen.ActiveLevelData.PoolColumns);
+            }
+
+            return 4;
+        }
+
+        /// <summary>
+        /// Belirtilen park yerinin en ön sırada (Row 0) olup olmadığını kontrol eder.
+        /// En ön sıra haricindeki arka sıra vagonları slota yerleştirilemez.
+        /// </summary>
+        public bool IsFrontRowPlace(TruckSlot place)
+        {
+            if (m_Places == null || place == null) return false;
+            int index = m_Places.IndexOf(place);
+            if (index < 0) return false;
+
+            int cols = GetCurrentPoolColumns();
+            int rowIndex = index / cols;
+            return rowIndex == 0;
+        }
+
+        /// <summary>
+        /// Arka sıradaki vagonları hafifçe gölgelendirip karartarak en ön sıradaki vagonları belirginleştirir.
+        /// </summary>
+        public void UpdateRowVisuals()
+        {
+            if (m_Places == null) return;
+            int cols = GetCurrentPoolColumns();
+
+            for (int i = 0; i < m_Places.Count; i++)
+            {
+                TruckSlot place = m_Places[i];
+                if (place == null || place.IsEmpty || place.Truck == null) continue;
+
+                int rowIndex = i / cols;
+                bool isFront = (rowIndex == 0);
+
+                Renderer[] renderers = place.Truck.GetComponentsInChildren<Renderer>(true);
+                Color tint = isFront ? Color.white : new Color(0.6f, 0.6f, 0.72f, 1f);
+
+                foreach (var r in renderers)
+                {
+                    if (r == null || r.sharedMaterial == null) continue;
+                    MaterialPropertyBlock mpb = new MaterialPropertyBlock();
+                    r.GetPropertyBlock(mpb);
+                    mpb.SetColor("_Color", tint);
+                    mpb.SetColor("_BaseColor", tint);
+                    r.SetPropertyBlock(mpb);
+                }
+            }
+        }
 
         private void OnEnable()
         {

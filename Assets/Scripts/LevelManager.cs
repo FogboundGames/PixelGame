@@ -12,6 +12,8 @@ namespace PixelGame
     [AddComponentMenu("PixelGame/Level Manager")]
     public class LevelManager : MonoBehaviour
     {
+        public static LevelManager Instance { get; private set; }
+
         [Header("📋 Bölüm Listesi (Levels)")]
         [Tooltip("Oyundaki tüm bölümler")]
         [SerializeField] private List<PixelLevelData> m_Levels = new List<PixelLevelData>();
@@ -28,6 +30,7 @@ namespace PixelGame
 
         private void Awake()
         {
+            Instance = this;
             EnsureGenerator();
         }
 

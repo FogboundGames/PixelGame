@@ -457,13 +457,22 @@ namespace PixelGame
 
             // Vagondan bağımsız dünya uzayına al (dünya pozisyonu ve ölçeği korunur)
             transform.SetParent(EnsurePoolRoot(), true);
-            m_BasePosition = transform.position;
 
-            // Zıplarken yere inene kadar pürüzsüzce küçüleceği hedef koşu ölçeği (%80)
+            // Koşu ölçeğini ayarla (%80)
             m_TargetRunningScale = transform.localScale * 0.80f;
+            transform.localScale = m_TargetRunningScale;
 
-            // Zıplama dizisini başlat
-            StartJumpState(m_BasePosition);
+            // Madencinin başlangıç pozisyonu vagon kasanın üzerindeki gerçek dünya konumudur.
+            // Z koordinatını -0.30f yapıyoruz ki z düzleminde tahtanın önünde düzgün görünsün.
+            m_BasePosition = new Vector3(spawnWorldPos.x, spawnWorldPos.y, -0.30f);
+            transform.position = m_BasePosition;
+
+            m_HasJumpedOutside = false;
+            m_IsExitingLeft = false;
+            CleanupState();
+
+            // Zıplama kavisini veya ışınlanmayı atlayıp vagonun yanından panoya kesintisiz koşmayı başlat
+            StartRunningState();
             return true;
         }
 
@@ -582,6 +591,9 @@ namespace PixelGame
         private static Dictionary<(int, int), PixelCube> s_GridMapCache;
         private static int s_GridMapCacheFrame = -1;
 
+        private static Dictionary<PixelCube, int> s_LayerDepthCache;
+        private static int s_LayerDepthCacheFrame = -1;
+
         /// <summary>
         /// Sahnedeki küpleri kare başına yalnızca bir kez toplar; tüm madenciler paylaşır.
         ///
@@ -622,13 +634,143 @@ namespace PixelGame
             return s_GridMapCache;
         }
 
-        /// <summary>Bölüm değiştiğinde önbelleği geçersiz kılar.</summary>
+        /// <summary>
+        /// Tüm küplerin en dış sınırdan içe doğru katman derinliklerini hesaplar ve önbellekler.
+        /// Katman 0: Dış havaya (Outside Air) temas eden en dış kabuk.
+        /// Katman 1: Katman 0'ın bir tık içindeki küpler.
+        /// </summary>
+        public static Dictionary<PixelCube, int> GetCubeLayerDepthsCached()
+        {
+            if (s_LayerDepthCacheFrame == Time.frameCount && s_LayerDepthCache != null)
+            {
+                return s_LayerDepthCache;
+            }
+
+            s_LayerDepthCache = CalculateLayerDepths(GetCubesCached());
+            s_LayerDepthCacheFrame = Time.frameCount;
+            return s_LayerDepthCache;
+        }
+
+        /// <summary>Bölüm değiştiğinde veya önbellek sıfırlandığında gezinti verilerini temizler.</summary>
         public static void InvalidateNavigationCache()
         {
             s_CubeCache = null;
             s_CubeCacheFrame = -1;
             s_GridMapCache = null;
             s_GridMapCacheFrame = -1;
+            s_LayerDepthCache = null;
+            s_LayerDepthCacheFrame = -1;
+        }
+
+        /// <summary>
+        /// Izgara dışındaki tüm boş alanlardan (dış hava) BFS başlatarak dış havayı bulur,
+        /// ardından tüm küplere dıştan içe doğru katman derinliği (0, 1, 2...) atar.
+        /// </summary>
+        public static Dictionary<PixelCube, int> CalculateLayerDepths(PixelCube[] allCubes)
+        {
+            var depthMap = new Dictionary<PixelCube, int>();
+            if (allCubes == null || allCubes.Length == 0) return depthMap;
+
+            var gridMap = GetGridMapCached();
+            BoardLayout layout = CalculateBoardLayout(allCubes);
+
+            HashSet<(int, int)> outsideAir = new HashSet<(int, int)>();
+            Queue<(int, int)> airQueue = new Queue<(int, int)>();
+
+            // Çerçeve dış sınırındaki koridor hücrelerini ekle
+            for (int x = -1; x <= layout.cols; x++)
+            {
+                airQueue.Enqueue((x, -1));
+                outsideAir.Add((x, -1));
+                airQueue.Enqueue((x, layout.rows));
+                outsideAir.Add((x, layout.rows));
+            }
+            for (int y = 0; y < layout.rows; y++)
+            {
+                airQueue.Enqueue((-1, y));
+                outsideAir.Add((-1, y));
+                airQueue.Enqueue((layout.cols, y));
+                outsideAir.Add((layout.cols, y));
+            }
+
+            // Izgara içi boşluklardan dış havayı yay (Flood Fill)
+            int[] dx = { -1, 1, 0, 0 };
+            int[] dy = { 0, 0, -1, 1 };
+
+            while (airQueue.Count > 0)
+            {
+                var (cx, cy) = airQueue.Dequeue();
+                for (int i = 0; i < 4; i++)
+                {
+                    int nx = cx + dx[i];
+                    int ny = cy + dy[i];
+
+                    if (nx >= -1 && nx <= layout.cols && ny >= -1 && ny <= layout.rows)
+                    {
+                        if (!outsideAir.Contains((nx, ny)))
+                        {
+                            if (!gridMap.TryGetValue((nx, ny), out PixelCube cube) || cube == null || cube.IsPopped)
+                            {
+                                outsideAir.Add((nx, ny));
+                                airQueue.Enqueue((nx, ny));
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Dış havaya temas eden küpler Katman 0 (En Dış Kabuk) olur
+            Queue<(PixelCube cube, int depth)> cubeQueue = new Queue<(PixelCube, int)>();
+            for (int i = 0; i < allCubes.Length; i++)
+            {
+                PixelCube cube = allCubes[i];
+                if (cube == null || cube.IsPopped) continue;
+
+                int x = cube.GridX;
+                int y = cube.GridY;
+
+                bool touchesAir = false;
+                for (int d = 0; d < 4; d++)
+                {
+                    if (outsideAir.Contains((x + dx[d], y + dy[d])))
+                    {
+                        touchesAir = true;
+                        break;
+                    }
+                }
+
+                if (touchesAir)
+                {
+                    depthMap[cube] = 0;
+                    cubeQueue.Enqueue((cube, 0));
+                }
+            }
+
+            // Katman derinliklerini içe doğru yay (Layer 1, Layer 2...)
+            while (cubeQueue.Count > 0)
+            {
+                var (currCube, currDepth) = cubeQueue.Dequeue();
+                int cx = currCube.GridX;
+                int cy = currCube.GridY;
+
+                for (int d = 0; d < 4; d++)
+                {
+                    int nx = cx + dx[d];
+                    int ny = cy + dy[d];
+
+                    if (gridMap.TryGetValue((nx, ny), out PixelCube nCube) && nCube != null && !nCube.IsPopped)
+                    {
+                        if (!depthMap.ContainsKey(nCube))
+                        {
+                            int nextDepth = currDepth + 1;
+                            depthMap[nCube] = nextDepth;
+                            cubeQueue.Enqueue((nCube, nextDepth));
+                        }
+                    }
+                }
+            }
+
+            return depthMap;
         }
 
         #endregion
@@ -1306,44 +1448,59 @@ namespace PixelGame
 
 
 
+        /// <summary>
+        /// Madencinin kıracağı hedef küpü seçer.
+        /// Düzen Kuralı:
+        /// 1. En Dıştan İçe (Layer 0, Layer 1...): Açık durumdaki küpler arasında en dış katmanda (dış havaya en yakın) olan küplere öncelik verilir.
+        /// 2. En Yakın Olan En Önce: O katmandaki küpler arasından madencinin anlık çıkış konumuna (fromPosition) EN YAKIN olan küp ilk sırada seçilir.
+        /// </summary>
         public static PixelCube FindAndReserveClosestCube(Vector3 fromPosition, Color cargoColor, float threshold)
         {
             PixelCube[] allCubes = GetCubesCached();
             if (allCubes == null || allCubes.Length == 0) return null;
 
             var gridMap = GetGridMapCached();
-            PixelCube bestCube = null;
-            float bestScore = float.MaxValue;
+            var depthMap = GetCubeLayerDepthsCached();
 
+            // 1) Önce şu an açık ve renkle eşleşen küpler arasındaki EN DÜŞÜK katman derinliğini (minLayer) bul
+            int minLayer = int.MaxValue;
             for (int i = 0; i < allCubes.Length; i++)
             {
                 PixelCube cube = allCubes[i];
                 if (cube == null || cube.IsPopped || s_ReservedCubes.Contains(cube)) continue;
 
-                // Dıştan içe kuralı: Sadece erişilebilir/dışarıya açık küpler hedeflenebilir
                 if (IsCubeExposed(cube, gridMap) && IsCubeMatchingCargo(cube, cargoColor, threshold))
                 {
-                    // 1) En alt dikey sıra önceliği: Küçük Y yüksekliği (GridY) en yüksek avantajı alır
-                    float yScore = cube.GridY * 50f;
-
-                    // 2) Diğer aktif rezerve edilen küplere yakınlık cezası (Madencileri taban sırasına yayma)
-                    float separationPenalty = 0f;
-                    foreach (PixelCube reserved in s_ReservedCubes)
+                    int depth = depthMap.TryGetValue(cube, out int d) ? d : 0;
+                    if (depth < minLayer)
                     {
-                        if (reserved != null && !reserved.IsPopped)
-                        {
-                            float dist = Vector2.Distance(cube.transform.position, reserved.transform.position);
-                            if (dist < 3.5f)
-                            {
-                                separationPenalty += (3.5f - dist) * 15f;
-                            }
-                        }
+                        minLayer = depth;
                     }
+                }
+            }
 
-                    // 3) Madencinin anlık başlangıç noktasına mesafe
-                    float distScore = (cube.transform.position - fromPosition).sqrMagnitude;
+            if (minLayer == int.MaxValue) return null;
 
-                    float totalScore = yScore + separationPenalty + distScore;
+            PixelCube bestCube = null;
+            float bestScore = float.MaxValue;
+
+            // 2) Açık küpler arasından önce en dış katmanda olanları, o katman içinde de MADENCİYE EN YAKIN olanını seç
+            for (int i = 0; i < allCubes.Length; i++)
+            {
+                PixelCube cube = allCubes[i];
+                if (cube == null || cube.IsPopped || s_ReservedCubes.Contains(cube)) continue;
+
+                if (IsCubeExposed(cube, gridMap) && IsCubeMatchingCargo(cube, cargoColor, threshold))
+                {
+                    int depth = depthMap.TryGetValue(cube, out int d) ? d : 0;
+
+                    // Katman cezası: Dış katmanlar iç katmanlara göre kesinlikle önceliklidir
+                    float layerPenalty = (depth - minLayer) * 1000f;
+
+                    // Madencinin çıkış/anlık konumuna olan doğrudan mesafe
+                    float distance = Vector3.Distance(fromPosition, cube.transform.position);
+
+                    float totalScore = layerPenalty + distance;
 
                     if (totalScore < bestScore)
                     {
@@ -1359,6 +1516,25 @@ namespace PixelGame
             }
 
             return bestCube;
+        }
+
+        /// <summary>
+        /// Küpün etrafındaki (Sağ, Sol, Yukarı, Alt) henüz kırılmamış aktif komşu sayısını döndürür.
+        /// Az komşu sayısı = Figürün en dış sınırında/çıkıntısında olduğunu gösterir.
+        /// </summary>
+        public static int GetActiveNeighborCount(PixelCube cube, Dictionary<(int, int), PixelCube> gridMap)
+        {
+            if (cube == null || gridMap == null) return 0;
+            int x = cube.GridX;
+            int y = cube.GridY;
+            int count = 0;
+
+            if (gridMap.TryGetValue((x - 1, y), out PixelCube left) && left != null && !left.IsPopped) count++;
+            if (gridMap.TryGetValue((x + 1, y), out PixelCube right) && right != null && !right.IsPopped) count++;
+            if (gridMap.TryGetValue((x, y - 1), out PixelCube down) && down != null && !down.IsPopped) count++;
+            if (gridMap.TryGetValue((x, y + 1), out PixelCube up) && up != null && !up.IsPopped) count++;
+
+            return count;
         }
 
         public static bool IsCubeMatchingCargo(PixelCube cube, Color cargoColor, float threshold)
@@ -1931,29 +2107,15 @@ namespace PixelGame
         {
             TruckPaint paint = GetComponent<TruckPaint>();
             if (paint == null) paint = GetComponentInChildren<TruckPaint>();
-
-            if (paint != null)
+            if (paint == null)
             {
-                PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
-                PixelLevelData level = gen != null ? gen.ActiveLevelData : null;
-                LevelColorTheme theme = (level != null && level.ColorTheme != null) ? level.ColorTheme : GameThemeSettings.CurrentTheme;
-                paint.ApplyTheme(theme, color);
-                return;
+                paint = gameObject.AddComponent<TruckPaint>();
             }
 
-            Renderer rend = GetComponentInChildren<Renderer>();
-            if (rend != null)
-            {
-                if (m_Material == null)
-                {
-                    m_Material = CartoonShader.CreateMaterial(color, "Miner_Mat");
-                    rend.sharedMaterial = m_Material;
-                }
-                else
-                {
-                    CartoonShader.ApplyColor(m_Material, color);
-                }
-            }
+            PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
+            PixelLevelData level = gen != null ? gen.ActiveLevelData : null;
+            LevelColorTheme theme = (level != null && level.ColorTheme != null) ? level.ColorTheme : GameThemeSettings.CurrentTheme;
+            paint.ApplyTheme(theme, color);
         }
 
         private void CleanupState()

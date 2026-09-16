@@ -34,6 +34,26 @@ namespace PixelGame
     }
 
     [Serializable]
+    public class WagonSequenceEntry
+    {
+        public Color wagonColor = Color.white;
+        [Min(1)]
+        public int capacity = 16;
+        public int paletteIndex = 0;
+        public string label = "Vagon";
+
+        public WagonSequenceEntry() { }
+
+        public WagonSequenceEntry(Color color, int cap = 16, int palIdx = 0, string lbl = "Vagon")
+        {
+            wagonColor = color;
+            capacity = cap;
+            paletteIndex = palIdx;
+            label = lbl;
+        }
+    }
+
+    [Serializable]
     public class TruckPartColorSetting
     {
         public TruckPart part;
@@ -78,10 +98,10 @@ namespace PixelGame
             AddPart(TruckPart.StoneDark, false, new Color32(96, 99, 108, 255));
             AddPart(TruckPart.Wood, false, new Color32(120, 78, 48, 255));
             AddPart(TruckPart.Dark, false, new Color32(18, 16, 22, 255));
-            AddPart(TruckPart.MechaBody, true, new Color32(88, 96, 108, 255));
-            AddPart(TruckPart.Helmet, true, new Color32(252, 190, 28, 255));
-            AddPart(TruckPart.HelmetDark, false, new Color32(44, 44, 52, 255));
-            AddPart(TruckPart.Lamp, false, new Color32(255, 246, 200, 255));
+            AddPart(TruckPart.MechaBody, false, new Color32(235, 100, 20, 255));
+            AddPart(TruckPart.Helmet, false, new Color32(255, 200, 0, 255));
+            AddPart(TruckPart.HelmetDark, false, new Color32(40, 44, 52, 255));
+            AddPart(TruckPart.Lamp, false, new Color32(255, 248, 200, 255));
         }
 
         private void AddPart(TruckPart part, bool matchBlock, Color color)
@@ -120,7 +140,7 @@ namespace PixelGame
                 }
                 if (!exists)
                 {
-                    bool match = (p == TruckPart.Cabin || p == TruckPart.Cargo || p == TruckPart.MechaBody || p == TruckPart.Helmet);
+                    bool match = (p == TruckPart.Cabin || p == TruckPart.Cargo);
                     m_Parts.Add(new TruckPartColorSetting(p, match, GetDefaultPartColor(p)));
                 }
             }
@@ -142,10 +162,10 @@ namespace PixelGame
                 case TruckPart.StoneDark: return new Color32(96, 99, 108, 255);
                 case TruckPart.Wood: return new Color32(120, 78, 48, 255);
                 case TruckPart.Dark: return new Color32(18, 16, 22, 255);
-                case TruckPart.MechaBody: return new Color32(88, 96, 108, 255);
-                case TruckPart.Helmet: return new Color32(252, 190, 28, 255);
-                case TruckPart.HelmetDark: return new Color32(44, 44, 52, 255);
-                case TruckPart.Lamp: return new Color32(255, 246, 200, 255);
+                case TruckPart.MechaBody: return new Color32(235, 100, 20, 255);
+                case TruckPart.Helmet: return new Color32(255, 200, 0, 255);
+                case TruckPart.HelmetDark: return new Color32(40, 44, 52, 255);
+                case TruckPart.Lamp: return new Color32(255, 248, 200, 255);
                 default: return Color.white;
             }
         }
@@ -251,6 +271,11 @@ namespace PixelGame
         [Min(1)]
         [SerializeField] private int m_TruckCapacity = 16;
 
+        [Header("🚚 Manuel Vagon & Maden Arabası Sıra Tasarımı (Opsiyonel Override)")]
+        [Tooltip("Açıksa vagonlar otomatik rastgele karıştırılmaz; aşağıda dizilen birebir sırada ve kapasitelerle oyuna gelir.")]
+        [SerializeField] private bool m_UseCustomWagonSequence = false;
+        [SerializeField] private List<WagonSequenceEntry> m_WagonSequence = new List<WagonSequenceEntry>();
+
         [Header("🌑 Gölge Özelleştirme (Opsiyonel)")]
         [Tooltip("Bu bölüme özel kontur gölgesi dokusu (Boş bırakılırsa görselden otomatik üretilir)")]
         [SerializeField] private Texture2D m_FigureShadowTexture;
@@ -310,16 +335,170 @@ namespace PixelGame
         public int PoolColumns { get => m_PoolColumns; set => m_PoolColumns = Mathf.Max(1, value); }
         public int PoolRows { get => m_PoolRows; set => m_PoolRows = Mathf.Max(1, value); }
         public int TruckCapacity { get => m_TruckCapacity; set => m_TruckCapacity = Mathf.Max(1, value); }
+        public bool UseCustomWagonSequence { get => m_UseCustomWagonSequence; set => m_UseCustomWagonSequence = value; }
+        public List<WagonSequenceEntry> WagonSequence 
+        { 
+            get 
+            { 
+                if (m_WagonSequence == null) m_WagonSequence = new List<WagonSequenceEntry>(); 
+                return m_WagonSequence; 
+            } 
+            set => m_WagonSequence = value; 
+        }
 
         /// <summary>Havuzda aynı anda görünen kamyon sayısı.</summary>
         public int PoolPlaceCount => m_PoolColumns * m_PoolRows;
 
         /// <summary>
+        /// Paletteki küp sayılarına göre otomatik varsayılan bir vagon sırası oluşturur.
+        /// Level Designer üzerinden bu sırayı özelleştirmek için başlangıç noktası sağlar.
+        /// </summary>
+        public void GenerateDefaultWagonSequenceFromPalette()
+        {
+            if (m_WagonSequence == null) m_WagonSequence = new List<WagonSequenceEntry>();
+            m_WagonSequence.Clear();
+
+            if (m_ColorPalette == null || m_ColorPalette.Count == 0) return;
+
+            int cap = Mathf.Max(1, m_TruckCapacity);
+            bool hasAdjustment = (m_ColorBrightness != 1f || m_ColorSaturation != 1f || m_ColorContrast != 1f);
+
+            for (int i = 0; i < m_ColorPalette.Count; i++)
+            {
+                PaletteColorOverride entry = m_ColorPalette[i];
+                if (entry == null || entry.pixelCount <= 0) continue;
+
+                Color wagonColor = entry.targetColor;
+                if (hasAdjustment)
+                {
+                    wagonColor = PixelCube.AdjustColor(wagonColor, m_ColorBrightness, m_ColorSaturation, m_ColorContrast);
+                }
+
+                int remaining = entry.pixelCount;
+                int wagonIndex = 1;
+                while (remaining > 0)
+                {
+                    int load = Mathf.Min(cap, remaining);
+                    string nameLabel = string.IsNullOrEmpty(entry.label) ? $"Renk #{i + 1}" : entry.label;
+                    m_WagonSequence.Add(new WagonSequenceEntry(wagonColor, load, i, $"{nameLabel} ({wagonIndex})"));
+                    remaining -= load;
+                    wagonIndex++;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Renk paletindeki küpleri renklere göre sıralı değil, dengeli karışık (Round-Robin Interleaved)
+        /// vagon dizisi halinde oluşturur. (Örn: Red 1 -> Green 1 -> Blue 1 -> Red 2 -> Green 2...)
+        /// </summary>
+        public void GenerateInterleavedWagonSequenceFromPalette()
+        {
+            if (m_WagonSequence == null) m_WagonSequence = new List<WagonSequenceEntry>();
+            m_WagonSequence.Clear();
+
+            if (m_ColorPalette == null || m_ColorPalette.Count == 0) return;
+
+            int cap = Mathf.Max(1, m_TruckCapacity);
+            bool hasAdjustment = (m_ColorBrightness != 1f || m_ColorSaturation != 1f || m_ColorContrast != 1f);
+
+            List<List<WagonSequenceEntry>> colorWagonLists = new List<List<WagonSequenceEntry>>();
+
+            for (int i = 0; i < m_ColorPalette.Count; i++)
+            {
+                PaletteColorOverride entry = m_ColorPalette[i];
+                if (entry == null || entry.pixelCount <= 0) continue;
+
+                Color wagonColor = entry.targetColor;
+                if (hasAdjustment)
+                {
+                    wagonColor = PixelCube.AdjustColor(wagonColor, m_ColorBrightness, m_ColorSaturation, m_ColorContrast);
+                }
+
+                List<WagonSequenceEntry> list = new List<WagonSequenceEntry>();
+                int remaining = entry.pixelCount;
+                int wagonIndex = 1;
+                while (remaining > 0)
+                {
+                    int load = Mathf.Min(cap, remaining);
+                    string nameLabel = string.IsNullOrEmpty(entry.label) ? $"Renk #{i + 1}" : entry.label;
+                    list.Add(new WagonSequenceEntry(wagonColor, load, i, $"{nameLabel} ({wagonIndex})"));
+                    remaining -= load;
+                    wagonIndex++;
+                }
+                colorWagonLists.Add(list);
+            }
+
+            bool addedAny = true;
+            int stepIndex = 0;
+            while (addedAny)
+            {
+                addedAny = false;
+                for (int c = 0; c < colorWagonLists.Count; c++)
+                {
+                    if (stepIndex < colorWagonLists[c].Count)
+                    {
+                        m_WagonSequence.Add(colorWagonLists[c][stepIndex]);
+                        addedAny = true;
+                    }
+                }
+                stepIndex++;
+            }
+        }
+
+        /// <summary>Bölüm görselinde kırılması gereken toplam küp sayısı.</summary>
+        public int GetTotalCubeCountInPalette()
+        {
+            if (m_ColorPalette == null) return 0;
+            int sum = 0;
+            foreach (var entry in m_ColorPalette)
+            {
+                if (entry != null && entry.pixelCount > 0)
+                {
+                    sum += entry.pixelCount;
+                }
+            }
+            return sum;
+        }
+
+        /// <summary>Sıradaki vagonların toplam taşıma kapasitesi.</summary>
+        public int GetTotalWagonCapacity()
+        {
+            if (m_WagonSequence == null) return 0;
+            int sum = 0;
+            foreach (var wagon in m_WagonSequence)
+            {
+                if (wagon != null) sum += wagon.capacity;
+            }
+            return sum;
+        }
+
+        /// <summary>Belirtilen renge atanmış vagonların toplam taşıma kapasitesi.</summary>
+        public int GetTotalAssignedCapacityForColor(Color targetColor, float threshold = 0.05f)
+        {
+            if (m_WagonSequence == null) return 0;
+            int sum = 0;
+            foreach (var wagon in m_WagonSequence)
+            {
+                if (wagon == null) continue;
+                if (TruckCargo.ColorDistance(wagon.wagonColor, targetColor) <= threshold)
+                {
+                    sum += wagon.capacity;
+                }
+            }
+            return sum;
+        }
+
+
+        /// <summary>
         /// Bu bölümü bitirmek için gereken toplam kamyon sayısı.
-        /// Her renk için o renkteki küpleri taşıyacak kadar kamyon çıkar.
         /// </summary>
         public int GetRequiredTruckCount()
         {
+            if (m_UseCustomWagonSequence && m_WagonSequence != null && m_WagonSequence.Count > 0)
+            {
+                return m_WagonSequence.Count;
+            }
+
             if (m_ColorPalette == null) return 0;
 
             int total = 0;

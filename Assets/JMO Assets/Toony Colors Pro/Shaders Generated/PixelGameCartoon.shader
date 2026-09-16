@@ -1,5 +1,10 @@
 // Toony Colors Pro+Mobile 2
 // (c) 2014-2025 Jean Moreno
+// ----------------------------------------------------------------------------------
+// WARNING: Custom HLSL plastic & bevel logic is modularly included via PixelGamePlastic.hlsl.
+// If you regenerate this shader using TCP2 Shader Generator, ensure PixelGamePlastic.hlsl
+// remains included so custom plastic toy bevel effects are preserved!
+// ----------------------------------------------------------------------------------
 
 Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 {
@@ -43,6 +48,8 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 		_PlasticHighlightSize ("Highlight Size / Softness", Range(0.01, 1)) = 0.35
 		_PlasticTopLight ("Top Light Boost", Range(0, 1)) = 0.25
 		_PlasticBevelAO ("Bevel Edge Darkening (AO)", Range(0, 1)) = 0.4
+		_ProceduralBevelWidth ("Procedural Bevel Edge Width", Range(0, 0.2)) = 0.05
+		_ProceduralBevelIntensity ("Procedural Bevel Intensity", Range(0, 2)) = 0.8
 		[TCP2Separator]
 		
 		[ToggleOff(_RECEIVE_SHADOWS_OFF)] _ReceiveShadowsOff ("Receive Shadows", Float) = 1
@@ -113,7 +120,11 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 			float _PlasticHighlightSize;
 			float _PlasticTopLight;
 			float _PlasticBevelAO;
+			float _ProceduralBevelWidth;
+			float _ProceduralBevelIntensity;
 		CBUFFER_END
+
+		#include "PixelGamePlastic.hlsl"
 
 		//Specular help functions (from UnityStandardBRDF.cginc)
 		inline float3 SpecSafeNormalize(float3 inVec)
@@ -235,12 +246,7 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 				output.shadowCoord = GetShadowCoord(vertexInput);
 			#endif
 
-				float3 meshNormal = input.normal;
-				if (_PillowRoundness > 0.001)
-				{
-					float3 sphereNorm = normalize(input.vertex.xyz);
-					meshNormal = normalize(lerp(input.normal, sphereNorm, _PillowRoundness));
-				}
+				float3 meshNormal = ApplyPlasticPillowNormal(input.vertex.xyz, input.normal, _PillowRoundness);
 				VertexNormalInputs vertexNormalInput = GetVertexNormalInputs(meshNormal);
 			#ifdef _ADDITIONAL_LIGHTS_VERTEX
 				// Vertex lighting
@@ -272,6 +278,7 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 
 				float3 positionWS = input.worldPosAndFog.xyz;
 				float3 normalWS = normalize(input.normal);
+				normalWS = CalculateProceduralBevelNormal(input.pack0.xy, normalWS, _ProceduralBevelWidth, _ProceduralBevelIntensity);
 				half3 viewDirWS = GetWorldSpaceNormalizeViewDir(positionWS);
 
 				// Shader Properties Sampling
@@ -372,8 +379,8 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 				half3 accumulatedRamp = ramp * max(lightColor.r, max(lightColor.g, lightColor.b));
 				half3 accumulatedColors = ramp * lightColor.rgb;
 
-				half3 specView = (_StylizedPlasticOn > 0.5) ? half3(0.0, 0.0, -1.0) : viewDirWS;
-				half3 specLight = (_StylizedPlasticOn > 0.5) ? normalize(half3(_PlasticAngleX, 0.68, -0.58)) : lightDir;
+				half3 specView, specLight;
+				GetPlasticSpecularDirections(lightDir, viewDirWS, _StylizedPlasticOn, _PlasticAngleX, specLight, specView);
 				half3 halfDir = SpecSafeNormalize(float3(specLight) + float3(specView));
 				
 				//Specular: GGX
@@ -537,17 +544,7 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 				color += indirectDiffuse;
 				color += emission;
 
-				if (_StylizedPlasticOn > 0.5)
-				{
-					float3 nWS = normalize(normalWS);
-					// 1. Üst tavan aydınlık desteği
-					float topBoost = smoothstep(0.4, 0.9, nWS.y) * _PlasticTopLight;
-					color += albedo * topBoost;
-
-					// 2. Alt kavis gölgesi
-					float bottomDark = saturate(-nWS.y * 1.5) * 0.45;
-					color *= saturate(1.0 - bottomDark * _PlasticBevelAO);
-				}
+				color = ApplyPlasticSurfaceLighting(color, albedo, normalWS, _StylizedPlasticOn, _PlasticTopLight, _PlasticBevelAO);
 
 				return half4(color, alpha);
 			}
