@@ -1936,16 +1936,8 @@ namespace PixelGame
             {
                 PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
                 PixelLevelData level = gen != null ? gen.ActiveLevelData : null;
-                if (level != null && level.ColorTheme != null)
-                {
-                    paint.ApplyTheme(level.ColorTheme, color);
-                }
-                else
-                {
-                    paint.SetBodyColor(color);
-                    paint.SetMinerColors(color, color);
-                    paint.Apply();
-                }
+                LevelColorTheme theme = (level != null && level.ColorTheme != null) ? level.ColorTheme : GameThemeSettings.CurrentTheme;
+                paint.ApplyTheme(theme, color);
                 return;
             }
 

@@ -1028,15 +1028,8 @@ namespace PixelGame
             if (paint != null)
             {
                 PixelLevelData lvl = GetLevel();
-                if (lvl != null && lvl.ColorTheme != null)
-                {
-                    paint.ApplyTheme(lvl.ColorTheme, order.Color);
-                }
-                else
-                {
-                    paint.SetBodyColor(order.Color);
-                    paint.Apply();
-                }
+                LevelColorTheme theme = (lvl != null && lvl.ColorTheme != null) ? lvl.ColorTheme : GameThemeSettings.CurrentTheme;
+                paint.ApplyTheme(theme, order.Color);
             }
 
             cargo.EnsureBadge();

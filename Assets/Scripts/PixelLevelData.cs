@@ -255,7 +255,9 @@ namespace PixelGame
         [Tooltip("Bu bölüme özel kontur gölgesi dokusu (Boş bırakılırsa görselden otomatik üretilir)")]
         [SerializeField] private Texture2D m_FigureShadowTexture;
 
-        [Header("🎨 Vagon, Madenci & Çevre Renk Teması")]
+        [Header("🎨 Vagon, Madenci & Çevre Renk Teması (Opsiyonel Override)")]
+        [Tooltip("Bu bölüme özel tema tanımlamak isterseniz açın. Kapalıysa oyunun Genel Tema Ayarları (GameThemeSettings) kullanılır.")]
+        [SerializeField] private bool m_UseCustomColorTheme = false;
         [SerializeField] private LevelColorTheme m_ColorTheme = new LevelColorTheme();
 
         // Public Properties
@@ -264,7 +266,22 @@ namespace PixelGame
         public Texture2D LevelTexture { get => m_LevelTexture; set => m_LevelTexture = value; }
         public Sprite LevelSprite { get => m_LevelSprite; set => m_LevelSprite = value; }
         public Texture2D FigureShadowTexture { get => m_FigureShadowTexture; set => m_FigureShadowTexture = value; }
+        public bool UseCustomColorTheme { get => m_UseCustomColorTheme; set => m_UseCustomColorTheme = value; }
         public LevelColorTheme ColorTheme
+        {
+            get
+            {
+                if (m_UseCustomColorTheme)
+                {
+                    if (m_ColorTheme == null) m_ColorTheme = new LevelColorTheme();
+                    m_ColorTheme.EnsureAllPartsPresent();
+                    return m_ColorTheme;
+                }
+                return GameThemeSettings.CurrentTheme;
+            }
+            set => m_ColorTheme = value;
+        }
+        public LevelColorTheme CustomColorTheme
         {
             get
             {
@@ -272,7 +289,6 @@ namespace PixelGame
                 m_ColorTheme.EnsureAllPartsPresent();
                 return m_ColorTheme;
             }
-            set => m_ColorTheme = value;
         }
         public bool UseNativeResolution { get => m_UseNativeResolution; set => m_UseNativeResolution = value; }
         public Vector2Int CustomResolution { get => m_CustomResolution; set => m_CustomResolution = value; }

@@ -27,7 +27,7 @@ namespace PixelGame.Editor
             TruckLayout = 2
         }
 
-        private DetailTab m_CurrentTab = DetailTab.ColorStudio;
+        private DetailTab m_CurrentTab = DetailTab.LevelSetup;
         private Color m_PreviewBlockColor = new Color32(230, 40, 40, 255);
 
         [MenuItem("Tools/PixelGame/🛠️ Level Designer (Bölüm Tasarımcısı)", priority = 5)]
@@ -76,14 +76,21 @@ namespace PixelGame.Editor
                 normal = { textColor = new Color(0.3f, 0.88f, 1f) }
             };
 
-            GUI.Label(new Rect(rect.x + 12, rect.y, rect.width - 320, rect.height), "🛠️ Pixel Game - Bölüm Tasarımcısı & Renk Editörü", titleStyle);
+            GUI.Label(new Rect(rect.x + 12, rect.y, rect.width - 480, rect.height), "🛠️ Pixel Game - Bölüm Tasarımcısı", titleStyle);
 
-            if (GUI.Button(new Rect(rect.xMax - 225, rect.y + 7, 105, 26), "➕ Yeni Bölüm"))
+            GUI.backgroundColor = new Color(0.2f, 0.75f, 1f);
+            if (GUI.Button(new Rect(rect.xMax - 385, rect.y + 7, 155, 26), "🎨 Genel Tema Ayarları"))
+            {
+                GameThemeSettingsWindow.OpenWindow();
+            }
+            GUI.backgroundColor = Color.white;
+
+            if (GUI.Button(new Rect(rect.xMax - 220, rect.y + 7, 105, 26), "➕ Yeni Bölüm"))
             {
                 CreateNewLevel();
             }
 
-            if (GUI.Button(new Rect(rect.xMax - 110, rect.y + 7, 95, 26), "🔄 Listeyi Yenile"))
+            if (GUI.Button(new Rect(rect.xMax - 105, rect.y + 7, 95, 26), "🔄 Listeyi Yenile"))
             {
                 RefreshLevelList();
             }
@@ -290,6 +297,9 @@ namespace PixelGame.Editor
             GUI.backgroundColor = Color.white;
             EditorGUILayout.EndHorizontal();
 
+            // Sabit Kalıcı Önizleme Kartı (Her sekmede en üstte yer alır)
+            DrawHeroPreviewCard();
+
             EditorGUILayout.Space(6);
 
             // Sekme Seçimi (Tabs)
@@ -302,7 +312,7 @@ namespace PixelGame.Editor
             };
 
             DrawTabButton(DetailTab.LevelSetup, "📋 Bölüm & Izgara", tabStyle);
-            DrawTabButton(DetailTab.ColorStudio, "🎨 Renk Ayarları (Color Studio)", tabStyle);
+            DrawTabButton(DetailTab.ColorStudio, "🎨 Piksel Renkleri (Recolor)", tabStyle);
             DrawTabButton(DetailTab.TruckLayout, "🚚 Vagon & Ray Düzeni", tabStyle);
             EditorGUILayout.EndHorizontal();
 
@@ -321,84 +331,43 @@ namespace PixelGame.Editor
 
                 EditorGUILayout.Space(6);
 
-                // 2. Görsel Seçici & Canlı Önizleme
+                // 2. 📐 PİKSEL UYUMU & IZGARA AYARLARI
+                DrawGridSettingsSection();
+            }
+            else if (m_CurrentTab == DetailTab.ColorStudio)
+            {
+                // 1. Global Tema Bilgi & Hızlı Erişim Kartı
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                EditorGUILayout.LabelField("🖼️ Kaynak Piksel Görseli", EditorStyles.boldLabel);
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("🎨 Vagon, Madenci & Ray Teması", EditorStyles.boldLabel);
 
-                Texture2D newTex = (Texture2D)EditorGUILayout.ObjectField("Görsel (Texture2D)", m_SelectedLevel.LevelTexture, typeof(Texture2D), false);
-                if (newTex != m_SelectedLevel.LevelTexture)
+                GUI.backgroundColor = new Color(0.25f, 0.75f, 1f);
+                if (GUILayout.Button("🎨 Genel Tema Ayarlarını Aç", GUILayout.Width(190), GUILayout.Height(24)))
                 {
-                    m_SelectedLevel.LevelTexture = newTex;
-                    if (newTex != null)
-                    {
-                        m_SelectedLevel.ExtractPaletteFromTexture();
-                    }
+                    GameThemeSettingsWindow.OpenWindow();
                 }
+                GUI.backgroundColor = Color.white;
+                EditorGUILayout.EndHorizontal();
 
-                Texture2D activeTex = m_SelectedLevel.GetActiveTexture();
-                if (activeTex != null)
+                EditorGUILayout.LabelField("Vagon, madenci ve çevre renkleri tüm oyun genelinde tek merkezden (GameThemeSettings) yönetilir.", EditorStyles.miniLabel);
+
+                m_SelectedLevel.UseCustomColorTheme = EditorGUILayout.ToggleLeft("⚠️ Bu bölüme özel tema tanımla (Global Temayı Ez)", m_SelectedLevel.UseCustomColorTheme, EditorStyles.boldLabel);
+                if (m_SelectedLevel.UseCustomColorTheme)
                 {
-                    EditorGUILayout.Space(4);
-                    EditorGUILayout.BeginHorizontal();
-
-                    // Önizleme kutusu
-                    Rect previewRect = EditorGUILayout.GetControlRect(false, 96, GUILayout.Width(96));
-                    EditorGUI.DrawRect(previewRect, new Color(0.12f, 0.12f, 0.12f, 1f));
-                    GUI.DrawTexture(previewRect, activeTex, ScaleMode.ScaleToFit);
-
-                    EditorGUILayout.BeginVertical();
-                    EditorGUILayout.LabelField($"Boyut: {activeTex.width} x {activeTex.height} Piksel", EditorStyles.boldLabel);
-                    EditorGUILayout.LabelField($"Toplam Küp: {activeTex.width * activeTex.height} adet");
-
-                    string path = AssetDatabase.GetAssetPath(activeTex);
-                    TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
-                    if (importer != null && !importer.isReadable)
-                    {
-                        EditorGUILayout.HelpBox("⚠️ Görsel 'Read/Write' iznine sahip değil.", MessageType.Warning);
-                        if (GUILayout.Button("🔧 Görseli Okunabilir Yap", GUILayout.Height(22)))
-                        {
-                            importer.isReadable = true;
-                            importer.SaveAndReimport();
-                            m_SelectedLevel.ExtractPaletteFromTexture();
-                        }
-                    }
-                    else
-                    {
-                        EditorGUILayout.LabelField("✅ Görsel piksel okumaya hazır.", EditorStyles.miniLabel);
-                    }
-                    EditorGUILayout.EndVertical();
-                    EditorGUILayout.EndHorizontal();
-                }
-                else
-                {
-                    EditorGUILayout.HelpBox("Lütfen bu levelde küplerle çizilecek bir piksel resmi sürükleyip bırakın.", MessageType.Info);
+                    EditorGUILayout.HelpBox("Bu bölüme özel tema aktif. Aşağıdaki renkler sadece bu level için geçerli olacaktır.", MessageType.Warning);
+                    DrawThemeColorSection();
                 }
                 EditorGUILayout.EndVertical();
 
                 EditorGUILayout.Space(6);
 
-                // 3. 📐 PİKSEL UYUMU & IZGARA AYARLARI
-                DrawGridSettingsSection();
-            }
-            else if (m_CurrentTab == DetailTab.ColorStudio)
-            {
-                // 1. 🎨 VAGON, MADENCİ & RAY ÖZEL RENK AYARLARI ("Vagon Ne Renkse O" Dinamik Ayarı Dahil)
-                DrawThemeColorSection();
-
-                EditorGUILayout.Space(6);
-
-                // 2. 🎨 BÖLÜM RENK PALETİ VE RENK DEĞİŞTİRME
+                // 2. 🎨 BÖLÜM PİKSEL RENK PALETİ VE RENK DEĞİŞTİRME (RECOLOR)
                 DrawColorPaletteSection();
 
                 EditorGUILayout.Space(6);
 
                 // 3. ☀️ GENEL RENK & IŞIK AYARLARI (Parlaklık, Doygunluk, Kontrast)
                 DrawGlobalColorSettingsSection();
-
-                EditorGUILayout.Space(6);
-
-                // 4. 🎨 TOONY COLORS PRO
-                DrawToonyColorsProSection();
             }
             else if (m_CurrentTab == DetailTab.TruckLayout)
             {
@@ -420,6 +389,102 @@ namespace PixelGame.Editor
 
             EditorGUILayout.Space(16);
             EditorGUILayout.EndScrollView();
+            EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// Seçili seviyenin resim önizlemesini, temel boyut bilgilerini ve görsel seçicisini
+        /// her sekmede ekranın en üstünde sabit olarak gösteren kahraman önizleme kartı.
+        /// </summary>
+        private void DrawHeroPreviewCard()
+        {
+            if (m_SelectedLevel == null) return;
+
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            Texture2D activeTex = m_SelectedLevel.GetActiveTexture();
+
+            EditorGUILayout.BeginHorizontal();
+
+            // 1. Sol: Büyük Resim Önizleme Kutusu (100x100)
+            Rect previewRect = EditorGUILayout.GetControlRect(false, 100, GUILayout.Width(100));
+            EditorGUI.DrawRect(previewRect, new Color(0.1f, 0.12f, 0.16f, 1f));
+
+            if (activeTex != null)
+            {
+                GUI.DrawTexture(previewRect, activeTex, ScaleMode.ScaleToFit);
+            }
+            else
+            {
+                GUIStyle emptyText = new GUIStyle(EditorStyles.centeredGreyMiniLabel)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    fontSize = 11,
+                    wordWrap = true
+                };
+                GUI.Label(previewRect, "🖼️\nGörsel\nSeçilmedi", emptyText);
+            }
+
+            GUILayout.Space(10);
+
+            // 2. Sağ: Bilgiler & Görsel Değiştirici
+            EditorGUILayout.BeginVertical();
+
+            EditorGUILayout.BeginHorizontal();
+            GUIStyle nameStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                fontSize = 14,
+                normal = { textColor = new Color(0.25f, 0.85f, 1f) }
+            };
+            EditorGUILayout.LabelField($"Level {m_SelectedLevel.LevelIndex}: {m_SelectedLevel.LevelName}", nameStyle);
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(2);
+
+            // Kaynak Görsel Seçici
+            Texture2D newTex = (Texture2D)EditorGUILayout.ObjectField("Kaynak Piksel Görseli", m_SelectedLevel.LevelTexture, typeof(Texture2D), false);
+            if (newTex != m_SelectedLevel.LevelTexture)
+            {
+                m_SelectedLevel.LevelTexture = newTex;
+                if (newTex != null)
+                {
+                    m_SelectedLevel.ExtractPaletteFromTexture();
+                }
+            }
+
+            if (activeTex != null)
+            {
+                Vector2Int res = m_SelectedLevel.GetGridResolution();
+                EditorGUILayout.LabelField($"📐 Görsel: {activeTex.width} x {activeTex.height} Piksel  |  Izgara: {res.x} x {res.y}  |  Küp: {activeTex.width * activeTex.height} adet", EditorStyles.miniBoldLabel);
+
+                string path = AssetDatabase.GetAssetPath(activeTex);
+                TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+                if (importer != null && !importer.isReadable)
+                {
+                    EditorGUILayout.BeginHorizontal();
+                    EditorGUILayout.HelpBox("⚠️ Görsel 'Read/Write' iznine sahip değil (Pikseller okunamaz).", MessageType.Warning);
+                    if (GUILayout.Button("🔧 Okunabilir Yap", GUILayout.Width(130), GUILayout.Height(26)))
+                    {
+                        importer.isReadable = true;
+                        importer.SaveAndReimport();
+                        m_SelectedLevel.ExtractPaletteFromTexture();
+                    }
+                    EditorGUILayout.EndHorizontal();
+                }
+                else
+                {
+                    EditorGUILayout.LabelField("✅ Görsel piksel okumaya ve küp üretmeye hazır.", EditorStyles.miniLabel);
+                }
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("Lütfen bu levelde çizilecek piksel görselini yukarıdaki 'Kaynak Piksel Görseli' kutusuna sürükleyin.", MessageType.Info);
+            }
+
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.EndHorizontal();
+
             EditorGUILayout.EndVertical();
         }
 
