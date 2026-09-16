@@ -331,10 +331,10 @@ namespace PixelGame
                 VoxelParticleManager.Instance.SpawnVoxelBurst(transform.position, transform.lossyScale, m_CurrentColor);
             }
 
-            // 2. Küpü rengine uyan kamyonun kasasına yükle (kırılan parçalar küple %100 aynı renkte uçar)
+            // 2. Küpü rengine uyan kamyonun kasasına yükle (12 kırık parça kendi açılarından fırlar)
             if (dispatcher != null)
             {
-                dispatcher.NotifyCubePopped(m_CurrentColor, transform.position, m_CurrentColor);
+                dispatcher.NotifyCubePopped(m_CurrentColor, transform.position, m_CurrentColor, transform.lossyScale, transform.rotation);
             }
 
             // 3. Etkileşim yöneticisine bildir

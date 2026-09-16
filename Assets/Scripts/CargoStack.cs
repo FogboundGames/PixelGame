@@ -105,27 +105,55 @@ namespace PixelGame
         /// <summary>
         /// Kasaya bir parça ekler. <paramref name="sizeFactor"/> parçanın temel boyuta
         /// göre büyüklüğüdür (1 = ortalama), böylece yığın tek tip görünmez.
+        /// <paramref name="shardMesh"/> verilirse gerçek kırık taş mesh'i kullanılır.
         /// </summary>
-        public void AddPiece(float sizeFactor)
+        public void AddPiece(float sizeFactor, Mesh shardMesh = null)
         {
             if (!m_Ready) Measure();
             if (!m_Ready) return;
 
             int index = m_Pieces.Count;
 
-            GameObject piece = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            piece.name = $"CargoPiece_{index + 1}";
-
-            // Yığındaki parçalar tıklamayı yutmasın; oyuncu tabloya basıyor
-            Collider collider = piece.GetComponent<Collider>();
-            if (collider != null) Destroy(collider);
-
-            MeshRenderer renderer = piece.GetComponent<MeshRenderer>();
-            if (renderer != null && m_Material != null)
+            GameObject piece;
+            if (shardMesh != null)
             {
-                renderer.sharedMaterial = m_Material;
-                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                renderer.receiveShadows = false;
+                piece = new GameObject($"CargoPiece_{index + 1}");
+                MeshFilter mf = piece.AddComponent<MeshFilter>();
+                mf.sharedMesh = shardMesh;
+                MeshRenderer mr = piece.AddComponent<MeshRenderer>();
+                if (m_Material != null)
+                {
+                    int subMeshCount = shardMesh.subMeshCount;
+                    if (subMeshCount > 1)
+                    {
+                        Material[] mats = new Material[subMeshCount];
+                        for (int m = 0; m < subMeshCount; m++) mats[m] = m_Material;
+                        mr.sharedMaterials = mats;
+                    }
+                    else
+                    {
+                        mr.sharedMaterial = m_Material;
+                    }
+                }
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                mr.receiveShadows = false;
+            }
+            else
+            {
+                piece = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                piece.name = $"CargoPiece_{index + 1}";
+
+                // Yığındaki parçalar tıklamayı yutmasın; oyuncu tabloya basıyor
+                Collider collider = piece.GetComponent<Collider>();
+                if (collider != null) Destroy(collider);
+
+                MeshRenderer renderer = piece.GetComponent<MeshRenderer>();
+                if (renderer != null && m_Material != null)
+                {
+                    renderer.sharedMaterial = m_Material;
+                    renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    renderer.receiveShadows = false;
+                }
             }
 
             Transform t = piece.transform;

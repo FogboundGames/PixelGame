@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 237bac9b845738d7abbb3852d2b2ba29, type: 3}
+  m_Name: FracturedCubeData
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.FracturedCubeData
+  m_Shards:
+  - name: Ore_Frag_00
+    mesh: {fileID: 3851700856419250661, guid: 21dbbfb54c8ab539b805475076379e36, type: 3}
+    localOffset: {x: -0.41714227, y: 0.3852773, z: -0.3949955}
+    outwardDir: {x: -0.6030563, y: 0.5569896, z: -0.5710391}
+  - name: Ore_Frag_01
+    mesh: {fileID: 1836305915023230060, guid: 21dbbfb54c8ab539b805475076379e36, type: 3}
+    localOffset: {x: 0.2983501, y: -0.3522573, z: 0.055944707}
+    outwardDir: {x: 0.64160895, y: -0.7575377, z: 0.12031042}
+  - name: Ore_Frag_02
+    mesh: {fileID: -1134148579730455355, guid: 21dbbfb54c8ab539b805475076379e36, type: 3}
+    localOffset: {x: 0.34588617, y: 0.38607913, z: 0.44742137}
+    outwardDir: {x: 0.5051289, y: 0.5638264, z: 0.65340996}
+  - name: Ore_Frag_03
+    mesh: {fileID: -2821583879354148673, guid: 21dbbfb54c8ab539b805475076379e36, type: 3}
+    localOffset: {x: -0.3805404, y: -0.329347, z: 0.36948496}
+    outwardDir: {x: -0.60950893, y: -0.52751285, z: 0.5918015}
+  - name: Ore_Frag_04
+    mesh: {fileID: -5629384313048548987, guid: 21dbbfb54c8ab539b805475076379e36, type: 3}
+    localOffset: {x: 0.4291282, y: 0.34664413, z: -0.37749302}
+    outwardDir: {x: 0.6419831, y: 0.5185855, z: -0.564736}
+  - name: Ore_Frag_05
+    mesh: {fileID: -297978394556646555, guid: 21dbbfb54c8ab539b805475076379e36, type: 3}
+    localOffset: {x: 0.025272101, y: 0.37160125, z: -0.36746287}
+    outwardDir: {x: 0.04830146, y: 0.71022516, z: -0.7023156}
+  - name: Ore_Frag_06
+    mesh: {fileID: 7163937208738389176, guid: 21dbbfb54c8ab539b805475076379e36, type: 3}
+    localOffset: {x: 0.3520877, y: -0.3770649, z: 0.43601283}
+    outwardDir: {x: 0.5212535, y: -0.5582314, z: 0.64550173}
+  - name: Ore_Frag_07
+    mesh: {fileID: 5561731328657601743, guid: 21dbbfb54c8ab539b805475076379e36, type: 3}
+    localOffset: {x: -0.39537427, y: 0.37918663, z: 0.33622795}
+    outwardDir: {x: -0.6151105, y: 0.58992636, z: 0.5230926}
+  - name: Ore_Frag_08
+    mesh: {fileID: -754287642587727972, guid: 21dbbfb54c8ab539b805475076379e36, type: 3}
+    localOffset: {x: 0.3868538, y: -0.3990319, z: -0.41214353}
+    outwardDir: {x: 0.559107, y: -0.5767076, z: -0.5956574}
+  - name: Ore_Frag_09
+    mesh: {fileID: -6298477540596906655, guid: 21dbbfb54c8ab539b805475076379e36, type: 3}
+    localOffset: {x: -0.3744806, y: -0.3463526, z: -0.3763438}
+    outwardDir: {x: -0.59075564, y: -0.5463828, z: -0.59369487}
+  - name: Ore_Frag_10
+    mesh: {fileID: 2426132817333825635, guid: 21dbbfb54c8ab539b805475076379e36, type: 3}
+    localOffset: {x: -0.04883212, y: -0.0078042373, z: -0.16968238}
+    outwardDir: {x: -0.27629104, y: -0.044156197, z: -0.9600591}
+  - name: Ore_Frag_11
+    mesh: {fileID: -4735851507537397620, guid: 21dbbfb54c8ab539b805475076379e36, type: 3}
+    localOffset: {x: 0.35320196, y: 0.20552231, z: 0.2642883}
+    outwardDir: {x: 0.7257652, y: 0.42231065, z: 0.543064}
+  m_IntactMesh: {fileID: 211036688111911956, guid: 21dbbfb54c8ab539b805475076379e36, type: 3}

@@ -22,15 +22,123 @@ namespace PixelGame
         private static readonly Stack<CargoFlyer> s_Pool = new Stack<CargoFlyer>();
         private static Transform s_PoolRoot;
 
+        private MeshFilter m_MeshFilter;
         private MeshRenderer m_Renderer;
         private Material m_Material;
         private Sequence m_ActiveSequence;
 
+        public Mesh CurrentMesh => m_MeshFilter != null ? m_MeshFilter.sharedMesh : null;
+
+        public void SetMesh(Mesh mesh)
+        {
+            if (m_MeshFilter == null) m_MeshFilter = GetComponent<MeshFilter>();
+            if (m_MeshFilter != null && mesh != null)
+            {
+                m_MeshFilter.sharedMesh = mesh;
+            }
+        }
+
         /// <summary>
+        /// Doğal kırılma parçası (Voronoi/Cell Fracture shard) için rafa fırlatma.
+        /// Küpün kendi merkezindeki yerel pozisyonunda başlar, mikro çatlak açılması yapar
+        /// ve ardından rafa yumuşak bir kavisle dökülür.
+        /// </summary>
+        public static CargoFlyer LaunchShardToShelf(
+            Vector3 worldStart,
+            Quaternion worldRotation,
+            Vector3 outwardDir,
+            Vector3 dropPosition,
+            Vector3 finalShelfPosition,
+            Color color,
+            Mesh shardMesh,
+            Vector3 shardScale,
+            float fallDuration,
+            float pullDuration,
+            Action<CargoFlyer> onLanded)
+        {
+            CargoFlyer flyer = Rent();
+
+            flyer.CleanupTweens();
+            flyer.SetMesh(shardMesh);
+            flyer.transform.position = worldStart;
+            flyer.transform.rotation = worldRotation;
+            flyer.transform.localScale = shardScale;
+            flyer.SetColor(color);
+            flyer.gameObject.SetActive(true);
+
+            flyer.AnimateShardToShelfWithPull(worldStart, outwardDir, dropPosition, finalShelfPosition, shardScale.x, fallDuration, pullDuration, () => onLanded?.Invoke(flyer));
+            return flyer;
+        }
+
+        private void AnimateShardToShelfWithPull(
+            Vector3 worldStart,
+            Vector3 outwardDir,
+            Vector3 dropPosition,
+            Vector3 finalShelfPosition,
+            float size,
+            float fallDuration,
+            float pullDuration,
+            Action onLanded)
+        {
+            CleanupTweens();
+            m_ActiveSequence = DOTween.Sequence();
+
+            // 1. Patlama / Çatlak Açılması (Micro Seam Burst - ~0.06s)
+            // Parça kendi kırılma yönünde hafifçe dışa fırlar (çatlaklar birbirinden ayrılır)
+            float popDistance = Mathf.Clamp(0.12f * size, 0.02f, 0.15f);
+            Vector3 popPos = worldStart + outwardDir * popDistance;
+            float popDuration = 0.06f;
+
+            m_ActiveSequence.Append(transform.DOMove(popPos, popDuration).SetEase(Ease.OutQuad));
+
+            // 2. Ardından rafa dökülüş (Yerçekimi & Slide)
+            float distToCenter = Mathf.Abs(finalShelfPosition.x - dropPosition.x);
+            bool hasPull = distToCenter > 0.02f && pullDuration > 0.01f;
+
+            float rollAngle = (finalShelfPosition.x > dropPosition.x ? -1f : 1f) * 180f * Mathf.Clamp01(distToCenter / 0.4f);
+
+            if (!hasPull)
+            {
+                m_ActiveSequence.Append(transform.DOMoveX(finalShelfPosition.x, fallDuration).SetEase(Ease.OutQuad));
+                m_ActiveSequence.Join(transform.DOMoveY(finalShelfPosition.y, fallDuration).SetEase(Ease.OutBounce));
+                m_ActiveSequence.Join(transform.DOMoveZ(finalShelfPosition.z, fallDuration).SetEase(Ease.OutQuad));
+                m_ActiveSequence.Join(transform.DORotate(new Vector3(
+                    UnityEngine.Random.Range(-180f, 180f),
+                    UnityEngine.Random.Range(-180f, 180f),
+                    UnityEngine.Random.Range(-180f, 180f)),
+                    fallDuration, RotateMode.FastBeyond360).SetEase(Ease.OutQuad));
+                m_ActiveSequence.Append(transform.DOPunchScale(new Vector3(0.12f, -0.12f, 0.12f) * size, 0.08f, 3, 0.5f));
+            }
+            else
+            {
+                float slideDuration = Mathf.Clamp(pullDuration * 0.85f, 0.18f, 0.35f);
+                float intermediateX = Mathf.Lerp(dropPosition.x, finalShelfPosition.x, 0.45f);
+
+                m_ActiveSequence.Append(transform.DOMoveY(dropPosition.y, fallDuration).SetEase(Ease.InQuad));
+                m_ActiveSequence.Join(transform.DOMoveX(intermediateX, fallDuration).SetEase(Ease.InQuad));
+                m_ActiveSequence.Join(transform.DOMoveZ(Mathf.Lerp(transform.position.z, finalShelfPosition.z, 0.5f), fallDuration).SetEase(Ease.Linear));
+                m_ActiveSequence.Join(transform.DORotate(new Vector3(
+                    UnityEngine.Random.Range(-120f, 120f),
+                    UnityEngine.Random.Range(-120f, 120f),
+                    rollAngle * 0.4f),
+                    fallDuration, RotateMode.FastBeyond360).SetEase(Ease.InQuad));
+
+                // Yere temas: pürüzsüz kayma ve yerleşme
+                m_ActiveSequence.Append(transform.DOMoveY(finalShelfPosition.y + 0.04f * size, slideDuration * 0.35f).SetEase(Ease.OutQuad));
+                m_ActiveSequence.Append(transform.DOMoveY(finalShelfPosition.y, slideDuration * 0.65f).SetEase(Ease.InQuad));
+
+                m_ActiveSequence.Insert(popDuration + fallDuration, transform.DOMoveX(finalShelfPosition.x, slideDuration).SetEase(Ease.OutCubic));
+                m_ActiveSequence.Insert(popDuration + fallDuration, transform.DOMoveZ(finalShelfPosition.z, slideDuration).SetEase(Ease.OutQuad));
+                m_ActiveSequence.Insert(popDuration + fallDuration, transform.DORotate(new Vector3(0f, 0f, rollAngle), slideDuration, RotateMode.WorldAxisAdd).SetEase(Ease.OutCubic));
+
+                m_ActiveSequence.Append(transform.DOPunchScale(new Vector3(0.08f, -0.08f, 0.08f) * size, 0.08f, 2, 0.4f));
+            }
+
+            m_ActiveSequence.OnComplete(() => onLanded?.Invoke());
+        }
+
         /// <summary>
-        /// Parçayı küpten alt rafa fırlatır.
-        /// Önce yerçekimiyle alt rafa düşer (başka yere düşse bile),
-        /// ardından hafifçe belirlenen merkez toplanma alanına doğru çekilip öbeklenir.
+        /// Geriye uyumluluk için standart küp fırlatma desteği.
         /// </summary>
         public static CargoFlyer LaunchToShelf(
             Vector3 worldStart,
@@ -82,7 +190,6 @@ namespace PixelGame
 
             if (!hasPull)
             {
-                // Doğrudan hedefe akıcı düşüş ve yumuşak zıplama
                 m_ActiveSequence.Append(transform.DOMoveX(finalShelfPosition.x, fallDuration).SetEase(Ease.OutQuad));
                 m_ActiveSequence.Join(transform.DOMoveY(finalShelfPosition.y, fallDuration).SetEase(Ease.OutBounce));
                 m_ActiveSequence.Join(transform.DOMoveZ(finalShelfPosition.z, fallDuration).SetEase(Ease.OutQuad));
@@ -95,12 +202,9 @@ namespace PixelGame
             }
             else
             {
-                // Kesintisiz, pürüzsüz akış: Parça havada düşüş eğrisindeyken merkeze doğru ivmelenir,
-                // yere değer değmez DURAKSAMADAN pürüzsüzce yuvarlanarak/kayarak merkeze toplanır.
                 float slideDuration = Mathf.Clamp(pullDuration * 0.85f, 0.18f, 0.35f);
                 float rollAngle = (finalShelfPosition.x > dropPosition.x ? -1f : 1f) * 200f * Mathf.Clamp01(distToCenter / 0.4f);
 
-                // 1. Havada süzülerek düşüş: Y rafa doğru inerken, X merkeze doğru akışa başlar
                 float intermediateX = Mathf.Lerp(dropPosition.x, finalShelfPosition.x, 0.45f);
                 m_ActiveSequence.Append(transform.DOMoveY(dropPosition.y, fallDuration).SetEase(Ease.InQuad));
                 m_ActiveSequence.Join(transform.DOMoveX(intermediateX, fallDuration).SetEase(Ease.InQuad));
@@ -111,16 +215,13 @@ namespace PixelGame
                     rollAngle * 0.4f),
                     fallDuration, RotateMode.FastBeyond360).SetEase(Ease.InQuad));
 
-                // 2. Yere temas: HİÇ DURAKSAMADAN (hitch yok!) anında akıcı kayma ve mikro yaylanma
                 m_ActiveSequence.Append(transform.DOMoveY(finalShelfPosition.y + 0.04f * size, slideDuration * 0.35f).SetEase(Ease.OutQuad));
                 m_ActiveSequence.Append(transform.DOMoveY(finalShelfPosition.y, slideDuration * 0.65f).SetEase(Ease.InQuad));
 
-                // X ve Z hareketi düşüş anından itibaren kesintisiz devam eder (Insert ile tam temas anına bağlanır)
                 m_ActiveSequence.Insert(fallDuration, transform.DOMoveX(finalShelfPosition.x, slideDuration).SetEase(Ease.OutCubic));
                 m_ActiveSequence.Insert(fallDuration, transform.DOMoveZ(finalShelfPosition.z, slideDuration).SetEase(Ease.OutQuad));
                 m_ActiveSequence.Insert(fallDuration, transform.DORotate(new Vector3(0f, 0f, rollAngle), slideDuration, RotateMode.WorldAxisAdd).SetEase(Ease.OutCubic));
 
-                // Hedefe yerleştiğinde hafif tatlı yaylanma
                 m_ActiveSequence.Append(transform.DOPunchScale(new Vector3(0.08f, -0.08f, 0.08f) * size, 0.08f, 2, 0.4f));
             }
 
@@ -146,33 +247,41 @@ namespace PixelGame
         }
 
         private System.Collections.IEnumerator FlowToMovingTargetRoutine(
-            Transform targetWagon, float duration, float arcHeight, Action onArrive)
+            Transform targetWagon,
+            float duration,
+            float arcHeight,
+            Action onArrive)
         {
             Vector3 startPos = transform.position;
-            Vector3 startScale = transform.localScale;
             float elapsed = 0f;
 
-            Vector3 rotAxis = UnityEngine.Random.onUnitSphere;
-            float rotSpeed = UnityEngine.Random.Range(360f, 720f);
+            Vector3 randomTorque = new Vector3(
+                UnityEngine.Random.Range(-360f, 360f),
+                UnityEngine.Random.Range(-360f, 360f),
+                UnityEngine.Random.Range(-360f, 360f)
+            );
+
+            Vector3 initialScale = transform.localScale;
 
             while (elapsed < duration)
             {
                 elapsed += Time.deltaTime;
-                float p = Mathf.Clamp01(elapsed / duration);
+                float t = Mathf.Clamp01(elapsed / duration);
 
-                // Kavis ve takip: vagon hareket ettikçe hedefin güncel konumunu esas al
-                Vector3 endPos = targetWagon != null ? targetWagon.position : startPos;
-                Vector3 current = Vector3.Lerp(startPos, endPos, p);
-                current.y += Mathf.Sin(p * Mathf.PI) * arcHeight;
+                Vector3 currentTargetPos = (targetWagon != null) ? targetWagon.position : startPos;
 
-                transform.position = current;
-                transform.Rotate(rotAxis, rotSpeed * Time.deltaTime, Space.World);
+                Vector3 linearPos = Vector3.Lerp(startPos, currentTargetPos, t);
+                float arcY = 4f * arcHeight * t * (1f - t);
+                linearPos.y += arcY;
 
-                if (p > 0.82f)
+                transform.position = linearPos;
+                transform.Rotate(randomTorque * Time.deltaTime, Space.Self);
+
+                // Kasaya girerken hafifçe küçülme
+                if (t > 0.75f)
                 {
-                    // Kasaya girerken zarifçe küçül
-                    float shrinkP = (p - 0.82f) / 0.18f;
-                    transform.localScale = Vector3.Lerp(startScale, Vector3.zero, shrinkP);
+                    float scaleT = (t - 0.75f) / 0.25f;
+                    transform.localScale = Vector3.Lerp(initialScale, Vector3.zero, scaleT * scaleT);
                 }
 
                 yield return null;
@@ -182,124 +291,32 @@ namespace PixelGame
             Release();
         }
 
-        /// <summary>
-        /// İki aşamalı voksel akışını başlatır:
-        /// 1) Küpten alt rafa (shelfPosition) düşüp zıplayarak birikir.
-        /// 2) Belirtilen birikme süresinden (accumulateDelay) sonra vagona kavis çizerek akar.
-        /// </summary>
-        public static void LaunchAccumulateAndFlow(
-            Vector3 worldStart,
-            Vector3 shelfPosition,
-            Transform targetWagon,
-            Color color,
-            float size,
-            float fallDuration,
-            float accumulateDelay,
-            float flowDuration,
-            float flowArcHeight,
-            Action onArrive)
-        {
-            CargoFlyer flyer = Rent();
-
-            flyer.CleanupTweens();
-            flyer.transform.position = worldStart;
-            flyer.transform.localScale = Vector3.one * size;
-            flyer.transform.rotation = UnityEngine.Random.rotation;
-            flyer.SetColor(color);
-            flyer.gameObject.SetActive(true);
-
-            flyer.AnimateAccumulateAndFlow(
-                shelfPosition, targetWagon, size,
-                fallDuration, accumulateDelay, flowDuration, flowArcHeight, onArrive
-            );
-        }
-
-        /// <summary>
-        /// Doğrudan hedefe uçuran tek aşamalı yedek fırlatıcı (eski çağrılar için geriye dönük uyumlu).
-        /// </summary>
-        public static void Launch(Vector3 worldStart, Transform target, Color color,
-                                  float size, float duration, float arcHeight,
-                                  Action onArrive)
-        {
-            if (target == null)
-            {
-                onArrive?.Invoke();
-                return;
-            }
-
-            CargoFlyer flyer = Rent();
-
-            flyer.CleanupTweens();
-            flyer.transform.position = worldStart;
-            flyer.transform.localScale = Vector3.one * size;
-            flyer.SetColor(color);
-            flyer.gameObject.SetActive(true);
-
-            Vector3 endPos = target.position;
-            flyer.m_ActiveSequence = DOTween.Sequence();
-            flyer.m_ActiveSequence.Append(flyer.transform.DOJump(endPos, arcHeight, 1, duration).SetEase(Ease.InQuad));
-            flyer.m_ActiveSequence.Join(flyer.transform.DORotate(new Vector3(
-                UnityEngine.Random.Range(-180f, 180f),
-                UnityEngine.Random.Range(-180f, 180f),
-                UnityEngine.Random.Range(-180f, 180f)), duration, RotateMode.FastBeyond360));
-            flyer.m_ActiveSequence.OnComplete(() =>
-            {
-                onArrive?.Invoke();
-                flyer.Release();
-            });
-        }
-
-        private void AnimateAccumulateAndFlow(
-            Vector3 shelfPosition,
-            Transform targetWagon,
-            float size,
-            float fallDuration,
-            float accumulateDelay,
-            float flowDuration,
-            float flowArcHeight,
-            Action onArrive)
+        public void FlowToCart(Vector3 cartPosition, float delay, float flowDuration, float arcHeight, Action onArrive)
         {
             CleanupTweens();
-            m_ActiveSequence = DOTween.Sequence();
 
-            // ─── 1. AŞAMA: Tablonun altındaki rafa düşüş & zıplayarak birikme ───
-            m_ActiveSequence.Append(transform.DOMoveX(shelfPosition.x, fallDuration).SetEase(Ease.OutQuad));
-            m_ActiveSequence.Join(transform.DOMoveY(shelfPosition.y, fallDuration).SetEase(Ease.OutBounce));
-            m_ActiveSequence.Join(transform.DOMoveZ(shelfPosition.z, fallDuration).SetEase(Ease.OutQuad));
-            m_ActiveSequence.Join(transform.DORotate(new Vector3(
-                UnityEngine.Random.Range(-180f, 180f),
-                UnityEngine.Random.Range(-180f, 180f),
-                UnityEngine.Random.Range(-180f, 180f)),
-                fallDuration, RotateMode.FastBeyond360).SetEase(Ease.OutQuad));
+            Vector3 start = transform.position;
+            Vector3 mid = (start + cartPosition) * 0.5f + Vector3.up * arcHeight;
 
-            // Rafa temas anında tatlı bir yaylanma / squash-stretch etkisi
-            m_ActiveSequence.Append(transform.DOPunchScale(new Vector3(0.22f, -0.22f, 0.22f) * size, 0.16f, 6, 0.5f));
-
-            // ─── BEKLEME: Rafta görünür şekilde birikme süresi ───
-            m_ActiveSequence.AppendInterval(accumulateDelay);
-
-            // ─── 2. AŞAMA: Raftan vagona akış (Cascade Flow) ───
-            m_ActiveSequence.AppendCallback(() =>
+            DOVirtual.DelayedCall(delay, () =>
             {
-                if (targetWagon == null || !gameObject.activeSelf)
+                if (!gameObject.activeInHierarchy)
                 {
                     onArrive?.Invoke();
                     Release();
                     return;
                 }
 
-                Vector3 destination = targetWagon.position;
                 Sequence flowSeq = DOTween.Sequence();
 
-                // Raftan vagona doğru kavisli uçuş
-                flowSeq.Append(transform.DOJump(destination, flowArcHeight, 1, flowDuration).SetEase(Ease.InQuad));
+                Vector3[] path = new Vector3[] { start, mid, cartPosition };
+                flowSeq.Append(transform.DOPath(path, flowDuration, PathType.CatmullRom).SetEase(Ease.InQuad));
                 flowSeq.Join(transform.DORotate(new Vector3(
-                    UnityEngine.Random.Range(-180f, 180f),
-                    UnityEngine.Random.Range(-180f, 180f),
-                    UnityEngine.Random.Range(-180f, 180f)),
+                    UnityEngine.Random.Range(-260f, 260f),
+                    UnityEngine.Random.Range(-260f, 260f),
+                    UnityEngine.Random.Range(-260f, 260f)),
                     flowDuration, RotateMode.FastBeyond360));
 
-                // Kasaya girerken zarifçe içeri küçülme
                 flowSeq.Append(transform.DOScale(0f, 0.08f).SetEase(Ease.InBack));
 
                 flowSeq.OnComplete(() =>
@@ -320,11 +337,23 @@ namespace PixelGame
             if (m_Material == null)
             {
                 m_Material = CartoonShader.CreateMaterial(color, "CargoFlyer_Mat");
-                m_Renderer.sharedMaterial = m_Material;
-                return;
+            }
+            else
+            {
+                CartoonShader.ApplyColor(m_Material, color);
             }
 
-            CartoonShader.ApplyColor(m_Material, color);
+            int subMeshCount = m_MeshFilter != null && m_MeshFilter.sharedMesh != null ? m_MeshFilter.sharedMesh.subMeshCount : 1;
+            if (subMeshCount > 1)
+            {
+                Material[] mats = new Material[subMeshCount];
+                for (int i = 0; i < subMeshCount; i++) mats[i] = m_Material;
+                m_Renderer.sharedMaterials = mats;
+            }
+            else
+            {
+                m_Renderer.sharedMaterial = m_Material;
+            }
         }
 
         private void CleanupTweens()
@@ -372,7 +401,10 @@ namespace PixelGame
 
             obj.transform.SetParent(EnsurePoolRoot(), false);
 
-            return obj.AddComponent<CargoFlyer>();
+            CargoFlyer flyer = obj.AddComponent<CargoFlyer>();
+            flyer.m_MeshFilter = obj.GetComponent<MeshFilter>();
+            flyer.m_Renderer = renderer;
+            return flyer;
         }
 
         private static Transform EnsurePoolRoot()
@@ -392,6 +424,8 @@ namespace PixelGame
             CleanupTweens();
             gameObject.SetActive(false);
             transform.SetParent(EnsurePoolRoot(), false);
+            transform.localScale = Vector3.one;
+            transform.localRotation = Quaternion.identity;
             s_Pool.Push(this);
         }
 

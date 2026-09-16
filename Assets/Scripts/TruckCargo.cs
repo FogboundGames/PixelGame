@@ -22,10 +22,9 @@ namespace PixelGame
 
         [SerializeField] private int m_Load;
 
-        [Tooltip("Bir küpün kaça bölündüğünün ortalaması. Kasadaki parça boyutu " +
-                 "bu sayıya göre hesaplanır.")]
+        [Tooltip("Bir küpün kaça bölündüğünün ortalaması (12 parçalı kırılma modeli için 12). Kasadaki parça boyutu bu sayıya göre hesaplanır.")]
         [Min(1)]
-        [SerializeField] private int m_PiecesPerCube = 3;
+        [SerializeField] private int m_PiecesPerCube = 12;
 
         public Color CargoColor
         {

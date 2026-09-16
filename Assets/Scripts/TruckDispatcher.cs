@@ -627,22 +627,25 @@ namespace PixelGame
         #region 📦 Kırmızı Raf & Vagona Akış (Shelf Flow)
 
         /// <summary>
-        /// Kırılan küp parçalarını doğrudan çerçevenin altındaki kırmızı alana fırlatır.
-        /// 1 küpün tüm parçaları tek bir grup altında toplanır.
-        /// </summary>
-        /// <summary>
         /// Küp patladığında çağrılır:
-        /// 1. Küpü 2-4 adet 3D parçaya böler.
-        /// 2. Parçalar çerçevenin hemen altındaki kırmızı işaretli rafa dökülüp birikir (OutBounce).
-        /// 3. Parçalar vagona akmaya hazır halde raf kuyruğuna kaydedilir.
-        /// Parçalar her zaman patlayan küpün kendi görsel renginde (<paramref name="visualColor"/>) fırlar.
+        /// 1. Küpü Blender'daki 12 doğal kırık parçasına (Ore_Frag_00..11) böler.
+        /// 2. Parçalar ilk anda küpün kendi içindeki 3D çatlak konumlarında başlar ve mikro patlamayla ayrılır.
+        /// 3. Parçalar çerçevenin hemen altındaki kırmızı işaretli rafa dökülüp birikir (OutBounce).
+        /// 4. Parçalar vagona akmaya hazır halde raf kuyruğuna kaydedilir.
         /// </summary>
-        public void NotifyCubePopped(Color cubeColor, Vector3 worldPosition, Color? visualColor = null)
+        public void NotifyCubePopped(
+            Color cubeColor,
+            Vector3 worldPosition,
+            Color? visualColor = null,
+            Vector3? cubeScale = null,
+            Quaternion? cubeRotation = null)
         {
             Color paletteColor = ClassifyToPalette(cubeColor);
             Color pieceColor = visualColor ?? cubeColor;
 
-            int pieces = Random.Range(m_MinPieces, m_MaxPieces + 1);
+            FracturedCubeData fracData = FracturedCubeData.Instance;
+            int shardCount = (fracData != null && fracData.ShardCount > 0) ? fracData.ShardCount : 12;
+
             CargoStack stack = null;
             if (m_MovingWagons.Count > 0 && m_MovingWagons[0].Cargo != null)
                 stack = m_MovingWagons[0].Cargo.Stack;
@@ -655,15 +658,22 @@ namespace PixelGame
             {
                 CubeId = ++m_NextCubeId,
                 Color = paletteColor,
-                TotalFragments = pieces,
+                TotalFragments = shardCount,
                 IsFlowing = false
             };
             m_ShelfCubes.Add(cubeGroup);
 
-            for (int i = 0; i < pieces; i++)
+            Vector3 scale = cubeScale ?? Vector3.one;
+            Quaternion rot = cubeRotation ?? Quaternion.identity;
+
+            for (int i = 0; i < shardCount; i++)
             {
-                float sizeFactor = Random.Range(m_PieceSizeRange.x, m_PieceSizeRange.y);
-                Vector3 start = worldPosition + Random.insideUnitSphere * m_PieceSpread;
+                FracturedCubeData.ShardData shard = (fracData != null) ? fracData.GetShard(i) : default;
+                Vector3 localOffset = shard.localOffset;
+                Vector3 outwardDir = rot * (shard.outwardDir.sqrMagnitude > 0.001f ? shard.outwardDir : (localOffset.sqrMagnitude > 0.001f ? localOffset.normalized : Vector3.up));
+
+                // Küpün kendi içindeki 3D koordinatı (Blender [-1, 1] yerel uzayını dünya boyutuna dönüştürür)
+                Vector3 start = worldPosition + rot * Vector3.Scale(localOffset * 0.5f, scale);
 
                 // 1. İlk düşüş noktası: Küpün alt hizasındaki rafa (hafif doğal yayılmayla)
                 float dropX = Mathf.Clamp(
@@ -683,14 +693,20 @@ namespace PixelGame
                 float targetZ = shelfCenter.z + Random.Range(-0.02f, 0.02f);
                 Vector3 shelfTarget = new Vector3(targetX, targetY, targetZ);
 
+                float sizeFactor = 1f;
                 cubeGroup.SizeFactors.Add(sizeFactor);
 
-                CargoFlyer.LaunchToShelf(
+                Vector3 shardScale = scale;
+
+                CargoFlyer.LaunchShardToShelf(
                     start,
+                    rot,
+                    outwardDir,
                     dropPos,
                     shelfTarget,
                     pieceColor,
-                    baseSize * sizeFactor,
+                    shard.mesh,
+                    shardScale,
                     m_FallToShelfDuration * Random.Range(0.9f, 1.15f),
                     m_PullToCenterDuration,
                     (landedFlyer) =>
@@ -745,7 +761,7 @@ namespace PixelGame
                     Transform wagonTarget = wagon.Transform;
                     TruckCargo targetCargo = wagon.Cargo;
 
-                    // Bu küpün TÜM parçalarını (2-4 adet mini voksel) hareket halindeki vagona akıt!
+                    // Bu küpün TÜM 12 kırık parçasını hareket halindeki vagona akıt!
                     for (int f = 0; f < matchingCube.Flyers.Count; f++)
                     {
                         CargoFlyer flyer = matchingCube.Flyers[f];
@@ -753,6 +769,7 @@ namespace PixelGame
 
                         if (flyer != null)
                         {
+                            Mesh shardMesh = flyer.CurrentMesh;
                             flyer.FlowToMovingTarget(
                                 wagonTarget,
                                 m_FlowToCartDuration,
@@ -761,7 +778,7 @@ namespace PixelGame
                                 {
                                     if (targetCargo != null && targetCargo.Stack != null)
                                     {
-                                        targetCargo.Stack.AddPiece(sizeFactor);
+                                        targetCargo.Stack.AddPiece(sizeFactor, shardMesh);
                                     }
                                 }
                             );
