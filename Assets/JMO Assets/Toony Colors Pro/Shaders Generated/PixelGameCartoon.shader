@@ -1,4 +1,4 @@
-﻿// Toony Colors Pro+Mobile 2
+// Toony Colors Pro+Mobile 2
 // (c) 2014-2025 Jean Moreno
 
 Shader "Toony Colors Pro 2/PixelGame/Cartoon"
@@ -32,6 +32,17 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 		[TCP2HeaderHelp(MatCap)]
 		[NoScaleOffset] [NoScaleOffset] _MatCapTex ("MatCap (RGB)", 2D) = "gray" {}
 		[TCP2ColorNoAlpha] _MatCapColor ("MatCap Color", Color) = (0,0,0,1)
+		[TCP2Separator]
+		
+		[TCP2Header(Stylized Plastic Bevel and Specular)]
+		[Toggle] _StylizedPlasticOn ("Enable Stylized Plastic", Float) = 0
+		_PillowRoundness ("Pillow Roundness", Range(0, 1)) = 0
+		_PlasticAngleX ("Highlight Angle X", Range(-1, 1)) = 0.42
+		[TCP2ColorNoAlpha] _PlasticHighlightColor ("Plastic Highlight Color", Color) = (1,1,1,1)
+		_PlasticHighlightIntensity ("Highlight Intensity", Range(0, 5)) = 1.0
+		_PlasticHighlightSize ("Highlight Size / Softness", Range(0.01, 1)) = 0.35
+		_PlasticTopLight ("Top Light Boost", Range(0, 1)) = 0.25
+		_PlasticBevelAO ("Bevel Edge Darkening (AO)", Range(0, 1)) = 0.4
 		[TCP2Separator]
 		
 		[ToggleOff(_RECEIVE_SHADOWS_OFF)] _ReceiveShadowsOff ("Receive Shadows", Float) = 1
@@ -94,6 +105,14 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 			fixed4 _SpecularColor;
 			fixed4 _SColor;
 			fixed4 _HColor;
+			float _StylizedPlasticOn;
+			float _PillowRoundness;
+			float _PlasticAngleX;
+			fixed4 _PlasticHighlightColor;
+			float _PlasticHighlightIntensity;
+			float _PlasticHighlightSize;
+			float _PlasticTopLight;
+			float _PlasticBevelAO;
 		CBUFFER_END
 
 		//Specular help functions (from UnityStandardBRDF.cginc)
@@ -216,7 +235,13 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 				output.shadowCoord = GetShadowCoord(vertexInput);
 			#endif
 
-				VertexNormalInputs vertexNormalInput = GetVertexNormalInputs(input.normal);
+				float3 meshNormal = input.normal;
+				if (_PillowRoundness > 0.001)
+				{
+					float3 sphereNorm = normalize(input.vertex.xyz);
+					meshNormal = normalize(lerp(input.normal, sphereNorm, _PillowRoundness));
+				}
+				VertexNormalInputs vertexNormalInput = GetVertexNormalInputs(meshNormal);
 			#ifdef _ADDITIONAL_LIGHTS_VERTEX
 				// Vertex lighting
 				output.vertexLights = VertexLighting(vertexInput.positionWS, vertexNormalInput.normalWS);
@@ -347,7 +372,9 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 				half3 accumulatedRamp = ramp * max(lightColor.r, max(lightColor.g, lightColor.b));
 				half3 accumulatedColors = ramp * lightColor.rgb;
 
-				half3 halfDir = SpecSafeNormalize(float3(lightDir) + float3(viewDirWS));
+				half3 specView = (_StylizedPlasticOn > 0.5) ? half3(0.0, 0.0, -1.0) : viewDirWS;
+				half3 specLight = (_StylizedPlasticOn > 0.5) ? normalize(half3(_PlasticAngleX, 0.68, -0.58)) : lightDir;
+				half3 halfDir = SpecSafeNormalize(float3(specLight) + float3(specView));
 				
 				//Specular: GGX
 				half roughness = __specularRoughnessPbr*__specularRoughnessPbr;
@@ -360,10 +387,13 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 				#else
 					half surfaceReduction = 1.0 / (roughness*roughness + 1.0);
 				#endif
-				spec = max(0, spec * ndl);
+				half specNdl = (_StylizedPlasticOn > 0.5) ? saturate(dot(normalWS, specLight)) : ndl;
+				spec = max(0, spec * specNdl);
 				spec *= surfaceReduction;
-				spec *= atten;
-				
+				if (_StylizedPlasticOn > 0.5)
+				{
+					spec *= _PlasticHighlightIntensity;
+				}
 				//Apply specular
 				emission.rgb += spec * lightColor.rgb * __specularColor;
 
@@ -505,8 +535,19 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 
 				// apply ambient
 				color += indirectDiffuse;
-
 				color += emission;
+
+				if (_StylizedPlasticOn > 0.5)
+				{
+					float3 nWS = normalize(normalWS);
+					// 1. Üst tavan aydınlık desteği
+					float topBoost = smoothstep(0.4, 0.9, nWS.y) * _PlasticTopLight;
+					color += albedo * topBoost;
+
+					// 2. Alt kavis gölgesi
+					float bottomDark = saturate(-nWS.y * 1.5) * 0.45;
+					color *= saturate(1.0 - bottomDark * _PlasticBevelAO);
+				}
 
 				return half4(color, alpha);
 			}

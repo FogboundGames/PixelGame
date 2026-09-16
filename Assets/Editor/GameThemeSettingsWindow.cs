@@ -331,7 +331,68 @@ namespace PixelGame.Editor
                 SceneView.RepaintAll();
             }
 
-            EditorGUILayout.Space(4);
+            EditorGUILayout.Space(8);
+
+            // 🍬 JELİBON & PLASTİK KÜP AYARLARI (HER KÜPTE EŞİT PARLAMA)
+            EditorGUILayout.LabelField("🍬 Plastik & Jelibon Görünümü (Her Küpte Sabit Parlama):", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("Kamera açısına veya ışık yönüne bağlı olmadan, her bir küpün sol-üst-ön kavisinde sabit plastik parlama ve kenar gölgesi oluşturur.", MessageType.None);
+
+            bool plasticOn = cartoonMat.HasProperty("_StylizedPlasticOn") && cartoonMat.GetFloat("_StylizedPlasticOn") > 0.5f;
+            bool newPlasticOn = EditorGUILayout.ToggleLeft("✨ Plastik Parlama & Bevel Efektini Aktif Et", plasticOn, EditorStyles.boldLabel);
+            if (newPlasticOn != plasticOn)
+            {
+                Undo.RecordObject(cartoonMat, "Toggle Stylized Plastic");
+                cartoonMat.SetFloat("_StylizedPlasticOn", newPlasticOn ? 1f : 0f);
+                EditorUtility.SetDirty(cartoonMat);
+                SceneView.RepaintAll();
+            }
+
+            if (newPlasticOn)
+            {
+                // Pillow Roundness (Küresel Dolgunluk - Küpün ön yüzünü yastık gibi bombeli gösterip parlamayı doğal oturtur)
+                float pRoundness = cartoonMat.HasProperty("_PillowRoundness") ? cartoonMat.GetFloat("_PillowRoundness") : 0.5f;
+                float newPRoundness = EditorGUILayout.Slider("🍬 Jelibon Dolgunluğu (Pillow)", pRoundness, 0f, 1f);
+
+                // Highlight Angle X (Sol-Sağ Çapraz Açı)
+                float pAngleX = cartoonMat.HasProperty("_PlasticAngleX") ? cartoonMat.GetFloat("_PlasticAngleX") : 0.42f;
+                float newPAngleX = EditorGUILayout.Slider("📐 Parlama Açısı (Sol / Sağ)", pAngleX, -1f, 1f);
+
+                // Highlight Intensity
+                float pIntensity = cartoonMat.HasProperty("_PlasticHighlightIntensity") ? cartoonMat.GetFloat("_PlasticHighlightIntensity") : 1.5f;
+                float newPIntensity = EditorGUILayout.Slider("💡 Parlama Gücü (Intensity)", pIntensity, 0f, 5f);
+
+                // Roughness / Pürüzsüzlük
+                float pRoughness = cartoonMat.HasProperty("_SpecularRoughnessPBR") ? cartoonMat.GetFloat("_SpecularRoughnessPBR") : 0.35f;
+                float newPRoughness = EditorGUILayout.Slider("✨ Cila / Parlaklık (Roughness)", pRoughness, 0.05f, 0.95f);
+
+                // Top Light Boost
+                float pTop = cartoonMat.HasProperty("_PlasticTopLight") ? cartoonMat.GetFloat("_PlasticTopLight") : 0.22f;
+                float newPTop = EditorGUILayout.Slider("☀️ Tavan Aydınlığı (Top Light)", pTop, 0f, 1f);
+
+                // Bevel AO
+                float pAO = cartoonMat.HasProperty("_PlasticBevelAO") ? cartoonMat.GetFloat("_PlasticBevelAO") : 0.4f;
+                float newPAO = EditorGUILayout.Slider("🌑 Kenar Ayrımı / Gölge (Bevel AO)", pAO, 0f, 1f);
+
+                // Highlight Color
+                Color pHlCol = cartoonMat.HasProperty("_PlasticHighlightColor") ? cartoonMat.GetColor("_PlasticHighlightColor") : Color.white;
+                Color newPHlCol = EditorGUILayout.ColorField("✨ Parlama Rengi", pHlCol);
+
+                if (newPRoundness != pRoundness || newPAngleX != pAngleX || newPIntensity != pIntensity || newPRoughness != pRoughness || newPTop != pTop || newPAO != pAO || newPHlCol != pHlCol)
+                {
+                    Undo.RecordObject(cartoonMat, "Modify Plastic Settings");
+                    cartoonMat.SetFloat("_PillowRoundness", newPRoundness);
+                    cartoonMat.SetFloat("_PlasticAngleX", newPAngleX);
+                    cartoonMat.SetFloat("_PlasticHighlightIntensity", newPIntensity);
+                    cartoonMat.SetFloat("_SpecularRoughnessPBR", newPRoughness);
+                    cartoonMat.SetFloat("_PlasticTopLight", newPTop);
+                    cartoonMat.SetFloat("_PlasticBevelAO", newPAO);
+                    cartoonMat.SetColor("_PlasticHighlightColor", newPHlCol);
+                    EditorUtility.SetDirty(cartoonMat);
+                    SceneView.RepaintAll();
+                }
+            }
+
+            EditorGUILayout.Space(6);
 
             // Hazır Toon Ayarları (Presets)
             EditorGUILayout.LabelField("Toony Colors Hızlı Hazır Ayarları (Presets):", EditorStyles.miniBoldLabel);
