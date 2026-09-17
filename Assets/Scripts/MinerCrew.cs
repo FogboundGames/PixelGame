@@ -48,6 +48,9 @@ namespace PixelGame
             m_ScaleFactor = scaleFactor;
             m_RunSpeed = runSpeed;
 
+            // Madenciler deaktif ise vagon içine madenci ekleme
+            if (TruckDispatcher.Instance != null && !TruckDispatcher.Instance.EnableMiners) return;
+
             if (m_Cargo == null || m_Cargo.Capacity <= 0) return;
 
             Transform body = GetWagonBody(transform);
@@ -116,6 +119,12 @@ namespace PixelGame
             m_SpawnDelay = spawnDelay;
             m_RunSpeed = runSpeed;
 
+            if (TruckDispatcher.Instance != null && !TruckDispatcher.Instance.EnableMiners)
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
             if (m_Cargo == null)
             {
                 m_Cargo = GetComponent<TruckCargo>();
@@ -130,6 +139,12 @@ namespace PixelGame
 
         private IEnumerator JumpOutSequenceRoutine(System.Action onComplete)
         {
+            if (TruckDispatcher.Instance != null && !TruckDispatcher.Instance.EnableMiners)
+            {
+                onComplete?.Invoke();
+                yield break;
+            }
+
             if (m_Cargo != null && !m_Cargo.IsFull && RemainingMinersToDeploy > 0)
             {
                 Transform body = GetWagonBody(transform);

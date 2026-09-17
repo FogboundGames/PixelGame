@@ -31,14 +31,49 @@ namespace PixelGame
         [SerializeField] private GameObject m_TruckPrefab;
         [SerializeField] private PixelArtGenerator m_Generator;
 
-        [Header("🚂 Hareketli Ray Vagonları (Continuous Train Conveyor)")]
-        [Tooltip("Vagonların ray üzerinde sürekli hareket etmesini sağlar (sağdan çıkıp soldan girer).")]
-        [SerializeField] private bool m_ContinuousTrain = true;
+        [Header("🔄 Mavi Çerçeve Etrafında Dönen Ray Döngüsü (Perimeter Track Loop)")]
+        [Tooltip("Vagonların mavi çerçevenin 4 kenarı boyunca kesintisiz dolaşmasını sağlar.")]
+        [SerializeField] private bool m_PerimeterTrain = true;
+        public bool PerimeterTrain { get => m_PerimeterTrain; set => m_PerimeterTrain = value; }
+
+        [Tooltip("Vagonların döngü üzerindeki seyir hızı (dünya birimi / saniye).")]
+        [Range(0.5f, 6.0f)]
+        [SerializeField] private float m_PerimeterSpeed = 2.1f;
+
+        [Tooltip("Ray döngüsünün çerçevenin sol ve sağ dışına olan yatay mesafesi (dünya birimi).")]
+        [SerializeField] private float m_LoopMarginX = 0.32f;
+
+        [Tooltip("Ray döngüsünün çerçevenin alt ve üst dışına olan dikey mesafesi (dünya birimi).")]
+        [SerializeField] private float m_LoopMarginY = 0.36f;
+
+        [Tooltip("Ray döngüsünün 4 köşesindeki yuvarlama yarıçapı.")]
+        [SerializeField] private float m_LoopCornerRadius = 0.45f;
+
+        [Tooltip("Vagonların yerdeki parçaları vakumla çekebileceği maksimum mesafe (dünya birimi).")]
+        [SerializeField] private float m_VacuumRadius = 2.4f;
+
+        [Tooltip("Vakum çekiminin uçuş süresi (saniye).")]
+        [SerializeField] private float m_VacuumDuration = 0.28f;
+
+        [Tooltip("Vakum çekiminin kavis yüksekliği.")]
+        [SerializeField] private float m_VacuumArcHeight = 0.35f;
+
+        [Tooltip("Parçaların kırıldığında oldukları yere dökülüş süresi.")]
+        [SerializeField] private float m_LocalDropFallDuration = 0.24f;
+
+        [Tooltip("Çerçeve etrafına 3D ray prefab'ı döşensin mi?")]
+        [SerializeField] private bool m_ShowPerimeterRails = true;
+
+        [Tooltip("Ray parçası prefab'ı (boşsa Assets/Prefabs/Track.prefab otomatik yüklenir).")]
+        [SerializeField] private GameObject m_TrackPrefab;
+
+        [Header("🚂 Hareketli Ray Vagonları (Continuous Train Conveyor - Eski Hat)")]
+        [Tooltip("Vagonların alt ray üzerinde sürekli hareket etmesini sağlar (sağdan çıkıp soldan girer).")]
+        [SerializeField] private bool m_ContinuousTrain = false;
 
         [Tooltip("Vagonların ray üzerindeki seyir hızı (şerit birimi / saniye)")]
         [Range(40f, 600f)]
         [SerializeField] private float m_TrainSpeed = 380f;
-
 
         [Tooltip("Vagonların sol tünel giriş koordinatı (X)")]
         [SerializeField] private float m_PortalLeftX = -1080f;
@@ -81,7 +116,7 @@ namespace PixelGame
         [Header("📦 Kırmızı Raf: Altta Birikme & Vagona Akma (DOTween)")]
         [Tooltip("Parçaların küpten alt rafa (kırmızı işaretli alan) düşüş süresi")]
         [Min(0.1f)]
-        [SerializeField] private float m_FallToShelfDuration = 0.28f;
+        [SerializeField] private float m_FallToShelfDuration = 0.38f;
 
         [Tooltip("Parçaların raftan vagona akış / uçuş süresi")]
         [Min(0.1f)]
@@ -139,6 +174,31 @@ namespace PixelGame
         [Tooltip("Madencilerin küplere koşu hızı (yavaşlatılmış ve dengelenmiş).")]
         [SerializeField] private float m_MinerRunSpeed = 0.85f;
 
+        [Header("👷 Madenci (Miner)")]
+        [Tooltip("Madencilerin vagonlara binmesi, rayda inip küplere koşması ve kırması. Kapalıyken küpler vagon slota oturduğunda cam gibi kırılarak doğrudan vagona akar.")]
+        [SerializeField] private bool m_EnableMiners = false;
+        public bool EnableMiners { get => m_EnableMiners; set => m_EnableMiners = value; }
+
+        [Header("💎 Sıralı Cam Kırılma Efekti (Slot Modu)")]
+        [Tooltip("Vagon slota oturduğunda küplerin sırayla kırılma aralığı (saniye - daha yavaş ve belirgin)")]
+        [Range(0.08f, 0.50f)]
+        [SerializeField] private float m_ShatterInterval = 0.22f;
+
+        [Tooltip("Parçaların rafta kısa bekleme/birikme süresi")]
+        [Range(0.05f, 0.4f)]
+        [SerializeField] private float m_PauseOnShelfDuration = 0.14f;
+
+        [Tooltip("Parçaların raftan vagona kayarak akış süresi")]
+        [Range(0.2f, 0.8f)]
+        [SerializeField] private float m_SlideToWagonDuration = 0.38f;
+
+        [Tooltip("Parçaların belirginlik ölçek çarpanı")]
+        [Range(1.0f, 2.0f)]
+        [SerializeField] private float m_ShardScaleMultiplier = 1.35f;
+
+        private static readonly HashSet<PixelCube> s_ReservedCubes = new HashSet<PixelCube>();
+        public static void ClearReservedCubes() => s_ReservedCubes.Clear();
+
         public GameObject MinerPrefab
         {
             get
@@ -166,10 +226,22 @@ namespace PixelGame
             public MineCartMover Mover;
             public Animator Animator;
             public float PositionX;
+            public float DistanceOnLoop;
             public bool IsDeployingMiners = false;
             public bool HasStartedDeploying = false;
             public bool HasCompletedInitialDeployment = false;
             public bool IsJumpingToTrack = false;
+            public bool IsDeparting = false;
+        }
+
+        public class BoardShardGroup
+        {
+            public int CubeId;
+            public Color Color;
+            public Vector3 Position;
+            public List<CargoFlyer> Flyers = new List<CargoFlyer>();
+            public bool IsVacuuming = false;
+            public bool IsSettled = false;
         }
 
         public class ShelfCubeGroup
@@ -183,15 +255,160 @@ namespace PixelGame
             public bool IsReady => Flyers.Count >= TotalFragments;
         }
 
+        /// <summary>
+        /// Mavi çerçevenin etrafındaki 4 kenarlı yuvarlatılmış kapalı ray döngüsü matematiği.
+        /// </summary>
+        public class PerimeterTrackLoop
+        {
+            public Vector3 Center;
+            public float OuterWidth;
+            public float OuterHeight;
+            public float CornerRadius;
+            public float Z;
+
+            public float LeftX;
+            public float RightX;
+            public float BottomY;
+            public float TopY;
+
+            public float StraightBottom;
+            public float CornerBottomRight;
+            public float StraightRight;
+            public float CornerTopRight;
+            public float StraightTop;
+            public float CornerTopLeft;
+            public float StraightLeft;
+            public float CornerBottomLeft;
+
+            public float TotalPerimeter;
+
+            public void Setup(Vector3 center, float width, float height, float cornerRadius, float z)
+            {
+                Center = center;
+                OuterWidth = Mathf.Max(0.5f, width);
+                OuterHeight = Mathf.Max(0.5f, height);
+                Z = z;
+
+                LeftX = center.x - OuterWidth * 0.5f;
+                RightX = center.x + OuterWidth * 0.5f;
+                BottomY = center.y - OuterHeight * 0.5f;
+                TopY = center.y + OuterHeight * 0.5f;
+
+                CornerRadius = Mathf.Clamp(cornerRadius, 0.05f, Mathf.Min(OuterWidth, OuterHeight) * 0.45f);
+
+                float r = CornerRadius;
+                StraightBottom = Mathf.Max(0.1f, (RightX - r) - (LeftX + r));
+                StraightRight = Mathf.Max(0.1f, (TopY - r) - (BottomY + r));
+                StraightTop = StraightBottom;
+                StraightLeft = StraightRight;
+
+                float cornerArc = 0.5f * Mathf.PI * r;
+                CornerBottomRight = cornerArc;
+                CornerTopRight = cornerArc;
+                CornerTopLeft = cornerArc;
+                CornerBottomLeft = cornerArc;
+
+                TotalPerimeter = (StraightBottom + StraightRight + StraightTop + StraightLeft) + (4f * cornerArc);
+            }
+
+            public void Evaluate(float distance, out Vector3 position, out Vector3 tangent, out Quaternion rotation, Quaternion baseRotation)
+            {
+                if (TotalPerimeter <= 0.001f)
+                {
+                    position = Center;
+                    tangent = Vector3.right;
+                    rotation = baseRotation;
+                    return;
+                }
+
+                float s = Mathf.Repeat(distance, TotalPerimeter);
+                float r = CornerRadius;
+
+                // Saat yönünün tersi (Counter-Clockwise döngü):
+                // 1. Alt kenar (Soldan sağa): +X
+                if (s < StraightBottom)
+                {
+                    float t = s / StraightBottom;
+                    position = new Vector3(Mathf.Lerp(LeftX + r, RightX - r, t), BottomY, Z);
+                    tangent = Vector3.right;
+                }
+                // 2. Sağ-Alt köşe yayı: -90° -> 0°
+                else if (s < StraightBottom + CornerBottomRight)
+                {
+                    float ds = s - StraightBottom;
+                    float angle = Mathf.Lerp(-90f, 0f, ds / CornerBottomRight) * Mathf.Deg2Rad;
+                    Vector3 cornerCenter = new Vector3(RightX - r, BottomY + r, Z);
+                    position = cornerCenter + new Vector3(Mathf.Cos(angle) * r, Mathf.Sin(angle) * r, 0f);
+                    tangent = new Vector3(-Mathf.Sin(angle), Mathf.Cos(angle), 0f).normalized;
+                }
+                // 3. Sağ kenar (Aşağıdan yukarıya): +Y
+                else if (s < StraightBottom + CornerBottomRight + StraightRight)
+                {
+                    float ds = s - (StraightBottom + CornerBottomRight);
+                    float t = ds / StraightRight;
+                    position = new Vector3(RightX, Mathf.Lerp(BottomY + r, TopY - r, t), Z);
+                    tangent = Vector3.up;
+                }
+                // 4. Sağ-Üst köşe yayı: 0° -> 90°
+                else if (s < StraightBottom + CornerBottomRight + StraightRight + CornerTopRight)
+                {
+                    float ds = s - (StraightBottom + CornerBottomRight + StraightRight);
+                    float angle = Mathf.Lerp(0f, 90f, ds / CornerTopRight) * Mathf.Deg2Rad;
+                    Vector3 cornerCenter = new Vector3(RightX - r, TopY - r, Z);
+                    position = cornerCenter + new Vector3(Mathf.Cos(angle) * r, Mathf.Sin(angle) * r, 0f);
+                    tangent = new Vector3(-Mathf.Sin(angle), Mathf.Cos(angle), 0f).normalized;
+                }
+                // 5. Üst kenar (Sağdan sola): -X
+                else if (s < StraightBottom + CornerBottomRight + StraightRight + CornerTopRight + StraightTop)
+                {
+                    float ds = s - (StraightBottom + CornerBottomRight + StraightRight + CornerTopRight);
+                    float t = ds / StraightTop;
+                    position = new Vector3(Mathf.Lerp(RightX - r, LeftX + r, t), TopY, Z);
+                    tangent = Vector3.left;
+                }
+                // 6. Sol-Üst köşe yayı: 90° -> 180°
+                else if (s < StraightBottom + CornerBottomRight + StraightRight + CornerTopRight + StraightTop + CornerTopLeft)
+                {
+                    float ds = s - (StraightBottom + CornerBottomRight + StraightRight + CornerTopRight + StraightTop);
+                    float angle = Mathf.Lerp(90f, 180f, ds / CornerTopLeft) * Mathf.Deg2Rad;
+                    Vector3 cornerCenter = new Vector3(LeftX + r, TopY - r, Z);
+                    position = cornerCenter + new Vector3(Mathf.Cos(angle) * r, Mathf.Sin(angle) * r, 0f);
+                    tangent = new Vector3(-Mathf.Sin(angle), Mathf.Cos(angle), 0f).normalized;
+                }
+                // 7. Sol kenar (Yukarıdan aşağıya): -Y
+                else if (s < StraightBottom + CornerBottomRight + StraightRight + CornerTopRight + StraightTop + CornerTopLeft + StraightLeft)
+                {
+                    float ds = s - (StraightBottom + CornerBottomRight + StraightRight + CornerTopRight + StraightTop + CornerTopLeft);
+                    float t = ds / StraightLeft;
+                    position = new Vector3(LeftX, Mathf.Lerp(TopY - r, BottomY + r, t), Z);
+                    tangent = Vector3.down;
+                }
+                // 8. Sol-Alt köşe yayı: 180° -> 270°
+                else
+                {
+                    float ds = s - (StraightBottom + CornerBottomRight + StraightRight + CornerTopRight + StraightTop + CornerTopLeft + StraightLeft);
+                    float angle = Mathf.Lerp(180f, 270f, ds / CornerBottomLeft) * Mathf.Deg2Rad;
+                    Vector3 cornerCenter = new Vector3(LeftX + r, BottomY + r, Z);
+                    position = cornerCenter + new Vector3(Mathf.Cos(angle) * r, Mathf.Sin(angle) * r, 0f);
+                    tangent = new Vector3(-Mathf.Sin(angle), Mathf.Cos(angle), 0f).normalized;
+                }
+
+                float yaw = Mathf.Atan2(tangent.y, tangent.x) * Mathf.Rad2Deg;
+                rotation = Quaternion.AngleAxis(yaw, Vector3.forward) * baseRotation;
+            }
+        }
+
         private readonly List<MovingWagon> m_MovingWagons = new List<MovingWagon>();
         private readonly List<ShelfCubeGroup> m_ShelfCubes = new List<ShelfCubeGroup>();
+        private readonly List<BoardShardGroup> m_BoardShards = new List<BoardShardGroup>();
+        private readonly PerimeterTrackLoop m_Loop = new PerimeterTrackLoop();
         private int m_NextCubeId = 0;
         private Transform m_WagonsRoot;
         private float m_NextCascadeTime = 0f;
 
         [Header("🚂 Hat ve Havuz Ayarları")]
         [Tooltip("Ray üzerinde aynı anda dolaşabilecek maksimum vagon sayısı")]
-        [SerializeField] private int m_MaxTrackWagons = 4;
+        [SerializeField] private int m_MaxTrackWagons = 5;
 
         [Tooltip("Raydaki vagonlar arasındaki minimum takip mesafesi")]
         [SerializeField] private float m_MinWagonSpacing = 360f;
@@ -208,6 +425,7 @@ namespace PixelGame
         public bool RequireMatchingTruck { get => m_RequireMatchingTruck; set => m_RequireMatchingTruck = value; }
         public int QueuedTruckCount => m_Queue.Count;
         public IReadOnlyList<MovingWagon> MovingWagons => m_MovingWagons;
+        public PerimeterTrackLoop TrackLoop => m_Loop;
 
         #endregion
 
@@ -249,6 +467,10 @@ namespace PixelGame
 
         private void OnLevelLoaded(PixelLevelData level)
         {
+            if (level != null && level.SlotCount > 0)
+            {
+                m_MaxTrackWagons = level.SlotCount;
+            }
             if (!Application.isPlaying) return;
             Rebuild();
         }
@@ -262,10 +484,14 @@ namespace PixelGame
             StopAllCoroutines();
             m_Moving.Clear();
             m_ShelfCubes.Clear();
+            m_BoardShards.Clear();
+            ClearReservedCubes();
+            ClearSlots();
             ClearMovingTrain();
 
             if (m_Pool != null) m_Pool.gameObject.SetActive(true);
 
+            SetupPerimeterLoop();
             SpawnMovingTrainRoot();
             ClearPool();
             RebuildStrips();
@@ -278,7 +504,12 @@ namespace PixelGame
         {
             if (!Application.isPlaying) return;
 
-            if (m_ContinuousTrain)
+            if (m_PerimeterTrain)
+            {
+                UpdateMovingTrain();
+                UpdateVacuumSuction();
+            }
+            else if (m_ContinuousTrain)
             {
                 UpdateMovingTrain();
                 UpdateShelfCascadeFlow();
@@ -310,43 +541,247 @@ namespace PixelGame
         private float m_WagonY = 0f;
         private float m_WagonZ = -22f;
         private Quaternion m_WagonRotation = Quaternion.identity;
-        private Vector3 m_WagonScale = Vector3.one * 155f;
+        private Vector3 m_WagonScale = Vector3.one * 0.38f;
+
+        public bool CalculatePerimeterLoopBounds(out Vector3 loopCenter, out float loopWidth, out float loopHeight)
+        {
+            loopCenter = new Vector3(0f, 2.5f, 0f);
+            loopWidth = 4.2f;
+            loopHeight = 4.6f;
+
+            if (m_Generator == null)
+            {
+                m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
+            }
+
+            Camera cam = (m_Generator != null && m_Generator.WorldCamera != null) ? m_Generator.WorldCamera : Camera.main;
+            if (cam == null) cam = Object.FindFirstObjectByType<Camera>();
+
+            if (m_Generator != null)
+            {
+                // 1. Sahnedeki mevcut küplerin dünya sınırlarını hesapla (En güvenilir ve hatasız yöntem)
+                if (m_Generator.CubesContainer != null && m_Generator.CubesContainer.childCount > 0)
+                {
+                    Bounds bounds = default;
+                    bool hasCube = false;
+                    foreach (Transform child in m_Generator.CubesContainer)
+                    {
+                        if (child == null || !child.gameObject.activeSelf) continue;
+                        Vector3 pos = child.position;
+                        if (!hasCube)
+                        {
+                            bounds = new Bounds(pos, Vector3.one * 0.16f);
+                            hasCube = true;
+                        }
+                        else
+                        {
+                            bounds.Encapsulate(pos);
+                        }
+                    }
+
+                    if (hasCube && bounds.size.x > 0.5f && bounds.size.y > 0.5f)
+                    {
+                        loopCenter = bounds.center;
+                        loopCenter.z = m_Generator.TargetZ;
+                        loopWidth = bounds.size.x + (m_LoopMarginX * 2f) + 0.45f;
+                        loopHeight = bounds.size.y + (m_LoopMarginY * 2f) + 0.45f;
+                        return true;
+                    }
+                }
+
+                RectTransform frameRect = m_Generator.TargetFrameRect;
+                if (frameRect == null)
+                {
+                    GameObject mp = GameObject.Find("MainPlane");
+                    if (mp != null) frameRect = mp.GetComponent<RectTransform>();
+                }
+
+                if (frameRect != null && cam != null)
+                {
+                    Canvas.ForceUpdateCanvases();
+
+                    Canvas canvas = frameRect.GetComponentInParent<Canvas>();
+                    Vector3[] corners = new Vector3[4];
+                    frameRect.GetWorldCorners(corners);
+
+                    float targetZ = m_Generator.TargetZ;
+                    float camDist = Mathf.Abs(cam.transform.position.z - targetZ);
+                    if (camDist < 0.1f) camDist = 10f;
+
+                    if (canvas != null && canvas.renderMode == RenderMode.ScreenSpaceOverlay)
+                    {
+                        for (int i = 0; i < 4; i++)
+                        {
+                            corners[i] = cam.ScreenToWorldPoint(new Vector3(corners[i].x, corners[i].y, camDist));
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < 4; i++)
+                        {
+                            Vector3 screenPoint = cam.WorldToScreenPoint(corners[i]);
+                            corners[i] = cam.ScreenToWorldPoint(new Vector3(screenPoint.x, screenPoint.y, camDist));
+                        }
+                    }
+
+                    Vector3 bottomLeft = corners[0];
+                    Vector3 topRight = corners[2];
+
+                    loopCenter = (bottomLeft + topRight) * 0.5f;
+                    loopCenter.z = targetZ;
+
+                    float rawWidth = Mathf.Abs(topRight.x - bottomLeft.x);
+                    float rawHeight = Mathf.Abs(topRight.y - bottomLeft.y);
+
+                    if (rawWidth > 0.5f && rawHeight > 0.5f)
+                    {
+                        loopWidth = rawWidth + (m_LoopMarginX * 2f);
+                        loopHeight = rawHeight + (m_LoopMarginY * 2f);
+                        return true;
+                    }
+                }
+
+                // Fallback: pixel art generator'ın küp sınırları
+                if (cam != null && m_Generator.CalculateTargetWorldBounds(cam, out Vector3 wCenter, out float wWidth, out float wHeight))
+                {
+                    loopCenter = wCenter;
+                    loopCenter.z = m_Generator.TargetZ;
+                    loopWidth = wWidth + (m_LoopMarginX * 2f) + 0.35f;
+                    loopHeight = wHeight + (m_LoopMarginY * 2f) + 0.35f;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        [ContextMenu("🛤️ Çevresel Döngüyü Güncelle")]
+        public void SetupPerimeterLoop()
+        {
+            CalculatePerimeterLoopBounds(out Vector3 center, out float width, out float height);
+            float targetZ = (m_Generator != null) ? m_Generator.TargetZ : 0f;
+            m_Loop.Setup(center, width, height, m_LoopCornerRadius, targetZ - 0.12f);
+        }
+
+        [ContextMenu("🛤️ Çevresel Rayları Oluştur")]
+        public void GeneratePerimeterRails()
+        {
+            if (!m_ShowPerimeterRails) return;
+
+            if (m_TrackPrefab == null)
+            {
+                #if UNITY_EDITOR
+                m_TrackPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Track.prefab");
+                #endif
+            }
+            if (m_TrackPrefab == null) return;
+
+            SetupPerimeterLoop();
+
+            if (m_WagonsRoot == null)
+            {
+                GameObject rootObj = GameObject.Find("[PerimeterWagonsRoot]");
+                if (rootObj == null)
+                {
+                    rootObj = new GameObject("[PerimeterWagonsRoot]");
+                    #if UNITY_EDITOR
+                    if (!Application.isPlaying)
+                    {
+                        UnityEditor.Undo.RegisterCreatedObjectUndo(rootObj, "Perimeter Wagons Root");
+                    }
+                    #endif
+                }
+                m_WagonsRoot = rootObj.transform;
+            }
+
+            Transform existing = m_WagonsRoot.Find("PerimeterRails");
+            if (existing != null)
+            {
+                if (Application.isPlaying) Destroy(existing.gameObject);
+                else DestroyImmediate(existing.gameObject);
+            }
+
+            GameObject railsGroup = new GameObject("PerimeterRails");
+            #if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                UnityEditor.Undo.RegisterCreatedObjectUndo(railsGroup, "Perimeter Rails");
+            }
+            #endif
+            railsGroup.transform.SetParent(m_WagonsRoot, false);
+
+            float trackStep = 0.35f;
+            int count = Mathf.Max(12, Mathf.RoundToInt(m_Loop.TotalPerimeter / trackStep));
+            float actualStep = m_Loop.TotalPerimeter / count;
+
+            Vector3 railScale = (m_WagonScale.sqrMagnitude > 0.01f && m_WagonScale.x < 5f)
+                ? m_WagonScale * 0.95f
+                : Vector3.one * 0.40f;
+
+            for (int i = 0; i < count; i++)
+            {
+                float s = i * actualStep;
+                m_Loop.Evaluate(s, out Vector3 pos, out Vector3 tangent, out Quaternion rot, m_WagonRotation);
+
+                GameObject rail = Instantiate(m_TrackPrefab, railsGroup.transform);
+                rail.name = $"Track_{i}";
+                rail.transform.position = pos;
+                rail.transform.rotation = rot;
+                rail.transform.localScale = railScale;
+            }
+
+            #if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                UnityEditor.EditorUtility.SetDirty(gameObject);
+                if (m_WagonsRoot != null) UnityEditor.EditorUtility.SetDirty(m_WagonsRoot.gameObject);
+            }
+            #endif
+        }
 
         private void CalibratePortalsAndAlignment()
         {
-            if (m_Slots == null) return;
-
-            // Portalların X koordinatlarını otomatik kalibre et
-            Transform leftPortal = m_Slots.transform.Find("Portal_Left");
-            Transform rightPortal = m_Slots.transform.Find("Portal_Right");
-            if (leftPortal != null && rightPortal != null)
-            {
-                m_PortalLeftX = leftPortal.localPosition.x - 100f;
-                m_PortalRightX = rightPortal.localPosition.x + 100f;
-            }
-
-            // Ray üstündeki vagon rotasyon, ölçek, Y ve Z değerlerini Slot_1'den mükemmel şekilde örnekle
-            Vector3 defaultEuler = m_Slots.Style != null ? m_Slots.Style.truckEuler : new Vector3(0f, -90f, -270f);
+            Vector3 defaultEuler = (m_Slots != null && m_Slots.Style != null) ? m_Slots.Style.truckEuler : new Vector3(0f, -90f, -270f);
             m_WagonRotation = Quaternion.Euler(defaultEuler);
-            m_WagonScale = Vector3.one * 155f;
-            m_WagonY = 0f;
-            m_WagonZ = -22f;
 
-            if (m_Slots.Slots != null && m_Slots.Slots.Count > 0 && m_Slots.Slots[0] != null && m_TruckPrefab != null)
+            if (m_Pool != null && m_Pool.Places != null && m_Pool.Places.Count > 0 && m_Pool.Places[0] != null && m_Pool.Places[0].Truck != null)
+            {
+                m_WagonScale = m_Pool.Places[0].Truck.lossyScale;
+            }
+            else if (m_Slots != null && m_Slots.Slots != null && m_Slots.Slots.Count > 0 && m_Slots.Slots[0] != null && m_TruckPrefab != null)
             {
                 TruckSlot refSlot = m_Slots.Slots[0];
                 GameObject sampleObj = Instantiate(m_TruckPrefab, refSlot.SlotRect);
                 sampleObj.name = "SampleWagon";
                 refSlot.AssignTruck(sampleObj.transform, Color.white);
 
-                m_WagonRotation = sampleObj.transform.localRotation;
-                m_WagonScale = sampleObj.transform.localScale;
+                m_WagonScale = sampleObj.transform.lossyScale;
                 m_WagonY = sampleObj.transform.localPosition.y;
                 m_WagonZ = sampleObj.transform.localPosition.z;
 
                 refSlot.ReleaseTruck();
                 if (Application.isPlaying) Destroy(sampleObj);
                 else DestroyImmediate(sampleObj);
+            }
+            else
+            {
+                m_WagonScale = Vector3.one * 0.38f;
+            }
+
+            if (m_WagonScale.sqrMagnitude < 0.01f || m_WagonScale.x > 5f)
+            {
+                m_WagonScale = Vector3.one * 0.38f;
+            }
+
+            if (m_Slots != null)
+            {
+                Transform leftPortal = m_Slots.transform.Find("Portal_Left");
+                Transform rightPortal = m_Slots.transform.Find("Portal_Right");
+                if (leftPortal != null && rightPortal != null)
+                {
+                    m_PortalLeftX = leftPortal.localPosition.x - 100f;
+                    m_PortalRightX = rightPortal.localPosition.x + 100f;
+                }
             }
         }
 
@@ -356,44 +791,78 @@ namespace PixelGame
             {
                 m_Slots = Object.FindFirstObjectByType<TruckSlotRow>();
             }
-            if (m_Slots == null) return;
+
+            SetupPerimeterLoop();
+
+            if (m_PerimeterTrain)
+            {
+                if (m_Slots != null)
+                {
+                    m_Slots.gameObject.SetActive(false);
+                }
+            }
 
             CalibratePortalsAndAlignment();
 
-            if (m_WagonsRoot != null) return;
-
-            Transform existing = m_Slots.transform.Find("MovingWagons");
-            if (existing != null)
+            if (m_WagonsRoot != null)
             {
-                if (Application.isPlaying) Destroy(existing.gameObject);
-                else DestroyImmediate(existing.gameObject);
+                Destroy(m_WagonsRoot.gameObject);
+                m_WagonsRoot = null;
             }
 
-            GameObject rootObj = new GameObject("MovingWagons", typeof(RectTransform));
-            rootObj.transform.SetParent(m_Slots.transform, false);
-            rootObj.transform.localPosition = Vector3.zero;
+            if (m_PerimeterTrain)
+            {
+                GameObject existing = GameObject.Find("[PerimeterWagonsRoot]");
+                if (existing != null)
+                {
+                    if (Application.isPlaying) Destroy(existing);
+                    else DestroyImmediate(existing);
+                }
 
-            float tilt = m_Slots.Style != null ? m_Slots.Style.tilt : 45f;
-            rootObj.transform.localRotation = Quaternion.Euler(tilt, 0f, 0f);
-            rootObj.transform.localScale = Vector3.one;
-            m_WagonsRoot = rootObj.transform;
+                GameObject rootObj = new GameObject("[PerimeterWagonsRoot]");
+                rootObj.transform.position = Vector3.zero;
+                rootObj.transform.rotation = Quaternion.identity;
+                rootObj.transform.localScale = Vector3.one;
+                m_WagonsRoot = rootObj.transform;
+
+                GeneratePerimeterRails();
+            }
+            else
+            {
+                if (m_Slots == null) return;
+                Transform existing = m_Slots.transform.Find("MovingWagons");
+                if (existing != null)
+                {
+                    if (Application.isPlaying) Destroy(existing.gameObject);
+                    else DestroyImmediate(existing.gameObject);
+                }
+
+                GameObject rootObj = new GameObject("MovingWagons", typeof(RectTransform));
+                rootObj.transform.SetParent(m_Slots.transform, false);
+                rootObj.transform.localPosition = Vector3.zero;
+
+                float tilt = m_Slots.Style != null ? m_Slots.Style.tilt : 45f;
+                rootObj.transform.localRotation = Quaternion.Euler(tilt, 0f, 0f);
+                rootObj.transform.localScale = Vector3.one;
+                m_WagonsRoot = rootObj.transform;
+            }
         }
 
         /// <summary>
         /// Oyuncunun havuzdan tıkladığı vagonu ray akışına sokar.
-        /// Vagon havuzdan havalanıp ray üzerine konar ve sağa doğru ilerlemeye başlar.
+        /// Vagon havuzdan havalanıp ray üzerine konar ve kesintisiz dolaşıma başlar.
         /// </summary>
         public bool SendWagonToMovingFlow(TruckSlot place)
         {
             if (place == null || place.IsEmpty) return false;
 
-            // Ray hattı doluysa vagonu sallayarak oyuncuya geri bildirim ver
+            // Ray hattı doluysa (maksimum 5 vagon)
             if (m_MovingWagons.Count >= m_MaxTrackWagons)
             {
                 if (place.Truck != null)
                 {
                     place.Truck.DOKill();
-                    place.Truck.DOPunchPosition(Vector3.up * 10f, 0.22f, 8, 0.5f);
+                    place.Truck.DOPunchPosition(Vector3.up * 0.08f, 0.22f, 8, 0.5f);
                 }
                 return false;
             }
@@ -402,7 +871,6 @@ namespace PixelGame
             Transform truck = place.ReleaseTruck();
             if (truck == null) return false;
 
-            // Havuzdaki yerleri öne kaydır ve kuyruktan yenisini getir
             CompactPool();
             RefillPool();
 
@@ -412,41 +880,6 @@ namespace PixelGame
             }
 
             truck.SetParent(m_WagonsRoot, true);
-
-            // Ray hattındaki başlangıç pozisyonu:
-            // İstasyon durağı merkezdedir (x = 0f).
-            // Eğer merkez boşsa ve soldan merkeze doğru yaklaşan başka vagon yoksa doğrudan merkeze (x = 0f) iner.
-            // Eğer merkez doluysa veya sırada bekleyen/yaklaşan vagon varsa, en arkadaki vagonun arkasına sıraya geçer.
-            float startX = 0f;
-            if (m_MovingWagons.Count > 0)
-            {
-                float minX = float.MaxValue;
-                bool centerBlocked = false;
-
-                for (int i = 0; i < m_MovingWagons.Count; i++)
-                {
-                    float wx = m_MovingWagons[i].PositionX;
-                    if (wx < minX) minX = wx;
-
-                    // Merkeze çok yakın veya merkezde duran bir vagon var mı?
-                    if (Mathf.Abs(wx - 0f) < m_MinWagonSpacing * 0.85f)
-                    {
-                        centerBlocked = true;
-                    }
-                }
-
-                // Merkez doluysa veya merkezin solunda bekleyen/gelen vagon varsa arkaya sıraya geç
-                if (centerBlocked || minX < 0f)
-                {
-                    startX = Mathf.Max(m_PortalLeftX + 40f, minX - m_MinWagonSpacing);
-                }
-                else
-                {
-                    startX = 0f;
-                }
-            }
-
-            Vector3 targetLocalPos = new Vector3(startX, m_WagonY, m_WagonZ);
 
             TruckCargo cargo = truck.GetComponent<TruckCargo>();
             if (cargo == null) cargo = truck.gameObject.AddComponent<TruckCargo>();
@@ -469,9 +902,101 @@ namespace PixelGame
             if (mover != null) mover.StopMoving();
 
             Animator anim = truck.GetComponent<Animator>();
-            if (anim != null) anim.speed = 0f;
+            if (anim != null) anim.speed = 1f;
 
-            MovingWagon movingWagon = new MovingWagon
+            if (m_PerimeterTrain)
+            {
+                float entryDistance = m_Loop.StraightBottom * 0.5f;
+                if (m_MovingWagons.Count > 0)
+                {
+                    float maxGap = 0f;
+                    float bestGapMid = entryDistance;
+
+                    List<float> sorted = new List<float>();
+                    for (int i = 0; i < m_MovingWagons.Count; i++)
+                    {
+                        sorted.Add(m_MovingWagons[i].DistanceOnLoop);
+                    }
+                    sorted.Sort();
+
+                    for (int i = 0; i < sorted.Count; i++)
+                    {
+                        float next = (i + 1 < sorted.Count) ? sorted[i + 1] : (sorted[0] + m_Loop.TotalPerimeter);
+                        float gap = next - sorted[i];
+                        if (gap > maxGap)
+                        {
+                            maxGap = gap;
+                            bestGapMid = Mathf.Repeat(sorted[i] + gap * 0.5f, m_Loop.TotalPerimeter);
+                        }
+                    }
+                    entryDistance = bestGapMid;
+                }
+
+                m_Loop.Evaluate(entryDistance, out Vector3 targetPos, out Vector3 tangent, out Quaternion targetRot, m_WagonRotation);
+
+                MovingWagon movingWagon = new MovingWagon
+                {
+                    GameObject = truck.gameObject,
+                    Transform = truck,
+                    Cargo = cargo,
+                    Paint = paint,
+                    Mover = mover,
+                    Animator = anim,
+                    DistanceOnLoop = entryDistance,
+                    IsDeployingMiners = false,
+                    HasStartedDeploying = false,
+                    IsJumpingToTrack = true,
+                    IsDeparting = false
+                };
+                m_MovingWagons.Add(movingWagon);
+
+                truck.DOKill();
+                truck.DORotateQuaternion(targetRot, 0.35f).SetEase(Ease.OutQuad);
+                truck.DOScale(m_WagonScale, 0.35f);
+                truck.DOMove(targetPos, 0.35f).SetEase(Ease.OutQuad).OnComplete(() =>
+                {
+                    if (truck != null)
+                    {
+                        truck.position = targetPos;
+                        truck.rotation = targetRot;
+                        movingWagon.IsJumpingToTrack = false;
+                    }
+                });
+
+                StartCoroutine(SequentialShatterForLoopRoutine(color, cargo));
+                return true;
+            }
+
+            // Eski yatay hat mantığı (Fallback)
+            float startX = 0f;
+            if (m_MovingWagons.Count > 0)
+            {
+                float minX = float.MaxValue;
+                bool centerBlocked = false;
+
+                for (int i = 0; i < m_MovingWagons.Count; i++)
+                {
+                    float wx = m_MovingWagons[i].PositionX;
+                    if (wx < minX) minX = wx;
+                    if (Mathf.Abs(wx - 0f) < m_MinWagonSpacing * 0.85f)
+                    {
+                        centerBlocked = true;
+                    }
+                }
+
+                if (centerBlocked || minX < 0f)
+                {
+                    startX = Mathf.Max(m_PortalLeftX + 40f, minX - m_MinWagonSpacing);
+                }
+                else
+                {
+                    startX = 0f;
+                }
+            }
+
+            Vector3 targetLocalPos = new Vector3(startX, m_WagonY, m_WagonZ);
+
+            MovingWagon legacyWagon = new MovingWagon
             {
                 GameObject = truck.gameObject,
                 Transform = truck,
@@ -484,9 +1009,8 @@ namespace PixelGame
                 HasStartedDeploying = false,
                 IsJumpingToTrack = true
             };
-            m_MovingWagons.Add(movingWagon);
+            m_MovingWagons.Add(legacyWagon);
 
-            // Havuzdan raya akıcı, direkt geçiş animasyonu
             truck.DOKill();
             truck.DOLocalRotateQuaternion(m_WagonRotation, 0.28f);
             truck.DOScale(m_WagonScale, 0.28f);
@@ -495,10 +1019,7 @@ namespace PixelGame
                 if (truck != null)
                 {
                     truck.localPosition = targetLocalPos;
-
-                    movingWagon.IsJumpingToTrack = false;
-                    movingWagon.IsDeployingMiners = false;
-                    movingWagon.HasStartedDeploying = false;
+                    legacyWagon.IsJumpingToTrack = false;
                 }
             });
 
@@ -509,6 +1030,262 @@ namespace PixelGame
         {
             if (m_MovingWagons.Count == 0) return;
 
+            if (m_PerimeterTrain)
+            {
+                UpdatePerimeterTrainCirculation();
+                return;
+            }
+
+            UpdateLegacyHorizontalTrain();
+        }
+
+        private void UpdatePerimeterTrainCirculation()
+        {
+            float baseStep = m_PerimeterSpeed * Time.deltaTime;
+            float minSpacing = m_Loop.TotalPerimeter / (m_MaxTrackWagons + 1);
+
+            for (int i = 0; i < m_MovingWagons.Count; i++)
+            {
+                MovingWagon wagon = m_MovingWagons[i];
+                if (wagon == null || wagon.Transform == null || wagon.IsJumpingToTrack || wagon.IsDeparting) continue;
+
+                float moveStep = baseStep;
+                for (int j = 0; j < m_MovingWagons.Count; j++)
+                {
+                    if (i == j) continue;
+                    MovingWagon other = m_MovingWagons[j];
+                    if (other == null || other.IsDeparting) continue;
+
+                    float aheadDist = Mathf.Repeat(other.DistanceOnLoop - wagon.DistanceOnLoop, m_Loop.TotalPerimeter);
+                    if (aheadDist > 0.001f && aheadDist < minSpacing)
+                    {
+                        float slowFactor = Mathf.Clamp01(aheadDist / minSpacing);
+                        moveStep = Mathf.Min(moveStep, baseStep * slowFactor);
+                    }
+                }
+
+                wagon.DistanceOnLoop = Mathf.Repeat(wagon.DistanceOnLoop + moveStep, m_Loop.TotalPerimeter);
+                m_Loop.Evaluate(wagon.DistanceOnLoop, out Vector3 pos, out Vector3 tangent, out Quaternion rot, m_WagonRotation);
+
+                wagon.Transform.position = pos;
+                wagon.Transform.rotation = rot;
+
+                if (wagon.Mover != null)
+                {
+                    wagon.Mover.SpinWheelsByDistance(moveStep);
+                }
+                if (wagon.Animator != null)
+                {
+                    wagon.Animator.speed = (moveStep > 0.001f) ? 1f : 0f;
+                }
+            }
+        }
+
+        private void UpdateVacuumSuction()
+        {
+            if (m_BoardShards.Count == 0 || m_MovingWagons.Count == 0) return;
+
+            for (int w = 0; w < m_MovingWagons.Count; w++)
+            {
+                MovingWagon wagon = m_MovingWagons[w];
+                if (wagon == null || wagon.Cargo == null || wagon.IsDeparting || wagon.IsJumpingToTrack) continue;
+                if (wagon.Cargo.IsFull || wagon.Cargo.RemainingCapacity <= 0) continue;
+
+                Color wagonColor = wagon.Cargo.CargoColor;
+                Vector3 wagonPos = wagon.Transform.position;
+
+                BoardShardGroup bestTarget = null;
+                float bestDist = float.MaxValue;
+
+                for (int s = 0; s < m_BoardShards.Count; s++)
+                {
+                    BoardShardGroup group = m_BoardShards[s];
+                    if (group == null || group.IsVacuuming || !group.IsSettled) continue;
+
+                    float colorDist = TruckCargo.ColorDistance(group.Color, wagonColor);
+                    if (colorDist > m_ColorThreshold) continue;
+
+                    float dist = Vector3.Distance(wagonPos, group.Position);
+                    if (dist <= m_VacuumRadius && dist < bestDist)
+                    {
+                        bestDist = dist;
+                        bestTarget = group;
+                    }
+                }
+
+                if (bestTarget != null)
+                {
+                    bestTarget.IsVacuuming = true;
+                    StartCoroutine(VacuumShardGroupRoutine(bestTarget, wagon));
+                }
+            }
+        }
+
+        private IEnumerator VacuumShardGroupRoutine(BoardShardGroup group, MovingWagon wagon)
+        {
+            if (group == null || wagon == null || wagon.Cargo == null) yield break;
+
+            m_BoardShards.Remove(group);
+            wagon.Cargo.LoadOneCube();
+
+            Transform targetWagon = wagon.Transform;
+            TruckCargo targetCargo = wagon.Cargo;
+
+            int arrived = 0;
+            int total = group.Flyers.Count;
+
+            for (int f = 0; f < group.Flyers.Count; f++)
+            {
+                CargoFlyer flyer = group.Flyers[f];
+                if (flyer != null)
+                {
+                    Mesh shardMesh = flyer.CurrentMesh;
+                    Vector3 offset = Vector3.up * 0.20f + Random.insideUnitSphere * 0.04f;
+
+                    flyer.VacuumPullToMovingTarget(
+                        targetWagon,
+                        offset,
+                        m_VacuumDuration,
+                        m_VacuumArcHeight,
+                        () =>
+                        {
+                            arrived++;
+                            if (targetCargo != null && targetCargo.Stack != null)
+                            {
+                                targetCargo.Stack.AddPiece(1f, shardMesh);
+                            }
+
+                            if (arrived >= total)
+                            {
+                                if (targetWagon != null)
+                                {
+                                    targetWagon.DOKill(true);
+                                    targetWagon.DOPunchScale(new Vector3(0.04f, 0.08f, 0.04f), 0.16f, 3, 0.4f);
+                                }
+
+                                if (targetCargo != null && targetCargo.IsFull)
+                                {
+                                    StartCoroutine(WagonDepartFromLoopRoutine(wagon));
+                                }
+                            }
+                        }
+                    );
+                }
+
+                yield return new WaitForSeconds(0.012f);
+            }
+        }
+
+        private IEnumerator WagonDepartFromLoopRoutine(MovingWagon wagon)
+        {
+            if (wagon == null || wagon.IsDeparting) yield break;
+            wagon.IsDeparting = true;
+
+            yield return new WaitForSeconds(0.25f);
+
+            if (wagon.Transform == null) yield break;
+
+            wagon.Transform.DOKill();
+            wagon.Transform.DOPunchScale(new Vector3(0.12f, 0.12f, 0.12f), 0.25f, 4, 0.5f);
+            yield return new WaitForSeconds(0.22f);
+
+            if (wagon.Transform != null)
+            {
+                wagon.Transform.DOScale(Vector3.zero, 0.32f).SetEase(Ease.InBack);
+                wagon.Transform.DOMove(wagon.Transform.position + wagon.Transform.forward * 1.8f + Vector3.back * 0.5f, 0.32f).SetEase(Ease.InQuad);
+            }
+
+            yield return new WaitForSeconds(0.35f);
+
+            if (wagon.GameObject != null)
+            {
+                Destroy(wagon.GameObject);
+            }
+            m_MovingWagons.Remove(wagon);
+
+            CompactPool();
+            RefillPool();
+            if (m_Pool != null) m_Pool.UpdateRowVisuals();
+        }
+
+        private IEnumerator SequentialShatterForLoopRoutine(Color targetColor, TruckCargo cargo)
+        {
+            yield return new WaitForSeconds(0.35f);
+
+            PixelCube[] allCubes = Object.FindObjectsByType<PixelCube>(FindObjectsSortMode.None);
+            if (allCubes == null || allCubes.Length == 0) yield break;
+
+            List<PixelCube> matching = new List<PixelCube>();
+            for (int i = 0; i < allCubes.Length; i++)
+            {
+                PixelCube c = allCubes[i];
+                if (c == null || c.IsPopped || !c.gameObject.activeInHierarchy) continue;
+                if (s_ReservedCubes.Contains(c)) continue;
+
+                if (TruckCargo.ColorDistance(c.CurrentColor, targetColor) <= m_ColorThreshold ||
+                    TruckCargo.ColorDistance(ClassifyToPalette(c.CurrentColor), targetColor) <= m_ColorThreshold)
+                {
+                    matching.Add(c);
+                }
+            }
+
+            if (matching.Count == 0) yield break;
+
+            var depthMap = Miner.CalculateLayerDepths(allCubes);
+            matching.Sort((a, b) =>
+            {
+                int depthA = depthMap.TryGetValue(a, out int dA) ? dA : 0;
+                int depthB = depthMap.TryGetValue(b, out int dB) ? dB : 0;
+                if (depthA != depthB) return depthA.CompareTo(depthB);
+                return a.transform.position.y.CompareTo(b.transform.position.y);
+            });
+
+            int countToShatter = Mathf.Min(cargo != null ? cargo.RemainingCapacity : 16, matching.Count);
+            List<PixelCube> targets = new List<PixelCube>(countToShatter);
+            for (int i = 0; i < countToShatter; i++)
+            {
+                targets.Add(matching[i]);
+                s_ReservedCubes.Add(matching[i]);
+            }
+
+            for (int i = 0; i < targets.Count; i++)
+            {
+                if (cargo != null && cargo.IsFull)
+                {
+                    for (int rem = i; rem < targets.Count; rem++)
+                    {
+                        s_ReservedCubes.Remove(targets[rem]);
+                    }
+                    yield break;
+                }
+
+                PixelCube cube = targets[i];
+                s_ReservedCubes.Remove(cube);
+
+                if (cube != null && !cube.IsPopped && cube.gameObject.activeInHierarchy)
+                {
+                    if (VoxelParticleManager.Instance != null)
+                    {
+                        float comboPitch = Mathf.Clamp(1.0f + (i * 0.032f), 0.95f, 1.85f);
+                        VoxelParticleManager.Instance.PlayGlassShatterSound(comboPitch);
+                        VoxelParticleManager.Instance.SpawnVoxelBurst(cube.transform.position, cube.transform.lossyScale, cube.CurrentColor);
+                    }
+
+                    cube.SetPoppedVisualState(true);
+                    if (PixelCubeInteraction.Instance != null)
+                    {
+                        PixelCubeInteraction.Instance.RegisterPoppedCube(cube);
+                    }
+
+                    NotifyCubePopped(cube.CurrentColor, cube.transform.position, cube.CurrentColor, cube.transform.lossyScale, cube.transform.rotation);
+                }
+
+                yield return new WaitForSeconds(m_ShatterInterval);
+            }
+        }
+
+        private void UpdateLegacyHorizontalTrain()
+        {
             float step = m_TrainSpeed * Time.deltaTime;
             float worldScale = m_WagonsRoot != null ? m_WagonsRoot.lossyScale.x : 1f;
 
@@ -517,7 +1294,6 @@ namespace PixelGame
                 MovingWagon wagon = m_MovingWagons[i];
                 if (wagon == null || wagon.Transform == null || wagon.IsJumpingToTrack) continue;
 
-                // Madenciler vagondan inene kadar vagon olduğu yerde (merkez istasyonunda) sabit durur
                 if (wagon.IsDeployingMiners)
                 {
                     wagon.Transform.localPosition = new Vector3(wagon.PositionX, m_WagonY, m_WagonZ);
@@ -525,7 +1301,6 @@ namespace PixelGame
                     continue;
                 }
 
-                // Öndeki vagon ile güvenli takip mesafesi (kuyruk mantığı)
                 float moveStep = step;
                 for (int j = 0; j < m_MovingWagons.Count; j++)
                 {
@@ -543,18 +1318,13 @@ namespace PixelGame
                 MinerCrew crew = wagon.Transform.GetComponent<MinerCrew>();
                 bool hasMinersToDeploy = crew == null || crew.RemainingMinersToDeploy > 0;
 
-                // Seçenek A: İndirme yapacak vagon soldan yaklaşırken tam ortaya (x = 0f merkez durağına) yanaşır
-                // SADECE İLK GEÇİŞİNDE (HasCompletedInitialDeployment == false) ve henüz indirme yapmadıysa durur.
-                // 2. geçişte (raftan taş toplarken) ASLA durmaz, akışta taşları toplayarak ilerler!
-                if (!wagon.HasCompletedInitialDeployment && !wagon.HasStartedDeploying && wagon.Cargo != null && !wagon.Cargo.IsFull && hasMinersToDeploy)
+                if (m_EnableMiners && !wagon.HasCompletedInitialDeployment && !wagon.HasStartedDeploying && wagon.Cargo != null && !wagon.Cargo.IsFull && hasMinersToDeploy)
                 {
-                    // Vagon soldan gelirken 0f merkez durağını aşmaması için adımı tam merkeze ayarla
                     if (wagon.PositionX < 0f && (wagon.PositionX + moveStep) >= 0f)
                     {
                         moveStep = -wagon.PositionX;
                     }
 
-                    // Vagon merkeze ulaştığında (x = 0f durağında)
                     if (Mathf.Abs(wagon.PositionX + moveStep) <= 0.05f || (wagon.PositionX >= -0.05f && wagon.PositionX <= 0.05f))
                     {
                         if (Miner.HasAccessibleMatchingCube(wagon.Cargo.CargoColor, m_ColorThreshold) ||
@@ -585,16 +1355,13 @@ namespace PixelGame
 
                 wagon.PositionX += moveStep;
 
-                // İstasyon durağını geçtikten sonra (sağa doğru ilerlerken) ilk indirme tamamlanmış olarak mühürlenir
                 if (wagon.PositionX > 50f && wagon.HasStartedDeploying)
                 {
                     wagon.HasCompletedInitialDeployment = true;
                 }
 
-                // Sağ portaldan çıkan vagonun durumu
                 if (wagon.PositionX > m_PortalRightX)
                 {
-                    // Dolmuş vagon teslim edildi sayılır ve tünelde tamamlanır (yok edilir)
                     if (wagon.Cargo != null && wagon.Cargo.IsFull)
                     {
                         Destroy(wagon.GameObject);
@@ -604,7 +1371,6 @@ namespace PixelGame
                     }
                     else
                     {
-                        // Henüz dolmamış vagon döngüye devam eder: soldan tekrar hatta girer (akışta taş toplamaya devam)
                         wagon.PositionX = m_PortalLeftX + (wagon.PositionX - m_PortalRightX);
                     }
                 }
@@ -626,6 +1392,71 @@ namespace PixelGame
 
         #region 📦 Kırmızı Raf & Vagona Akış (Shelf Flow)
 
+        private void NotifyCubePoppedPerimeterDrop(
+            Color paletteColor,
+            Color pieceColor,
+            Vector3 worldPosition,
+            Vector3? cubeScale,
+            Quaternion? cubeRotation,
+            FracturedCubeData fracData,
+            int shardCount)
+        {
+            Vector3 sScale = (cubeScale ?? Vector3.one) * m_ShardScaleMultiplier;
+            Quaternion sRot = cubeRotation ?? Quaternion.identity;
+
+            BoardShardGroup group = new BoardShardGroup
+            {
+                CubeId = ++m_NextCubeId,
+                Color = paletteColor,
+                Position = worldPosition + Vector3.down * 0.25f,
+                IsVacuuming = false,
+                IsSettled = false
+            };
+            m_BoardShards.Add(group);
+
+            int landedCount = 0;
+
+            for (int s = 0; s < shardCount; s++)
+            {
+                FracturedCubeData.ShardData shard = (fracData != null) ? fracData.GetShard(s) : default;
+                Vector3 localOffset = shard.localOffset;
+                Vector3 outwardDir = sRot * (shard.outwardDir.sqrMagnitude > 0.001f ? shard.outwardDir : (localOffset.sqrMagnitude > 0.001f ? localOffset.normalized : Vector3.up));
+
+                Vector3 shardStart = worldPosition + sRot * Vector3.Scale(localOffset * 0.5f, cubeScale ?? Vector3.one);
+                Mesh shardMesh = shard.mesh;
+
+                // Parça olduğu yerin hemen altına dökülür
+                float dropX = worldPosition.x + Random.Range(-0.07f, 0.07f);
+                float dropY = worldPosition.y - Random.Range(0.20f, 0.35f);
+                float dropZ = worldPosition.z - Random.Range(0.02f, 0.05f);
+                Vector3 dropPos = new Vector3(dropX, dropY, dropZ);
+
+                float stagger = s * 0.004f;
+
+                CargoFlyer flyer = CargoFlyer.LaunchShardLocalDrop(
+                    shardStart,
+                    sRot,
+                    outwardDir,
+                    dropPos,
+                    pieceColor,
+                    shardMesh,
+                    sScale,
+                    stagger,
+                    m_LocalDropFallDuration * Random.Range(0.95f, 1.1f),
+                    () =>
+                    {
+                        landedCount++;
+                        if (landedCount >= shardCount)
+                        {
+                            group.IsSettled = true;
+                        }
+                    }
+                );
+
+                group.Flyers.Add(flyer);
+            }
+        }
+
         /// <summary>
         /// Küp patladığında çağrılır:
         /// 1. Küpü Blender'daki 12 doğal kırık parçasına (Ore_Frag_00..11) böler.
@@ -645,6 +1476,87 @@ namespace PixelGame
 
             FracturedCubeData fracData = FracturedCubeData.Instance;
             int shardCount = (fracData != null && fracData.ShardCount > 0) ? fracData.ShardCount : 12;
+
+            if (m_PerimeterTrain)
+            {
+                NotifyCubePoppedPerimeterDrop(paletteColor, pieceColor, worldPosition, cubeScale, cubeRotation, fracData, shardCount);
+                return;
+            }
+
+            // Slot modunda parçalar önce rafa düşer, ardından slottaki vagona kayar
+            if (!m_ContinuousTrain)
+            {
+                TruckSlot slot = FindSlotFor(paletteColor);
+                if (slot != null && slot.Truck != null && slot.Cargo != null)
+                {
+                    Transform truck = slot.Truck;
+                    TruckCargo cargo = slot.Cargo;
+                    Vector3 sScale = cubeScale ?? Vector3.one;
+                    Quaternion sRot = cubeRotation ?? Quaternion.identity;
+
+                    GetShelfArea(out Vector3 sCenter, out float sMinX, out float sMaxX);
+                    float dX = Mathf.Clamp(worldPosition.x + Random.Range(-0.15f, 0.15f), sMinX, sMaxX);
+                    Vector3 dPos = new Vector3(dX, sCenter.y, sCenter.z);
+                    Vector3 sTgt = new Vector3(Mathf.Clamp(sCenter.x + Random.Range(-m_ShelfGatherRadius, m_ShelfGatherRadius), sMinX, sMaxX), sCenter.y + Random.Range(0f, m_ShelfStackHeight * 0.8f), sCenter.z);
+
+                    Vector3 finalScale = sScale * m_ShardScaleMultiplier;
+                    int arrived = 0;
+                    bool registered = false;
+
+                    for (int s = 0; s < shardCount; s++)
+                    {
+                        FracturedCubeData.ShardData shard = (fracData != null) ? fracData.GetShard(s) : default;
+                        Vector3 localOffset = shard.localOffset;
+                        Vector3 outwardDir = sRot * (shard.outwardDir.sqrMagnitude > 0.001f ? shard.outwardDir : (localOffset.sqrMagnitude > 0.001f ? localOffset.normalized : Vector3.up));
+
+                        Vector3 shardStart = worldPosition + sRot * Vector3.Scale(localOffset * 0.5f, sScale);
+                        Mesh shardMesh = shard.mesh;
+
+                        Vector3 targetOffset = Vector3.up * 0.28f + (truck.right * Random.Range(-0.20f, 0.20f)) + (truck.forward * Random.Range(-0.14f, 0.14f));
+                        float stagger = s * 0.004f;
+
+                        CargoFlyer.LaunchGlassShardViaShelfToWagon(
+                            shardStart,
+                            sRot,
+                            outwardDir,
+                            dPos,
+                            sTgt,
+                            truck,
+                            targetOffset,
+                            pieceColor,
+                            shardMesh,
+                            finalScale,
+                            stagger,
+                            m_FallToShelfDuration * Random.Range(0.95f, 1.08f),
+                            m_PauseOnShelfDuration,
+                            m_SlideToWagonDuration * Random.Range(0.95f, 1.08f),
+                            () =>
+                            {
+                                arrived++;
+                                if (cargo != null && cargo.Stack != null)
+                                {
+                                    cargo.Stack.AddPiece(1f, shardMesh);
+                                }
+
+                                if (!registered && arrived >= Mathf.Min(3, shardCount))
+                                {
+                                    registered = true;
+                                    if (cargo != null)
+                                    {
+                                        cargo.LoadOneCube();
+                                        if (truck != null)
+                                        {
+                                            truck.DOKill(true);
+                                            truck.DOPunchScale(new Vector3(0.04f, 0.08f, 0.04f), 0.16f, 3, 0.4f);
+                                        }
+                                    }
+                                }
+                            }
+                        );
+                    }
+                    return;
+                }
+            }
 
             CargoStack stack = null;
             if (m_MovingWagons.Count > 0 && m_MovingWagons[0].Cargo != null)
@@ -857,9 +1769,30 @@ namespace PixelGame
 
         private void OnDrawGizmos()
         {
+            if (m_PerimeterTrain)
+            {
+                CalculatePerimeterLoopBounds(out Vector3 center, out float width, out float height);
+                PerimeterTrackLoop tempLoop = new PerimeterTrackLoop();
+                tempLoop.Setup(center, width, height, m_LoopCornerRadius, center.z - 0.12f);
+
+                Gizmos.color = Color.cyan;
+                int segments = 64;
+                Vector3 prev = Vector3.zero;
+                for (int i = 0; i <= segments; i++)
+                {
+                    float dist = (i / (float)segments) * tempLoop.TotalPerimeter;
+                    tempLoop.Evaluate(dist, out Vector3 p, out Vector3 t, out Quaternion r, Quaternion.identity);
+                    if (i > 0)
+                    {
+                        Gizmos.DrawLine(prev, p);
+                    }
+                    prev = p;
+                }
+            }
+
             if (GetShelfArea(out Vector3 shelfCenter, out float shelfMinX, out float shelfMaxX))
             {
-                Gizmos.color = new Color(1f, 0.2f, 0.2f, 0.85f); // Kırmızı raf gizmosu (Toplanma alanı)
+                Gizmos.color = new Color(1f, 0.2f, 0.2f, 0.85f);
                 float width = m_ShelfGatherRadius * 2f;
                 Gizmos.DrawWireCube(shelfCenter, new Vector3(width, 0.25f + m_ShelfStackHeight, 0.25f));
             }
@@ -871,7 +1804,45 @@ namespace PixelGame
 
         public bool CanPop(Color cubeColor)
         {
-            if (m_ContinuousTrain) return true; // Parçalar önce rafa birikeceği için küpler her zaman kırılabilir
+            if (m_PerimeterTrain || m_ContinuousTrain)
+            {
+                if (!m_RequireMatchingTruck) return true;
+
+                for (int i = 0; i < m_MovingWagons.Count; i++)
+                {
+                    var w = m_MovingWagons[i];
+                    if (w != null && w.Cargo != null && !w.Cargo.IsFull)
+                    {
+                        if (TruckCargo.ColorDistance(cubeColor, w.Cargo.CargoColor) <= m_ColorThreshold ||
+                            TruckCargo.ColorDistance(ClassifyToPalette(cubeColor), w.Cargo.CargoColor) <= m_ColorThreshold)
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                // Çevresel modda havuzda bekleyen vagon varsa da küp patlayıp yere dökülebilir;
+                // vagon hatta sürüldüğünde yanından geçerken vakumlayacaktır.
+                if (m_PerimeterTrain && m_Pool != null && m_Pool.Places != null)
+                {
+                    Color paletteColor = ClassifyToPalette(cubeColor);
+                    for (int p = 0; p < m_Pool.Places.Count; p++)
+                    {
+                        var place = m_Pool.Places[p];
+                        if (place != null && place.Truck != null && place.Cargo != null && !place.Cargo.IsFull)
+                        {
+                            if (TruckCargo.ColorDistance(cubeColor, place.Cargo.CargoColor) <= m_ColorThreshold ||
+                                TruckCargo.ColorDistance(paletteColor, place.Cargo.CargoColor) <= m_ColorThreshold)
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                }
+
+                return false;
+            }
+
             if (!m_RequireMatchingTruck) return true;
 
             return FindSlotFor(ClassifyToPalette(cubeColor)) != null;
@@ -1067,10 +2038,13 @@ namespace PixelGame
             cargo.EnsureBadge();
             cargo.UpdateBadge(false);
 
-            // Vagon henüz havuzdayken içine oturacak görsel madencileri yerleştir
-            MinerCrew crew = truck.GetComponent<MinerCrew>();
-            if (crew == null) crew = truck.AddComponent<MinerCrew>();
-            crew.PopulateSeatedMiners(cargo, MinerPrefab, m_MinerScaleFactor, m_MinerRunSpeed);
+            // Vagon henüz havuzdayken içine oturacak görsel madencileri sadece madenci modu açıksa yerleştir
+            if (m_EnableMiners)
+            {
+                MinerCrew crew = truck.GetComponent<MinerCrew>();
+                if (crew == null) crew = truck.AddComponent<MinerCrew>();
+                crew.PopulateSeatedMiners(cargo, MinerPrefab, m_MinerScaleFactor, m_MinerRunSpeed);
+            }
 
             MineCartMover mover = truck.GetComponent<MineCartMover>();
             if (mover != null) mover.StopMoving();
@@ -1104,7 +2078,7 @@ namespace PixelGame
                 return false;
             }
 
-            if (m_ContinuousTrain)
+            if (m_PerimeterTrain || m_ContinuousTrain)
             {
                 bool sent = SendWagonToMovingFlow(place);
                 if (sent && m_Pool != null) m_Pool.UpdateRowVisuals();
@@ -1175,10 +2149,10 @@ namespace PixelGame
                 StopCoroutine(running);
             }
 
-            m_Moving[truck] = StartCoroutine(MoveRoutine(truck, startLocal, endLocal));
+            m_Moving[truck] = StartCoroutine(MoveRoutine(truck, startLocal, endLocal, target));
         }
 
-        private IEnumerator MoveRoutine(Transform truck, Vector3 start, Vector3 end)
+        private IEnumerator MoveRoutine(Transform truck, Vector3 start, Vector3 end, TruckSlot targetSlot)
         {
             float elapsed = 0f;
             while (elapsed < m_MoveDuration && truck != null)
@@ -1197,6 +2171,214 @@ namespace PixelGame
             {
                 truck.localPosition = end;
                 m_Moving.Remove(truck);
+
+                // Slota oturuşta tatmin edici yaylanma (landing bounce)
+                bool isParkingSlot = (m_Slots != null && m_Slots.Slots != null && m_Slots.Slots.Contains(targetSlot));
+                if (isParkingSlot)
+                {
+                    truck.DOKill(true);
+                    truck.DOPunchScale(new Vector3(0.06f, 0.12f, 0.06f), 0.22f, 4, 0.4f);
+
+                    TruckCargo cargo = truck.GetComponent<TruckCargo>();
+                    if (cargo != null && !m_ContinuousTrain)
+                    {
+                        StartCoroutine(SequentialGlassShatterRoutine(targetSlot, truck, cargo));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Vagon slota oturduğunda, tablodaki o renge uyan küpleri dış katmandan içe doğru sırayla cam gibi kırıp vagona akıtır.
+        /// </summary>
+        private IEnumerator SequentialGlassShatterRoutine(TruckSlot targetSlot, Transform truck, TruckCargo cargo)
+        {
+            if (cargo == null || cargo.IsFull || cargo.RemainingCapacity <= 0) yield break;
+
+            // Vagonun slota inişinin hemen ardından iniş yaylanmasını hissettirecek kısa bir an
+            yield return new WaitForSeconds(0.06f);
+
+            if (truck == null || targetSlot == null || targetSlot.Truck != truck) yield break;
+
+            // 1. Tablodaki tüm aktif ve kırılmamış küpleri topla
+            PixelCube[] allCubes = Miner.GetCubesCached();
+            if (allCubes == null || allCubes.Length == 0)
+            {
+                var gen = m_Generator != null ? m_Generator : Object.FindFirstObjectByType<PixelArtGenerator>();
+                if (gen != null && gen.CubesContainer != null)
+                {
+                    allCubes = gen.CubesContainer.GetComponentsInChildren<PixelCube>();
+                }
+            }
+
+            if (allCubes == null || allCubes.Length == 0) yield break;
+
+            Color targetColor = cargo.CargoColor;
+
+            // 2. Bu renge uyan ve henüz patlamamış / rezerve edilmemiş küpleri filtrele
+            List<PixelCube> matching = new List<PixelCube>();
+            for (int i = 0; i < allCubes.Length; i++)
+            {
+                PixelCube c = allCubes[i];
+                if (c == null || c.IsPopped || !c.gameObject.activeInHierarchy) continue;
+                if (s_ReservedCubes.Contains(c)) continue;
+
+                if (TruckCargo.ColorDistance(c.CurrentColor, targetColor) <= m_ColorThreshold ||
+                    TruckCargo.ColorDistance(ClassifyToPalette(c.CurrentColor), targetColor) <= m_ColorThreshold)
+                {
+                    matching.Add(c);
+                }
+            }
+
+            if (matching.Count == 0) yield break;
+
+            // 3. Dıştan içe (outside-in) katman derinliği hesapla
+            var depthMap = Miner.CalculateLayerDepths(allCubes);
+
+            // Dış katmandan (derinlik 0) başlayarak, aynı katman içinde de vagona yakınlığa göre sırala
+            Vector3 truckPos = truck.position;
+            matching.Sort((a, b) =>
+            {
+                int depthA = depthMap.TryGetValue(a, out int dA) ? dA : 0;
+                int depthB = depthMap.TryGetValue(b, out int dB) ? dB : 0;
+                if (depthA != depthB) return depthA.CompareTo(depthB);
+
+                // Aynı katmanda ise vagona yakın olan önce kırılsın (tatmin edici kavis dalgası)
+                float distA = (a.transform.position - truckPos).sqrMagnitude;
+                float distB = (b.transform.position - truckPos).sqrMagnitude;
+                return distA.CompareTo(distB);
+            });
+
+            // Vagonun alabileceği kadar küp rezerve et
+            int countToShatter = Mathf.Min(cargo.RemainingCapacity, matching.Count);
+            List<PixelCube> targets = new List<PixelCube>(countToShatter);
+            for (int i = 0; i < countToShatter; i++)
+            {
+                targets.Add(matching[i]);
+                s_ReservedCubes.Add(matching[i]);
+            }
+
+            // 4. Sırayla cam gibi kırıp vagona akıt!
+            for (int i = 0; i < targets.Count; i++)
+            {
+                if (truck == null || cargo == null || cargo.IsFull)
+                {
+                    for (int rem = i; rem < targets.Count; rem++)
+                    {
+                        s_ReservedCubes.Remove(targets[rem]);
+                    }
+                    yield break;
+                }
+
+                PixelCube cube = targets[i];
+                s_ReservedCubes.Remove(cube);
+
+                if (cube != null && !cube.IsPopped && cube.gameObject.activeInHierarchy)
+                {
+                    ShatterCubeLikeGlass(cube, truck, cargo, i, targets.Count);
+                }
+
+                yield return new WaitForSeconds(m_ShatterInterval);
+            }
+        }
+
+        private void ShatterCubeLikeGlass(PixelCube cube, Transform truck, TruckCargo cargo, int comboIndex, int totalCombo)
+        {
+            if (cube == null || cube.IsPopped) return;
+
+            Vector3 cubePos = cube.transform.position;
+            Quaternion cubeRot = cube.transform.rotation;
+            Vector3 cubeScale = cube.transform.lossyScale;
+            Color cubeColor = cube.CurrentColor;
+
+            // 1. Kristal cam kırılma sesi (Combo yükseldikçe müzikal pitch artar!)
+            if (VoxelParticleManager.Instance != null)
+            {
+                float comboPitch = Mathf.Clamp(1.0f + (comboIndex * 0.032f), 0.95f, 1.85f);
+                VoxelParticleManager.Instance.PlayGlassShatterSound(comboPitch);
+                VoxelParticleManager.Instance.SpawnVoxelBurst(cubePos, cubeScale, cubeColor);
+            }
+
+            // 2. Küpün kendisini ve gölgesini anında gizle, etkileşim yöneticisine bildir
+            cube.SetPoppedVisualState(true);
+            if (PixelCubeInteraction.Instance != null)
+            {
+                PixelCubeInteraction.Instance.RegisterPoppedCube(cube);
+            }
+
+            // 3. Raf koordinatlarını hesapla (belirlenen alt iç pervaz alanı)
+            GetShelfArea(out Vector3 shelfCenter, out float shelfMinX, out float shelfMaxX);
+
+            float dropX = Mathf.Clamp(cubePos.x + Random.Range(-0.15f, 0.15f), shelfMinX, shelfMaxX);
+            Vector3 dropPos = new Vector3(dropX, shelfCenter.y, shelfCenter.z);
+
+            float targetX = Mathf.Clamp(shelfCenter.x + Random.Range(-m_ShelfGatherRadius, m_ShelfGatherRadius), shelfMinX, shelfMaxX);
+            float targetY = shelfCenter.y + Random.Range(0f, m_ShelfStackHeight * 0.8f);
+            float targetZ = shelfCenter.z + Random.Range(-0.02f, 0.02f);
+            Vector3 shelfTarget = new Vector3(targetX, targetY, targetZ);
+
+            // 4. Blender'dan gelen 12 adet 3D Voronoi kırık parçasını oluştur (belirgin ve iri ölçekli)
+            FracturedCubeData fracData = FracturedCubeData.Instance;
+            int shardCount = (fracData != null && fracData.ShardCount > 0) ? fracData.ShardCount : 12;
+
+            int arrivedCount = 0;
+            bool cubeCountRegistered = false;
+
+            Vector3 shardScale = cubeScale * m_ShardScaleMultiplier;
+
+            for (int s = 0; s < shardCount; s++)
+            {
+                FracturedCubeData.ShardData shard = (fracData != null) ? fracData.GetShard(s) : default;
+                Vector3 localOffset = shard.localOffset;
+                Vector3 outwardDir = cubeRot * (shard.outwardDir.sqrMagnitude > 0.001f ? shard.outwardDir : (localOffset.sqrMagnitude > 0.001f ? localOffset.normalized : Vector3.up));
+
+                Vector3 shardStart = cubePos + cubeRot * Vector3.Scale(localOffset * 0.5f, cubeScale);
+                Mesh shardMesh = shard.mesh;
+
+                // Vagon kasası içinde hafif rastgele dağılım
+                Vector3 targetOffset = Vector3.up * 0.28f + (truck.right * Random.Range(-0.20f, 0.20f)) + (truck.forward * Random.Range(-0.14f, 0.14f));
+
+                float stagger = s * 0.004f;
+
+                CargoFlyer.LaunchGlassShardViaShelfToWagon(
+                    shardStart,
+                    cubeRot,
+                    outwardDir,
+                    dropPos,
+                    shelfTarget,
+                    truck,
+                    targetOffset,
+                    cubeColor,
+                    shardMesh,
+                    shardScale,
+                    stagger,
+                    m_FallToShelfDuration * Random.Range(0.95f, 1.08f),
+                    m_PauseOnShelfDuration,
+                    m_SlideToWagonDuration * Random.Range(0.95f, 1.08f),
+                    () =>
+                    {
+                        arrivedCount++;
+                        if (cargo != null && cargo.Stack != null)
+                        {
+                            cargo.Stack.AddPiece(1f, shardMesh);
+                        }
+
+                        // Parçalar vagona aktığında vagon yükü ve rozeti güncellensin
+                        if (!cubeCountRegistered && arrivedCount >= Mathf.Min(3, shardCount))
+                        {
+                            cubeCountRegistered = true;
+                            if (cargo != null)
+                            {
+                                cargo.LoadOneCube();
+                                if (truck != null)
+                                {
+                                    truck.DOKill(true);
+                                    truck.DOPunchScale(new Vector3(0.04f, 0.08f, 0.04f), 0.16f, 3, 0.4f);
+                                }
+                            }
+                        }
+                    }
+                );
             }
         }
 

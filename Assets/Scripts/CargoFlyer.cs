@@ -291,6 +291,236 @@ namespace PixelGame
             Release();
         }
 
+        /// <summary>
+        /// Küp cam gibi kırıldığında parçayı (shard) küp içindeki gerçek ofsetinden dışarı fırlatır (belirgin patlama),
+        /// havada takla atarak yerçekimiyle önce çerçevenin altındaki rafa (belirlenen alan) dökülüp zıplar,
+        /// ardından oradan slottaki vagona doğru şelale gibi kayarak dökülür.
+        /// </summary>
+        public static CargoFlyer LaunchGlassShardViaShelfToWagon(
+            Vector3 worldStart,
+            Quaternion worldRotation,
+            Vector3 outwardDir,
+            Vector3 dropPosition,
+            Vector3 shelfTargetPosition,
+            Transform targetWagon,
+            Vector3 targetOffset,
+            Color color,
+            Mesh shardMesh,
+            Vector3 shardScale,
+            float delay,
+            float fallToShelfDuration,
+            float pauseOnShelf,
+            float slideToWagonDuration,
+            Action onArrive)
+        {
+            CargoFlyer flyer = Rent();
+            flyer.CleanupTweens();
+            flyer.transform.position = worldStart;
+            flyer.transform.rotation = worldRotation;
+            flyer.transform.localScale = shardScale;
+            flyer.SetMesh(shardMesh != null ? shardMesh : FracturedCubeData.Instance.IntactMesh);
+            flyer.SetColor(color);
+            flyer.gameObject.SetActive(true);
+
+            flyer.AnimateGlassShardViaShelfToWagon(
+                outwardDir,
+                dropPosition,
+                shelfTargetPosition,
+                targetWagon,
+                targetOffset,
+                shardScale,
+                delay,
+                fallToShelfDuration,
+                pauseOnShelf,
+                slideToWagonDuration,
+                onArrive
+            );
+            return flyer;
+        }
+
+        private void AnimateGlassShardViaShelfToWagon(
+            Vector3 outwardDir,
+            Vector3 dropPosition,
+            Vector3 shelfTargetPosition,
+            Transform targetWagon,
+            Vector3 targetOffset,
+            Vector3 initialScale,
+            float delay,
+            float fallDuration,
+            float pauseOnShelf,
+            float slideDuration,
+            Action onArrive)
+        {
+            CleanupTweens();
+            if (gameObject.activeInHierarchy)
+            {
+                StartCoroutine(GlassShardViaShelfRoutine(
+                    outwardDir,
+                    dropPosition,
+                    shelfTargetPosition,
+                    targetWagon,
+                    targetOffset,
+                    initialScale,
+                    delay,
+                    fallDuration,
+                    pauseOnShelf,
+                    slideDuration,
+                    onArrive
+                ));
+            }
+            else
+            {
+                onArrive?.Invoke();
+                Release();
+            }
+        }
+
+        private System.Collections.IEnumerator GlassShardViaShelfRoutine(
+            Vector3 outwardDir,
+            Vector3 dropPosition,
+            Vector3 shelfTargetPosition,
+            Transform targetWagon,
+            Vector3 targetOffset,
+            Vector3 initialScale,
+            float delay,
+            float fallDuration,
+            float pauseOnShelf,
+            float slideDuration,
+            Action onArrive)
+        {
+            if (delay > 0.001f) yield return new WaitForSeconds(delay);
+
+            Vector3 startPos = transform.position;
+
+            // 1. AŞAMA: Belirgin 3D Cam Çatlama & Dışa Fırlama (~0.12s)
+            // Parçalar birbirlerinden net bir mesafeyle dışa açılarak kırık görüntüsünü belirginleştirir
+            Vector3 popDir = (outwardDir.sqrMagnitude > 0.001f ? outwardDir.normalized : Vector3.up);
+            float popDist = UnityEngine.Random.Range(0.24f, 0.44f);
+            Vector3 popPos = startPos + popDir * popDist + Vector3.up * UnityEngine.Random.Range(0.08f, 0.22f);
+
+            float burstDuration = 0.12f;
+            float elapsedBurst = 0f;
+
+            Vector3 randomTorque = new Vector3(
+                UnityEngine.Random.Range(-480f, 480f),
+                UnityEngine.Random.Range(-480f, 480f),
+                UnityEngine.Random.Range(-480f, 480f)
+            );
+
+            while (elapsedBurst < burstDuration)
+            {
+                elapsedBurst += Time.deltaTime;
+                float tb = Mathf.Clamp01(elapsedBurst / burstDuration);
+                transform.position = Vector3.Lerp(startPos, popPos, Mathf.Sin(tb * Mathf.PI * 0.5f));
+                transform.Rotate(randomTorque * Time.deltaTime, Space.Self);
+                yield return null;
+            }
+
+            // 2. AŞAMA: Yerçekimiyle Raf Alanına (Belirlenen Alan) Düşüş ve Zıplama
+            float elapsedFall = 0f;
+            Vector3 fallStartPos = transform.position;
+
+            while (elapsedFall < fallDuration)
+            {
+                elapsedFall += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsedFall / fallDuration);
+
+                // Yerçekimi ivmesi (InQuad Y ekseni)
+                float tY = t * t;
+                float currentY = Mathf.Lerp(fallStartPos.y, dropPosition.y, tY);
+                float currentX = Mathf.Lerp(fallStartPos.x, dropPosition.x, Mathf.SmoothStep(0f, 1f, t));
+                float currentZ = Mathf.Lerp(fallStartPos.z, dropPosition.z, t);
+
+                transform.position = new Vector3(currentX, currentY, currentZ);
+                transform.Rotate(randomTorque * (1f + t * 0.5f) * Time.deltaTime, Space.Self);
+                yield return null;
+            }
+
+            // Rafa temas: Hafif yaylanma / zıplama ve toplanma (Settle)
+            float elapsedSettle = 0f;
+            float settleDuration = Mathf.Max(0.08f, pauseOnShelf);
+            Vector3 preSettlePos = transform.position;
+
+            while (elapsedSettle < settleDuration)
+            {
+                elapsedSettle += Time.deltaTime;
+                float ts = Mathf.Clamp01(elapsedSettle / settleDuration);
+                float bounceY = Mathf.Sin(ts * Mathf.PI) * 0.08f;
+                Vector3 settlePos = Vector3.Lerp(preSettlePos, shelfTargetPosition, ts);
+                settlePos.y += bounceY;
+                transform.position = settlePos;
+                yield return null;
+            }
+
+            // 3. AŞAMA: Raftan Slottaki Vagona Doğru Kayarak / Şelale Gibi Akış
+            float elapsedSlide = 0f;
+            Vector3 slideStartPos = transform.position;
+
+            while (elapsedSlide < slideDuration)
+            {
+                elapsedSlide += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsedSlide / slideDuration);
+
+                Vector3 wagonEndPos = (targetWagon != null) ? (targetWagon.position + targetOffset) : (slideStartPos + Vector3.down * 4f);
+
+                // Kavisli akış (raf kenarından vagona dökülüş yayı)
+                Vector3 midPoint = Vector3.Lerp(slideStartPos, wagonEndPos, 0.40f) + Vector3.down * 0.08f;
+                float u = 1f - t;
+                Vector3 slidePos = (u * u * slideStartPos) + (2f * u * t * midPoint) + (t * t * wagonEndPos);
+
+                transform.position = slidePos;
+                transform.Rotate(randomTorque * Time.deltaTime, Space.Self);
+
+                // Vagona girerken yumuşak küçülme
+                if (t > 0.65f)
+                {
+                    float scaleT = (t - 0.65f) / 0.35f;
+                    transform.localScale = Vector3.Lerp(initialScale, initialScale * 0.25f, scaleT * scaleT);
+                }
+
+                yield return null;
+            }
+
+            onArrive?.Invoke();
+            Release();
+        }
+
+        /// <summary>
+        /// Geriye uyumluluk için direkt vagona fırlatma.
+        /// </summary>
+        public static CargoFlyer LaunchGlassShardToWagon(
+            Vector3 worldStart,
+            Quaternion worldRotation,
+            Vector3 outwardDir,
+            Transform targetWagon,
+            Vector3 targetOffset,
+            Color color,
+            Mesh shardMesh,
+            Vector3 shardScale,
+            float delay,
+            float duration,
+            Action onArrive)
+        {
+            Vector3 fallbackDrop = worldStart + Vector3.down * 2f;
+            return LaunchGlassShardViaShelfToWagon(
+                worldStart,
+                worldRotation,
+                outwardDir,
+                fallbackDrop,
+                fallbackDrop,
+                targetWagon,
+                targetOffset,
+                color,
+                shardMesh,
+                shardScale,
+                delay,
+                duration * 0.45f,
+                0.08f,
+                duration * 0.45f,
+                onArrive
+            );
+        }
+
         public void FlowToCart(Vector3 cartPosition, float delay, float flowDuration, float arcHeight, Action onArrive)
         {
             CleanupTweens();
@@ -327,6 +557,218 @@ namespace PixelGame
 
                 m_ActiveSequence = flowSeq;
             });
+        }
+
+        /// <summary>
+        /// Doğal kırık cam parçasını (shard) küpün patladığı konumdan mikro-patlamayla dışa saçar,
+        /// ardından yerçekimiyle küpün hemen altına (panodaki yerel yerine) düşürüp zıplatır.
+        /// Parça havuza dönmez, raydan geçen vagonun vakumlaması için orada bekler.
+        /// </summary>
+        public static CargoFlyer LaunchShardLocalDrop(
+            Vector3 worldStart,
+            Quaternion worldRotation,
+            Vector3 outwardDir,
+            Vector3 dropPosition,
+            Color color,
+            Mesh shardMesh,
+            Vector3 shardScale,
+            float delay,
+            float fallDuration,
+            Action onLanded)
+        {
+            CargoFlyer flyer = Rent();
+            flyer.CleanupTweens();
+            flyer.transform.position = worldStart;
+            flyer.transform.rotation = worldRotation;
+            flyer.transform.localScale = shardScale;
+            flyer.SetMesh(shardMesh != null ? shardMesh : FracturedCubeData.Instance.IntactMesh);
+            flyer.SetColor(color);
+            flyer.gameObject.SetActive(true);
+
+            flyer.AnimateShardLocalDrop(
+                outwardDir,
+                dropPosition,
+                shardScale,
+                delay,
+                fallDuration,
+                onLanded
+            );
+            return flyer;
+        }
+
+        private void AnimateShardLocalDrop(
+            Vector3 outwardDir,
+            Vector3 dropPosition,
+            Vector3 initialScale,
+            float delay,
+            float fallDuration,
+            Action onLanded)
+        {
+            CleanupTweens();
+            if (gameObject.activeInHierarchy)
+            {
+                StartCoroutine(ShardLocalDropRoutine(outwardDir, dropPosition, initialScale, delay, fallDuration, onLanded));
+            }
+            else
+            {
+                onLanded?.Invoke();
+            }
+        }
+
+        private System.Collections.IEnumerator ShardLocalDropRoutine(
+            Vector3 outwardDir,
+            Vector3 dropPosition,
+            Vector3 initialScale,
+            float delay,
+            float fallDuration,
+            Action onLanded)
+        {
+            if (delay > 0.001f) yield return new WaitForSeconds(delay);
+
+            Vector3 startPos = transform.position;
+
+            // 1. AŞAMA: Mikro Cam Çatlama & Dışa Saçılma (~0.08s)
+            Vector3 popDir = (outwardDir.sqrMagnitude > 0.001f ? outwardDir.normalized : Vector3.up);
+            float popDist = UnityEngine.Random.Range(0.08f, 0.18f);
+            Vector3 popPos = startPos + popDir * popDist + Vector3.up * UnityEngine.Random.Range(0.04f, 0.12f);
+
+            float burstDuration = 0.08f;
+            float elapsedBurst = 0f;
+            Vector3 randomTorque = new Vector3(
+                UnityEngine.Random.Range(-400f, 400f),
+                UnityEngine.Random.Range(-400f, 400f),
+                UnityEngine.Random.Range(-400f, 400f)
+            );
+
+            while (elapsedBurst < burstDuration)
+            {
+                elapsedBurst += Time.deltaTime;
+                float tb = Mathf.Clamp01(elapsedBurst / burstDuration);
+                transform.position = Vector3.Lerp(startPos, popPos, Mathf.Sin(tb * Mathf.PI * 0.5f));
+                transform.Rotate(randomTorque * Time.deltaTime, Space.Self);
+                yield return null;
+            }
+
+            // 2. AŞAMA: Yerçekimiyle Küpün Altına Düşüş (~0.22s)
+            float elapsedFall = 0f;
+            Vector3 fallStartPos = transform.position;
+
+            while (elapsedFall < fallDuration)
+            {
+                elapsedFall += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsedFall / fallDuration);
+                float tY = t * t; // InQuad gravity acceleration
+
+                float currentY = Mathf.Lerp(fallStartPos.y, dropPosition.y, tY);
+                float currentX = Mathf.Lerp(fallStartPos.x, dropPosition.x, Mathf.SmoothStep(0f, 1f, t));
+                float currentZ = Mathf.Lerp(fallStartPos.z, dropPosition.z, t);
+
+                transform.position = new Vector3(currentX, currentY, currentZ);
+                transform.Rotate(randomTorque * (1f + t * 0.5f) * Time.deltaTime, Space.Self);
+                yield return null;
+            }
+
+            // 3. AŞAMA: Yere Temas ve Sekme (Bounce & Settle - ~0.10s)
+            float bounceDuration = 0.10f;
+            float elapsedBounce = 0f;
+            Vector3 groundPos = dropPosition;
+
+            while (elapsedBounce < bounceDuration)
+            {
+                elapsedBounce += Time.deltaTime;
+                float tb = Mathf.Clamp01(elapsedBounce / bounceDuration);
+                float bounceY = Mathf.Sin(tb * Mathf.PI) * 0.04f;
+                transform.position = new Vector3(groundPos.x, groundPos.y + bounceY, groundPos.z);
+                yield return null;
+            }
+
+            transform.position = groundPos;
+            onLanded?.Invoke();
+        }
+
+        /// <summary>
+        /// Yerde bekleyen parçayı, yanından geçen hareket halindeki vagona doğru
+        /// dinamik bir vakum çekim kavisle (suction curve) çeker.
+        /// </summary>
+        public void VacuumPullToMovingTarget(
+            Transform targetWagon,
+            Vector3 targetOffset,
+            float duration,
+            float arcHeight,
+            Action onArrived)
+        {
+            CleanupTweens();
+            if (gameObject.activeInHierarchy)
+            {
+                StartCoroutine(VacuumPullRoutine(targetWagon, targetOffset, duration, arcHeight, onArrived));
+            }
+            else
+            {
+                onArrived?.Invoke();
+                Release();
+            }
+        }
+
+        private System.Collections.IEnumerator VacuumPullRoutine(
+            Transform targetWagon,
+            Vector3 targetOffset,
+            float duration,
+            float arcHeight,
+            Action onArrived)
+        {
+            Vector3 startPos = transform.position;
+            Vector3 initialScale = transform.localScale;
+            float elapsed = 0f;
+
+            Vector3 randomTorque = new Vector3(
+                UnityEngine.Random.Range(-500f, 500f),
+                UnityEngine.Random.Range(-500f, 500f),
+                UnityEngine.Random.Range(-500f, 500f)
+            );
+
+            // Hafif havalanma / çekilme titremesi (Anticipation 0.04s)
+            Vector3 liftPos = startPos + Vector3.up * 0.06f;
+            float liftElapsed = 0f;
+            float liftDuration = 0.04f;
+            while (liftElapsed < liftDuration)
+            {
+                liftElapsed += Time.deltaTime;
+                float lt = Mathf.Clamp01(liftElapsed / liftDuration);
+                transform.position = Vector3.Lerp(startPos, liftPos, lt);
+                yield return null;
+            }
+
+            startPos = transform.position;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+
+                Vector3 currentWagonEnd = (targetWagon != null)
+                    ? (targetWagon.position + (targetWagon.rotation * targetOffset))
+                    : (startPos + Vector3.up * 2f);
+
+                // Dinamik vakum çekim eğrisi (Bezier ile hareketli hedef takibi)
+                Vector3 midPoint = Vector3.Lerp(startPos, currentWagonEnd, 0.45f) + Vector3.up * arcHeight;
+                float u = 1f - t;
+                Vector3 suctionPos = (u * u * startPos) + (2f * u * t * midPoint) + (t * t * currentWagonEnd);
+
+                transform.position = suctionPos;
+                transform.Rotate(randomTorque * (1f + t * 1.5f) * Time.deltaTime, Space.Self);
+
+                // Kasaya girerken pürüzsüz vakum küçülmesi
+                if (t > 0.65f)
+                {
+                    float scaleT = (t - 0.65f) / 0.35f;
+                    transform.localScale = Vector3.Lerp(initialScale, Vector3.zero, scaleT * scaleT);
+                }
+
+                yield return null;
+            }
+
+            onArrived?.Invoke();
+            Release();
         }
 
         private void SetColor(Color color)

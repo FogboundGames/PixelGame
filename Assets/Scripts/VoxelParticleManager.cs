@@ -63,6 +63,7 @@ namespace PixelGame
         private ParticleSystem m_ParticleSystem;
         private AudioSource m_AudioSource;
         private AudioClip m_PopAudioClip;
+        private AudioClip m_GlassShatterClip;
         private System.Random m_Rnd = new System.Random();
 
         #if UNITY_EDITOR
@@ -204,8 +205,9 @@ namespace PixelGame
             m_AudioSource.playOnAwake = false;
             m_AudioSource.spatialBlend = 0f; // 2D net ses
 
-            // Prosedürel tatmin edici "pop / çıt" sesi sentezle
+            // Prosedürel tatmin edici "pop / çıt" ve "cam kırılması" seslerini sentezle
             m_PopAudioClip = CreateProceduralPopClip();
+            m_GlassShatterClip = CreateProceduralGlassClip();
             m_AudioSource.clip = m_PopAudioClip;
         }
 
@@ -322,6 +324,65 @@ namespace PixelGame
             // Her tıklamada rastgele ton değişimi (tatmin edici klik)
             m_AudioSource.pitch = Random.Range(0.92f, 1.25f);
             m_AudioSource.PlayOneShot(m_PopAudioClip, m_SoundVolume);
+        }
+
+        /// <summary>
+        /// Cam kırılma ses efekti (kristal çıtırtı ve harmonik çınlama).
+        /// Combo kırılmalarında pitch hafifçe yükselerek tatmin edici bir ritim sağlar.
+        /// </summary>
+        public void PlayGlassShatterSound(float pitch = 1.0f)
+        {
+            if (!m_EnablePopSound || m_AudioSource == null) return;
+            if (m_GlassShatterClip == null) m_GlassShatterClip = CreateProceduralGlassClip();
+            if (m_GlassShatterClip == null) return;
+
+            m_AudioSource.pitch = Mathf.Clamp(pitch, 0.5f, 2.5f);
+            m_AudioSource.PlayOneShot(m_GlassShatterClip, Mathf.Clamp01(m_SoundVolume * 1.15f));
+        }
+
+        private AudioClip CreateProceduralGlassClip()
+        {
+            int sampleRate = 44100;
+            float duration = 0.15f; // 150 ms dolgun ve berrak
+            int sampleCount = Mathf.CeilToInt(sampleRate * duration);
+            float[] samples = new float[sampleCount];
+
+            float fPunch = 340f; // Düşük-orta gövde kırılma darbesi (Tok crack hissi)
+            float f1 = 2200f;    // Kristal birinci harmonik
+            float f2 = 3600f;    // Kristal ikinci harmonik
+            float f3 = 5400f;    // Tiz cam çıtırtısı
+
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float t = (float)i / sampleCount;
+
+                // 1. İlk 25 ms tok çatlama darbesi + cam çıtırtısı (noise transient)
+                float noiseBurst = 0f;
+                float punch = 0f;
+                if (t < 0.25f)
+                {
+                    float nt = t / 0.25f;
+                    noiseBurst = ((float)m_Rnd.NextDouble() * 2f - 1f) * Mathf.Exp(-nt * 5f) * 0.50f;
+                    float punchPhase = 2f * Mathf.PI * fPunch * (i / (float)sampleRate);
+                    punch = Mathf.Sin(punchPhase) * Mathf.Exp(-nt * 6f) * 0.45f;
+                }
+
+                // 2. Çınlayan cam kristal harmonikleri
+                float phase1 = 2f * Mathf.PI * f1 * (i / (float)sampleRate);
+                float phase2 = 2f * Mathf.PI * f2 * (i / (float)sampleRate);
+                float phase3 = 2f * Mathf.PI * f3 * (i / (float)sampleRate);
+
+                float tone = Mathf.Sin(phase1) * 0.40f + Mathf.Sin(phase2) * 0.32f + Mathf.Sin(phase3) * 0.18f;
+
+                // Üstel sönümlenme
+                float envelope = Mathf.Exp(-t * 13f);
+
+                samples[i] = Mathf.Clamp((punch + tone + noiseBurst) * envelope, -1f, 1f);
+            }
+
+            AudioClip clip = AudioClip.Create("ProceduralGlassShatter", sampleCount, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
         }
 
         /// <summary>

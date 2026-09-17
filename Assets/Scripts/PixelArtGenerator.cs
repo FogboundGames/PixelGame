@@ -160,6 +160,7 @@ namespace PixelGame
         public bool SkipTransparent { get => m_SkipTransparent; set => m_SkipTransparent = value; }
         public Transform CubesContainer => m_CubesContainer;
         public float TargetZ => m_TargetZ;
+        public Camera WorldCamera { get => GetActiveCamera(); set => m_WorldCamera = value; }
 
         private void Awake()
         {

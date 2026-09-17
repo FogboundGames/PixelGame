@@ -232,7 +232,12 @@ namespace PixelGame.Editor
             poolComponent.RebuildPlaces(poolColumns, poolRows);
 
             // 3. Yönetici
-            SetupDispatcher(rowComponent, poolComponent, cartPrefab);
+            TruckDispatcher dispatcher = SetupDispatcher(rowComponent, poolComponent, cartPrefab, trackPrefab, slotCount);
+            if (dispatcher != null)
+            {
+                dispatcher.SetupPerimeterLoop();
+                dispatcher.GeneratePerimeterRails();
+            }
 
             EditorUtility.SetDirty(rowComponent);
             EditorUtility.SetDirty(poolComponent);
@@ -244,7 +249,28 @@ namespace PixelGame.Editor
 
             Debug.Log($"<color=#00FFAA><b>[PixelGame]</b></color> Vagon döngüsü kuruldu: " +
                       $"{slotCount} ray yeri, {poolColumns}x{poolRows} havuz. " +
-                      "Sayılar bölüm verisinden gelir (Level Designer > Kamyon Düzeni).");
+                      "Mavi çerçeve etrafındaki raylar başarıyla dizildi!");
+        }
+
+        [MenuItem("Tools/PixelGame/🛤️ Çevresel Rayları Diz (Mavi Çerçeve)", priority = 19)]
+        public static void GeneratePerimeterRailsMenu()
+        {
+            TruckDispatcher dispatcher = Object.FindFirstObjectByType<TruckDispatcher>();
+            if (dispatcher == null)
+            {
+                Setup();
+                dispatcher = Object.FindFirstObjectByType<TruckDispatcher>();
+            }
+
+            if (dispatcher != null)
+            {
+                dispatcher.SetupPerimeterLoop();
+                dispatcher.GeneratePerimeterRails();
+                UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
+                    UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+                UnityEditor.SceneManagement.EditorSceneManager.SaveOpenScenes();
+                Debug.Log("<color=#00FFAA><b>[PixelGame]</b></color> Mavi çerçevenin etrafına raylar başarıyla dizildi ve sahne kaydedildi!");
+            }
         }
 
         [MenuItem("Tools/PixelGame/🛤️ Vagon Döngüsünü Kaldır", priority = 21)]
@@ -253,8 +279,9 @@ namespace PixelGame.Editor
             GameObject canvas = GameObject.Find(k_SlotCanvasName);
             GameObject dispatcher = GameObject.Find(k_DispatcherName);
             GameObject trucks = GameObject.Find(k_TrucksRootName);
+            GameObject perimRoot = GameObject.Find("[PerimeterWagonsRoot]");
 
-            if (canvas == null && dispatcher == null && trucks == null)
+            if (canvas == null && dispatcher == null && trucks == null && perimRoot == null)
             {
                 EditorUtility.DisplayDialog("Bulunamadı", "Sahnede kamyon döngüsü yok.", "Tamam");
                 return;
@@ -263,6 +290,7 @@ namespace PixelGame.Editor
             if (canvas != null) Undo.DestroyObjectImmediate(canvas);
             if (dispatcher != null) Undo.DestroyObjectImmediate(dispatcher);
             if (trucks != null) Undo.DestroyObjectImmediate(trucks);
+            if (perimRoot != null) Undo.DestroyObjectImmediate(perimRoot);
 
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
                 UnityEngine.SceneManagement.SceneManager.GetActiveScene());
@@ -314,7 +342,7 @@ namespace PixelGame.Editor
 
         #region 🔧 Kurulum Parçaları
 
-        private static void SetupDispatcher(TruckSlotRow slots, TruckPool pool, GameObject cartPrefab)
+        private static TruckDispatcher SetupDispatcher(TruckSlotRow slots, TruckPool pool, GameObject cartPrefab, GameObject trackPrefab, int slotCount)
         {
             GameObject obj = GameObject.Find(k_DispatcherName);
             if (obj == null)
@@ -331,9 +359,20 @@ namespace PixelGame.Editor
             so.FindProperty("m_TruckPrefab").objectReferenceValue = cartPrefab;
             so.FindProperty("m_Generator").objectReferenceValue =
                 Object.FindFirstObjectByType<PixelArtGenerator>();
+            
+            SerializedProperty perimProp = so.FindProperty("m_PerimeterTrain");
+            if (perimProp != null) perimProp.boolValue = true;
+
+            SerializedProperty maxWagonsProp = so.FindProperty("m_MaxTrackWagons");
+            if (maxWagonsProp != null) maxWagonsProp.intValue = slotCount;
+
+            SerializedProperty trackProp = so.FindProperty("m_TrackPrefab");
+            if (trackProp != null && trackPrefab != null) trackProp.objectReferenceValue = trackPrefab;
+
             so.ApplyModifiedPropertiesWithoutUndo();
 
             EditorUtility.SetDirty(dispatcher);
+            return dispatcher;
         }
 
         private static T EnsureComponent<T>(GameObject target) where T : Component
