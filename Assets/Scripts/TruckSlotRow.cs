@@ -41,9 +41,10 @@ namespace PixelGame
             RectTransform rect = transform as RectTransform;
             if (rect == null) return;
 
-            // Ray şeridinin rolü sabittir: park yeri UI görseli çizilmez (yerini gerçek ray
-            // modeli aldı) ve tıklama küpleri engellemesin
-            m_Style.showSprite = false;
+            if (m_Style.sprite != null)
+            {
+                m_Style.showSprite = true;
+            }
             m_Style.interactive = false;
 
             m_Slots = TruckPlaceBuilder.Build(rect, m_Style, columns, rows, "Slot");

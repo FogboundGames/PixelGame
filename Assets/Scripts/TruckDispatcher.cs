@@ -36,6 +36,9 @@ namespace PixelGame
         [SerializeField] private bool m_PerimeterTrain = true;
         public bool PerimeterTrain { get => m_PerimeterTrain; set => m_PerimeterTrain = value; }
 
+        [Tooltip("Ray döngüsünün sol alt köşesindeki vagon sayacı (Text).")]
+        [SerializeField] private UnityEngine.UI.Text m_TrackCornerCounterText;
+
         [Tooltip("Vagonların döngü üzerindeki seyir hızı (dünya birimi / saniye).")]
         [Range(0.5f, 6.0f)]
         [SerializeField] private float m_PerimeterSpeed = 2.1f;
@@ -531,6 +534,7 @@ namespace PixelGame
             BuildQueue();
             RefillPool();
             if (m_Pool != null) m_Pool.UpdateRowVisuals();
+            UpdateTrackCornerCounter();
         }
 
         private void Update()
@@ -564,7 +568,23 @@ namespace PixelGame
                 }
             }
             m_MovingWagons.Clear();
+            UpdateTrackCornerCounter();
             // m_WagonsRoot asla silinmez; sahnedeki raylar ve hiyerarşi korunur!
+        }
+
+        public void UpdateTrackCornerCounter()
+        {
+            if (m_TrackCornerCounterText == null)
+            {
+                GameObject obj = GameObject.Find("CounterText");
+                if (obj != null) m_TrackCornerCounterText = obj.GetComponent<UnityEngine.UI.Text>();
+            }
+
+            if (m_TrackCornerCounterText != null)
+            {
+                int count = m_MovingWagons != null ? m_MovingWagons.Count : 0;
+                m_TrackCornerCounterText.text = $"{count}/{m_MaxTrackWagons}";
+            }
         }
 
         private float m_WagonY = 0f;
@@ -874,10 +894,15 @@ namespace PixelGame
 
         private void CalibratePortalsAndAlignment()
         {
-            Vector3 defaultEuler = (m_Slots != null && m_Slots.Style != null) ? m_Slots.Style.truckEuler : new Vector3(0f, -90f, -270f);
+            bool isBottle = m_TruckPrefab != null && m_TruckPrefab.name.IndexOf("Bottle", System.StringComparison.OrdinalIgnoreCase) >= 0;
+            Vector3 defaultEuler = isBottle ? new Vector3(0f, 180f, 0f) : ((m_Slots != null && m_Slots.Style != null) ? m_Slots.Style.truckEuler : new Vector3(0f, -90f, -270f));
             m_WagonRotation = Quaternion.Euler(defaultEuler);
 
-            if (m_Pool != null && m_Pool.Places != null && m_Pool.Places.Count > 0 && m_Pool.Places[0] != null && m_Pool.Places[0].Truck != null)
+            if (isBottle)
+            {
+                m_WagonScale = Vector3.one * 0.65f;
+            }
+            else if (m_Pool != null && m_Pool.Places != null && m_Pool.Places.Count > 0 && m_Pool.Places[0] != null && m_Pool.Places[0].Truck != null)
             {
                 m_WagonScale = m_Pool.Places[0].Truck.lossyScale;
             }
@@ -903,7 +928,7 @@ namespace PixelGame
 
             if (m_WagonScale.sqrMagnitude < 0.01f || m_WagonScale.x > 5f)
             {
-                m_WagonScale = Vector3.one * 0.38f;
+                m_WagonScale = isBottle ? Vector3.one * 0.65f : Vector3.one * 0.38f;
             }
 
             if (m_Slots != null)
@@ -931,7 +956,7 @@ namespace PixelGame
             {
                 if (m_Slots != null)
                 {
-                    m_Slots.gameObject.SetActive(false);
+                    m_Slots.gameObject.SetActive(true);
                 }
             }
 
@@ -1090,6 +1115,7 @@ namespace PixelGame
                     IsDeparting = false
                 };
                 m_MovingWagons.Add(movingWagon);
+                UpdateTrackCornerCounter();
 
                 truck.DOKill();
                 truck.DORotateQuaternion(targetRot, 0.35f).SetEase(Ease.OutQuad);
@@ -1553,6 +1579,7 @@ namespace PixelGame
                 Destroy(wagon.GameObject);
             }
             m_MovingWagons.Remove(wagon);
+            UpdateTrackCornerCounter();
 
             CompactPool();
             RefillPool();

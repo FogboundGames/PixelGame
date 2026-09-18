@@ -255,6 +255,32 @@ namespace PixelGame
                 return;
             }
 
+            // Bottle_Body gibi UV paleti yerine doğrudan materyal rengi kullanan modeller
+            bool isDirectColorModel = false;
+            foreach (Renderer target in m_Renderers)
+            {
+                if (target != null && target.name.IndexOf("Bottle", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    isDirectColorModel = true;
+                    break;
+                }
+                if (target is MeshRenderer mr)
+                {
+                    MeshFilter mf = mr.GetComponent<MeshFilter>();
+                    if (mf != null && mf.sharedMesh != null && mf.sharedMesh.uv.Length == 0)
+                    {
+                        isDirectColorModel = true;
+                        break;
+                    }
+                }
+            }
+
+            if (isDirectColorModel)
+            {
+                ApplyDirectColors();
+                return;
+            }
+
             Material material = GetOrCreateMaterial();
             foreach (Renderer target in m_Renderers)
             {
@@ -262,6 +288,38 @@ namespace PixelGame
                 {
                     target.sharedMaterial = material;
                 }
+            }
+        }
+
+        private void ApplyDirectColors()
+        {
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+            Color bodyColor = m_Cabin;
+            Color innerColor = new Color(0.95f, 0.90f, 0.75f, 1f);
+
+            foreach (Renderer target in m_Renderers)
+            {
+                if (target == null) continue;
+                Material[] mats = target.sharedMaterials;
+                if (mats == null || mats.Length == 0) mats = new Material[2];
+                else if (mats.Length == 1) mats = new Material[] { mats[0], mats[0] };
+
+                Material m0 = new Material(shader) { name = $"Mat_Bottle_{ColorUtility.ToHtmlStringRGB(bodyColor)}" };
+                if (m0.HasProperty(s_BaseColorId)) m0.SetColor(s_BaseColorId, bodyColor);
+                if (m0.HasProperty(s_ColorId)) m0.SetColor(s_ColorId, bodyColor);
+                if (m0.HasProperty("_Smoothness")) m0.SetFloat("_Smoothness", 0.45f);
+                mats[0] = m0;
+
+                if (mats.Length > 1)
+                {
+                    Material m1 = new Material(shader) { name = "Mat_Bottle_Inner" };
+                    if (m1.HasProperty(s_BaseColorId)) m1.SetColor(s_BaseColorId, innerColor);
+                    if (m1.HasProperty(s_ColorId)) m1.SetColor(s_ColorId, innerColor);
+                    if (m1.HasProperty("_Smoothness")) m1.SetFloat("_Smoothness", 0.3f);
+                    mats[1] = m1;
+                }
+
+                target.sharedMaterials = mats;
             }
         }
 

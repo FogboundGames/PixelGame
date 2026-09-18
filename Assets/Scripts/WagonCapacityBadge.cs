@@ -14,6 +14,7 @@ namespace PixelGame
     /// - Her zaman kameraya dik bakan Billboard modu,
     /// - Küp yüklendiğinde tatlı bir büyüme-küçülme (DOPunchScale) geri bildirimi.
     /// </summary>
+    [ExecuteAlways]
     [DisallowMultipleComponent]
     [AddComponentMenu("PixelGame/Wagon Capacity Badge")]
     public class WagonCapacityBadge : MonoBehaviour
@@ -109,7 +110,7 @@ namespace PixelGame
         /// Rozeti vagon modelinin tam merkezine yerleştirir ve kameraya tam dik bakmasını sağlar (Billboard).
         /// Kasa doldukça metin yığının üzerinde dinamik olarak yükselir ve parçaların altında kalmaz.
         /// </summary>
-        private void UpdatePlacement()
+        public void UpdatePlacement()
         {
             if (m_Canvas == null) return;
 
@@ -127,6 +128,17 @@ namespace PixelGame
                 return;
             }
 
+            bool isBottle = name.IndexOf("Bottle", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            (transform.parent != null && transform.parent.name.IndexOf("Bottle", System.StringComparison.OrdinalIgnoreCase) >= 0);
+
+            if (isBottle)
+            {
+                m_Canvas.transform.localPosition = new Vector3(-0.04f, 0.45f, 0.45f);
+                m_Canvas.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                m_Canvas.transform.localScale = Vector3.one * 0.0022f;
+                return;
+            }
+
             // Vagonun render sınırlarını hesapla (düşen parçacıklar ve canvas hariç)
             Renderer[] rends = GetComponentsInChildren<Renderer>();
             Bounds b = new Bounds();
@@ -140,7 +152,7 @@ namespace PixelGame
                 if (r.transform.IsChildOf(m_Canvas.transform)) continue;
                 if (r.name.StartsWith("CargoPiece") || r.name.StartsWith("Voxel")) continue;
 
-                if (r.name.StartsWith("MineCart_Body") || r.name.StartsWith("Truck_Cargo"))
+                if (r.name.StartsWith("MineCart_Body") || r.name.StartsWith("Truck_Cargo") || r.name.IndexOf("Bottle", System.StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     bodyRenderer = r;
                 }

@@ -305,11 +305,12 @@ namespace PixelGame.Editor
             float topY = loop.TopY;
             float z = loop.Z;
 
-            // 4 Köşe (Track_Corner)
+            // 4 Köşe (Track_Corner) — Sol alt köşe vagon girişi (köşe1 UI slotu) için açık bırakılır
             SpawnCorner(railsGroup.transform, cornerPrefab, new Vector3(rightX, bottomY, z), Quaternion.AngleAxis(180f, Vector3.forward) * baseRot, s, "Corner_BR");
             SpawnCorner(railsGroup.transform, cornerPrefab, new Vector3(rightX, topY, z), Quaternion.AngleAxis(270f, Vector3.forward) * baseRot, s, "Corner_TR");
             SpawnCorner(railsGroup.transform, cornerPrefab, new Vector3(leftX, topY, z), Quaternion.AngleAxis(0f, Vector3.forward) * baseRot, s, "Corner_TL");
-            SpawnCorner(railsGroup.transform, cornerPrefab, new Vector3(leftX, bottomY, z), Quaternion.AngleAxis(90f, Vector3.forward) * baseRot, s, "Corner_BL");
+            GameObject cornerBL = SpawnCorner(railsGroup.transform, cornerPrefab, new Vector3(leftX, bottomY, z), Quaternion.AngleAxis(90f, Vector3.forward) * baseRot, s, "Corner_BL");
+            if (cornerBL != null) cornerBL.SetActive(false);
 
             // 4 Düz Kenar (Track_Straight: model ok yönü -X olduğu için CCW döngüde)
             SpawnEdge(railsGroup.transform, straightPrefab, new Vector3(leftX + r, bottomY, z), new Vector3(rightX - r, bottomY, z), Vector3.right, Quaternion.AngleAxis(180f, Vector3.forward) * baseRot, s, "Straight_Bottom");
@@ -323,13 +324,14 @@ namespace PixelGame.Editor
             Debug.Log($"<color=#00FFAA><b>[TrackSystemSetup]</b></color> Sahneye {railsGroup.transform.childCount} adet modüler ray başarıyla döşendi!");
         }
 
-        private static void SpawnCorner(Transform parent, GameObject prefab, Vector3 pos, Quaternion rot, float scale, string name)
+        private static GameObject SpawnCorner(Transform parent, GameObject prefab, Vector3 pos, Quaternion rot, float scale, string name)
         {
             GameObject go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
             go.name = name;
             go.transform.position = pos;
             go.transform.rotation = rot;
             go.transform.localScale = Vector3.one * scale;
+            return go;
         }
 
         private static void SpawnEdge(Transform parent, GameObject prefab, Vector3 start, Vector3 end, Vector3 dir, Quaternion rot, float scale, string prefix)

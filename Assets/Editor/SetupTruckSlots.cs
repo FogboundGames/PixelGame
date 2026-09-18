@@ -43,50 +43,21 @@ namespace PixelGame.Editor
             {
                 SessionState.SetBool(SessionKey, true);
 
-                // 1. 5 vagonluk transparan gölge slot yerlerini aktif et (araları hafif boşluklu)
-                row.Style.enableShadow = true;
-                row.Style.shadowSprite = SlotShadowTextureGenerator.GetOrGenerateSlotShadowSprite();
-                row.Style.shadowColor = new Color(0.04f, 0.07f, 0.14f, 0.35f);
-                row.Style.shadowScale = new Vector2(0.88f, 0.76f);
-                row.Style.shadowOffset = new Vector2(0f, -10f);
-                row.Style.shadowZ = 4f;
+                // Yeni UI slot1 tasarımında alt ray gölgeleri kapatılır
+                row.Style.enableShadow = false;
+                row.Style.enableRowGroundShadow = false;
+                row.Style.enablePortalShadow = false;
 
-                // 2. Doğrudan ray demirleri ve ahşap traverslerin hat gölgesini aktif et
-                row.Style.enableRowGroundShadow = true;
-                row.Style.rowGroundShadowSprite = SlotShadowTextureGenerator.GetOrGenerateRowGroundShadowSprite();
-                row.Style.rowGroundShadowColor = new Color(0.04f, 0.06f, 0.10f, 0.40f);
-                row.Style.rowGroundShadowOffset = new Vector2(0f, -14f);
-                row.Style.rowGroundShadowPadding = new Vector2(0f, 0f);
-                row.Style.rowGroundShadowZ = 6f;
-
-                // SlotShadow_1..5 nesnelerini aktif et
                 Transform shadows = row.transform.Find("Shadows");
                 if (shadows != null)
                 {
-                    for (int i = 1; i <= 5; i++)
-                    {
-                        Transform s = shadows.Find($"SlotShadow_{i}");
-                        if (s != null)
-                        {
-                            s.gameObject.SetActive(true);
-                        }
-                    }
-                    for (int i = 6; i <= 10; i++)
-                    {
-                        Transform s = shadows.Find($"SlotShadow_{i}");
-                        if (s != null)
-                        {
-                            s.gameObject.SetActive(false);
-                        }
-                    }
+                    Object.DestroyImmediate(shadows.gameObject);
                 }
 
-                row.ForceApplyStyleToShadows();
                 EditorUtility.SetDirty(row);
                 UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
                     UnityEngine.SceneManagement.SceneManager.GetActiveScene());
                 UnityEditor.SceneManagement.EditorSceneManager.SaveOpenScenes();
-                Debug.Log("<color=#00FFAA><b>[PixelGame]</b></color> Ray üzerindeki 5 vagon slot gölgesi (araları hafif boşluklu) başarıyla ayarlandı!");
             }
             else
             {
@@ -433,13 +404,9 @@ namespace PixelGame.Editor
             style.interactive = interactive;
             style.rowWidthFill = k_RowScreenWidthFill;
 
-            // Ray şeridi ve portallarda sahte gölgeleri (Fake Shadow) her zaman aktif tut
-            style.enableShadow = true;
-            style.shadowSprite = SlotShadowTextureGenerator.GetOrGenerateSlotShadowSprite();
-            style.enableRowGroundShadow = true;
-            style.rowGroundShadowSprite = SlotShadowTextureGenerator.GetOrGenerateRowGroundShadowSprite();
-            style.enablePortalShadow = true;
-            style.portalShadowSprite = SlotShadowTextureGenerator.GetOrGeneratePortalShadowSprite();
+            style.enableShadow = false;
+            style.enableRowGroundShadow = false;
+            style.enablePortalShadow = false;
         }
 
         private static PixelLevelData GetActiveLevel()
