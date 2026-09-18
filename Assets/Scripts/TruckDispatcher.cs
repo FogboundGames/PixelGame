@@ -84,7 +84,16 @@ namespace PixelGame
         [Tooltip("Çerçeve etrafına 3D ray prefab'ı döşensin mi?")]
         [SerializeField] private bool m_ShowPerimeterRails = true;
 
-        [Tooltip("Ray parçası prefab'ı (boşsa Assets/Prefabs/Track.prefab otomatik yüklenir).")]
+        [Tooltip("Yeni modüler düz ray prefab'ı (boşsa Assets/Prefabs/Track_Straight.prefab otomatik yüklenir).")]
+        [SerializeField] private GameObject m_TrackStraightPrefab;
+
+        [Tooltip("Yeni modüler köşe ray prefab'ı (boşsa Assets/Prefabs/Track_Corner.prefab otomatik yüklenir).")]
+        [SerializeField] private GameObject m_TrackCornerPrefab;
+
+        [Tooltip("Yeni modüler rayların ölçek çarpanı (genişlik/yükseklik).")]
+        [SerializeField] private float m_ModularTrackScale = 0.60f;
+
+        [Tooltip("Eski tek parça ray prefab'ı fallback (boşsa Assets/Prefabs/Track.prefab).")]
         [SerializeField] private GameObject m_TrackPrefab;
 
         [Header("🚂 Hareketli Ray Vagonları (Continuous Train Conveyor - Eski Hat)")]
@@ -688,13 +697,20 @@ namespace PixelGame
         {
             if (!m_ShowPerimeterRails) return;
 
+            #if UNITY_EDITOR
+            if (m_TrackStraightPrefab == null)
+                m_TrackStraightPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Track_Straight.prefab");
+            if (m_TrackCornerPrefab == null)
+                m_TrackCornerPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Track_Corner.prefab");
             if (m_TrackPrefab == null)
-            {
-                #if UNITY_EDITOR
                 m_TrackPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Track.prefab");
-                #endif
+            #endif
+
+            bool useModular = (m_TrackStraightPrefab != null && m_TrackCornerPrefab != null);
+            if (useModular)
+            {
+                m_LoopCornerRadius = 0.5f * m_ModularTrackScale;
             }
-            if (m_TrackPrefab == null) return;
 
             SetupPerimeterLoop();
 
@@ -730,6 +746,111 @@ namespace PixelGame
             #endif
             railsGroup.transform.SetParent(m_WagonsRoot, false);
 
+            if (useModular)
+            {
+                BuildModularRails(railsGroup.transform);
+            }
+            else if (m_TrackPrefab != null)
+            {
+                BuildLegacyRails(railsGroup.transform);
+            }
+
+            #if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                UnityEditor.EditorUtility.SetDirty(gameObject);
+                if (m_WagonsRoot != null) UnityEditor.EditorUtility.SetDirty(m_WagonsRoot.gameObject);
+            }
+            #endif
+        }
+
+        private void BuildModularRails(Transform railsGroup)
+        {
+            float s = m_ModularTrackScale;
+            float r = 0.5f * s;
+            Quaternion baseRot = Quaternion.Euler(-90f, 0f, 0f);
+
+            float leftX = m_Loop.LeftX;
+            float rightX = m_Loop.RightX;
+            float bottomY = m_Loop.BottomY;
+            float topY = m_Loop.TopY;
+            float z = m_Loop.Z;
+
+            // 1. Dört Köşe Parçası (Track_Corner)
+            // Bottom-Right Corner (Saat yönü tersi: -X'ten gelip +Y'ye döner) -> Angle 180
+            SpawnModularCorner(railsGroup, new Vector3(rightX, bottomY, z), Quaternion.AngleAxis(180f, Vector3.forward) * baseRot, s, "Corner_BR");
+            // Top-Right Corner (Saat yönü tersi: -Y'den gelip -X'e döner) -> Angle 270
+            SpawnModularCorner(railsGroup, new Vector3(rightX, topY, z), Quaternion.AngleAxis(270f, Vector3.forward) * baseRot, s, "Corner_TR");
+            // Top-Left Corner (Saat yönü tersi: +X'ten gelip -Y'ye döner) -> Angle 0
+            SpawnModularCorner(railsGroup, new Vector3(leftX, topY, z), Quaternion.AngleAxis(0f, Vector3.forward) * baseRot, s, "Corner_TL");
+            // Bottom-Left Corner (Saat yönü tersi: +Y'den gelip +X'e döner) -> Angle 90
+            SpawnModularCorner(railsGroup, new Vector3(leftX, bottomY, z), Quaternion.AngleAxis(90f, Vector3.forward) * baseRot, s, "Corner_BL");
+
+            // 2. Dört Düz Kenar (Track_Straight: model ok yönü -X olduğu için CCW döngüde)
+            // Alt kenar: soldan sağa (+X) -> Angle 180 (böylece -X dünyada +X'e bakar)
+            SpawnModularStraightEdge(railsGroup,
+                new Vector3(leftX + r, bottomY, z),
+                new Vector3(rightX - r, bottomY, z),
+                Vector3.right,
+                Quaternion.AngleAxis(180f, Vector3.forward) * baseRot,
+                s, "Straight_Bottom");
+
+            // Sağ kenar: aşağıdan yukarıya (+Y) -> Angle 270 (böylece -X dünyada +Y'ye bakar)
+            SpawnModularStraightEdge(railsGroup,
+                new Vector3(rightX, bottomY + r, z),
+                new Vector3(rightX, topY - r, z),
+                Vector3.up,
+                Quaternion.AngleAxis(270f, Vector3.forward) * baseRot,
+                s, "Straight_Right");
+
+            // Üst kenar: sağdan sola (-X) -> Angle 0 (böylece -X dünyada -X'e bakar)
+            SpawnModularStraightEdge(railsGroup,
+                new Vector3(rightX - r, topY, z),
+                new Vector3(leftX + r, topY, z),
+                Vector3.left,
+                Quaternion.AngleAxis(0f, Vector3.forward) * baseRot,
+                s, "Straight_Top");
+
+            // Sol kenar: yukarıdan aşağıya (-Y) -> Angle 90 (böylece -X dünyada -Y'ye bakar)
+            SpawnModularStraightEdge(railsGroup,
+                new Vector3(leftX, topY - r, z),
+                new Vector3(leftX, bottomY + r, z),
+                Vector3.down,
+                Quaternion.AngleAxis(90f, Vector3.forward) * baseRot,
+                s, "Straight_Left");
+        }
+
+        private void SpawnModularCorner(Transform parent, Vector3 pos, Quaternion rot, float scale, string name)
+        {
+            GameObject go = Instantiate(m_TrackCornerPrefab, parent);
+            go.name = name;
+            go.transform.position = pos;
+            go.transform.rotation = rot;
+            go.transform.localScale = Vector3.one * scale;
+        }
+
+        private void SpawnModularStraightEdge(Transform parent, Vector3 start, Vector3 end, Vector3 dir, Quaternion rot, float scale, string prefix)
+        {
+            float totalLen = Vector3.Distance(start, end);
+            if (totalLen <= 0.01f) return;
+
+            int count = Mathf.Max(1, Mathf.RoundToInt(totalLen / scale));
+            float pieceLen = totalLen / count;
+            Vector3 pieceScale = new Vector3(pieceLen, scale, scale);
+
+            for (int i = 0; i < count; i++)
+            {
+                Vector3 center = start + dir * ((i + 0.5f) * pieceLen);
+                GameObject go = Instantiate(m_TrackStraightPrefab, parent);
+                go.name = $"{prefix}_{i}";
+                go.transform.position = center;
+                go.transform.rotation = rot;
+                go.transform.localScale = pieceScale;
+            }
+        }
+
+        private void BuildLegacyRails(Transform railsGroup)
+        {
             float trackStep = 0.35f;
             int count = Mathf.Max(12, Mathf.RoundToInt(m_Loop.TotalPerimeter / trackStep));
             float actualStep = m_Loop.TotalPerimeter / count;
@@ -743,20 +864,12 @@ namespace PixelGame
                 float s = i * actualStep;
                 m_Loop.Evaluate(s, out Vector3 pos, out Vector3 tangent, out Quaternion rot, m_WagonRotation);
 
-                GameObject rail = Instantiate(m_TrackPrefab, railsGroup.transform);
+                GameObject rail = Instantiate(m_TrackPrefab, railsGroup);
                 rail.name = $"Track_{i}";
                 rail.transform.position = pos;
                 rail.transform.rotation = rot;
                 rail.transform.localScale = railScale;
             }
-
-            #if UNITY_EDITOR
-            if (!Application.isPlaying)
-            {
-                UnityEditor.EditorUtility.SetDirty(gameObject);
-                if (m_WagonsRoot != null) UnityEditor.EditorUtility.SetDirty(m_WagonsRoot.gameObject);
-            }
-            #endif
         }
 
         private void CalibratePortalsAndAlignment()

@@ -3,7 +3,17 @@ guid: 19e3d81fabf32cc73a0874b7d8c2cbdb
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Track_SideLight
+    second: {fileID: 2100000, guid: 55e8eea488f5e18d8bf15a9ecb0d7c7a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Track_TopDark
+    second: {fileID: 2100000, guid: 219f977a60e2cfbc18b2a65adf38b3fb, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

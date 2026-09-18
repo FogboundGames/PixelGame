@@ -15,11 +15,11 @@ public class TrackFlow : MonoBehaviour
     [Tooltip("The material used by the dark channel of the track tiles.")]
     public Material trackMaterial;
 
-    [Tooltip("UV units per second. Tiling is 4, so 0.25 means one chevron per second.")]
-    public float speed = 0.35f;
+    [Tooltip("UV units per second. Tiling is 4, so 0.25 means one chevron per second. 0.90 gives a lively, snappy flow.")]
+    public float speed = 0.90f;
 
     [Tooltip("Flow against the tiles' local +X instead of along it.")]
-    public bool reverse = false;
+    public bool reverse = true;
 
     static readonly int BaseMap = Shader.PropertyToID("_BaseMap");
     static readonly int MainTex = Shader.PropertyToID("_MainTex");
