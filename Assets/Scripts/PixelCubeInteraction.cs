@@ -52,18 +52,10 @@ namespace PixelGame
         {
             s_Instance = this;
             EnsureCameraAndRaycaster();
-
-            #if UNITY_EDITOR
-            SceneView.duringSceneGui -= OnSceneGUI;
-            SceneView.duringSceneGui += OnSceneGUI;
-            #endif
         }
 
         private void OnDisable()
         {
-            #if UNITY_EDITOR
-            SceneView.duringSceneGui -= OnSceneGUI;
-            #endif
         }
 
         private void EnsureCameraAndRaycaster()
@@ -225,26 +217,7 @@ namespace PixelGame
             m_PoppedCubes.Add(cube);
         }
 
-        #if UNITY_EDITOR
-        private void OnSceneGUI(SceneView sceneView)
-        {
-            // Edit Mode'da Scene View içerisinden küplere tıklayarak patlatma desteği!
-            Event e = Event.current;
-            if (e != null && (e.type == EventType.MouseDown && e.button == 0))
-            {
-                Ray ray = HandleUtility.GUIPointToWorldRay(e.mousePosition);
-                if (Physics.Raycast(ray, out RaycastHit hit, 100f))
-                {
-                    PixelCube cube = hit.collider.GetComponent<PixelCube>() ?? hit.collider.GetComponentInParent<PixelCube>();
-                    if (cube != null && !cube.IsPopped && cube.gameObject.activeSelf)
-                    {
-                        cube.BurstAndDestroy();
-                        e.Use();
-                    }
-                }
-            }
-        }
-        #endif
+
 
         private void HandleKeyboardShortcuts()
         {

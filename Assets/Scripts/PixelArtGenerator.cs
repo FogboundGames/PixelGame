@@ -93,7 +93,11 @@ namespace PixelGame
         [SerializeField] private bool m_SkipTransparent = true;
 
         [Tooltip("Oyun başladığında otomatik oluştursun mu?")]
-        [SerializeField] private bool m_GenerateOnStart = true;
+        [SerializeField] private bool m_GenerateOnStart = false;
+
+        [Header("🔒 Sahne Koruması (Preserve Scene Edits)")]
+        [Tooltip("Açık olduğunda sahnede yaptığınız tüm değişiklikler (silinen küpler, taşınan parçalar, silinen çerçeve/raylar) Play'e basıldığında KESİNLİKLE korunur; hiçbir şey yeniden üretilip sahneyi bozmaz.")]
+        [SerializeField] private bool m_PreserveSceneEdits = true;
 
         [Header("🌑 Küp Altı Sahte Gölge (Fake Shadow - Her Yönde)")]
         [Tooltip("Her bir piksel küpünün altına 360 derece çevreleyen yumuşak sahte gölge yerleştir")]
@@ -122,6 +126,13 @@ namespace PixelGame
 
         [Header("📂 Kapsayıcı (Container)")]
         [SerializeField] private Transform m_CubesContainer;
+
+        [Header("🖼️ 3D Sahne Çerçeve & Pano (Scene Frame & Board)")]
+        [Tooltip("Scene View'da tasarım yaparken çerçevenin 3D dünyada (küplerin hemen arkasında) net görünmesini sağlar")]
+        [SerializeField] private bool m_ShowSceneFramePreview = true;
+        [Tooltip("Çerçevenin içindeki beyaz tuval/pano zeminini Scene View'da gösterir")]
+        [SerializeField] private bool m_ShowSceneBoardBackground = true;
+        [SerializeField] private Transform m_FramePreviewTransform;
 
         // Properties
         public bool EnableCubeShadows { get => m_EnableCubeShadows; set { m_EnableCubeShadows = value; ApplyShadowsToAllExistingCubes(); } }
@@ -158,9 +169,30 @@ namespace PixelGame
         public float EmissionIntensity { get => m_EmissionIntensity; set { m_EmissionIntensity = value; UpdateExistingCubesLive(); } }
         public SamplingMode Sampling { get => m_SamplingMode; set => m_SamplingMode = value; }
         public bool SkipTransparent { get => m_SkipTransparent; set => m_SkipTransparent = value; }
-        public Transform CubesContainer => m_CubesContainer;
+        public bool PreserveSceneEdits { get => m_PreserveSceneEdits; set => m_PreserveSceneEdits = value; }
+        public Transform CubesContainer
+        {
+            get
+            {
+                if (m_CubesContainer == null)
+                {
+                    m_CubesContainer = transform.Find("PixelArtContainer");
+                    if (m_CubesContainer == null)
+                    {
+                        PixelCube anyCube = GetComponentInChildren<PixelCube>(true);
+                        if (anyCube != null && anyCube.transform.parent != null)
+                        {
+                            m_CubesContainer = anyCube.transform.parent;
+                        }
+                    }
+                }
+                return m_CubesContainer;
+            }
+        }
         public float TargetZ => m_TargetZ;
         public Camera WorldCamera { get => GetActiveCamera(); set => m_WorldCamera = value; }
+        public bool ShowSceneFramePreview { get => m_ShowSceneFramePreview; set { m_ShowSceneFramePreview = value; EnsureWorldFramePreview(true); } }
+        public bool ShowSceneBoardBackground { get => m_ShowSceneBoardBackground; set { m_ShowSceneBoardBackground = value; EnsureWorldFramePreview(true); } }
 
         private void Awake()
         {
@@ -189,32 +221,21 @@ namespace PixelGame
         {
             if (this == null || Application.isPlaying) return;
 
+            // Sahne koruması aktifse kullanıcının düzenlediği sahneye KESİNLİKLE dokunma!
+            if (m_PreserveSceneEdits) return;
+
             // Sahnede zaten küpler mevcutsa editör açılışında veya domain reload sırasında
-            // bunları boş yere silip sıfırdan oluşturma! Sadece canlı önizleme ve gölgeleri güncelle.
-            if (m_CubesContainer != null && m_CubesContainer.childCount > 0)
+            // bunları boş yere silip sıfırdan oluşturma!
+            if (CubesContainer != null && CubesContainer.childCount > 0)
             {
-                UpdateExistingCubesLive();
-                if (m_EnableCubeShadows)
-                {
-                    ApplyShadowsToAllExistingCubes();
-                }
-                if (m_EnableBoardShadow)
-                {
-                    UpdateBoardShadowLive();
-                }
-                else
-                {
-                    EnsureBoardShadowDisabled();
-                }
-                if (!m_EnableFigureContourShadow)
-                {
-                    EnsureFigureContourShadowDisabled();
-                }
                 return;
             }
 
-            // Sahnede hiç küp yoksa sıfırdan oluştur
-            GeneratePixelArt();
+            // Sahnede hiç küp yoksa ve otomatik üretim açıksa oluştur
+            if (m_GenerateOnStart)
+            {
+                GeneratePixelArt();
+            }
         }
         #endif
 
@@ -224,11 +245,17 @@ namespace PixelGame
 
             if (Application.isPlaying)
             {
+                // Sahne koruması: Kullanıcının sildiği, taşıdığı veya değiştirdiği hiçbir nesneyi sıfırlama!
+                if (m_PreserveSceneEdits)
+                {
+                    return;
+                }
+
                 if (!m_EnableBoardShadow) EnsureBoardShadowDisabled();
                 if (!m_EnableFigureContourShadow) EnsureFigureContourShadowDisabled();
                 if (!m_EnableCubeShadows) ApplyShadowsToAllExistingCubes();
 
-                if (m_GenerateOnStart && (m_CubesContainer == null || m_CubesContainer.childCount == 0))
+                if (m_GenerateOnStart && (CubesContainer == null || CubesContainer.childCount == 0))
                 {
                     GeneratePixelArt();
                 }
@@ -281,6 +308,25 @@ namespace PixelGame
                 }
                 #endif
             }
+
+            #if UNITY_EDITOR
+            EnsureWorldFramePreview(forceCreate: false);
+            #endif
+        }
+
+        private void Update()
+        {
+            #if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                if (m_ShowSceneFramePreview && (transform.hasChanged || (m_CubesContainer != null && m_CubesContainer.hasChanged)))
+                {
+                    transform.hasChanged = false;
+                    if (m_CubesContainer != null) m_CubesContainer.hasChanged = false;
+                    EnsureWorldFramePreview(forceCreate: false);
+                }
+            }
+            #endif
         }
 
         #if UNITY_EDITOR
@@ -470,11 +516,6 @@ namespace PixelGame
             }
 
             EnsureTargetFrameRect();
-            if (m_TargetFrameRect == null)
-            {
-                Debug.LogError("[PixelArtGenerator] Hedef mavi çerçeve (MainPlane RectTransform) bulunamadı!");
-                return;
-            }
 
             Camera cam = GetActiveCamera();
             if (cam == null)
@@ -1451,78 +1492,129 @@ namespace PixelGame
             worldWidth = 0f;
             worldHeight = 0f;
 
-            if (m_TargetFrameRect == null || cam == null)
-                return false;
-
-            if (cam.pixelWidth < 50 || cam.pixelHeight < 50)
-                return false;
-
-            // Canvas düzenini güncel duruma zorla
-            Canvas.ForceUpdateCanvases();
-
-            Rect frame = m_TargetFrameRect.rect;
-            Vector3 frameScale = m_TargetFrameRect.lossyScale;
-
-            if (frame.width * Mathf.Abs(frameScale.x) < 1f ||
-                frame.height * Mathf.Abs(frameScale.y) < 1f)
+            // 1. Sahnede mevcut küpler varsa doğrudan 3D dünya sınırlarını hesapla
+            // (TruckDispatcher, Miner ve Scene Frame ile %100 senkron ve hatasız yöntem)
+            if (m_CubesContainer == null) EnsureContainer();
+            if (m_CubesContainer != null && m_CubesContainer.childCount > 0)
             {
-                return false;
-            }
-
-            Canvas canvas = m_TargetFrameRect.GetComponentInParent<Canvas>();
-            Vector3[] corners = new Vector3[4];
-            m_TargetFrameRect.GetWorldCorners(corners);
-
-            float camDist = Mathf.Abs(cam.transform.position.z - m_TargetZ);
-            if (camDist < 0.1f) camDist = 10f;
-
-            if (canvas != null && canvas.renderMode == RenderMode.ScreenSpaceOverlay)
-            {
-                float frameScreenWidth = Mathf.Abs(corners[2].x - corners[0].x);
-                float frameScreenHeight = Mathf.Abs(corners[2].y - corners[0].y);
-                float frameScreenCenterY = (corners[0].y + corners[2].y) * 0.5f;
-
-                // Editör açılışında canvas henüz ölçeklenmemişse veya köşeler (0,0) civarına yığılmışsa reddet
-                if (frameScreenWidth < cam.pixelWidth * 0.2f || 
-                    frameScreenHeight < cam.pixelHeight * 0.1f || 
-                    frameScreenCenterY < cam.pixelHeight * 0.25f)
+                Bounds bounds = default;
+                bool hasCube = false;
+                for (int i = 0; i < m_CubesContainer.childCount; i++)
                 {
-                    return false;
+                    Transform child = m_CubesContainer.GetChild(i);
+                    if (child == null || !child.gameObject.activeSelf) continue;
+                    string cName = child.name;
+                    if (cName.StartsWith("BoardGrid") || cName.StartsWith("FigureContour") || cName.Contains("Shadow") || cName.Contains("[SceneFrame")) continue;
+
+                    Vector3 pos = child.position;
+                    if (!hasCube)
+                    {
+                        bounds = new Bounds(pos, Vector3.one * 0.16f);
+                        hasCube = true;
+                    }
+                    else
+                    {
+                        bounds.Encapsulate(pos);
+                    }
                 }
 
-                for (int i = 0; i < 4; i++)
+                if (hasCube && bounds.size.x > 0.3f && bounds.size.y > 0.3f)
                 {
-                    corners[i] = cam.ScreenToWorldPoint(new Vector3(corners[i].x, corners[i].y, camDist));
-                }
-            }
-            else
-            {
-                for (int i = 0; i < 4; i++)
-                {
-                    Vector3 screenPoint = cam.WorldToScreenPoint(corners[i]);
-                    corners[i] = cam.ScreenToWorldPoint(new Vector3(screenPoint.x, screenPoint.y, camDist));
+                    worldCenter = bounds.center;
+                    worldCenter.z = m_TargetZ;
+                    worldWidth = bounds.size.x;
+                    worldHeight = bounds.size.y;
+                    return true;
                 }
             }
 
-            Vector3 bottomLeft = corners[0];
-            Vector3 topRight = corners[2];
+            // 2. Küp yoksa: Hedef çerçeve UI RectTransform'unu (MainPlane) dünya uzayına izdüşür
+            EnsureTargetFrameRect();
+            if (cam == null) cam = GetActiveCamera();
 
-            worldCenter = (bottomLeft + topRight) * 0.5f;
-            worldWidth = Mathf.Abs(topRight.x - bottomLeft.x);
-            worldHeight = Mathf.Abs(topRight.y - bottomLeft.y);
-
-            // Mantıklı bir çerçeve boyutu kontrolü (en az 0.5 dünya birimi olmalı)
-            if (worldWidth < 0.5f || worldHeight < 0.5f)
+            if (m_TargetFrameRect != null && cam != null && cam.pixelWidth >= 50 && cam.pixelHeight >= 50)
             {
-                return false;
+                Canvas.ForceUpdateCanvases();
+
+                Rect frame = m_TargetFrameRect.rect;
+                Vector3 frameScale = m_TargetFrameRect.lossyScale;
+
+                if (frame.width * Mathf.Abs(frameScale.x) >= 1f &&
+                    frame.height * Mathf.Abs(frameScale.y) >= 1f)
+                {
+                    Canvas canvas = m_TargetFrameRect.GetComponentInParent<Canvas>();
+                    Vector3[] corners = new Vector3[4];
+                    m_TargetFrameRect.GetWorldCorners(corners);
+
+                    float camDist = Mathf.Abs(cam.transform.position.z - m_TargetZ);
+                    if (camDist < 0.1f) camDist = 10f;
+
+                    if (canvas != null && canvas.renderMode == RenderMode.ScreenSpaceOverlay)
+                    {
+                        float frameScreenWidth = Mathf.Abs(corners[2].x - corners[0].x);
+                        float frameScreenHeight = Mathf.Abs(corners[2].y - corners[0].y);
+                        float frameScreenCenterY = (corners[0].y + corners[2].y) * 0.5f;
+
+                        if (frameScreenWidth >= cam.pixelWidth * 0.2f &&
+                            frameScreenHeight >= cam.pixelHeight * 0.1f &&
+                            frameScreenCenterY >= cam.pixelHeight * 0.25f)
+                        {
+                            for (int i = 0; i < 4; i++)
+                            {
+                                corners[i] = cam.ScreenToWorldPoint(new Vector3(corners[i].x, corners[i].y, camDist));
+                            }
+
+                            Vector3 bottomLeft = corners[0];
+                            Vector3 topRight = corners[2];
+
+                            float rawW = Mathf.Abs(topRight.x - bottomLeft.x);
+                            float rawH = Mathf.Abs(topRight.y - bottomLeft.y);
+
+                            if (rawW >= 0.5f && rawH >= 0.5f)
+                            {
+                                worldCenter = (bottomLeft + topRight) * 0.5f;
+                                worldCenter.z = m_TargetZ;
+                                float padX = rawW * m_InnerPadding;
+                                float padY = rawH * m_InnerPadding;
+                                worldWidth = Mathf.Max(0.1f, rawW - padX * 2f);
+                                worldHeight = Mathf.Max(0.1f, rawH - padY * 2f);
+                                return true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < 4; i++)
+                        {
+                            Vector3 screenPoint = cam.WorldToScreenPoint(corners[i]);
+                            corners[i] = cam.ScreenToWorldPoint(new Vector3(screenPoint.x, screenPoint.y, camDist));
+                        }
+
+                        Vector3 bottomLeft = corners[0];
+                        Vector3 topRight = corners[2];
+
+                        float rawW = Mathf.Abs(topRight.x - bottomLeft.x);
+                        float rawH = Mathf.Abs(topRight.y - bottomLeft.y);
+
+                        if (rawW >= 0.5f && rawH >= 0.5f)
+                        {
+                            worldCenter = (bottomLeft + topRight) * 0.5f;
+                            worldCenter.z = m_TargetZ;
+                            float padX = rawW * m_InnerPadding;
+                            float padY = rawH * m_InnerPadding;
+                            worldWidth = Mathf.Max(0.1f, rawW - padX * 2f);
+                            worldHeight = Mathf.Max(0.1f, rawH - padY * 2f);
+                            return true;
+                        }
+                    }
+                }
             }
 
-            float padX = worldWidth * m_InnerPadding;
-            float padY = worldHeight * m_InnerPadding;
-
-            worldWidth = Mathf.Max(0.1f, worldWidth - padX * 2f);
-            worldHeight = Mathf.Max(0.1f, worldHeight - padY * 2f);
-
+            // 3. Nihai güvenli fallback: Jeneratörün kendi transform pozisyonu (Sahne Kontrolü)
+            worldCenter = transform.position;
+            worldCenter.z = m_TargetZ;
+            worldWidth = 3.8f;
+            worldHeight = 3.8f;
             return true;
         }
 
@@ -1602,7 +1694,7 @@ namespace PixelGame
             return null;
         }
 
-        private Camera GetActiveCamera()
+        public Camera GetActiveCamera()
         {
             if (m_WorldCamera != null)
                 return m_WorldCamera;
@@ -1618,6 +1710,16 @@ namespace PixelGame
                 if (mainPlane != null)
                 {
                     m_TargetFrameRect = mainPlane.GetComponent<RectTransform>();
+                }
+            }
+
+            // 2D Canvas'taki MainPlane Image bileşeninin ekranda hayalet boş çerçeve çizmesini engelle
+            if (m_TargetFrameRect != null)
+            {
+                UnityEngine.UI.Image img = m_TargetFrameRect.GetComponent<UnityEngine.UI.Image>();
+                if (img != null && img.enabled)
+                {
+                    img.enabled = false;
                 }
             }
         }
@@ -1642,16 +1744,320 @@ namespace PixelGame
             #endif
         }
 
+        /// <summary>
+        /// Scene View'da tasarım yaparken çerçevenin ve pano zemininin 3D dünyada
+        /// tam olarak küplerin arkasında net olarak görünmesini sağlar.
+        /// </summary>
+        public void EnsureWorldFramePreview(bool forceCreate = false)
+        {
+            if (!m_ShowSceneFramePreview)
+            {
+                if (m_FramePreviewTransform != null) m_FramePreviewTransform.gameObject.SetActive(false);
+                Transform found = transform.Find("[SceneFramePreview]");
+                if (found != null) found.gameObject.SetActive(false);
+                return;
+            }
+
+            Camera cam = GetActiveCamera();
+            EnsureTargetFrameRect();
+
+            if (!CalculateTargetWorldBounds(cam, out Vector3 worldCenter, out float worldWidth, out float worldHeight))
+                return;
+
+            float fullW = worldWidth / Mathf.Max(0.01f, 1f - m_InnerPadding * 2f);
+            float fullH = worldHeight / Mathf.Max(0.01f, 1f - m_InnerPadding * 2f);
+
+            if (m_FramePreviewTransform == null)
+            {
+                Transform existing = transform.Find("[SceneFramePreview]");
+                if (existing != null) m_FramePreviewTransform = existing;
+            }
+
+            if (m_FramePreviewTransform == null)
+            {
+                // Sahnede kullanıcı sildiyse ve zorla üretim istenmediyse (örn. Update döngüsü), yeniden üretme!
+                if (!forceCreate) return;
+
+                GameObject previewObj = new GameObject("[SceneFramePreview]");
+                previewObj.transform.SetParent(transform, false);
+                m_FramePreviewTransform = previewObj.transform;
+            }
+
+            m_FramePreviewTransform.gameObject.SetActive(true);
+            m_FramePreviewTransform.position = new Vector3(worldCenter.x, worldCenter.y, m_TargetZ + 0.08f);
+            m_FramePreviewTransform.rotation = Quaternion.identity;
+
+            // 1. Mavi Çerçeve Pervazı (Frame Sprite)
+            SpriteRenderer sr = m_FramePreviewTransform.GetComponent<SpriteRenderer>();
+            if (sr == null) sr = m_FramePreviewTransform.gameObject.AddComponent<SpriteRenderer>();
+
+            Sprite frameSprite = null;
+            #if UNITY_EDITOR
+            frameSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/Frame.png") 
+                       ?? UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Frame.png");
+            #endif
+            if (frameSprite == null && m_TargetFrameRect != null)
+            {
+                UnityEngine.UI.Image img = m_TargetFrameRect.GetComponent<UnityEngine.UI.Image>();
+                if (img != null && img.sprite != null) frameSprite = img.sprite;
+            }
+
+            if (frameSprite != null)
+            {
+                sr.sprite = frameSprite;
+                sr.drawMode = SpriteDrawMode.Simple;
+                float ppx = frameSprite.rect.width / frameSprite.pixelsPerUnit;
+                float ppy = frameSprite.rect.height / frameSprite.pixelsPerUnit;
+                m_FramePreviewTransform.localScale = new Vector3(fullW / Mathf.Max(0.01f, ppx), fullH / Mathf.Max(0.01f, ppy), 1f);
+                sr.color = Color.white;
+                sr.sortingOrder = -10; // Küplerin arkasında kalır
+            }
+
+            // 2. Çerçevenin İçindeki Beyaz Tuval / Pano Zemini (Scene Board Canvas)
+            Transform boardChild = m_FramePreviewTransform.Find("[BoardBackground]");
+            if (m_ShowSceneBoardBackground)
+            {
+                if (boardChild == null)
+                {
+                    if (!forceCreate) return; // Kullanıcı pano arka planını sildiyse hortlatma!
+
+                    GameObject bgObj = new GameObject("[BoardBackground]");
+                    bgObj.transform.SetParent(m_FramePreviewTransform, false);
+                    boardChild = bgObj.transform;
+                }
+
+                boardChild.gameObject.SetActive(true);
+                boardChild.localPosition = new Vector3(0f, 0f, 0.02f);
+                boardChild.localRotation = Quaternion.identity;
+
+                MeshFilter mf = boardChild.GetComponent<MeshFilter>();
+                if (mf == null) mf = boardChild.gameObject.AddComponent<MeshFilter>();
+                mf.sharedMesh = GetOrCreateQuadMesh();
+
+                MeshRenderer mr = boardChild.GetComponent<MeshRenderer>();
+                if (mr == null) mr = boardChild.gameObject.AddComponent<MeshRenderer>();
+
+                Shader boardShader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Sprites/Default");
+                if (mr.sharedMaterial == null || mr.sharedMaterial.shader != boardShader)
+                {
+                    mr.sharedMaterial = new Material(boardShader);
+                    mr.sharedMaterial.name = "Scene_BoardBackground_Mat";
+                }
+                mr.sharedMaterial.color = new Color(0.96f, 0.97f, 0.98f, 0.98f); // Temiz tuval rengi
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                mr.receiveShadows = false;
+
+                // Parent'ın ölçeğini nötralize ederek iç oynanabilir alana tam oturmasını sağla
+                float ppxInv = 1f / Mathf.Max(0.001f, m_FramePreviewTransform.localScale.x);
+                float ppyInv = 1f / Mathf.Max(0.001f, m_FramePreviewTransform.localScale.y);
+                boardChild.localScale = new Vector3(worldWidth * 1.02f * ppxInv, worldHeight * 1.02f * ppyInv, 1f);
+            }
+            else
+            {
+                if (boardChild != null) boardChild.gameObject.SetActive(false);
+            }
+        }
+
+        /// <summary>
+        /// Sahnede daha önce kazara veya test amaçlı patlatılmış/gizlenmiş tüm küpleri geri görünür yapar.
+        /// </summary>
+        public void RestoreAllPoppedCubes()
+        {
+            if (m_CubesContainer == null) EnsureContainer();
+            if (m_CubesContainer == null) return;
+
+            PixelCube[] cubes = m_CubesContainer.GetComponentsInChildren<PixelCube>(true);
+            for (int i = 0; i < cubes.Length; i++)
+            {
+                if (cubes[i] != null)
+                {
+                    cubes[i].gameObject.SetActive(true);
+                    cubes[i].SetPoppedVisualState(false);
+                }
+            }
+
+            PixelCubeInteraction interaction = Object.FindFirstObjectByType<PixelCubeInteraction>();
+            if (interaction != null) interaction.ResetAllCubes();
+
+            #if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(gameObject);
+            #endif
+            Debug.Log($"<color=cyan>[PixelGame]</color> {cubes.Length} adet küpün tamamı sahnede görünür hale getirildi!");
+        }
+
+        /// <summary>
+        /// Sahnedeki mevcut tüm küpleri ve çerçeveyi jeneratörün pozisyonuna hizalar.
+        /// Tasarım ve sahne kontrolünü kolaylaştırır.
+        /// </summary>
+        [ContextMenu("🎯 Küpleri Merkeze Hizala (Snap to Center)")]
+        public void CenterPixelArtToOrigin()
+        {
+            if (m_CubesContainer == null) EnsureContainer();
+            if (m_CubesContainer == null || m_CubesContainer.childCount == 0) return;
+
+            Bounds bounds = default;
+            bool hasCube = false;
+            for (int i = 0; i < m_CubesContainer.childCount; i++)
+            {
+                Transform child = m_CubesContainer.GetChild(i);
+                if (child == null || !child.gameObject.activeSelf) continue;
+                string cName = child.name;
+                if (cName.StartsWith("BoardGrid") || cName.StartsWith("FigureContour") || cName.Contains("Shadow") || cName.Contains("[SceneFrame")) continue;
+
+                Vector3 pos = child.position;
+                if (!hasCube) { bounds = new Bounds(pos, Vector3.one * 0.16f); hasCube = true; }
+                else bounds.Encapsulate(pos);
+            }
+
+            if (!hasCube) return;
+
+            Vector3 delta = transform.position - bounds.center;
+            delta.z = 0f;
+
+            for (int i = 0; i < m_CubesContainer.childCount; i++)
+            {
+                Transform child = m_CubesContainer.GetChild(i);
+                if (child == null) continue;
+                child.position += delta;
+            }
+
+            EnsureWorldFramePreview();
+            #if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(gameObject);
+            UnityEditor.EditorUtility.SetDirty(m_CubesContainer.gameObject);
+            #endif
+            Debug.Log($"<color=cyan>[PixelGame]</color> Tüm küpler jeneratör merkezine hizalandı: {transform.position}");
+        }
+
+        /// <summary>
+        /// Sahnede tüm çizim, çerçeve, ray ve vagon nesnelerini [PixelArtGenerator] altında toplar.
+        /// Böylece kullanıcı jeneratörü Scene View'da taşıdığında tüm sahne kusursuz bir şekilde birlikte hareket eder.
+        /// </summary>
+        [ContextMenu("🔗 Tüm Sahneyi Jeneratör Altında Birleştir")]
+        public void OrganizeSceneHierarchy()
+        {
+            EnsureContainer();
+            EnsureWorldFramePreview();
+
+            GameObject wagonsRoot = GameObject.Find("[PerimeterWagonsRoot]");
+            if (wagonsRoot != null && wagonsRoot.transform.parent != transform)
+            {
+                #if UNITY_EDITOR
+                UnityEditor.Undo.SetTransformParent(wagonsRoot.transform, transform, "Organize Scene Hierarchy");
+                #else
+                wagonsRoot.transform.SetParent(transform, true);
+                #endif
+            }
+
+            TruckDispatcher dispatcher = Object.FindFirstObjectByType<TruckDispatcher>();
+            if (dispatcher != null)
+            {
+                dispatcher.SetupPerimeterLoop();
+                Transform wagonsRootTrans = dispatcher.WagonsRoot;
+                if (wagonsRootTrans == null)
+                {
+                    GameObject wr = GameObject.Find("[PerimeterWagonsRoot]");
+                    if (wr != null) wagonsRootTrans = wr.transform;
+                }
+                if (wagonsRootTrans != null && wagonsRootTrans.Find("PerimeterRails") != null)
+                {
+                    dispatcher.GeneratePerimeterRails();
+                }
+            }
+
+            #if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(gameObject);
+            #endif
+            Debug.Log("<color=cyan>[PixelGame]</color> Tüm sahne [PixelArtGenerator] altında toplandı. Artık jeneratörü taşıdığınızda her şey birlikte hareket eder!");
+        }
+
+        /// <summary>
+        /// Tüm sahne tasarımını (küpler, çerçeve, raylar) verilen delta miktarı kadar kaydırır.
+        /// </summary>
+        public void ShiftEntireScene(Vector3 delta)
+        {
+            OrganizeSceneHierarchy();
+            transform.position += delta;
+            EnsureWorldFramePreview(false);
+
+            TruckDispatcher dispatcher = Object.FindFirstObjectByType<TruckDispatcher>();
+            if (dispatcher != null)
+            {
+                dispatcher.SetupPerimeterLoop();
+                Transform wagonsRootTrans = dispatcher.WagonsRoot;
+                if (wagonsRootTrans == null)
+                {
+                    GameObject wr = GameObject.Find("[PerimeterWagonsRoot]");
+                    if (wr != null) wagonsRootTrans = wr.transform;
+                }
+                if (wagonsRootTrans != null && wagonsRootTrans.Find("PerimeterRails") != null)
+                {
+                    dispatcher.GeneratePerimeterRails();
+                }
+            }
+
+            #if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(gameObject);
+            #endif
+        }
+
+        /// <summary>
+        /// Tüm sahne tasarımını belirtilen hedef dünya merkezine konumlandırır (Örn: Y = 1.6m).
+        /// </summary>
+        public void SetSceneCenter(Vector3 targetCenter)
+        {
+            OrganizeSceneHierarchy();
+            transform.position = targetCenter;
+            EnsureWorldFramePreview(false);
+
+            TruckDispatcher dispatcher = Object.FindFirstObjectByType<TruckDispatcher>();
+            if (dispatcher != null)
+            {
+                dispatcher.SetupPerimeterLoop();
+                Transform wagonsRootTrans = dispatcher.WagonsRoot;
+                if (wagonsRootTrans == null)
+                {
+                    GameObject wr = GameObject.Find("[PerimeterWagonsRoot]");
+                    if (wr != null) wagonsRootTrans = wr.transform;
+                }
+                if (wagonsRootTrans != null && wagonsRootTrans.Find("PerimeterRails") != null)
+                {
+                    dispatcher.GeneratePerimeterRails();
+                }
+            }
+
+            #if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(gameObject);
+            #endif
+        }
+
         #if UNITY_EDITOR
-        private void OnDrawGizmosSelected()
+        private void OnDrawGizmos()
         {
             Camera cam = GetActiveCamera();
-            if (cam == null || m_TargetFrameRect == null) return;
+            EnsureTargetFrameRect();
 
             if (CalculateTargetWorldBounds(cam, out Vector3 center, out float width, out float height))
             {
-                Gizmos.color = Color.cyan;
-                Gizmos.DrawWireCube(center, new Vector3(width, height, 0.1f));
+                float fullW = width / Mathf.Max(0.01f, 1f - m_InnerPadding * 2f);
+                float fullH = height / Mathf.Max(0.01f, 1f - m_InnerPadding * 2f);
+
+                // 1. Dış Çerçeve Sınırı (Parlak Mavi/Turkuaz Tel Kafes)
+                Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.9f);
+                Gizmos.DrawWireCube(new Vector3(center.x, center.y, m_TargetZ), new Vector3(fullW, fullH, 0.05f));
+
+                // 2. İç Oynanabilir Alan (Piksel Izgarası Sınırı - Altın Sarısı)
+                Gizmos.color = new Color(1f, 0.85f, 0.2f, 0.75f);
+                Gizmos.DrawWireCube(new Vector3(center.x, center.y, m_TargetZ), new Vector3(width, height, 0.05f));
+
+                // 3. Çerçeve Köşe Tutamaçları (Yeşil)
+                float handleSize = Mathf.Min(width, height) * 0.035f;
+                Gizmos.color = new Color(0.3f, 1f, 0.4f, 0.85f);
+                Vector3 half = new Vector3(fullW * 0.5f, fullH * 0.5f, 0f);
+                Gizmos.DrawWireCube(new Vector3(center.x - half.x, center.y - half.y, m_TargetZ), Vector3.one * handleSize);
+                Gizmos.DrawWireCube(new Vector3(center.x + half.x, center.y - half.y, m_TargetZ), Vector3.one * handleSize);
+                Gizmos.DrawWireCube(new Vector3(center.x - half.x, center.y + half.y, m_TargetZ), Vector3.one * handleSize);
+                Gizmos.DrawWireCube(new Vector3(center.x + half.x, center.y + half.y, m_TargetZ), Vector3.one * handleSize);
             }
         }
         #endif

@@ -39,37 +39,38 @@ namespace PixelGame
             if (Application.isPlaying && m_Levels.Count > 0)
             {
                 EnsureGenerator();
-                // Sahnedeki mevcut küpler ve gölge ayarları zaten varsa bunları silip yeniden üretme!
-                if (m_Generator != null && m_Generator.CubesContainer != null && m_Generator.CubesContainer.childCount > 0)
+                // Sahnedeki mevcut küpler ve sahne koruması açıksa bunları silip yeniden üretme!
+                if (m_Generator != null)
                 {
-                    // Sahnedeki küpler hangi bölüme aitse ONU bağla.
-                    // Listeden indekse göre bağlamak, sahnede kalp inşa edilmişken rakun
-                    // paletinin yüklenmesine yol açıyordu: tablo bir bölüme, vagon renkleri
-                    // başka bölüme ait kalıyordu.
-                    PixelLevelData level = m_Generator.ActiveLevelData;
+                    Transform container = m_Generator.CubesContainer;
+                    int childCount = container != null ? container.childCount : 0;
 
-                    if (level != null)
+                    if (childCount > 0 || m_Generator.PreserveSceneEdits)
                     {
-                        // İndeksi sahnedeki bölümle eşitle, yoksa sonraki geçişler şaşar
-                        int index = m_Levels.IndexOf(level);
-                        if (index >= 0) m_CurrentLevelIndex = index;
-                    }
-                    else
-                    {
-                        m_CurrentLevelIndex = Mathf.Clamp(m_CurrentLevelIndex, 0, m_Levels.Count - 1);
-                        level = m_Levels[m_CurrentLevelIndex];
-                    }
+                        // Sahnedeki küpler hangi bölüme aitse ONU bağla.
+                        PixelLevelData level = m_Generator.ActiveLevelData;
 
-                    if (level != null)
-                    {
-                        m_Generator.BindExistingLevel(level);
-                        Debug.Log($"<color=#00FFAA><b>[LevelManager]</b></color> Sahnedeki mevcut küpler ve gölgeler korundu. Aktif Level: '{level.LevelName}'");
+                        if (level != null)
+                        {
+                            int index = m_Levels.IndexOf(level);
+                            if (index >= 0) m_CurrentLevelIndex = index;
+                        }
+                        else
+                        {
+                            m_CurrentLevelIndex = Mathf.Clamp(m_CurrentLevelIndex, 0, m_Levels.Count - 1);
+                            level = m_Levels[m_CurrentLevelIndex];
+                        }
+
+                        if (level != null)
+                        {
+                            m_Generator.BindExistingLevel(level);
+                            Debug.Log($"<color=#00FFAA><b>[LevelManager]</b></color> Sahnedeki mevcut {childCount} küp ve sahne tasarımı korundu. Aktif Level: '{level.LevelName}'");
+                        }
+                        return;
                     }
                 }
-                else
-                {
-                    LoadLevel(m_CurrentLevelIndex);
-                }
+
+                LoadLevel(m_CurrentLevelIndex);
             }
         }
 

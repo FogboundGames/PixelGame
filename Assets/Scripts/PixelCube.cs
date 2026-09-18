@@ -318,6 +318,8 @@ namespace PixelGame
         /// </summary>
         public void BurstAndDestroy()
         {
+            // Edit Mode'da (Play Mode değilken) sahne tasarımı yaparken küplerin silinmesini kesinlikle engelle!
+            if (!Application.isPlaying) return;
             if (m_IsPopped || !gameObject.activeSelf) return;
 
             // 0. Kamyon kuralı: rengine uyan bir kamyon slotta yoksa küp patlamaz.
@@ -355,18 +357,21 @@ namespace PixelGame
         // Unity UI EventSystem tıklandığında
         public void OnPointerClick(PointerEventData eventData)
         {
+            if (!Application.isPlaying) return;
             BurstAndDestroy();
         }
 
         // Unity UI EventSystem basıldığında
         public void OnPointerDown(PointerEventData eventData)
         {
+            if (!Application.isPlaying) return;
             BurstAndDestroy();
         }
 
         // Klasik Unity Physics tıklaması fallback
         private void OnMouseDown()
         {
+            if (!Application.isPlaying) return;
             BurstAndDestroy();
         }
 

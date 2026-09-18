@@ -169,7 +169,8 @@ namespace PixelGame.Editor
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("📊 Durum & Bilgi", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField("Hedef Çerçeve:", m_Target.TargetFrameRect != null ? $"✅ {m_Target.TargetFrameRect.name}" : "❌ Bulunamadı (MainPlane)");
+            EditorGUILayout.LabelField("Sahne Koruması:", m_Target.PreserveSceneEdits ? "🔒 Açık (Sildikleriniz & Taşıdıklarınız Play'de Korunur)" : "⚠️ Kapalı");
+            EditorGUILayout.LabelField("Hedef Çerçeve:", m_Target.TargetFrameRect != null ? $"✅ {m_Target.TargetFrameRect.name}" : "Serbest 3D Konum (Transform)");
             EditorGUILayout.LabelField("Hedef Prefab:", m_Target.CubePrefab != null ? $"✅ {m_Target.CubePrefab.name}" : "❌ MainCube atanmadı");
             EditorGUILayout.LabelField("Izgara Boyutu:", res.x > 0 ? $"{res.x} x {res.y} (En fazla ~{estimatedCubes} Küp)" : "Görsel Çözünürlüğü");
             EditorGUILayout.LabelField("Sahnede Aktif Küp:", $"{currentChildCount} adet");
@@ -222,6 +223,82 @@ namespace PixelGame.Editor
                 EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             }
 
+            EditorGUILayout.Space(4);
+
+            // 2c. Gizli / Patlatılmış Küpleri Sahnede Geri Aç (Restore All) Butonu
+            GUI.backgroundColor = new Color(0.25f, 0.85f, 0.55f);
+            if (GUILayout.Button("🔄 Gizli / Patlamış Küpleri Sahnede Geri Aç (Restore All)", GUILayout.Height(32)))
+            {
+                m_Target.RestoreAllPoppedCubes();
+                m_Target.EnsureWorldFramePreview(true);
+                SceneView.RepaintAll();
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            }
+
+            EditorGUILayout.Space(4);
+
+            // 2d. 3D Sahne Çerçeve Önizlemesini Yenile Butonu
+            GUI.backgroundColor = new Color(0.3f, 0.75f, 1f);
+            if (GUILayout.Button("🎯 Çerçeveyi & Panoyu Küplere Kilitle (Snap Frame to Art)", GUILayout.Height(32)))
+            {
+                m_Target.EnsureWorldFramePreview(true);
+                SceneView.RepaintAll();
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            }
+
+            EditorGUILayout.Space(4);
+
+            // 2e. Küpleri Jeneratör Merkezine Hizala Butonu
+            GUI.backgroundColor = new Color(0.9f, 0.75f, 0.2f);
+            if (GUILayout.Button("📍 Küpleri Merkeze Hizala (Snap Art to Generator)", GUILayout.Height(30)))
+            {
+                m_Target.CenterPixelArtToOrigin();
+                SceneView.RepaintAll();
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            }
+
+            EditorGUILayout.Space(6);
+            EditorGUILayout.LabelField("🎮 Sahne Konumu & Düzen Kontrolü", EditorStyles.boldLabel);
+
+            // Sahneyi Grupla
+            GUI.backgroundColor = new Color(0.35f, 0.85f, 0.95f);
+            if (GUILayout.Button("🔗 Tüm Sahneyi Birlikte Hareket Edecek Şekilde Grupla", GUILayout.Height(30)))
+            {
+                m_Target.OrganizeSceneHierarchy();
+                SceneView.RepaintAll();
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            }
+
+            EditorGUILayout.Space(2);
+
+            EditorGUILayout.BeginHorizontal();
+            GUI.backgroundColor = new Color(0.9f, 0.7f, 0.4f);
+            if (GUILayout.Button("⬇️ Aşağı Kaydır (-0.5m)", GUILayout.Height(28)))
+            {
+                m_Target.ShiftEntireScene(new Vector3(0f, -0.5f, 0f));
+                SceneView.RepaintAll();
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            }
+            if (GUILayout.Button("⬆️ Yukarı Kaydır (+0.5m)", GUILayout.Height(28)))
+            {
+                m_Target.ShiftEntireScene(new Vector3(0f, 0.5f, 0f));
+                SceneView.RepaintAll();
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(2);
+
+            GUI.backgroundColor = new Color(0.4f, 0.9f, 0.5f);
+            if (GUILayout.Button("📍 İdeal Oyun Konumuna Hizala (Y = 1.6m)", GUILayout.Height(30)))
+            {
+                m_Target.SetSceneCenter(new Vector3(0f, 1.60f, m_Target.TargetZ));
+                SceneView.RepaintAll();
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            }
+
+            EditorGUILayout.Space(4);
+
             // 3. Küpleri Temizle Butonu
             GUI.backgroundColor = new Color(0.95f, 0.35f, 0.35f);
             if (GUILayout.Button("🧹 Küpleri Temizle (Clear)", GUILayout.Height(30)))
@@ -236,6 +313,29 @@ namespace PixelGame.Editor
 
             GUI.backgroundColor = Color.white;
             EditorGUILayout.Space(8);
+        }
+
+        private void OnSceneGUI()
+        {
+            if (m_Target == null) return;
+            Camera cam = m_Target.GetActiveCamera();
+            if (cam == null) return;
+
+            if (m_Target.CalculateTargetWorldBounds(cam, out Vector3 center, out float width, out float height))
+            {
+                float fullW = width / Mathf.Max(0.01f, 1f - m_Target.InnerPadding * 2f);
+                float fullH = height / Mathf.Max(0.01f, 1f - m_Target.InnerPadding * 2f);
+
+                GUIStyle labelStyle = new GUIStyle(EditorStyles.boldLabel)
+                {
+                    normal = { textColor = new Color(0.2f, 0.9f, 1f) },
+                    fontSize = 12,
+                    alignment = TextAnchor.MiddleCenter
+                };
+
+                Vector3 labelPos = new Vector3(center.x, center.y + fullH * 0.5f + 0.35f, m_Target.TargetZ);
+                Handles.Label(labelPos, $"🖼️ PANO ÇERÇEVESİ ({fullW:F2}m x {fullH:F2}m)", labelStyle);
+            }
         }
     }
 
@@ -255,6 +355,10 @@ namespace PixelGame.Editor
                 return;
 
             SessionState.SetBool(SessionKey, true);
+            PixelArtGenerator existingGen = Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (existingGen != null && existingGen.PreserveSceneEdits)
+                return;
+
             SetupPixelArtManager(isAuto: true);
         }
 
@@ -352,15 +456,21 @@ namespace PixelGame.Editor
                 gen.gameObject.AddComponent<PixelCubeInteraction>();
             }
 
-            // Eğer yeni oluşturulduysa veya küpleri yoksa otomatik oluştur
+            // Eğer yeni oluşturulduysa veya küpleri yoksa ve sahne koruması kapalıysa otomatik oluştur
             if (newlyCreated || (gen.CubesContainer == null || gen.CubesContainer.childCount == 0))
             {
-                gen.GeneratePixelArt();
+                if (!isAuto || !gen.PreserveSceneEdits)
+                {
+                    gen.GeneratePixelArt();
+                }
             }
             else
             {
-                // Mevcut küpleri yeni canlı renklerle güncelle
-                gen.UpdateExistingCubesLive();
+                // Mevcut küpleri sadece sahne koruması kapalıysa veya manuel çağrıldıysa güncelle
+                if (!isAuto || !gen.PreserveSceneEdits)
+                {
+                    gen.UpdateExistingCubesLive();
+                }
             }
 
             Selection.activeGameObject = gen.gameObject;

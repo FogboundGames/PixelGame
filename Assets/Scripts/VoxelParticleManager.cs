@@ -41,20 +41,20 @@ namespace PixelGame
         [Tooltip("Her parçalanan küpün bölüneceği ızgara sayısı (3 = 3x3x2 = 18 adet 3D mini voksel parçası)")]
         [SerializeField] [Range(2, 4)] private int m_SubGridDivision = 3;
 
-        [Tooltip("Parçaların aşağıya doğru dökülmesini sağlayan yerçekimi katsayısı")]
-        [SerializeField] [Range(1.0f, 6.0f)] private float m_GravityModifier = 3.0f;
+        [Tooltip("Parçaların küp etrafında dağılırken hafifçe çökmesini sağlayan yerçekimi katsayısı")]
+        [SerializeField] [Range(0.0f, 4.0f)] private float m_GravityModifier = 0.15f;
 
-        [Tooltip("Parçaların dökülme ve havada kalma süresi (saniye)")]
-        [SerializeField] [Range(0.4f, 2.0f)] private float m_ParticleLifetime = 0.95f;
+        [Tooltip("Parçaların saçılma ve havada kalma süresi (saniye)")]
+        [SerializeField] [Range(0.2f, 2.0f)] private float m_ParticleLifetime = 0.55f;
 
-        [Tooltip("Parçalanma anında küp parçalarının ilk dışa saçılma ve hafif yukarı sıçrama kuvveti")]
-        [SerializeField] [Range(0.5f, 4.0f)] private float m_ScatterForce = 1.5f;
+        [Tooltip("Parçalanma anında küp parçalarının 360 derece hafifçe etrafa radyal saçılma kuvveti")]
+        [SerializeField] [Range(0.5f, 4.0f)] private float m_ScatterForce = 1.65f;
 
         [Tooltip("Parçaların dökülürken 3 boyutlu olarak takla atarak dönmesi")]
         [SerializeField] private bool m_EnableTumbling = true;
 
-        [Tooltip("Parçalanma anında partikül sisteminden aşağıya dökülen eski partiküller (yeni iki aşamalı rafta birikme ve vagona akma sistemi aktifken çakışmaması için varsayılan kapalıdır)")]
-        [SerializeField] private bool m_EnableFallingParticles = false;
+        [Tooltip("Parçalanma anında küp konumundan 360 derece hafifçe dışa saçılan mini voksel toz/kir partikülleri")]
+        [SerializeField] private bool m_EnableFallingParticles = true;
 
         [Header("Ses Efekti")]
         [SerializeField] private bool m_EnablePopSound = true;
@@ -170,23 +170,28 @@ namespace PixelGame
         {
             if (m_ParticleSystem == null) return;
 
-            // 4. Main modül ayarları (Yerçekimi ile aşağı dökülme aktif!)
+            // 4. Main modül ayarları (Küp etrafında 360 derece radyal kir/toz patlaması)
             var main = m_ParticleSystem.main;
             main.loop = false;
             main.playOnAwake = false;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.maxParticles = 8000;
-            main.gravityModifier = m_GravityModifier; // Güçlü yerçekimi -> parçalar aşağı akar!
+            main.gravityModifier = m_GravityModifier;
             main.startSpeed = 0f;                    // Hız her parçaya EmitParams ile özel verilir
             main.startRotation3D = true;              // 3D takla atma desteği
 
-            // 5. Size Over Lifetime (Dökülürken tam boyutu koru, en son aşağıda küçülerek yok ol)
+            // Hız sönümleme (Drag): Kir/toz parçaları küp çevresinde hızla açılıp havada sönümlenir
+            var limitVelocity = m_ParticleSystem.limitVelocityOverLifetime;
+            limitVelocity.enabled = true;
+            limitVelocity.dampen = 0.65f;
+
+            // 5. Size Over Lifetime (Başta tam boyut, ömrün sonunda küçülerek toz gibi zarifçe kaybol)
             var sizeOverLifetime = m_ParticleSystem.sizeOverLifetime;
             sizeOverLifetime.enabled = true;
             AnimationCurve curve = new AnimationCurve();
-            curve.AddKey(0f, 1f);       // Başlangıçta tam boyut
-            curve.AddKey(0.65f, 0.95f);  // Havada dökülürken %65 süre boyunca neredeyse tam boyut
-            curve.AddKey(1f, 0f);        // En son aşağıya ulaştığında küçülerek zarifçe kaybol
+            curve.AddKey(0f, 1f);        // Başlangıçta tam boyut
+            curve.AddKey(0.60f, 0.85f);  // Havada dağılırken görünürlüğü koru
+            curve.AddKey(1f, 0f);        // En son küçülerek kaybol
             sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1f, curve);
 
             // 6. Emission kapalı (Sadece Emit ile çağıracağız)
@@ -261,19 +266,18 @@ namespace PixelGame
                             (gz - halfZ) * subSizeZ
                         );
 
-                        // 2. Parçalara ayrılma ve dökülme hızları:
-                        // X: Merkezden hafifçe sağa/sola açılma
-                        float spreadX = (gx - halfX) * 0.9f + Random.Range(-0.35f, 0.35f);
-                        // Y: Hafif yukarı yaylanma/zıplama (ark çizip yerçekimiyle aşağı dökülür)
-                        float popY = Random.Range(0.2f, 1.8f);
-                        // Z: Kameraya doğru hafifçe öne çıkma (arka plana veya yan küplere batmadan önden aksın)
-                        float popZ = -Random.Range(0.5f, 1.6f);
+                        // 2. Parçalara ayrılma ve 360 derece kir/toz gibi dışa saçılma hızları:
+                        // Küpün kendi merkezinden dışarı doğru radyal yön
+                        Vector3 radialDir = localOffset.sqrMagnitude > 0.0001f
+                            ? localOffset.normalized
+                            : Random.insideUnitSphere.normalized;
 
-                        Vector3 initialVelocity = new Vector3(
-                            spreadX * m_ScatterForce,
-                            popY * m_ScatterForce,
-                            popZ * m_ScatterForce * 0.6f
-                        );
+                        // Kameraya doğru hafif kabarma (-Z)
+                        radialDir.z = -Mathf.Abs(radialDir.z) * 0.8f - 0.2f;
+
+                        // Radyal saçılma hızı + hafif doğal hız varyasyonu
+                        float speed = m_ScatterForce * Random.Range(0.85f, 1.35f);
+                        Vector3 initialVelocity = radialDir * speed;
 
                         // 3. Renk varyasyonu: Her mini vokselin tonunda %8 hafif parlaklık farkı
                         // Bu sayede tek renk küpler bile ayrıştığında tek tek bloklar halinde net görünür

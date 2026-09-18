@@ -560,8 +560,8 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Doğal kırık cam parçasını (shard) küpün patladığı konumdan mikro-patlamayla dışa saçar,
-        /// ardından yerçekimiyle küpün hemen altına (panodaki yerel yerine) düşürüp zıplatır.
+        /// Küp parçalanınca parçanın tam olarak küpün olduğu alana kir/kırıntı gibi
+        /// 3D yay çizerek saçılmasını, havada takla atmasını ve zemine sekerek oturmasını sağlar.
         /// Parça havuza dönmez, raydan geçen vagonun vakumlaması için orada bekler.
         /// </summary>
         public static CargoFlyer LaunchShardLocalDrop(
@@ -574,7 +574,8 @@ namespace PixelGame
             Vector3 shardScale,
             float delay,
             float fallDuration,
-            Action onLanded)
+            Action onLanded,
+            float arcHeight = 0.12f)
         {
             CargoFlyer flyer = Rent();
             flyer.CleanupTweens();
@@ -591,6 +592,7 @@ namespace PixelGame
                 shardScale,
                 delay,
                 fallDuration,
+                arcHeight,
                 onLanded
             );
             return flyer;
@@ -602,12 +604,13 @@ namespace PixelGame
             Vector3 initialScale,
             float delay,
             float fallDuration,
+            float arcHeight,
             Action onLanded)
         {
             CleanupTweens();
             if (gameObject.activeInHierarchy)
             {
-                StartCoroutine(ShardLocalDropRoutine(outwardDir, dropPosition, initialScale, delay, fallDuration, onLanded));
+                StartCoroutine(ShardLocalDropRoutine(outwardDir, dropPosition, initialScale, delay, fallDuration, arcHeight, onLanded));
             }
             else
             {
@@ -621,69 +624,101 @@ namespace PixelGame
             Vector3 initialScale,
             float delay,
             float fallDuration,
+            float arcHeight,
             Action onLanded)
         {
             if (delay > 0.001f) yield return new WaitForSeconds(delay);
 
             Vector3 startPos = transform.position;
 
-            // 1. AŞAMA: Mikro Cam Çatlama & Dışa Saçılma (~0.08s)
-            Vector3 popDir = (outwardDir.sqrMagnitude > 0.001f ? outwardDir.normalized : Vector3.up);
-            float popDist = UnityEngine.Random.Range(0.08f, 0.18f);
-            Vector3 popPos = startPos + popDir * popDist + Vector3.up * UnityEngine.Random.Range(0.04f, 0.12f);
-
-            float burstDuration = 0.08f;
-            float elapsedBurst = 0f;
+            // Rastgele 3D dönme/takla torku (parçalar havada takla atar)
             Vector3 randomTorque = new Vector3(
-                UnityEngine.Random.Range(-400f, 400f),
-                UnityEngine.Random.Range(-400f, 400f),
-                UnityEngine.Random.Range(-400f, 400f)
+                UnityEngine.Random.Range(-350f, 350f),
+                UnityEngine.Random.Range(-350f, 350f),
+                UnityEngine.Random.Range(-350f, 350f)
             );
 
-            while (elapsedBurst < burstDuration)
-            {
-                elapsedBurst += Time.deltaTime;
-                float tb = Mathf.Clamp01(elapsedBurst / burstDuration);
-                transform.position = Vector3.Lerp(startPos, popPos, Mathf.Sin(tb * Mathf.PI * 0.5f));
-                transform.Rotate(randomTorque * Time.deltaTime, Space.Self);
-                yield return null;
-            }
-
-            // 2. AŞAMA: Yerçekimiyle Küpün Altına Düşüş (~0.22s)
+            // 1. AŞAMA: 3D Balistik Saçılma Yayı (Ease-Out patlama + Kameraya doğru kabarma)
             float elapsedFall = 0f;
-            Vector3 fallStartPos = transform.position;
+            fallDuration = Mathf.Max(0.12f, fallDuration);
 
             while (elapsedFall < fallDuration)
             {
                 elapsedFall += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsedFall / fallDuration);
-                float tY = t * t; // InQuad gravity acceleration
 
-                float currentY = Mathf.Lerp(fallStartPos.y, dropPosition.y, tY);
-                float currentX = Mathf.Lerp(fallStartPos.x, dropPosition.x, Mathf.SmoothStep(0f, 1f, t));
-                float currentZ = Mathf.Lerp(fallStartPos.z, dropPosition.z, t);
+                // Patlama anında hızlı dışa fırlama, inişe doğru pürüzsüz yavaşlama (Ease-Out)
+                float tPlanar = 1f - Mathf.Pow(1f - t, 2.2f);
+                Vector3 currentPlanar = Vector3.Lerp(startPos, dropPosition, tPlanar);
 
-                transform.position = new Vector3(currentX, currentY, currentZ);
-                transform.Rotate(randomTorque * (1f + t * 0.5f) * Time.deltaTime, Space.Self);
+                // 3D Parabolik Kabarma Yayı: Kameraya (-Z) doğru havalanma ve hafif yukarı yaylanma
+                float arc = Mathf.Sin(t * Mathf.PI);
+                float zArc = -arc * arcHeight;
+                float yArc = arc * (arcHeight * 0.35f);
+
+                transform.position = new Vector3(currentPlanar.x, currentPlanar.y + yArc, currentPlanar.z + zArc);
+
+                // Havada takla atma (yere yaklaştıkça hafif sönümlenir)
+                transform.Rotate(randomTorque * (1f - t * 0.45f) * Time.deltaTime, Space.Self);
                 yield return null;
             }
 
-            // 3. AŞAMA: Yere Temas ve Sekme (Bounce & Settle - ~0.10s)
-            float bounceDuration = 0.10f;
-            float elapsedBounce = 0f;
+            // 2. AŞAMA: Mikro Sekme & Çökme (Settle & Dampen Bounce - ~0.07s)
+            float settleDuration = 0.07f;
+            float elapsedSettle = 0f;
             Vector3 groundPos = dropPosition;
 
-            while (elapsedBounce < bounceDuration)
+            while (elapsedSettle < settleDuration)
             {
-                elapsedBounce += Time.deltaTime;
-                float tb = Mathf.Clamp01(elapsedBounce / bounceDuration);
-                float bounceY = Mathf.Sin(tb * Mathf.PI) * 0.04f;
-                transform.position = new Vector3(groundPos.x, groundPos.y + bounceY, groundPos.z);
+                elapsedSettle += Time.deltaTime;
+                float tb = Mathf.Clamp01(elapsedSettle / settleDuration);
+
+                // Sönümlü mikro sıçrama / çökme
+                float settleBounce = Mathf.Sin(tb * Mathf.PI) * 0.015f * (1f - tb);
+                transform.position = new Vector3(groundPos.x, groundPos.y + settleBounce, groundPos.z - settleBounce);
+
+                // Temasta hafif ezilme / yaylanma (squash & stretch)
+                Vector3 squashScale = initialScale;
+                squashScale.x *= (1f + settleBounce * 1.5f);
+                squashScale.y *= (1f + settleBounce * 1.5f);
+                squashScale.z *= (1f - settleBounce * 0.8f);
+                transform.localScale = squashScale;
+
                 yield return null;
             }
 
+            // Tam dinlenme pozisyonuna ve orijinal ölçeğe sabitle
             transform.position = groundPos;
+            transform.localScale = initialScale;
             onLanded?.Invoke();
+        }
+
+        /// <summary>
+        /// Küpün yanından geçen hareket halindeki vagona doğru parçayı direkt vakumlar.
+        /// </summary>
+        public static CargoFlyer LaunchShardVacuumToMovingWagon(
+            Vector3 worldStart,
+            Quaternion worldRotation,
+            Color color,
+            Mesh shardMesh,
+            Vector3 shardScale,
+            Transform targetWagon,
+            Vector3 targetOffset,
+            float duration,
+            float arcHeight,
+            Action onArrived)
+        {
+            CargoFlyer flyer = Rent();
+            flyer.CleanupTweens();
+            flyer.SetMesh(shardMesh);
+            flyer.transform.position = worldStart;
+            flyer.transform.rotation = worldRotation;
+            flyer.transform.localScale = shardScale;
+            flyer.SetColor(color);
+            flyer.gameObject.SetActive(true);
+
+            flyer.VacuumPullToMovingTarget(targetWagon, targetOffset, duration, arcHeight, onArrived);
+            return flyer;
         }
 
         /// <summary>

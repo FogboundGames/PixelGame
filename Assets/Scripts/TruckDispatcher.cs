@@ -61,6 +61,26 @@ namespace PixelGame
         [Tooltip("Parçaların kırıldığında oldukları yere dökülüş süresi.")]
         [SerializeField] private float m_LocalDropFallDuration = 0.24f;
 
+        [Tooltip("Kırılan parçaların küp merkezinden dışa saçılma yarıçap katsayısı (küp sınırlarına göre).")]
+        [SerializeField] private float m_LocalDropScatterRadius = 1.35f;
+
+        [Tooltip("Parçaların kırıntı gibi farklı boyutlarda olması için rastgele ölçek varyasyonu.")]
+        [SerializeField] private float m_LocalDropScaleVariation = 0.35f;
+
+        [Tooltip("Parçaların ilk saçılma anında kameraya doğru kabarma/yay yüksekliği.")]
+        [SerializeField] private float m_LocalDropArcHeight = 0.15f;
+
+        [Header("🧹 Raydan Geçerken Süpürme (Proximity Sweeping)")]
+        [Tooltip("Vagon rayda ilerlerken ne kadar mesafedeki küpleri süpürebilir (dünya birimi).")]
+        [Range(1.0f, 4.0f)]
+        [SerializeField] private float m_SweepRadius = 2.2f;
+        public float SweepRadius { get => m_SweepRadius; set => m_SweepRadius = value; }
+
+        [Tooltip("Vagonun ardışık küpleri süpürme sıklığı/aralığı (saniye).")]
+        [Range(0.05f, 0.50f)]
+        [SerializeField] private float m_SweepInterval = 0.16f;
+        public float SweepInterval { get => m_SweepInterval; set => m_SweepInterval = value; }
+
         [Tooltip("Çerçeve etrafına 3D ray prefab'ı döşensin mi?")]
         [SerializeField] private bool m_ShowPerimeterRails = true;
 
@@ -232,6 +252,9 @@ namespace PixelGame
             public bool HasCompletedInitialDeployment = false;
             public bool IsJumpingToTrack = false;
             public bool IsDeparting = false;
+            public float NextSweepTime = 0f;
+            public int PendingSweeps = 0;
+            public int SweepComboCount = 0;
         }
 
         public class BoardShardGroup
@@ -426,6 +449,7 @@ namespace PixelGame
         public int QueuedTruckCount => m_Queue.Count;
         public IReadOnlyList<MovingWagon> MovingWagons => m_MovingWagons;
         public PerimeterTrackLoop TrackLoop => m_Loop;
+        public Transform WagonsRoot => m_WagonsRoot;
 
         #endregion
 
@@ -507,6 +531,7 @@ namespace PixelGame
             if (m_PerimeterTrain)
             {
                 UpdateMovingTrain();
+                UpdateWagonProximitySweeping();
                 UpdateVacuumSuction();
             }
             else if (m_ContinuousTrain)
@@ -530,12 +555,7 @@ namespace PixelGame
                 }
             }
             m_MovingWagons.Clear();
-
-            if (m_WagonsRoot != null)
-            {
-                Destroy(m_WagonsRoot.gameObject);
-                m_WagonsRoot = null;
-            }
+            // m_WagonsRoot asla silinmez; sahnedeki raylar ve hiyerarşi korunur!
         }
 
         private float m_WagonY = 0f;
@@ -804,28 +824,36 @@ namespace PixelGame
 
             CalibratePortalsAndAlignment();
 
-            if (m_WagonsRoot != null)
-            {
-                Destroy(m_WagonsRoot.gameObject);
-                m_WagonsRoot = null;
-            }
-
             if (m_PerimeterTrain)
             {
-                GameObject existing = GameObject.Find("[PerimeterWagonsRoot]");
-                if (existing != null)
+                // Sahnedeki mevcut kökü koru! Asla silip sıfırlama!
+                Transform existing = m_WagonsRoot;
+                if (existing == null)
                 {
-                    if (Application.isPlaying) Destroy(existing);
-                    else DestroyImmediate(existing);
+                    GameObject existingObj = GameObject.Find("[PerimeterWagonsRoot]");
+                    if (existingObj != null) existing = existingObj.transform;
                 }
 
-                GameObject rootObj = new GameObject("[PerimeterWagonsRoot]");
-                rootObj.transform.position = Vector3.zero;
-                rootObj.transform.rotation = Quaternion.identity;
-                rootObj.transform.localScale = Vector3.one;
-                m_WagonsRoot = rootObj.transform;
+                if (existing != null)
+                {
+                    m_WagonsRoot = existing;
+                }
+                else
+                {
+                    GameObject rootObj = new GameObject("[PerimeterWagonsRoot]");
+                    if (m_Generator != null)
+                    {
+                        rootObj.transform.SetParent(m_Generator.transform, false);
+                    }
+                    else
+                    {
+                        rootObj.transform.position = Vector3.zero;
+                    }
+                    m_WagonsRoot = rootObj.transform;
+                }
 
-                GeneratePerimeterRails();
+                // Ray kontrolü: Kullanıcı sahnede rayları sildiyse Play'e basınca hortlatma!
+                // Sadece sahnede zaten raylar varsa (PerimeterRails) korunur.
             }
             else
             {
@@ -963,7 +991,8 @@ namespace PixelGame
                     }
                 });
 
-                StartCoroutine(SequentialShatterForLoopRoutine(color, cargo));
+                // Kullanıcı talebi: Vagon raya konulduğunda küpler hemen patlamaz.
+                // Vagon rayda ilerlerken küplerin yakınından geçerken onları dinamik süpürür.
                 return true;
             }
 
@@ -1078,6 +1107,215 @@ namespace PixelGame
                 {
                     wagon.Animator.speed = (moveStep > 0.001f) ? 1f : 0f;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Vagon ray üzerinde dolaşırken, menzili içindeki eşleşen renkteki sağlam küpleri
+        /// dış katmandan içe doğru sırayla dinamik olarak kırıp kasasına çeker (süpürme mekaniği).
+        /// </summary>
+        private void UpdateWagonProximitySweeping()
+        {
+            if (m_MovingWagons.Count == 0) return;
+
+            PixelCube[] allCubes = Miner.GetCubesCached();
+            if (allCubes == null || allCubes.Length == 0)
+            {
+                var gen = m_Generator != null ? m_Generator : Object.FindFirstObjectByType<PixelArtGenerator>();
+                if (gen != null && gen.CubesContainer != null)
+                {
+                    allCubes = gen.CubesContainer.GetComponentsInChildren<PixelCube>();
+                }
+            }
+
+            if (allCubes == null || allCubes.Length == 0) return;
+
+            Dictionary<PixelCube, int> depthMap = null;
+
+            for (int w = 0; w < m_MovingWagons.Count; w++)
+            {
+                MovingWagon wagon = m_MovingWagons[w];
+                if (wagon == null || wagon.Transform == null || wagon.Cargo == null) continue;
+                if (wagon.IsDeparting || wagon.IsJumpingToTrack) continue;
+
+                // Kalan kapasite kontrolü (uçuş halindeki süpürmeler de düşülür)
+                int availableCap = wagon.Cargo.RemainingCapacity - wagon.PendingSweeps;
+                if (availableCap <= 0 || wagon.Cargo.IsFull) continue;
+
+                // Süpürme aralığı / ritim cooldown kontrolü
+                if (Time.time < wagon.NextSweepTime) continue;
+
+                Color wagonColor = wagon.Cargo.CargoColor;
+                Vector3 wagonPos = wagon.Transform.position;
+
+                PixelCube bestTarget = null;
+                float bestDist = float.MaxValue;
+                int minDepth = int.MaxValue;
+                int matchingRemainingOnBoard = 0;
+
+                for (int i = 0; i < allCubes.Length; i++)
+                {
+                    PixelCube cube = allCubes[i];
+                    if (cube == null || cube.IsPopped || !cube.gameObject.activeInHierarchy) continue;
+
+                    bool colorMatches = (TruckCargo.ColorDistance(cube.CurrentColor, wagonColor) <= m_ColorThreshold) ||
+                                       (TruckCargo.ColorDistance(ClassifyToPalette(cube.CurrentColor), wagonColor) <= m_ColorThreshold);
+                    if (!colorMatches) continue;
+
+                    matchingRemainingOnBoard++;
+
+                    if (s_ReservedCubes.Contains(cube)) continue;
+
+                    float dist = Vector3.Distance(wagonPos, cube.transform.position);
+                    if (dist > m_SweepRadius) continue;
+
+                    if (depthMap == null)
+                    {
+                        depthMap = Miner.CalculateLayerDepths(allCubes);
+                    }
+
+                    int depth = (depthMap != null && depthMap.TryGetValue(cube, out int d)) ? d : 0;
+
+                    // Öncelik: 1) Dış katman (daha düşük derinlik), 2) Vagona en yakın olan
+                    if (depth < minDepth || (depth == minDepth && dist < bestDist))
+                    {
+                        minDepth = depth;
+                        bestDist = dist;
+                        bestTarget = cube;
+                    }
+                }
+
+                if (bestTarget != null)
+                {
+                    wagon.NextSweepTime = Time.time + m_SweepInterval;
+                    wagon.PendingSweeps++;
+                    wagon.SweepComboCount++;
+                    s_ReservedCubes.Add(bestTarget);
+
+                    SweepCubeIntoWagon(bestTarget, wagon);
+                }
+                else if (matchingRemainingOnBoard == 0 && wagon.PendingSweeps == 0)
+                {
+                    // Tabloda bu renkten hiç küp kalmadıysa ve yerdeki parçalar da bittiyse
+                    bool hasBoardShards = false;
+                    for (int s = 0; s < m_BoardShards.Count; s++)
+                    {
+                        if (m_BoardShards[s] != null && TruckCargo.ColorDistance(m_BoardShards[s].Color, wagonColor) <= m_ColorThreshold)
+                        {
+                            hasBoardShards = true;
+                            break;
+                        }
+                    }
+
+                    if (!hasBoardShards && wagon.Cargo.Load > 0)
+                    {
+                        StartCoroutine(WagonDepartFromLoopRoutine(wagon));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Belirlenen küpü kırar ve 12 Voronoi parçasını hareket halindeki vagona dinamik vakumla akıtır.
+        /// </summary>
+        private void SweepCubeIntoWagon(PixelCube cube, MovingWagon wagon)
+        {
+            if (cube == null || wagon == null || wagon.Cargo == null) return;
+
+            Vector3 cubePos = cube.transform.position;
+            Quaternion cubeRot = cube.transform.rotation;
+            Vector3 cubeScale = cube.transform.lossyScale;
+            Color cubeColor = cube.CurrentColor;
+
+            // 1. Kristal cam kırılma sesi (Combo arttıkça pitch yükselir)
+            if (VoxelParticleManager.Instance != null)
+            {
+                float comboPitch = Mathf.Clamp(0.96f + (wagon.SweepComboCount * 0.032f), 0.95f, 1.85f);
+                VoxelParticleManager.Instance.PlayGlassShatterSound(comboPitch);
+                VoxelParticleManager.Instance.SpawnVoxelBurst(cubePos, cubeScale, cubeColor);
+            }
+
+            // 2. Küpün kendisini ve gölgesini gizle
+            cube.SetPoppedVisualState(true);
+            s_ReservedCubes.Remove(cube);
+            if (PixelCubeInteraction.Instance != null)
+            {
+                PixelCubeInteraction.Instance.RegisterPoppedCube(cube);
+            }
+
+            // 3. 12 adet 3D Voronoi kırık parçasını oluştur
+            FracturedCubeData fracData = FracturedCubeData.Instance;
+            int shardCount = (fracData != null && fracData.ShardCount > 0) ? fracData.ShardCount : 12;
+
+            int arrivedCount = 0;
+            bool cubeCountRegistered = false;
+
+            Transform targetWagon = wagon.Transform;
+            TruckCargo targetCargo = wagon.Cargo;
+            Vector3 sScale = cubeScale * m_ShardScaleMultiplier;
+
+            for (int s = 0; s < shardCount; s++)
+            {
+                FracturedCubeData.ShardData shard = (fracData != null) ? fracData.GetShard(s) : default;
+                Vector3 localOffset = shard.localOffset;
+                Vector3 outwardDir = cubeRot * (shard.outwardDir.sqrMagnitude > 0.001f ? shard.outwardDir : (localOffset.sqrMagnitude > 0.001f ? localOffset.normalized : Vector3.up));
+
+                Vector3 shardStart = cubePos + cubeRot * Vector3.Scale(localOffset * 0.5f, cubeScale);
+                Mesh shardMesh = shard.mesh;
+
+                float sizeVar = UnityEngine.Random.Range(0.85f, 1.15f);
+                Vector3 thisShardScale = sScale * sizeVar;
+
+                Vector3 targetOffset = Vector3.up * 0.20f + (targetWagon != null ? (targetWagon.right * UnityEngine.Random.Range(-0.16f, 0.16f)) + (targetWagon.forward * UnityEngine.Random.Range(-0.12f, 0.12f)) : Vector3.zero);
+
+                float stagger = s * 0.006f;
+
+                DOVirtual.DelayedCall(stagger, () =>
+                {
+                    if (targetWagon == null) return;
+                    CargoFlyer.LaunchShardVacuumToMovingWagon(
+                        shardStart,
+                        cubeRot,
+                        cubeColor,
+                        shardMesh,
+                        thisShardScale,
+                        targetWagon,
+                        targetOffset,
+                        m_VacuumDuration,
+                        m_VacuumArcHeight,
+                        () =>
+                        {
+                            arrivedCount++;
+                            if (targetCargo != null && targetCargo.Stack != null)
+                            {
+                                targetCargo.Stack.AddPiece(1f, shardMesh);
+                            }
+
+                            if (!cubeCountRegistered && arrivedCount >= Mathf.Min(3, shardCount))
+                            {
+                                cubeCountRegistered = true;
+                                if (wagon != null)
+                                {
+                                    wagon.PendingSweeps = Mathf.Max(0, wagon.PendingSweeps - 1);
+                                }
+                                if (targetCargo != null)
+                                {
+                                    targetCargo.LoadOneCube();
+                                    if (targetWagon != null)
+                                    {
+                                        targetWagon.DOKill(true);
+                                        targetWagon.DOPunchScale(new Vector3(0.04f, 0.08f, 0.04f), 0.16f, 3, 0.4f);
+                                    }
+
+                                    if (targetCargo.IsFull)
+                                    {
+                                        StartCoroutine(WagonDepartFromLoopRoutine(wagon));
+                                    }
+                                }
+                            }
+                        }
+                    );
+                });
             }
         }
 
@@ -1408,7 +1646,7 @@ namespace PixelGame
             {
                 CubeId = ++m_NextCubeId,
                 Color = paletteColor,
-                Position = worldPosition + Vector3.down * 0.25f,
+                Position = worldPosition, // Tam olarak küpün olduğu nokta
                 IsVacuuming = false,
                 IsSettled = false
             };
@@ -1416,22 +1654,69 @@ namespace PixelGame
 
             int landedCount = 0;
 
+            Vector3 cScale = cubeScale ?? (Vector3.one * 0.35f);
+            float halfW = Mathf.Max(0.12f, cScale.x * 0.5f);
+            float halfH = Mathf.Max(0.12f, cScale.y * 0.5f);
+
             for (int s = 0; s < shardCount; s++)
             {
                 FracturedCubeData.ShardData shard = (fracData != null) ? fracData.GetShard(s) : default;
                 Vector3 localOffset = shard.localOffset;
                 Vector3 outwardDir = sRot * (shard.outwardDir.sqrMagnitude > 0.001f ? shard.outwardDir : (localOffset.sqrMagnitude > 0.001f ? localOffset.normalized : Vector3.up));
 
-                Vector3 shardStart = worldPosition + sRot * Vector3.Scale(localOffset * 0.5f, cubeScale ?? Vector3.one);
+                Vector3 shardStart = worldPosition + sRot * Vector3.Scale(localOffset * 0.5f, cScale);
                 Mesh shardMesh = shard.mesh;
 
-                // Parça olduğu yerin hemen altına dökülür
-                float dropX = worldPosition.x + Random.Range(-0.07f, 0.07f);
-                float dropY = worldPosition.y - Random.Range(0.20f, 0.35f);
-                float dropZ = worldPosition.z - Random.Range(0.02f, 0.05f);
+                // 360 Derece Doğal Kir/Kırıntı Saçılması (Altın Açı + Radyal Jitter):
+                // Parçalar tam olarak küpün bulunduğu alana homojen ve doğal bir toprak/moloz öbeği gibi dağılır
+                float angle = (s * 2.39996323f) + Random.Range(-0.22f, 0.22f); // Altın açı spiral dağılımı
+                float rNorm = Mathf.Sqrt((s + 0.5f) / (float)shardCount); // Daire içi homojen alan dağılımı
+                
+                // 3 kademeli kir dağılımı: Çekirdek kırıntılar, gövde parçaları ve dışa sıçrayan taneler
+                float rDist;
+                int tier = s % 3;
+                if (tier == 0)
+                {
+                    rDist = rNorm * Random.Range(0.25f, 0.65f); // İç çekirdek kırıntıları
+                }
+                else if (tier == 1)
+                {
+                    rDist = rNorm * Random.Range(0.65f, 1.10f); // Küp gövdesi üzerindeki parçalar
+                }
+                else
+                {
+                    rDist = rNorm * Random.Range(1.05f, 1.50f); // Dışa hafif saçılan taneler
+                }
+                rDist *= m_LocalDropScatterRadius;
+
+                float dropX = worldPosition.x + Mathf.Cos(angle) * halfW * rDist;
+                float dropY = worldPosition.y + Mathf.Sin(angle) * halfH * rDist;
+                
+                // Z derinliği: Panonun hemen önünde, Z-fighting (titreme) olmadan şıkça katmanlanır
+                float dropZ = worldPosition.z - 0.025f - (s * 0.0025f) - Random.Range(0f, 0.008f);
                 Vector3 dropPos = new Vector3(dropX, dropY, dropZ);
 
-                float stagger = s * 0.004f;
+                // Kir/kırıntı boyut çeşitliliği: Bazı taneler minik, bazıları dolgun taş/parça
+                float sizeVar;
+                if (tier == 0)
+                {
+                    sizeVar = Random.Range(0.68f, 0.88f); // Minik kırıntı taneleri
+                }
+                else if (tier == 1)
+                {
+                    sizeVar = Random.Range(0.92f, 1.15f); // Ana gövde kırıkları
+                }
+                else
+                {
+                    sizeVar = Random.Range(0.75f, 1.05f); // Dışa fırlayan parçalar
+                }
+
+                // Kullanıcı ayarı varyasyon çarpanı ile harmanla
+                float finalScaleFactor = Mathf.Lerp(1f, sizeVar, Mathf.Clamp01(m_LocalDropScaleVariation * 2.5f));
+                Vector3 thisShardScale = sScale * finalScaleFactor;
+
+                // Mikro zamanlama gecikmesi (organik patlama hissi)
+                float stagger = s * 0.005f + Random.Range(0f, 0.008f);
 
                 CargoFlyer flyer = CargoFlyer.LaunchShardLocalDrop(
                     shardStart,
@@ -1440,9 +1725,9 @@ namespace PixelGame
                     dropPos,
                     pieceColor,
                     shardMesh,
-                    sScale,
+                    thisShardScale,
                     stagger,
-                    m_LocalDropFallDuration * Random.Range(0.95f, 1.1f),
+                    m_LocalDropFallDuration * Random.Range(0.95f, 1.08f),
                     () =>
                     {
                         landedCount++;
@@ -1450,7 +1735,8 @@ namespace PixelGame
                         {
                             group.IsSettled = true;
                         }
-                    }
+                    },
+                    m_LocalDropArcHeight
                 );
 
                 group.Flyers.Add(flyer);
@@ -1961,31 +2247,88 @@ namespace PixelGame
                 return;
             }
 
-            // 2. Varsayılan otomatik üret ve karıştır
+            // 2. Sahnedeki gerçek küp sayılarını dinamik say (kullanıcı sahnede küp sildiyse doğru yansısın)
             List<PaletteColorOverride> palette = GetPalette();
-            if (palette == null || palette.Count == 0) return;
-
             var trucks = new List<TruckOrder>();
             int capacity = GetTruckCapacity();
             bool hasAdjustment = level != null && (level.ColorBrightness != 1f || level.ColorSaturation != 1f || level.ColorContrast != 1f);
 
-            for (int i = 0; i < palette.Count; i++)
+            bool countedFromScene = false;
+            if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (m_Generator != null && m_Generator.CubesContainer != null && m_Generator.CubesContainer.childCount > 0)
             {
-                PaletteColorOverride entry = palette[i];
-                if (entry == null || entry.pixelCount <= 0) continue;
-
-                Color truckColor = entry.targetColor;
-                if (hasAdjustment)
+                PixelCube[] sceneCubes = m_Generator.CubesContainer.GetComponentsInChildren<PixelCube>();
+                if (sceneCubes != null && sceneCubes.Length > 0)
                 {
-                    truckColor = PixelCube.AdjustColor(truckColor, level.ColorBrightness, level.ColorSaturation, level.ColorContrast);
+                    Dictionary<Color, int> sceneColorCounts = new Dictionary<Color, int>();
+                    foreach (var cube in sceneCubes)
+                    {
+                        if (cube == null || !cube.gameObject.activeSelf || cube.IsPopped) continue;
+                        Color c = cube.CurrentColor;
+                        if (c.a < 0.1f) continue;
+
+                        Color matchedColor = c;
+                        if (palette != null)
+                        {
+                            foreach (var entry in palette)
+                            {
+                                Color testColor = hasAdjustment
+                                    ? PixelCube.AdjustColor(entry.targetColor, level.ColorBrightness, level.ColorSaturation, level.ColorContrast)
+                                    : entry.targetColor;
+                                if (PaletteColorOverride.ColorsMatch(testColor, c, 0.08f))
+                                {
+                                    matchedColor = testColor;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (sceneColorCounts.ContainsKey(matchedColor))
+                            sceneColorCounts[matchedColor]++;
+                        else
+                            sceneColorCounts[matchedColor] = 1;
+                    }
+
+                    if (sceneColorCounts.Count > 0)
+                    {
+                        countedFromScene = true;
+                        foreach (var kvp in sceneColorCounts)
+                        {
+                            Color truckColor = kvp.Key;
+                            int remaining = kvp.Value;
+                            while (remaining > 0)
+                            {
+                                int load = Mathf.Min(capacity, remaining);
+                                trucks.Add(new TruckOrder { Color = truckColor, Capacity = load });
+                                remaining -= load;
+                            }
+                        }
+                    }
                 }
+            }
 
-                int remaining = entry.pixelCount;
-                while (remaining > 0)
+            if (!countedFromScene)
+            {
+                if (palette == null || palette.Count == 0) return;
+
+                for (int i = 0; i < palette.Count; i++)
                 {
-                    int load = Mathf.Min(capacity, remaining);
-                    trucks.Add(new TruckOrder { Color = truckColor, Capacity = load });
-                    remaining -= load;
+                    PaletteColorOverride entry = palette[i];
+                    if (entry == null || entry.pixelCount <= 0) continue;
+
+                    Color truckColor = entry.targetColor;
+                    if (hasAdjustment)
+                    {
+                        truckColor = PixelCube.AdjustColor(truckColor, level.ColorBrightness, level.ColorSaturation, level.ColorContrast);
+                    }
+
+                    int remaining = entry.pixelCount;
+                    while (remaining > 0)
+                    {
+                        int load = Mathf.Min(capacity, remaining);
+                        trucks.Add(new TruckOrder { Color = truckColor, Capacity = load });
+                        remaining -= load;
+                    }
                 }
             }
 
@@ -2180,10 +2523,7 @@ namespace PixelGame
                     truck.DOPunchScale(new Vector3(0.06f, 0.12f, 0.06f), 0.22f, 4, 0.4f);
 
                     TruckCargo cargo = truck.GetComponent<TruckCargo>();
-                    if (cargo != null && !m_ContinuousTrain)
-                    {
-                        StartCoroutine(SequentialGlassShatterRoutine(targetSlot, truck, cargo));
-                    }
+                    // Kullanıcı talebi: Vagon slota oturduğunda küpler hemen patlamaz.
                 }
             }
         }
