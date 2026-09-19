@@ -34,7 +34,7 @@ namespace PixelGame
         public float tilt = 45f;
 
         [Tooltip("Kamyonun park yeri içindeki duruşu (local Euler)")]
-        public Vector3 truckEuler = new Vector3(-180f, 0f, 0f);
+        public Vector3 truckEuler = new Vector3(-90f, 90f, -90f);
 
         [Tooltip("Park yeri görseli çizilsin mi? Havuzda kapalıdır: yalnızca kamyonlar görünür.")]
         public bool showSprite = true;

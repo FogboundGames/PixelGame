@@ -144,6 +144,7 @@ namespace PixelGame
 
         [Tooltip("Yeni modüler rayların ölçek çarpanı (genişlik/yükseklik).")]
         [SerializeField] private float m_ModularTrackScale = 0.60f;
+        public float ModularTrackScale => m_ModularTrackScale;
 
         [Tooltip("Eski tek parça ray prefab'ı fallback (boşsa Assets/Prefabs/Track.prefab).")]
         [SerializeField] private GameObject m_TrackPrefab;
@@ -1745,10 +1746,10 @@ namespace PixelGame
                                 if (targetCargo != null)
                                 {
                                     targetCargo.LoadOneCube();
-                                    if (targetWagon != null)
+                                    if (targetWagon != null && targetCargo.Stack != null)
                                     {
-                                        targetWagon.DOKill(true);
-                                        targetWagon.DOPunchScale(new Vector3(0.04f, 0.08f, 0.04f), 0.16f, 3, 0.4f);
+                                        targetCargo.Stack.transform.DOKill(true);
+                                        targetCargo.Stack.transform.DOPunchScale(new Vector3(0.04f, 0.08f, 0.04f), 0.16f, 3, 0.4f);
                                     }
 
                                     if (targetCargo.IsFull)
@@ -1781,15 +1782,7 @@ namespace PixelGame
             Vector3 cubeScale = cube.transform.lossyScale;
             Color cubeColor = cube.CurrentColor;
 
-            // 1. Namlu geri tepmesi (Recoil punch)
-            if (targetWagon != null)
-            {
-                targetWagon.DOKill();
-                targetWagon.DOPunchPosition(-targetWagon.forward * 0.10f, 0.18f, 6, 0.4f);
-                targetWagon.DOPunchScale(new Vector3(0.08f, -0.06f, 0.08f), 0.16f, 4, 0.3f);
-            }
-
-            // 2. Namludaki mermi animasyonu (Fırlama ve yeniden doldurma)
+            // 1. Namludaki mermi ve geri tepme animasyonu (Ray üzerindeki akıcı hareketi ASLA dondurmaz)
             if (wagon.Indicator != null)
             {
                 wagon.Indicator.PlayShootAndReloadAnimation();
@@ -1979,10 +1972,10 @@ namespace PixelGame
 
                             if (arrived >= total)
                             {
-                                if (targetWagon != null)
+                                if (targetWagon != null && targetCargo != null && targetCargo.Stack != null)
                                 {
-                                    targetWagon.DOKill(true);
-                                    targetWagon.DOPunchScale(new Vector3(0.04f, 0.08f, 0.04f), 0.16f, 3, 0.4f);
+                                    targetCargo.Stack.transform.DOKill(true);
+                                    targetCargo.Stack.transform.DOPunchScale(new Vector3(0.04f, 0.08f, 0.04f), 0.16f, 3, 0.4f);
                                 }
 
                                 if (targetCargo != null && targetCargo.IsFull)
@@ -2013,11 +2006,29 @@ namespace PixelGame
         {
             if (m_Slots != null && m_Slots.Slots != null)
             {
+                // Liste sırası (Slot_1, Slot_2, ...) görsel soldan-sağa sırayla AYNI
+                // DEĞİL — sahnede Slot_1 aslında en sağdaki, Slot_5 en soldaki slot.
+                // Index sırasıyla taramak (eskisi gibi) bu yüzden sağdan sola
+                // dolduruyordu. Bunun yerine gerçek dünya X konumuna göre en soldaki
+                // BOŞ slotu seçiyoruz; isimlendirmeden tamamen bağımsız, her zaman
+                // doğru sonucu verir.
+                TruckSlot leftmost = null;
+                float leftmostX = float.MaxValue;
+
                 for (int i = 0; i < m_Slots.Slots.Count; i++)
                 {
                     TruckSlot s = m_Slots.Slots[i];
-                    if (s != null && s.IsEmpty) return s;
+                    if (s == null || !s.IsEmpty) continue;
+
+                    float worldX = s.transform.position.x;
+                    if (worldX < leftmostX)
+                    {
+                        leftmostX = worldX;
+                        leftmost = s;
+                    }
                 }
+
+                if (leftmost != null) return leftmost;
             }
 
             return m_Pool != null ? m_Pool.FindFirstEmpty() : null;

@@ -289,6 +289,7 @@ namespace PixelGame
         {
             if (m_CubesContainer != null && m_CubesContainer.childCount > 0)
             {
+                UpdateExistingCubesTransforms();
                 UpdateExistingCubesLive();
                 #if UNITY_EDITOR
                 if (m_EnableCubeShadows)
@@ -448,6 +449,69 @@ namespace PixelGame
                 }
 
                 cube.UpdateColorAdjustments(m_ColorBrightness, m_ColorSaturation, m_ColorContrast, m_EmissionIntensity);
+            }
+        }
+
+        /// <summary>
+        /// Sahnede var olan küplerin boyutunu, aralığını (CubeSpacing), derinliğini ve merkezini canlı olarak günceller.
+        /// Kapsayıcının (PixelArtContainer) olası kayma ve orantısız scale bozukluklarını da otomatik düzeltir.
+        /// </summary>
+        [ContextMenu("📐 Küp Boyut ve Boşluklarını Canlı Güncelle (Update Spacing)")]
+        public void UpdateExistingCubesTransforms()
+        {
+            if (m_CubesContainer == null) EnsureContainer();
+            if (m_CubesContainer == null) return;
+
+            PixelCube[] cubes = m_CubesContainer.GetComponentsInChildren<PixelCube>(true);
+            if (cubes == null || cubes.Length == 0) return;
+
+            Camera cam = GetActiveCamera();
+            if (cam == null) return;
+
+            // Kapsayıcının transformundaki istenmeyen ofset veya orantısız scale'ı ray köküne eşitle
+            Transform wagonsRoot = GameObject.Find("[PerimeterWagonsRoot]")?.transform;
+            if (wagonsRoot != null && m_CubesContainer.parent == wagonsRoot.parent)
+            {
+                m_CubesContainer.localPosition = wagonsRoot.localPosition;
+                m_CubesContainer.localRotation = wagonsRoot.localRotation;
+                m_CubesContainer.localScale = wagonsRoot.localScale;
+            }
+
+            if (!CalculateTargetWorldBounds(cam, out Vector3 worldCenter, out float worldWidth, out float worldHeight))
+                return;
+
+            Texture2D activeTex = GetActiveTexture();
+            GetEffectiveGridSize(activeTex, out int cols, out int rows);
+            if (cols <= 0 || rows <= 0) { cols = 24; rows = 24; }
+
+            float cellSizeX = worldWidth / cols;
+            float cellSizeY = worldHeight / rows;
+            float cellSize = Mathf.Min(cellSizeX, cellSizeY);
+
+            float totalWidth = cols * cellSize;
+            float totalHeight = rows * cellSize;
+
+            Vector3 startPos = new Vector3(
+                worldCenter.x - totalWidth * 0.5f + cellSize * 0.5f,
+                worldCenter.y - totalHeight * 0.5f + cellSize * 0.5f,
+                m_TargetZ
+            );
+
+            float scaleFactor = Mathf.Clamp01(1f - m_CubeSpacing);
+            Vector3 cubeScale = new Vector3(
+                cellSize * scaleFactor,
+                cellSize * scaleFactor,
+                cellSize * m_CubeDepth
+            );
+
+            for (int i = 0; i < cubes.Length; i++)
+            {
+                PixelCube cube = cubes[i];
+                if (cube == null) continue;
+
+                Vector3 pos = startPos + new Vector3(cube.GridX * cellSize, cube.GridY * cellSize, 0f);
+                cube.transform.position = pos;
+                cube.transform.localScale = cubeScale;
             }
         }
 
@@ -1492,7 +1556,23 @@ namespace PixelGame
             worldWidth = 0f;
             worldHeight = 0f;
 
-            // 1. Sahnede mevcut küpler varsa doğrudan 3D dünya sınırlarını hesapla
+            // 1. Mavi ray çerçevesi varsa onun tam ortasına ve içine hizala (Mükemmel merkezleme)
+            TruckDispatcher dispatcher = Object.FindFirstObjectByType<TruckDispatcher>();
+            if (dispatcher != null && dispatcher.TryGetExistingRailBounds(out Vector3 railCenter, out float railW, out float railH, out _, out _))
+            {
+                worldCenter = railCenter;
+                worldCenter.z = m_TargetZ;
+                float trackPadding = dispatcher.ModularTrackScale * 0.90f;
+                float innerW = Mathf.Max(0.5f, railW - trackPadding * 2f);
+                float innerH = Mathf.Max(0.5f, railH - trackPadding * 2f);
+                float padX = innerW * m_InnerPadding;
+                float padY = innerH * m_InnerPadding;
+                worldWidth = Mathf.Max(0.1f, innerW - padX * 2f);
+                worldHeight = Mathf.Max(0.1f, innerH - padY * 2f);
+                return true;
+            }
+
+            // 2. Sahnede mevcut küpler varsa doğrudan 3D dünya sınırlarını hesapla
             // (TruckDispatcher, Miner ve Scene Frame ile %100 senkron ve hatasız yöntem)
             if (m_CubesContainer == null) EnsureContainer();
             if (m_CubesContainer != null && m_CubesContainer.childCount > 0)

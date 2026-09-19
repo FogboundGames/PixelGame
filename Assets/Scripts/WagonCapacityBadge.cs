@@ -42,8 +42,8 @@ namespace PixelGame
         [Tooltip("Metnin vagon modeline göre büyüklük oranı. 0.5 = model genişliğinin yarısı. " +
                  "Rozetler çalışma anında AddComponent ile eklendiği için sahnedeki değil " +
                  "BU varsayılan geçerlidir.")]
-        [Range(0.2f, 1.6f)]
-        [SerializeField] private float m_SizeRatio = 0.42f;
+        [Range(0.2f, 2.5f)]
+        [SerializeField] private float m_SizeRatio = 0.95f;
 
         [Tooltip("Rozetin gövde merkezinden yukarı/aşağı kayması, gövde yüksekliğinin oranı olarak. " +
                  "0 = tam gövdenin ortasında (etiket gibi). Negatif değer aşağı indirir. " +
@@ -61,9 +61,9 @@ namespace PixelGame
         [Tooltip("Modelin merkezine eklenecek kamera uzayı ince ayar ofseti (X: sağ/sol, Y: yukarı/aşağı, Z: derinlik)")]
         [SerializeField] private Vector3 m_CenterOffset = Vector3.zero;
 
-        [Tooltip("Yazı boyutu (Canvas birimi, varsayılan: 105)")]
-        [Range(40, 160)]
-        [SerializeField] private int m_FontSize = 105;
+        [Tooltip("Yazı boyutu (Canvas birimi, varsayılan: 140)")]
+        [Range(40, 200)]
+        [SerializeField] private int m_FontSize = 140;
 
         [Header("🔧 Manuel Mod (AutoCenter kapalıysa)")]
         [Tooltip("Vagonun merkezinden manuel yerleşim ofseti")]
@@ -231,7 +231,7 @@ namespace PixelGame
                 );
 
                 float activeLiftRatio = isScifi ? 0.14f : m_VerticalLiftRatio;
-                float activeSizeRatio = isScifi ? 0.62f : m_SizeRatio;
+                float activeSizeRatio = isScifi ? 1.05f : m_SizeRatio;
 
                 // 1. Gövde merkezinden kayma (0 = tam ortada, etiket gibi)
                 float baseLift = anchor.size.y * activeLiftRatio;

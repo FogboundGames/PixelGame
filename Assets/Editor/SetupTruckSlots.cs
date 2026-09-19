@@ -128,7 +128,7 @@ namespace PixelGame.Editor
         /// Ray ile aynı eksen dönüşümünden geldiği için ray ile aynı değeri kullanır;
         /// eski kamyon değeri (-180, 0, 0) vagonu baş aşağı çeviriyordu.
         /// </summary>
-        private static readonly Vector3 k_TruckLocalEuler = new Vector3(0f, -90f, -270f);
+        private static readonly Vector3 k_TruckLocalEuler = new Vector3(-90f, 90f, -90f);
 
         /// <summary>
         /// Ray parçasının park yeri içindeki duruşu (local Euler, derece).

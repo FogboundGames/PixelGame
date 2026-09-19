@@ -59,6 +59,19 @@ namespace PixelGame
                 TruckSlot slot = m_Slots[i];
                 if (slot == null) continue;
 
+                // Slotun KENDİ RectTransform'u yalnızca style.tilt kadar X ekseninde
+                // eğik olmalı. Sahnede bazı slotlara (elle sürükleme/döndürme ile)
+                // fazladan bir Z dönüşü (180°) bulaşmıştı; bu, slotun içine oturan
+                // vagonun yerel dönüşü doğru hesaplansa bile DÜNYA uzayında baş aşağı/
+                // ters görünmesine yol açıyordu — havuzdaki (Place_X) aynı vagon düzgün
+                // dururken sadece slotlarda ters duruyordu, çünkü Place_X'lerde bu
+                // fazladan Z hiç yoktu. Burada sıfırlayıp tekrar oluşmasını engelliyoruz.
+                RectTransform slotRect = slot.GetComponent<RectTransform>();
+                if (slotRect != null)
+                {
+                    slotRect.localRotation = Quaternion.Euler(m_Style.tilt, 0f, 0f);
+                }
+
                 slot.Configure(slot.SlotRect, rotation);
                 slot.AlignAll();
 

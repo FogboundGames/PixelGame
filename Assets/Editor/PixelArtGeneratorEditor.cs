@@ -214,6 +214,17 @@ namespace PixelGame.Editor
 
             EditorGUILayout.Space(4);
 
+            // 2a. Canlı Spacing / Boyut Güncelle Butonu
+            GUI.backgroundColor = new Color(0.2f, 0.8f, 0.9f);
+            if (GUILayout.Button("📐 Küp Boyut ve Boşluklarını Canlı Güncelle (Update Spacing)", GUILayout.Height(32)))
+            {
+                m_Target.UpdateExistingCubesTransforms();
+                SceneView.RepaintAll();
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            }
+
+            EditorGUILayout.Space(4);
+
             // 2b. Küplere Fake Shadow Ekle / Güncelle Butonu
             GUI.backgroundColor = new Color(0.7f, 0.5f, 1.0f);
             if (GUILayout.Button("🌑 Küplere Fake Shadow (Gölge) Ekle / Güncelle", GUILayout.Height(32)))

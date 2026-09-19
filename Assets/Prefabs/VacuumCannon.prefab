@@ -155,11 +155,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.WagonCapacityBadge
   m_ShowBackgroundBox: 0
   m_AutoCenterOnMesh: 1
-  m_SizeRatio: 0.42
+  m_SizeRatio: 0.95
   m_VerticalLiftRatio: 0.32
   m_FillRiseRatio: 0
   m_CenterOffset: {x: 0, y: 0, z: 0}
-  m_FontSize: 105
+  m_FontSize: 140
   m_ManualOffset: {x: 0, y: 0.15, z: 0}
   m_ManualScale: 0.012
 --- !u!65 &4471195489037428737
