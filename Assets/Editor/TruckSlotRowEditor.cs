@@ -77,7 +77,24 @@ namespace PixelGame.Editor
 
             EditorGUILayout.Space(6);
 
-            // 1. Elle Ayarlama Modu Başlığı & Açıklaması
+            // 1. Ana Slot Gölgesi Aksiyon Butonu
+            GUI.backgroundColor = new Color(0.2f, 0.8f, 1f, 1f);
+            if (GUILayout.Button("🌑 Slot Fake Shadow'larını Kur / Yeniden Hesapla", GUILayout.Height(36)))
+            {
+                if (m_EnableShadow != null) m_EnableShadow.boolValue = true;
+                if (m_ShadowSprite != null && m_ShadowSprite.objectReferenceValue == null)
+                {
+                    m_ShadowSprite.objectReferenceValue = SlotShadowTextureGenerator.GetOrGenerateSlotShadowSprite();
+                }
+                serializedObject.ApplyModifiedProperties();
+                rowTarget.ForceApplyStyleToShadows();
+                EditorUtility.SetDirty(rowTarget);
+            }
+            GUI.backgroundColor = Color.white;
+
+            EditorGUILayout.Space(6);
+
+            // 2. Elle Ayarlama Modu Başlığı & Açıklaması
             bool isManual = m_ManualShadowMode != null && m_ManualShadowMode.boolValue;
 
             GUI.backgroundColor = isManual ? new Color(0.3f, 0.9f, 0.5f, 1f) : new Color(0.9f, 0.7f, 0.3f, 1f);
@@ -94,7 +111,7 @@ namespace PixelGame.Editor
 
             if (isManual)
             {
-                EditorGUILayout.HelpBox("AÇIK: Sahnede gölge nesnelerini (PortalShadow_Left/Right, RowGroundShadow, SlotShadow_1..5) serbestçe tutup sürükleyebilir, boyutlandırabilir ve renklendirebilirsiniz. Kod yaptığınız değişiklikleri ASLA ezmez!", MessageType.Info);
+                EditorGUILayout.HelpBox("AÇIK: Sahnede gölge nesnelerini (SlotShadow_1..5, RowGroundShadow, Portallar) serbestçe tutup sürükleyebilir, boyutlandırabilir ve renklendirebilirsiniz. Kod yaptığınız değişiklikleri ASLA ezmez!", MessageType.Info);
             }
             else
             {
@@ -105,9 +122,24 @@ namespace PixelGame.Editor
 
             EditorGUILayout.Space(6);
 
-            // 2. Hızlı Sahne Seçim Butonları
+            // 3. Hızlı Sahne Seçim Butonları
             EditorGUILayout.LabelField("🎯 Sahnede Doğrudan Seçim & Gizmo ile Taşıma", EditorStyles.boldLabel);
-            if (GUILayout.Button("🎯 Tüm Gölgeleri Sahnede Seç (Portallar + Ray + Slotlar)", GUILayout.Height(30)))
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("🎯 Tüm Slot Gölgelerini Seç (1..5)", GUILayout.Height(28)))
+            {
+                var slotShadows = new List<GameObject>();
+                for (int i = 0; i < rowTarget.SlotCount; i++)
+                {
+                    GameObject s = rowTarget.GetSlotShadowObject(i);
+                    if (s != null) slotShadows.Add(s);
+                }
+                if (slotShadows.Count > 0)
+                {
+                    Selection.objects = slotShadows.ToArray();
+                    SceneView.FrameLastActiveSceneView();
+                }
+            }
+            if (GUILayout.Button("🎯 Tüm Gölgeler (Portallar + Ray + Slotlar)", GUILayout.Height(28)))
             {
                 List<GameObject> all = rowTarget.GetAllShadowObjects();
                 if (all != null && all.Count > 0)
@@ -116,22 +148,17 @@ namespace PixelGame.Editor
                     SceneView.FrameLastActiveSceneView();
                 }
             }
+            EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("⛏️ Sol Portal Gölgesi", GUILayout.Height(24)))
+            for (int i = 0; i < Mathf.Min(5, rowTarget.SlotCount); i++)
             {
-                GameObject pl = rowTarget.GetPortalLeftShadowObject();
-                if (pl != null) { Selection.activeGameObject = pl; SceneView.FrameLastActiveSceneView(); }
-            }
-            if (GUILayout.Button("⛏️ Sağ Portal Gölgesi", GUILayout.Height(24)))
-            {
-                GameObject pr = rowTarget.GetPortalRightShadowObject();
-                if (pr != null) { Selection.activeGameObject = pr; SceneView.FrameLastActiveSceneView(); }
-            }
-            if (GUILayout.Button("🛤️ Ray Zemin Gölgesi", GUILayout.Height(24)))
-            {
-                GameObject rgs = rowTarget.GetRowGroundShadowObject();
-                if (rgs != null) { Selection.activeGameObject = rgs; SceneView.FrameLastActiveSceneView(); }
+                int slotIdx = i;
+                if (GUILayout.Button($"Slot {slotIdx + 1}", GUILayout.Height(22)))
+                {
+                    GameObject s = rowTarget.GetSlotShadowObject(slotIdx);
+                    if (s != null) { Selection.activeGameObject = s; SceneView.FrameLastActiveSceneView(); }
+                }
             }
             EditorGUILayout.EndHorizontal();
 
@@ -272,21 +299,21 @@ namespace PixelGame.Editor
                 if (GUILayout.Button("Doğal (Natural)"))
                 {
                     ApplyPreset(rowTarget,
-                        slotCol: new Color(0.02f, 0.03f, 0.06f, 0.48f), slotOff: new Vector2(0f, -14f), slotSc: new Vector2(1.06f, 1.06f), slotZ: 4f,
+                        slotCol: new Color(0.04f, 0.06f, 0.14f, 0.58f), slotOff: new Vector2(0f, -14f), slotSc: new Vector2(1.04f, 1.04f), slotZ: 4f,
                         rowCol: new Color(0.02f, 0.03f, 0.05f, 0.42f), rowOff: new Vector2(0f, -16f), rowPad: new Vector2(320f, 60f), rowZ: 8f,
                         portalCol: new Color(0.02f, 0.03f, 0.06f, 0.52f), portalOff: new Vector2(0f, -14f), portalSc: new Vector2(1.12f, 1.12f), portalZ: 4f);
                 }
                 if (GUILayout.Button("Belirgin (Deep)"))
                 {
                     ApplyPreset(rowTarget,
-                        slotCol: new Color(0.01f, 0.02f, 0.04f, 0.65f), slotOff: new Vector2(0f, -18f), slotSc: new Vector2(1.09f, 1.09f), slotZ: 5f,
+                        slotCol: new Color(0.02f, 0.03f, 0.08f, 0.78f), slotOff: new Vector2(0f, -18f), slotSc: new Vector2(1.08f, 1.08f), slotZ: 4f,
                         rowCol: new Color(0.01f, 0.02f, 0.04f, 0.58f), rowOff: new Vector2(0f, -18f), rowPad: new Vector2(360f, 75f), rowZ: 8f,
                         portalCol: new Color(0.01f, 0.02f, 0.04f, 0.68f), portalOff: new Vector2(0f, -16f), portalSc: new Vector2(1.16f, 1.16f), portalZ: 5f);
                 }
                 if (GUILayout.Button("Yumuşak (Soft)"))
                 {
                     ApplyPreset(rowTarget,
-                        slotCol: new Color(0.03f, 0.04f, 0.08f, 0.32f), slotOff: new Vector2(0f, -10f), slotSc: new Vector2(1.04f, 1.04f), slotZ: 3f,
+                        slotCol: new Color(0.05f, 0.08f, 0.16f, 0.38f), slotOff: new Vector2(0f, -10f), slotSc: new Vector2(1.02f, 1.02f), slotZ: 4f,
                         rowCol: new Color(0.03f, 0.04f, 0.08f, 0.28f), rowOff: new Vector2(0f, -12f), rowPad: new Vector2(280f, 50f), rowZ: 8f,
                         portalCol: new Color(0.03f, 0.04f, 0.08f, 0.35f), portalOff: new Vector2(0f, -10f), portalSc: new Vector2(1.08f, 1.08f), portalZ: 3f);
                 }

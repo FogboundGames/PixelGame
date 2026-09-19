@@ -53,15 +53,63 @@ namespace PixelGame.Editor
 
         public static void GenerateSlotShadowTexture()
         {
-            // Slot.png görselinin oranlarına (916 x 1254, ~0.73) uygun 384 x 528 gölge dokusu
+            string sourcePath = "Assets/UI/slot1.png";
+            if (!File.Exists(sourcePath)) sourcePath = "Assets/UI/Slot.png";
+
+            if (File.Exists(sourcePath))
+            {
+                byte[] srcBytes = File.ReadAllBytes(sourcePath);
+                Texture2D srcTex = new Texture2D(2, 2);
+                if (srcTex.LoadImage(srcBytes))
+                {
+                    int w = srcTex.width;
+                    int h = srcTex.height;
+                    Color32[] srcPixels = srcTex.GetPixels32();
+                    float[] mask = new float[w * h];
+
+                    for (int i = 0; i < srcPixels.Length; i++)
+                    {
+                        mask[i] = srcPixels[i].a > 25 ? 1f : 0f;
+                    }
+                    Object.DestroyImmediate(srcTex);
+
+                    // Çift geçişli kutu bulanıklaştırma: Temas gölgesi (küçük yarıçap) + Yayılma aurası (geniş yarıçap)
+                    float[] blurTight = BoxBlur(mask, w, h, Mathf.Max(6, Mathf.RoundToInt(w * 0.02f)));
+                    blurTight = BoxBlur(blurTight, w, h, Mathf.Max(6, Mathf.RoundToInt(w * 0.02f)));
+
+                    float[] blurSpread = BoxBlur(mask, w, h, Mathf.Max(14, Mathf.RoundToInt(w * 0.045f)));
+                    blurSpread = BoxBlur(blurSpread, w, h, Mathf.Max(14, Mathf.RoundToInt(w * 0.045f)));
+
+                    Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+                    tex.name = "SlotShadow";
+
+                    Color32[] pixels = new Color32[w * h];
+                    for (int i = 0; i < pixels.Length; i++)
+                    {
+                        float alphaNorm = Mathf.Clamp01(blurTight[i] * 0.72f + blurSpread[i] * 0.42f);
+                        byte a = (byte)(alphaNorm * 255f);
+                        pixels[i] = new Color32(255, 255, 255, a);
+                    }
+
+                    tex.SetPixels32(pixels);
+                    tex.Apply();
+
+                    byte[] bytes = tex.EncodeToPNG();
+                    Object.DestroyImmediate(tex);
+
+                    File.WriteAllBytes(SlotShadowPath, bytes);
+                    ConfigureSpriteImporter(SlotShadowPath);
+                    return;
+                }
+            }
+
+            // Fallback: Yuvarlatılmış dikdörtgen (Rounded Rectangle)
             int targetW = 384;
-            int targetH = 528;
-            int padding = 36; // Bulanıklığın dışa taşması için güvenli boşluk
-            int cornerRadius = 56;
+            int targetH = 336; // slot1 oranına daha yakın
+            int padding = 32;
+            int cornerRadius = 48;
 
-            float[] mask = new float[targetW * targetH];
-
-            // Yuvarlatılmış dikdörtgen (Rounded Rectangle) silüetini hesapla
+            float[] fallbackMask = new float[targetW * targetH];
             int innerLeft = padding;
             int innerRight = targetW - padding;
             int innerBottom = padding;
@@ -72,32 +120,30 @@ namespace PixelGame.Editor
                 for (int x = 0; x < targetW; x++)
                 {
                     float dist = GetDistanceToRoundedRect(x, y, innerLeft, innerRight, innerBottom, innerTop, cornerRadius);
-                    mask[y * targetW + x] = dist <= 0f ? 1f : Mathf.Clamp01(1f - dist);
+                    fallbackMask[y * targetW + x] = dist <= 0f ? 1f : Mathf.Clamp01(1f - dist);
                 }
             }
 
-            // Gauss benzeri çift geçişli kutu bulanıklaştırma
-            float[] blurred = BoxBlur(mask, targetW, targetH, 16);
-            blurred = BoxBlur(blurred, targetW, targetH, 16);
+            float[] blurred = BoxBlur(fallbackMask, targetW, targetH, 14);
+            blurred = BoxBlur(blurred, targetW, targetH, 14);
 
-            Texture2D tex = new Texture2D(targetW, targetH, TextureFormat.RGBA32, false);
-            tex.name = "SlotShadow";
+            Texture2D fbTex = new Texture2D(targetW, targetH, TextureFormat.RGBA32, false);
+            fbTex.name = "SlotShadow";
 
-            Color[] pixels = new Color[targetW * targetH];
-            for (int i = 0; i < pixels.Length; i++)
+            Color[] fbPixels = new Color[targetW * targetH];
+            for (int i = 0; i < fbPixels.Length; i++)
             {
                 float a = Mathf.Clamp01(blurred[i]);
-                // Saf beyaz doku; rengi ve opaklığı UI Image Color bileşeninden kontrol edilir
-                pixels[i] = new Color(1f, 1f, 1f, a);
+                fbPixels[i] = new Color(1f, 1f, 1f, a);
             }
 
-            tex.SetPixels(pixels);
-            tex.Apply();
+            fbTex.SetPixels(fbPixels);
+            fbTex.Apply();
 
-            byte[] bytes = tex.EncodeToPNG();
-            Object.DestroyImmediate(tex);
+            byte[] fbBytes = fbTex.EncodeToPNG();
+            Object.DestroyImmediate(fbTex);
 
-            File.WriteAllBytes(SlotShadowPath, bytes);
+            File.WriteAllBytes(SlotShadowPath, fbBytes);
             ConfigureSpriteImporter(SlotShadowPath);
         }
 
@@ -378,7 +424,7 @@ namespace PixelGame.Editor
                 importer.mipmapEnabled = false;
                 if (path == SlotShadowPath)
                 {
-                    importer.spriteBorder = new Vector4(56, 56, 56, 56);
+                    importer.spriteBorder = Vector4.zero;
                 }
                 importer.SaveAndReimport();
             }

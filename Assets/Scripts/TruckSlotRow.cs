@@ -237,6 +237,12 @@ namespace PixelGame
             {
                 shadowsObj = new GameObject("Shadows", typeof(RectTransform));
                 shadowsObj.transform.SetParent(transform, false);
+                #if UNITY_EDITOR
+                if (!Application.isPlaying)
+                {
+                    UnityEditor.Undo.RegisterCreatedObjectUndo(shadowsObj, "Create Shadows Container");
+                }
+                #endif
             }
             else
             {
@@ -427,6 +433,12 @@ namespace PixelGame
                 if (isNew)
                 {
                     sObj.transform.SetParent(shadowsRect, false);
+                    #if UNITY_EDITOR
+                    if (!Application.isPlaying)
+                    {
+                        UnityEditor.Undo.RegisterCreatedObjectUndo(sObj, $"Create {shadowName}");
+                    }
+                    #endif
                 }
 
                 sObj.SetActive(true);
@@ -437,8 +449,8 @@ namespace PixelGame
 
                 if (img.sprite == null || img.sprite != shadowSprite)
                     img.sprite = shadowSprite;
-                img.type = Image.Type.Sliced;
-                img.preserveAspect = false;
+                img.type = Image.Type.Simple;
+                img.preserveAspect = true;
                 img.raycastTarget = false;
 
                 // Eğer elle ayarlama modu açıksa ve nesne zaten sahnede varsa, kullanıcının elle verdiği pozisyon/boyut/rengi ezme!

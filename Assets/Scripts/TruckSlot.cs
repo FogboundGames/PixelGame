@@ -47,6 +47,20 @@ namespace PixelGame
         [Tooltip("Vagonun ray yüzeyinden ne kadar önde duracağı. Z kavgasını (z-fighting) önler.")]
         [SerializeField] private float m_LiftOffset = 2f;
 
+        [Header("🧱 Taban Hizalama (Pedestal Anchor)")]
+        [Tooltip("Vagonun tabanını (pedestal/alt dairesini) slot zeminine mi oturtsun? " +
+                 "Açıkken vagonun tabanı slot yüzeyine tam oturur; modelin yüksekliği yüzünden taban aşağı sarkmaz.")]
+        [SerializeField] private bool m_AnchorToBase = true;
+
+        [Tooltip("Tabanın slot yüzeyine göre dikey ofseti (slot yüksekliğinin oranı olarak). -0.07 slotun 3B eğimli yüzeyinin merkezidir.")]
+        [Range(-0.5f, 0.5f)]
+        [SerializeField] private float m_BaseVerticalRatio = -0.07f;
+
+        [Tooltip("Tabanlı modeller için slot genişliğini doldurma oranı. " +
+                 "Tabanın slot kenarlarından taşmasını önler (0.50 = slot genişliğinin yarısı).")]
+        [Range(0.2f, 1.2f)]
+        [SerializeField] private float m_BaseWidthFill = 0.50f;
+
         [Header("🛤️ Ray")]
         [Tooltip("Ray parçasının park yeri içindeki duruşu. Vagonun duruşundan bağımsızdır; " +
                  "elle bulunup doğrulanmış değerdir.")]
@@ -72,6 +86,9 @@ namespace PixelGame
         public Transform Truck { get => m_Truck; set { m_Truck = value; AlignTruck(); } }
         public Transform Ground => m_Ground;
         public Color TruckColor { get => m_TruckColor; set { m_TruckColor = value; ApplyTruckColor(); } }
+        public bool AnchorToBase { get => m_AnchorToBase; set { m_AnchorToBase = value; AlignTruck(); } }
+        public float BaseVerticalRatio { get => m_BaseVerticalRatio; set { m_BaseVerticalRatio = value; AlignTruck(); } }
+        public float BaseWidthFill { get => m_BaseWidthFill; set { m_BaseWidthFill = value; AlignTruck(); } }
 
         /// <summary>
         /// Park yerini kurar. Şerit oluşturulurken çağrılır.
@@ -106,7 +123,7 @@ namespace PixelGame
             m_Ground.localRotation = m_GroundBaseRotation *
                                      Quaternion.AngleAxis(m_GroundYaw, Vector3.up);
 
-            FitToRect(m_Ground, rect, m_GroundWidthFill, m_GroundVerticalOffset, 0f);
+            FitToRect(m_Ground, rect, m_GroundWidthFill, m_GroundVerticalOffset, 0f, isTruck: false);
         }
 
         /// <summary>Slotta kamyon var mı?</summary>
@@ -186,8 +203,8 @@ namespace PixelGame
             // 1. Yön: modelin taban rotasyonu korunur, yaw onun kendi ekseninde uygulanır
             m_Truck.localRotation = m_BaseRotation * Quaternion.AngleAxis(m_TruckYaw, Vector3.up);
 
-            // 2. Boyut ve yer: slot genişliğine göre ölçekle, rayın biraz önüne oturt
-            FitToRect(m_Truck, rect, m_WidthFill, m_VerticalOffset, m_LiftOffset);
+            // 2. Boyut ve yer: slot genişliğine göre ölçekle, tabanı dikkate alarak slotun/rayın önüne oturt
+            FitToRect(m_Truck, rect, m_WidthFill, m_VerticalOffset, m_LiftOffset, isTruck: true);
         }
 
         /// <summary>
@@ -206,38 +223,47 @@ namespace PixelGame
         /// Hem vagon hem ray parçası için kullanılır.
         /// </summary>
         private void FitToRect(Transform model, RectTransform rect,
-                               float widthFill, float verticalOffset, float lift)
+                               float widthFill, float verticalOffset, float lift, bool isTruck = false)
         {
             model.localPosition = Vector3.zero;
+            model.localScale = Vector3.one;
 
             if (TryGetLocalBounds(model, out Bounds bounds) && bounds.size.x > 0.0001f)
             {
-                // Model slotun İÇİNE sığmalı: hem genişlik hem yükseklik sınırlar.
-                //
-                // Eskiden yalnızca genişliğe oturtuluyordu. Kare slotlarda bu farkedilmiyordu
-                // ama alçak slotlarda uzun modeller taşıyordu: şişe (dünya boyutu ~0.81 x 1.23)
-                // 340x340 havuz yerine sığarken 340x295'lik slot sırasında kutudan çok
-                // büyük görünüyordu. İki eksenden hangisi daha kısıtlayıcıysa o belirler.
-                float scale = (rect.rect.width * widthFill) / bounds.size.x;
+                // Tabanı olan vagon modelleri için m_BaseWidthFill kullanılır (taban slottan taşmasın)
+                float effectiveWidthFill = (isTruck && m_AnchorToBase && m_BaseWidthFill > 0.01f)
+                    ? m_BaseWidthFill
+                    : widthFill;
 
-                if (bounds.size.y > 0.0001f)
+                float scale = (rect.rect.width * effectiveWidthFill) / bounds.size.x;
+
+                if (bounds.size.y > 0.0001f && (!isTruck || !m_AnchorToBase))
                 {
-                    // Yükseklikte widthFill marjı UYGULANMAZ: genişlikteki pay bilinçli
-                    // bir kenar boşluğu, yükseklik ise yalnızca "kutudan taşma" sınırı.
-                    // İkisine birden pay verilince uzun modeller gereksiz yere küçülüyor
-                    // ve slotun içinde boşluk kalıyordu.
                     float heightLimited = rect.rect.height / bounds.size.y;
                     scale = Mathf.Min(scale, heightLimited);
                 }
 
-                model.localScale *= scale;
+                model.localScale = Vector3.one * scale;
             }
 
             if (!TryGetLocalBounds(model, out bounds)) return;
 
+            float posY;
+            if (isTruck && m_AnchorToBase)
+            {
+                // Taban kısmını dikkate al: Modelin en alt taban noktası (-bounds.min.y)
+                // slotun zemin yüzeyine (+ targetBaseY) tam oturur, aşağı sarkmaz.
+                float targetBaseY = rect.rect.height * (verticalOffset - 0.5f) + rect.rect.height * m_BaseVerticalRatio;
+                posY = -bounds.min.y + targetBaseY;
+            }
+            else
+            {
+                posY = -bounds.center.y + rect.rect.height * (verticalOffset - 0.5f);
+            }
+
             model.localPosition = new Vector3(
                 -bounds.center.x,
-                -bounds.center.y + rect.rect.height * (verticalOffset - 0.5f),
+                posY,
                 -bounds.max.z - lift);
         }
 

@@ -43,13 +43,13 @@ namespace PixelGame
                  "Rozetler çalışma anında AddComponent ile eklendiği için sahnedeki değil " +
                  "BU varsayılan geçerlidir.")]
         [Range(0.2f, 1.6f)]
-        [SerializeField] private float m_SizeRatio = 0.5f;
+        [SerializeField] private float m_SizeRatio = 0.42f;
 
         [Tooltip("Rozetin gövde merkezinden yukarı/aşağı kayması, gövde yüksekliğinin oranı olarak. " +
                  "0 = tam gövdenin ortasında (etiket gibi). Negatif değer aşağı indirir. " +
                  "Rozet çalışma anında eklendiği için sahnedeki değil BU varsayılan geçerlidir.")]
-        [Range(-0.5f, 0.5f)]
-        [SerializeField] private float m_VerticalLiftRatio = 0f;
+        [Range(-0.5f, 0.8f)]
+        [SerializeField] private float m_VerticalLiftRatio = 0.32f;
 
         [Header("📦 Doluluk Dinamik Yükselmesi (Pile Float)")]
         [Tooltip("Kasa doldukça rozetin yukarı kayma oranı. 0 = hiç kaymasın (şişe gibi kapalı " +
@@ -81,6 +81,9 @@ namespace PixelGame
 
             if (r.name.StartsWith("MineCart_Body") || r.name.StartsWith("Truck_Cargo")) return true;
             if (r.name.IndexOf("Bottle", System.StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            if (r.name.IndexOf("object_", System.StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            if (r.name.IndexOf("Cannon", System.StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            if (r.name.IndexOf("Turret", System.StringComparison.OrdinalIgnoreCase) >= 0) return true;
 
             MeshFilter filter = r.GetComponent<MeshFilter>();
             Mesh mesh = filter != null ? filter.sharedMesh : null;
@@ -88,6 +91,9 @@ namespace PixelGame
 
             return mesh.name.IndexOf("Body", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                    mesh.name.IndexOf("Bottle", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   mesh.name.IndexOf("object_", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   mesh.name.IndexOf("Cannon", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   mesh.name.IndexOf("Turret", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                    mesh.name.IndexOf("Cargo", System.StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
@@ -216,8 +222,19 @@ namespace PixelGame
                 float targetFillRatio = m_Cargo != null ? m_Cargo.FillRatio : 0f;
                 m_CurrentFillRatio = Mathf.MoveTowards(m_CurrentFillRatio, targetFillRatio, Time.deltaTime * 3.5f);
 
+                bool isScifi = bodyRenderer != null && (
+                    bodyRenderer.name.IndexOf("object_", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    bodyRenderer.name.IndexOf("Cannon", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    bodyRenderer.name.IndexOf("Turret", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (bodyRenderer.GetComponent<MeshFilter>() != null && bodyRenderer.GetComponent<MeshFilter>().sharedMesh != null &&
+                     bodyRenderer.GetComponent<MeshFilter>().sharedMesh.name.IndexOf("object_", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                );
+
+                float activeLiftRatio = isScifi ? 0.14f : m_VerticalLiftRatio;
+                float activeSizeRatio = isScifi ? 0.62f : m_SizeRatio;
+
                 // 1. Gövde merkezinden kayma (0 = tam ortada, etiket gibi)
-                float baseLift = anchor.size.y * m_VerticalLiftRatio;
+                float baseLift = anchor.size.y * activeLiftRatio;
 
                 // 2. Doluluk yükselmesi. Şişe gibi kapalı gövdeli modellerde 0 olmalı:
                 //    aksi halde kasa doldukça rozet yukarı tırmanır ve oyuncuya
@@ -240,7 +257,7 @@ namespace PixelGame
                 m_Canvas.transform.position = center;
 
                 // Gövde genişliğine göre ölçekle
-                float targetWorldSize = wagonSize * m_SizeRatio;
+                float targetWorldSize = wagonSize * activeSizeRatio;
                 float targetScale = targetWorldSize / 140f;
 
                 m_Canvas.transform.localScale = Vector3.one * Mathf.Max(0.001f, targetScale);

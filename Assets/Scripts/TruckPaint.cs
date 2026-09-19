@@ -255,34 +255,28 @@ namespace PixelGame
                 return;
             }
 
-            // Bottle_Body gibi UV paleti yerine doğrudan materyal rengi kullanan modeller
-            bool isDirectColorModel = false;
-            foreach (Renderer target in m_Renderers)
+            // Yalnızca klasik MineCart modeli UV 4x4 renk palet dokusunu kullanır;
+            // Diğer tüm modeller (vakum topu object_005, şişe vb.) Toony Colors Pro 2
+            // karikatür plastik materyalleri (direct cartoon color) ile boyanır.
+            bool isMineCart = false;
+            string rootName = transform.name;
+            if (rootName.IndexOf("MineCart", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                if (target != null && target.name.IndexOf("Bottle", StringComparison.OrdinalIgnoreCase) >= 0)
+                isMineCart = true;
+            }
+            else
+            {
+                foreach (Renderer target in m_Renderers)
                 {
-                    isDirectColorModel = true;
-                    break;
-                }
-                if (target is MeshRenderer mr)
-                {
-                    MeshFilter mf = mr.GetComponent<MeshFilter>();
-                    Mesh mesh = mf != null ? mf.sharedMesh : null;
-
-                    // mesh.uv okumak modelin import ayarlarında Read/Write açık olmasını
-                    // ister; kapalıysa Unity her çağrıda hata basar ve boş dizi döner.
-                    // isReadable ise mesh okunabilir olmasa da sorgulanabilir, bu yüzden
-                    // uv'ye dokunmadan önce onu kontrol ediyoruz.
-                    //
-                    // Okunamayan bir mesh'te UV paleti zaten kullanılamaz (palet dokusu
-                    // UV'ye göre örneklenir), dolayısıyla doğrudan renk yolu doğru seçim.
-                    if (mesh != null && (!mesh.isReadable || mesh.uv.Length == 0))
+                    if (target != null && target.name.IndexOf("MineCart", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        isDirectColorModel = true;
+                        isMineCart = true;
                         break;
                     }
                 }
             }
+
+            bool isDirectColorModel = !isMineCart;
 
             if (isDirectColorModel)
             {
@@ -350,8 +344,15 @@ namespace PixelGame
             if (shader == null) shader = Shader.Find("Standard");
 
             Material material = new Material(shader) { name = $"Mat_Direct_{ColorUtility.ToHtmlStringRGB(color)}" };
-            if (material.HasProperty(s_BaseColorId)) material.SetColor(s_BaseColorId, color);
-            if (material.HasProperty(s_ColorId)) material.SetColor(s_ColorId, color);
+            if (m_UseCartoonShader)
+            {
+                CartoonShader.ApplyColor(material, color);
+            }
+            else
+            {
+                if (material.HasProperty(s_BaseColorId)) material.SetColor(s_BaseColorId, color);
+                if (material.HasProperty(s_ColorId)) material.SetColor(s_ColorId, color);
+            }
             if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", smoothness);
 
             s_MaterialsByScheme[key] = material;

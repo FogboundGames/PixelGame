@@ -57,16 +57,28 @@ namespace PixelGame
                  "Kapalıysa vagon hattın tam ortasında durur.")]
         [SerializeField] private bool m_WagonOnTrackOuterEdge = true;
 
+        [Tooltip("Ray üzerindeki vagonun teğet yönüne ek dönüş açısı (0 = ray yönü / teğet, 90 = içe/tabloya dönük).")]
+        [SerializeField] private float m_WagonTrackYaw = 0f;
+
         [Tooltip("Dış kenara EK ince ayar (dünya birimi). Pozitif = daha dışarı, negatif = içeri. " +
                  "Raylar bundan etkilenmez, yalnızca vagonlar kayar.")]
-        [SerializeField] private float m_WagonOutwardOffset = 0.1f;
+        [SerializeField] private float m_WagonOutwardOffset = 0f;
 
         /// <summary>Ray yolunun yarı genişliği. Raylar kurulurken sahneden ölçülür.</summary>
         private float m_TrackHalfWidth;
 
         /// <summary>Vagonun hattın merkezinden dışarı doğru toplam kayması.</summary>
-        private float WagonOutwardDistance =>
-            (m_WagonOnTrackOuterEdge ? m_TrackHalfWidth : 0f) + m_WagonOutwardOffset;
+        private float WagonOutwardDistance
+        {
+            get
+            {
+                bool isScifi = m_TruckPrefab != null && (m_TruckPrefab.name.IndexOf("object_", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                         m_TruckPrefab.name.IndexOf("Cannon", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                         m_TruckPrefab.name.IndexOf("Turret", System.StringComparison.OrdinalIgnoreCase) >= 0);
+                if (isScifi) return 0f + m_WagonOutwardOffset;
+                return (m_WagonOnTrackOuterEdge ? m_TrackHalfWidth : 0f) + m_WagonOutwardOffset;
+            }
+        }
 
         [Tooltip("Vagonların yerdeki parçaları vakumla çekebileceği maksimum mesafe (dünya birimi).")]
         [SerializeField] private float m_VacuumRadius = 2.4f;
@@ -750,9 +762,53 @@ namespace PixelGame
             return false;
         }
 
+        public bool TryGetExistingRailBounds(out Vector3 center, out float width, out float height, out float cornerRadius, out float z)
+        {
+            center = Vector3.zero;
+            width = 0f;
+            height = 0f;
+            cornerRadius = 0.5f * m_ModularTrackScale;
+            z = -0.12f;
+
+            Transform rails = null;
+            if (m_WagonsRoot != null) rails = m_WagonsRoot.Find("PerimeterRails");
+            if (rails == null)
+            {
+                GameObject railsObj = GameObject.Find("PerimeterRails");
+                if (railsObj != null) rails = railsObj.transform;
+            }
+            if (rails == null) return false;
+
+            Transform tl = rails.Find("Corner_TL");
+            Transform br = rails.Find("Corner_BR");
+            if (tl != null && br != null)
+            {
+                float leftX = tl.position.x;
+                float topY = tl.position.y;
+                float rightX = br.position.x;
+                float bottomY = br.position.y;
+
+                width = Mathf.Abs(rightX - leftX);
+                height = Mathf.Abs(topY - bottomY);
+                center = new Vector3((leftX + rightX) * 0.5f, (topY + bottomY) * 0.5f, tl.position.z);
+                z = tl.position.z;
+                cornerRadius = 0.5f * m_ModularTrackScale;
+                return width > 1f && height > 1f;
+            }
+
+            return false;
+        }
+
         [ContextMenu("🛤️ Çevresel Döngüyü Güncelle")]
         public void SetupPerimeterLoop()
         {
+            if (TryGetExistingRailBounds(out Vector3 railCenter, out float railWidth, out float railHeight, out float railRadius, out float railZ))
+            {
+                m_LoopCornerRadius = railRadius;
+                m_Loop.Setup(railCenter, railWidth, railHeight, railRadius, railZ);
+                return;
+            }
+
             CalculatePerimeterLoopBounds(out Vector3 center, out float width, out float height);
             float targetZ = (m_Generator != null) ? m_Generator.TargetZ : 0f;
             m_Loop.Setup(center, width, height, m_LoopCornerRadius, targetZ - 0.12f);
@@ -999,20 +1055,41 @@ namespace PixelGame
         private void CalibratePortalsAndAlignment()
         {
             bool isBottle = m_TruckPrefab != null && m_TruckPrefab.name.IndexOf("Bottle", System.StringComparison.OrdinalIgnoreCase) >= 0;
+            bool isScifi = m_TruckPrefab != null && (m_TruckPrefab.name.IndexOf("object_", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                     m_TruckPrefab.name.IndexOf("Cannon", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                     m_TruckPrefab.name.IndexOf("Turret", System.StringComparison.OrdinalIgnoreCase) >= 0);
+
             // Vagon duruşu TEK kaynaktan gelir: slot stilinin truckEuler'ı.
-            //
-            // Eskiden şişe modeli için burada sabit bir (0,180,0) vardı ve stildeki değeri
-            // eziyordu. Bu yüzden Inspector'dan duruşu değiştirmek havuzdaki şişelere
-            // yansıyor ama ray üzerindeki vagona yansımıyordu; ikisi farklı duruyordu.
-            // Stil yoksa model tipine göre makul bir varsayılana düşülür.
+            // Sci-fi topu için ray teğetine kilitli taban duruşu (0, 90, 0) uygulanır.
             Vector3 defaultEuler = (m_Slots != null && m_Slots.Style != null)
                 ? m_Slots.Style.truckEuler
                 : (isBottle ? new Vector3(0f, 90f, 0f) : new Vector3(0f, -90f, -270f));
+
+            if (isScifi)
+            {
+                // Sci-fi vakum topu için:
+                // Taban dairesi konveyör bandına tam oturur (normal = [0, 0, -1], kameraya bakar).
+                // Ağız/namlu kısmı daima çektikleri küplere (içeri/panoya) doğru bakar:
+                // Alt kenarda +Y (yukarı), sağda -X (sola), üstte -Y (aşağı), solda +X (sağa).
+                defaultEuler = new Vector3(-90f, 0f, 0f);
+            }
             m_WagonRotation = Quaternion.Euler(defaultEuler);
 
             if (isBottle)
             {
                 m_WagonScale = Vector3.one * 0.65f;
+            }
+            else if (isScifi)
+            {
+                // Konveyör bandı genişliği m_ModularTrackScale (~0.60 birim).
+                // object_005 modelinin mesh genişliği 0.875 birimdir.
+                // 0.45f ölçek ile dünya genişliği ~0.39 birim olur;
+                // böylece konveyör bandının iki beyaz kenarlığı arasına tam oturur,
+                // rayın chevron deseninden kaymaz veya taşmaz.
+                float rootScale = (m_WagonsRoot != null && m_WagonsRoot.lossyScale.x > 0.001f)
+                    ? m_WagonsRoot.lossyScale.x
+                    : 1f;
+                m_WagonScale = Vector3.one * (0.45f / rootScale);
             }
             else if (m_Pool != null && m_Pool.Places != null && m_Pool.Places.Count > 0 && m_Pool.Places[0] != null && m_Pool.Places[0].Truck != null)
             {
@@ -1038,9 +1115,10 @@ namespace PixelGame
                 m_WagonScale = Vector3.one * 0.38f;
             }
 
-            if (m_WagonScale.sqrMagnitude < 0.01f || m_WagonScale.x > 5f)
+            if (m_WagonScale.sqrMagnitude < 0.0000001f || m_WagonScale.x > 5f)
             {
-                m_WagonScale = isBottle ? Vector3.one * 0.65f : Vector3.one * 0.38f;
+                float rootScale = (m_WagonsRoot != null && m_WagonsRoot.lossyScale.x > 0.001f) ? m_WagonsRoot.lossyScale.x : 1f;
+                m_WagonScale = isBottle ? Vector3.one * 0.65f : (isScifi ? Vector3.one * (0.48f / rootScale) : Vector3.one * 0.38f);
             }
 
             if (m_Slots != null)
@@ -1227,11 +1305,12 @@ namespace PixelGame
                 truck.DOScale(m_WagonScale, 0.35f);
                 // Giriş de aynı dış ofsetle hizalanır; yoksa vagon rayın üstüne konup
                 // ilk karede yana sıçrardı.
-                truck.DOMove(OffsetOutward(targetPos, tangent, WagonOutwardDistance), 0.35f).SetEase(Ease.OutQuad).OnComplete(() =>
+                Vector3 startTrackPos = OffsetOutward(targetPos, tangent, WagonOutwardDistance) + new Vector3(0f, 0f, -0.03f);
+                truck.DOMove(startTrackPos, 0.35f).SetEase(Ease.OutQuad).OnComplete(() =>
                 {
                     if (truck != null)
                     {
-                        truck.position = targetPos;
+                        truck.position = startTrackPos;
                         truck.rotation = targetRot;
                         movingWagon.IsJumpingToTrack = false;
                     }
@@ -1359,7 +1438,7 @@ namespace PixelGame
                 }
                 m_Loop.Evaluate(wagon.DistanceOnLoop, out Vector3 pos, out Vector3 tangent, out Quaternion rot, m_WagonRotation);
 
-                wagon.Transform.position = OffsetOutward(pos, tangent, WagonOutwardDistance);
+                wagon.Transform.position = OffsetOutward(pos, tangent, WagonOutwardDistance) + new Vector3(0f, 0f, -0.03f);
                 wagon.Transform.rotation = rot;
 
                 if (wagon.Mover != null)

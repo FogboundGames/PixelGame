@@ -21,7 +21,7 @@ namespace PixelGame.Editor
     [InitializeOnLoad]
     public static class SetupTruckSlots
     {
-        private const string SessionKey = "SetupTruckSlots_5SlotShadows_v1";
+        private const string SessionKey = "SetupTruckSlots_SlotFakeShadow_v2";
 
         static SetupTruckSlots()
         {
@@ -43,21 +43,21 @@ namespace PixelGame.Editor
             {
                 SessionState.SetBool(SessionKey, true);
 
-                // Yeni UI slot1 tasarımında alt ray gölgeleri kapatılır
-                row.Style.enableShadow = false;
-                row.Style.enableRowGroundShadow = false;
-                row.Style.enablePortalShadow = false;
+                // Slotların altına slot1.png kavislerine uygun sahte gölgeleri (Fake Shadow) kur
+                row.Style.enableShadow = true;
+                row.Style.shadowSprite = SlotShadowTextureGenerator.GetOrGenerateSlotShadowSprite();
+                row.Style.shadowColor = new Color(0.04f, 0.06f, 0.14f, 0.58f);
+                row.Style.shadowOffset = new Vector2(0f, -14f);
+                row.Style.shadowScale = new Vector2(1.04f, 1.04f);
+                row.Style.shadowZ = 4f;
 
-                Transform shadows = row.transform.Find("Shadows");
-                if (shadows != null)
-                {
-                    Object.DestroyImmediate(shadows.gameObject);
-                }
+                row.ForceApplyStyleToShadows();
 
                 EditorUtility.SetDirty(row);
                 UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
                     UnityEngine.SceneManagement.SceneManager.GetActiveScene());
                 UnityEditor.SceneManagement.EditorSceneManager.SaveOpenScenes();
+                Debug.Log("<color=#00FFB4><b>[PixelGame]</b></color> 🌑 Slot Fake Shadow'ları (SlotShadow_1..5) başarıyla kuruldu ve sahneye kaydedildi!");
             }
             else
             {
@@ -267,7 +267,7 @@ namespace PixelGame.Editor
                 UnityEngine.SceneManagement.SceneManager.GetActiveScene());
         }
 
-        [MenuItem("Tools/PixelGame/🌑 Ray ve Portal Sahte Gölgelerini (Fake Shadow) Kur / Güncelle", priority = 22)]
+        [MenuItem("Tools/PixelGame/🌑 Slot Sahte Gölgelerini (Fake Shadow) Kur / Güncelle", priority = 22)]
         public static void SelectOrUpdateSlotShadow()
         {
             SelectOrUpdateSlotShadow(showDialog: true);
@@ -282,7 +282,13 @@ namespace PixelGame.Editor
                 return;
             }
 
-            row.Style.enableShadow = false;
+            row.Style.enableShadow = true;
+            row.Style.shadowSprite = SlotShadowTextureGenerator.GetOrGenerateSlotShadowSprite();
+            row.Style.shadowColor = new Color(0.04f, 0.06f, 0.14f, 0.58f);
+            row.Style.shadowOffset = new Vector2(0f, -14f);
+            row.Style.shadowScale = new Vector2(1.04f, 1.04f);
+            row.Style.shadowZ = 4f;
+
             row.Style.enableRowGroundShadow = true;
             row.Style.enablePortalShadow = true;
 
@@ -305,8 +311,8 @@ namespace PixelGame.Editor
 
             if (showDialog)
             {
-                EditorUtility.DisplayDialog("Fake Shadow Hazır!",
-                    "Ray şeridi, maden portalları ve slotların sahte gölgeleri (Fake Shadow) başarıyla kuruldu ve güncellendi!\n\n" +
+                EditorUtility.DisplayDialog("Slot Fake Shadow Hazır!",
+                    "Slotların (Slot_1..5) ve ray şeridinin sahte gölgeleri (Fake Shadow) başarıyla kuruldu ve güncellendi!\n\n" +
                     "Sağdaki Inspector panelinden veya sahne üzerinde Gizmo ile gölgeleri serbestçe taşıyabilir, boyutlandırabilir ve rengini ayarlayabilirsiniz.", "Tamam");
             }
         }
