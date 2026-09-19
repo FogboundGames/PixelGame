@@ -72,8 +72,6 @@ namespace PixelGame.Editor
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            CaptureGameViewScreenshot.Capture();
-
             Debug.Log("<color=#00FFAA><b>[VisualOverhaul]</b></color> Oyunun görsel kalitesi referansla birebir eşleşecek şekilde en üst seviyeye taşındı!");
         }
 
@@ -215,6 +213,7 @@ namespace PixelGame.Editor
                 {
                     mr.enabled = true;
                 }
+                TrackFakeShadow.EnsureShadow(railsObj.transform);
             }
             else
             {
@@ -227,7 +226,7 @@ namespace PixelGame.Editor
             if (flow != null)
             {
                 flow.enabled = true;
-                flow.speed = 0.90f;
+                flow.speed = 0.65f;
             }
 
             // 2. Alt 5 Slot Tasarımı (9-sliced soft pastel pod + Juice)
@@ -250,24 +249,17 @@ namespace PixelGame.Editor
                     }
 
                     EnsureComponent<CasualUIButtonJuice>(slot.gameObject);
-
-                    // Slot gölgesini güncelle
-                    Transform shadowsRoot = slotRow.transform.Find("Shadows");
-                    if (shadowsRoot != null)
-                    {
-                        Transform sTr = shadowsRoot.Find($"SlotShadow_{i + 1}");
-                        if (sTr != null)
-                        {
-                            Image sImg = sTr.GetComponent<Image>();
-                            if (sImg != null)
-                            {
-                                sImg.sprite = slotShadowSprite;
-                                sImg.type = Image.Type.Sliced;
-                                sImg.color = new Color32(8, 12, 28, 115);
-                            }
-                        }
-                    }
                 }
+
+                // 2.1. Slot Fake Shadow'larını Uygula (Contact & Depth Shadow)
+                slotRow.Style.enableShadow = true;
+                slotRow.Style.shadowSprite = slotShadowSprite;
+                slotRow.Style.shadowColor = new Color(0.012f, 0.024f, 0.07f, 0.88f);
+                slotRow.Style.shadowOffset = new Vector2(0f, -137f);
+                slotRow.Style.shadowScale = new Vector2(1.13f, 0.65f);
+                slotRow.Style.shadowZ = 4f;
+
+                slotRow.ForceApplyStyleToShadows();
             }
 
             // 3. Progress Pod & "2/5" Sayacı
@@ -449,7 +441,7 @@ namespace PixelGame.Editor
     [InitializeOnLoad]
     public static class SetupVisualOverhaulRunner
     {
-        private const string RunKey = "RunVisualOverhaul_v11_restore_moving_track";
+        private const string RunKey = "RunVisualOverhaul_v12_track_fake_shadow";
 
         static SetupVisualOverhaulRunner()
         {

@@ -41,6 +41,8 @@ namespace PixelGame.Editor
                 if (go == null) continue;
 
                 string name = go.name;
+                if (name.Contains("TrackFakeShadow")) continue;
+
                 bool isBoardShadow = name == "BoardGridShadow" || 
                                      name == "FigureContourShadow" || 
                                      name.Contains("BoardGridShadow") || 

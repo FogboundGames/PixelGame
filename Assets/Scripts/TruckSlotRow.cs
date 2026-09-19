@@ -463,7 +463,7 @@ namespace PixelGame
                 if (img.sprite == null || img.sprite != shadowSprite)
                     img.sprite = shadowSprite;
                 img.type = Image.Type.Simple;
-                img.preserveAspect = true;
+                img.preserveAspect = false;
                 img.raycastTarget = false;
 
                 // Eğer elle ayarlama modu açıksa ve nesne zaten sahnede varsa, kullanıcının elle verdiği pozisyon/boyut/rengi ezme!
@@ -485,7 +485,7 @@ namespace PixelGame
                     targetPos.z + m_Style.shadowZ
                 );
                 sRect.localRotation = targetSlotRect.localRotation;
-                sRect.localScale = Vector3.one;
+                sRect.localScale = targetSlotRect.localScale;
                 img.color = m_Style.shadowColor;
             }
 

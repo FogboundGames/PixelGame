@@ -81,13 +81,13 @@ namespace PixelGame
         public Sprite shadowSprite;
 
         [Tooltip("Slot gölgesinin rengi ve opaklığı.")]
-        public Color shadowColor = new Color(0.04f, 0.06f, 0.14f, 0.58f);
+        public Color shadowColor = new Color(0.012f, 0.024f, 0.07f, 0.88f);
 
         [Tooltip("Slot gölgesinin X ve Y ofseti.")]
-        public Vector2 shadowOffset = new Vector2(0f, -14f);
+        public Vector2 shadowOffset = new Vector2(0f, -137f);
 
         [Tooltip("Slot gölgesinin boyut çarpanı (genişleme oranı).")]
-        public Vector2 shadowScale = new Vector2(1.04f, 1.04f);
+        public Vector2 shadowScale = new Vector2(1.13f, 0.65f);
 
         [Tooltip("Gölgenin slot yüzeyinin arkasında kalacağı Z derinliği.")]
         public float shadowZ = 4f;

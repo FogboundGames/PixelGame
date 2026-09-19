@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -13,6 +14,7 @@ namespace PixelGame.Editor
 
         private const string FbxStraightPath = "Assets/Models/Track/Track_Straight.fbx";
         private const string FbxCornerPath = "Assets/Models/Track/Track_Corner.fbx";
+        private const string MeshCornerNormalizedPath = "Assets/Models/Track/Track_Corner_Normalized.asset";
 
         private const string PrefabStraightPath = "Assets/Prefabs/Track_Straight.prefab";
         private const string PrefabCornerPath = "Assets/Prefabs/Track_Corner.prefab";
@@ -24,11 +26,7 @@ namespace PixelGame.Editor
 
         private static void RunSetupIfMissing()
         {
-            if (!File.Exists(MatRimPath) || !File.Exists(MatChannelPath) ||
-                !File.Exists(PrefabStraightPath) || !File.Exists(PrefabCornerPath))
-            {
-                ExecuteSetup(silent: true);
-            }
+            ExecuteSetup(silent: true);
         }
 
         [MenuItem("Tools/PixelGame/🛤️ Yeni Ray Sistemini Kur (Materyaller & Prefablar)", priority = 36)]
@@ -54,6 +52,24 @@ namespace PixelGame.Editor
             bool straightCreated = CreateOrUpdateTrackPrefab(FbxStraightPath, PrefabStraightPath, rimMat, channelMat);
             bool cornerCreated = CreateOrUpdateTrackPrefab(FbxCornerPath, PrefabCornerPath, rimMat, channelMat);
 
+            // 3b. Sahnedeki köşe raylarının mesh'lerini normalize edilmiş dikişsiz mesh ile güncelle
+            Mesh cornerMesh = EnsureNormalizedCornerMesh();
+            if (cornerMesh != null)
+            {
+                foreach (var go in Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None))
+                {
+                    if (go != null && (go.name.StartsWith("Corner_") || go.name == "Track_Corner"))
+                    {
+                        MeshFilter mf = go.GetComponent<MeshFilter>();
+                        if (mf != null)
+                        {
+                            mf.sharedMesh = cornerMesh;
+                            EditorUtility.SetDirty(go);
+                        }
+                    }
+                }
+            }
+
             // 4. Sahneye TrackFlow yöneticisi ekle / güncelle
             EnsureSceneTrackFlow(channelMat);
 
@@ -66,7 +82,7 @@ namespace PixelGame.Editor
                     "Yeni Ray Sistemi Hazır",
                     "Aşağıdaki bileşenler başarıyla kuruldu:\n\n" +
                     $"• Rim Materyali: {MatRimPath} (#F0F8FE)\n" +
-                    $"• Channel Materyali: {MatChannelPath} (Chevron dokusu, Tiling 4x1)\n" +
+                    $"• Channel Materyali: {MatChannelPath} (Koyu Lacivert Chevron dokusu, Tiling 1x1)\n" +
                     $"• Straight Prefab: {PrefabStraightPath}\n" +
                     $"• Corner Prefab: {PrefabCornerPath}\n" +
                     $"• TrackFlow Yöneticisi sahneye bağlandı.",
@@ -145,8 +161,8 @@ namespace PixelGame.Editor
                 if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", tex);
             }
 
-            // Tiling = (4, 1), Offset = (0, 0)
-            Vector2 tiling = new Vector2(4f, 1f);
+            // Tiling = (1, 1), Offset = (0, 0) - Oklar ferah aralıklı ve göz yormayan sıklıkta
+            Vector2 tiling = new Vector2(1f, 1f);
             Vector2 offset = Vector2.zero;
             if (mat.HasProperty("_BaseMap"))
             {
@@ -220,6 +236,19 @@ namespace PixelGame.Editor
                 r.sharedMaterials = mats;
             }
 
+            // Köşe modeli ise kanalı 0..1 normalize edilmiş dikişsiz mesh ile değiştir
+            if (fbxPath == FbxCornerPath)
+            {
+                Mesh normMesh = EnsureNormalizedCornerMesh();
+                if (normMesh != null)
+                {
+                    foreach (MeshFilter mf in tempInstance.GetComponentsInChildren<MeshFilter>(true))
+                    {
+                        mf.sharedMesh = normMesh;
+                    }
+                }
+            }
+
             // Prefab olarak kaydet
             GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(tempInstance, prefabPath);
             Object.DestroyImmediate(tempInstance);
@@ -249,7 +278,7 @@ namespace PixelGame.Editor
             if (flow != null)
             {
                 flow.trackMaterial = channelMat;
-                flow.speed = 0.90f;
+                flow.speed = 0.65f;
                 flow.reverse = true;
                 EditorUtility.SetDirty(flow);
             }
@@ -319,10 +348,13 @@ namespace PixelGame.Editor
             SpawnEdge(railsGroup.transform, straightPrefab, new Vector3(rightX - r, topY, z), new Vector3(leftX + r, topY, z), Vector3.left, Quaternion.AngleAxis(0f, Vector3.forward) * baseRot, s, "Straight_Top");
             SpawnEdge(railsGroup.transform, straightPrefab, new Vector3(leftX, topY - r, z), new Vector3(leftX, bottomY + r, z), Vector3.down, Quaternion.AngleAxis(90f, Vector3.forward) * baseRot, s, "Straight_Left");
 
+            // 5. Ray Dış Sınırı Sahte Gölgesi (Perimeter Rail Fake Shadow)
+            TrackFakeShadow.EnsureShadow(railsGroup.transform, loop);
+
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
             UnityEditor.SceneManagement.EditorSceneManager.SaveOpenScenes();
 
-            Debug.Log($"<color=#00FFAA><b>[TrackSystemSetup]</b></color> Sahneye {railsGroup.transform.childCount} adet modüler ray başarıyla döşendi!");
+            Debug.Log($"<color=#00FFAA><b>[TrackSystemSetup]</b></color> Sahneye {railsGroup.transform.childCount} adet modüler ray ve Fake Shadow başarıyla döşendi!");
         }
 
         private static GameObject SpawnCorner(Transform parent, GameObject prefab, Vector3 pos, Quaternion rot, float scale, string name)
@@ -332,7 +364,57 @@ namespace PixelGame.Editor
             go.transform.position = pos;
             go.transform.rotation = rot;
             go.transform.localScale = Vector3.one * scale;
+
+            Mesh normMesh = EnsureNormalizedCornerMesh();
+            if (normMesh != null)
+            {
+                MeshFilter mf = go.GetComponent<MeshFilter>();
+                if (mf != null) mf.sharedMesh = normMesh;
+            }
+
             return go;
+        }
+
+        public static Mesh EnsureNormalizedCornerMesh()
+        {
+            Mesh existing = AssetDatabase.LoadAssetAtPath<Mesh>(MeshCornerNormalizedPath);
+            if (existing != null) return existing;
+
+            GameObject fbx = AssetDatabase.LoadAssetAtPath<GameObject>(FbxCornerPath);
+            if (fbx == null) return null;
+
+            MeshFilter mf = fbx.GetComponentInChildren<MeshFilter>();
+            if (mf == null || mf.sharedMesh == null) return null;
+
+            Mesh newMesh = Object.Instantiate(mf.sharedMesh);
+            newMesh.name = "Track_Corner_Normalized";
+
+            Vector2[] uvs = newMesh.uv;
+            int[] tris = newMesh.GetTriangles(1); // submesh 1 = channel
+            var channelVerts = new HashSet<int>(tris);
+
+            float minX = float.MaxValue, maxX = float.MinValue;
+            foreach (int idx in channelVerts)
+            {
+                if (uvs[idx].x < minX) minX = uvs[idx].x;
+                if (uvs[idx].x > maxX) maxX = uvs[idx].x;
+            }
+
+            float range = maxX - minX;
+            if (range > 0.001f)
+            {
+                foreach (int idx in channelVerts)
+                {
+                    uvs[idx].x = (uvs[idx].x - minX) / range;
+                }
+            }
+
+            newMesh.uv = uvs;
+            string dir = Path.GetDirectoryName(MeshCornerNormalizedPath);
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            AssetDatabase.CreateAsset(newMesh, MeshCornerNormalizedPath);
+            AssetDatabase.SaveAssets();
+            return newMesh;
         }
 
         private static void SpawnEdge(Transform parent, GameObject prefab, Vector3 start, Vector3 end, Vector3 dir, Quaternion rot, float scale, string prefix)

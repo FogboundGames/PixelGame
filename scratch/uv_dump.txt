@@ -1,0 +1,12 @@
+=== Assets/Models/Track/Track_Straight.fbx (Track_Straight) ===
+Vertex Count: 80, SubMeshCount: 2
+  SubMesh 0: UV [0,000, 0,000] to [0,000, 0,000] | Verts [-0,500, 0,000, -0,500] to [0,500, 0,323, 0,500]
+    UV.x min (0,000) at Pos (0.50, 0.32, -0.41) | UV.x max (0,000) at Pos (0.50, 0.32, -0.41)
+  SubMesh 1: UV [0,000, 0,000] to [1,000, 1,000] | Verts [-0,500, 0,323, -0,363] to [0,500, 0,323, 0,363]
+    UV.x min (0,000) at Pos (0.50, 0.32, -0.36) | UV.x max (1,000) at Pos (-0.50, 0.32, -0.36)
+=== Assets/Models/Track/Track_Corner.fbx (Track_Corner) ===
+Vertex Count: 511, SubMeshCount: 2
+  SubMesh 0: UV [0,000, 0,000] to [0,000, 0,000] | Verts [-0,500, 0,000, -0,500] to [0,500, 0,323, 0,500]
+    UV.x min (0,000) at Pos (0.50, 0.32, -0.41) | UV.x max (0,000) at Pos (0.50, 0.32, -0.41)
+  SubMesh 1: UV [0,000, 0,000] to [0,750, 1,000] | Verts [-0,363, 0,323, -0,500] to [0,500, 0,323, 0,363]
+    UV.x min (0,000) at Pos (0.50, 0.32, 0.27) | UV.x max (0,750) at Pos (0.27, 0.32, -0.50)

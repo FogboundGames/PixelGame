@@ -7,7 +7,7 @@ using UnityEngine;
 ///
 /// Material setup (URP/Lit or Unlit):
 ///   Base Map  = Track_Chevron.png
-///   Tiling    = (4, 1)      <- 4 chevrons per straight tile, 3 through a corner
+///   Tiling    = (1, 1)      <- 1 clean chevron per straight tile, well-spaced and eye-friendly
 ///   Offset    = (0, 0)      <- driven by this script
 /// </summary>
 public class TrackFlow : MonoBehaviour
@@ -15,8 +15,8 @@ public class TrackFlow : MonoBehaviour
     [Tooltip("The material used by the dark channel of the track tiles.")]
     public Material trackMaterial;
 
-    [Tooltip("UV units per second. Tiling is 4, so 0.25 means one chevron per second. 0.90 gives a lively, snappy flow.")]
-    public float speed = 0.90f;
+    [Tooltip("UV units per second. With Tiling=1, 0.65 gives a smooth, calm and aesthetic flow.")]
+    public float speed = 0.65f;
 
     [Tooltip("Flow against the tiles' local +X instead of along it.")]
     public bool reverse = true;
