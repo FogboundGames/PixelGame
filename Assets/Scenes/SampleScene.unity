@@ -7589,8 +7589,8 @@ Transform:
   m_GameObject: {fileID: 198810001}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.044388995, y: -2.7714639, z: -0.00000018635832}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: -0.0392, y: -3.24, z: -0.00000018635832}
+  m_LocalScale: {x: 1.0293111, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 718456860}
@@ -7664,15 +7664,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae2a88843aae27e4d89d595f411657b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_ShadowColor: {r: 0.012, g: 0.022, b: 0.058, a: 0.85}
-  m_Intensity: 1
+  m_ShadowColor: {r: 0.07008722, g: 0.10209372, b: 0.1981132, a: 0.85}
+  m_Intensity: 0.262
   m_ShadowSpread: 0.38
   m_InnerOverlap: 0.18
   m_ShadowOffset: {x: 0, y: -0.07}
   m_ZOffset: 0.02
-  m_FalloffPower: 1.5
-  m_RadialSteps: 8
-  m_CornerSegments: 12
+  m_FalloffPower: 3.5
+  m_RadialSteps: 10
+  m_CornerSegments: 10
   m_LeftX: -2.93652
   m_RightX: 2.9461803
   m_BottomY: 0.045184135
@@ -20327,8 +20327,8 @@ Transform:
   m_GameObject: {fileID: 620534100}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.15922, y: 1780, z: 393.01807}
-  m_LocalScale: {x: 360.4631, y: 375.1685, z: 327.51508}
+  m_LocalPosition: {x: 0, y: 1778.1272, z: 393.01807}
+  m_LocalScale: {x: 327.51508, y: 327.51508, z: 327.51508}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1215094448}
@@ -22031,34 +22031,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 658683059}
   m_PrefabAsset: {fileID: 0}
---- !u!83 &659808775
-AudioClip:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: ProceduralVoxelPop
-  m_LoadType: 0
-  m_Channels: 1
-  m_Frequency: 44100
-  m_BitsPerSample: 32
-  m_Length: 0
-  m_IsTrackerFormat: 0
-  m_Ambisonic: 0
-  m_SubsoundIndex: 0
-  m_PreloadAudioData: 1
-  m_LoadInBackground: 0
-  m_Legacy3D: 0
-  m_Resource:
-    m_Source: 
-    m_Offset: 0
-    m_Size: 0
-  m_CompressionFormat: 0
-  m_EditorResource:
-    m_Source: 
-    m_Offset: 0
-    m_Size: 0
-  m_EditorCompressionFormat: 0
 --- !u!1001 &661533244
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -52267,7 +52239,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 659808775}
+  m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1.1789732

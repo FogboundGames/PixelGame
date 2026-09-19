@@ -15,21 +15,21 @@ namespace PixelGame
     public class TrackFakeShadow : MonoBehaviour
     {
         [Header("Gölge Rengi ve Opaklığı")]
-        [SerializeField] private Color m_ShadowColor = new Color(0.012f, 0.022f, 0.058f, 0.85f);
+        [SerializeField] private Color m_ShadowColor = new Color(0.002f, 0.004f, 0.012f, 0.95f);
         [Range(0f, 1f)]
         [SerializeField] private float m_Intensity = 1f;
 
         [Header("Gölge Boyutları (World Units)")]
         [Tooltip("Rayın dış kenarından dışarıya doğru yayılma mesafesi")]
         [Min(0.05f)]
-        [SerializeField] private float m_ShadowSpread = 0.38f;
+        [SerializeField] private float m_ShadowSpread = 0.55f;
 
         [Tooltip("Ray ile gölge arasında boşluk kalmaması için rayın altına giren pay")]
         [Min(0f)]
-        [SerializeField] private float m_InnerOverlap = 0.18f;
+        [SerializeField] private float m_InnerOverlap = 0.22f;
 
         [Tooltip("Işık açısından kaynaklanan 2.5D derinlik ofseti (X, Y)")]
-        [SerializeField] private Vector2 m_ShadowOffset = new Vector2(0f, -0.07f);
+        [SerializeField] private Vector2 m_ShadowOffset = new Vector2(0f, -0.10f);
 
         [Tooltip("Rayın arkasında kalması için Z ofseti (Camera -Z'de olduğu için pozitif Z arkadadır)")]
         [SerializeField] private float m_ZOffset = 0.02f;
@@ -37,15 +37,15 @@ namespace PixelGame
         [Header("Yumuşaklık ve Kalite")]
         [Tooltip("Gölgenin dışarı doğru sönümlenme eğrisi (1: Doğrusal, 1.5-2.0: Yumuşak Gauss benzeri)")]
         [Range(0.5f, 3.5f)]
-        [SerializeField] private float m_FalloffPower = 1.5f;
+        [SerializeField] private float m_FalloffPower = 1.65f;
 
         [Tooltip("Gölge degrade geçişindeki eşmerkezli halka sayısı")]
         [Range(3, 16)]
-        [SerializeField] private int m_RadialSteps = 8;
+        [SerializeField] private int m_RadialSteps = 10;
 
         [Tooltip("Köşe yaylarının yuvarlaklık kalitesi (segment sayısı)")]
         [Range(4, 24)]
-        [SerializeField] private int m_CornerSegments = 12;
+        [SerializeField] private int m_CornerSegments = 16;
 
         [Header("Ray Referans Boyutları (Otomatik Güncellenir)")]
         [SerializeField] private float m_LeftX = -2.7126f;

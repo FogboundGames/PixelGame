@@ -48,6 +48,13 @@ namespace PixelGame.Editor
 
                 try
                 {
+                    TrackFakeShadow shadow = TrackFakeShadow.EnsureShadow(null);
+                    if (shadow != null)
+                    {
+                        shadow.SyncWithSceneRails();
+                        shadow.RebuildMesh();
+                    }
+
                     cam.targetTexture = rt;
                     cam.Render();
 
@@ -79,4 +86,4 @@ namespace PixelGame.Editor
         }
     }
 }
-// trigger 09/20/2026 00:07:30
+// trigger 09/20/2026 00:11:15
