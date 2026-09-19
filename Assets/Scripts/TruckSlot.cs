@@ -212,8 +212,25 @@ namespace PixelGame
 
             if (TryGetLocalBounds(model, out Bounds bounds) && bounds.size.x > 0.0001f)
             {
-                float target = rect.rect.width * widthFill;
-                model.localScale *= target / bounds.size.x;
+                // Model slotun İÇİNE sığmalı: hem genişlik hem yükseklik sınırlar.
+                //
+                // Eskiden yalnızca genişliğe oturtuluyordu. Kare slotlarda bu farkedilmiyordu
+                // ama alçak slotlarda uzun modeller taşıyordu: şişe (dünya boyutu ~0.81 x 1.23)
+                // 340x340 havuz yerine sığarken 340x295'lik slot sırasında kutudan çok
+                // büyük görünüyordu. İki eksenden hangisi daha kısıtlayıcıysa o belirler.
+                float scale = (rect.rect.width * widthFill) / bounds.size.x;
+
+                if (bounds.size.y > 0.0001f)
+                {
+                    // Yükseklikte widthFill marjı UYGULANMAZ: genişlikteki pay bilinçli
+                    // bir kenar boşluğu, yükseklik ise yalnızca "kutudan taşma" sınırı.
+                    // İkisine birden pay verilince uzun modeller gereksiz yere küçülüyor
+                    // ve slotun içinde boşluk kalıyordu.
+                    float heightLimited = rect.rect.height / bounds.size.y;
+                    scale = Mathf.Min(scale, heightLimited);
+                }
+
+                model.localScale *= scale;
             }
 
             if (!TryGetLocalBounds(model, out bounds)) return;

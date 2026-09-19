@@ -267,7 +267,16 @@ namespace PixelGame
                 if (target is MeshRenderer mr)
                 {
                     MeshFilter mf = mr.GetComponent<MeshFilter>();
-                    if (mf != null && mf.sharedMesh != null && mf.sharedMesh.uv.Length == 0)
+                    Mesh mesh = mf != null ? mf.sharedMesh : null;
+
+                    // mesh.uv okumak modelin import ayarlarında Read/Write açık olmasını
+                    // ister; kapalıysa Unity her çağrıda hata basar ve boş dizi döner.
+                    // isReadable ise mesh okunabilir olmasa da sorgulanabilir, bu yüzden
+                    // uv'ye dokunmadan önce onu kontrol ediyoruz.
+                    //
+                    // Okunamayan bir mesh'te UV paleti zaten kullanılamaz (palet dokusu
+                    // UV'ye göre örneklenir), dolayısıyla doğrudan renk yolu doğru seçim.
+                    if (mesh != null && (!mesh.isReadable || mesh.uv.Length == 0))
                     {
                         isDirectColorModel = true;
                         break;
@@ -291,36 +300,62 @@ namespace PixelGame
             }
         }
 
+        /// <summary>
+        /// UV paleti kullanmayan modeller (şişe gibi) için materyal rengini doğrudan uygular.
+        ///
+        /// İki şeye dikkat:
+        /// 1) Küplerle aynı toon shader kullanılır. Eskiden burada URP/Lit sabitti ve
+        ///    şişeler, üzerinde uğraşılan karikatür görünümün (ramp, gölge tonu, specular,
+        ///    matcap) tamamen dışında, düz PBR olarak kalıyordu.
+        /// 2) Materyaller renge göre önbelleğe alınır. Eskiden her çağrıda yeni Material
+        ///    üretiliyordu; Apply() vagon başına en az üç kez çağrıldığı için (AssignTruck,
+        ///    ResetCargo, ApplyTheme) her doğumda renderer başına 6 materyal sızıyor ve
+        ///    batch'lenme imkânsız hâle geliyordu.
+        /// </summary>
         private void ApplyDirectColors()
         {
-            Shader shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
             Color bodyColor = m_Cabin;
             Color innerColor = new Color(0.95f, 0.90f, 0.75f, 1f);
+
+            Material body = GetOrCreateDirectMaterial(bodyColor, 0.45f);
+            Material inner = GetOrCreateDirectMaterial(innerColor, 0.30f);
 
             foreach (Renderer target in m_Renderers)
             {
                 if (target == null) continue;
+
                 Material[] mats = target.sharedMaterials;
-                if (mats == null || mats.Length == 0) mats = new Material[2];
-                else if (mats.Length == 1) mats = new Material[] { mats[0], mats[0] };
+                if (mats == null || mats.Length == 0) mats = new Material[1];
 
-                Material m0 = new Material(shader) { name = $"Mat_Bottle_{ColorUtility.ToHtmlStringRGB(bodyColor)}" };
-                if (m0.HasProperty(s_BaseColorId)) m0.SetColor(s_BaseColorId, bodyColor);
-                if (m0.HasProperty(s_ColorId)) m0.SetColor(s_ColorId, bodyColor);
-                if (m0.HasProperty("_Smoothness")) m0.SetFloat("_Smoothness", 0.45f);
-                mats[0] = m0;
-
-                if (mats.Length > 1)
-                {
-                    Material m1 = new Material(shader) { name = "Mat_Bottle_Inner" };
-                    if (m1.HasProperty(s_BaseColorId)) m1.SetColor(s_BaseColorId, innerColor);
-                    if (m1.HasProperty(s_ColorId)) m1.SetColor(s_ColorId, innerColor);
-                    if (m1.HasProperty("_Smoothness")) m1.SetFloat("_Smoothness", 0.3f);
-                    mats[1] = m1;
-                }
+                mats[0] = body;
+                if (mats.Length > 1) mats[1] = inner;
 
                 target.sharedMaterials = mats;
             }
+        }
+
+        /// <summary>Renge göre önbelleğe alınmış düz renk materyali döndürür.</summary>
+        private Material GetOrCreateDirectMaterial(Color color, float smoothness)
+        {
+            string key = $"direct_{ColorUtility.ToHtmlStringRGBA(color)}_{smoothness:F2}_{(m_UseCartoonShader ? "toon" : "lit")}";
+
+            if (s_MaterialsByScheme.TryGetValue(key, out Material cached) && cached != null)
+            {
+                return cached;
+            }
+
+            Shader shader = null;
+            if (m_UseCartoonShader) shader = CartoonShader.Get();
+            if (shader == null) shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null) shader = Shader.Find("Standard");
+
+            Material material = new Material(shader) { name = $"Mat_Direct_{ColorUtility.ToHtmlStringRGB(color)}" };
+            if (material.HasProperty(s_BaseColorId)) material.SetColor(s_BaseColorId, color);
+            if (material.HasProperty(s_ColorId)) material.SetColor(s_ColorId, color);
+            if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", smoothness);
+
+            s_MaterialsByScheme[key] = material;
+            return material;
         }
 
         private void CollectRenderers()

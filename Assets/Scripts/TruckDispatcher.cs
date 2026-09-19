@@ -52,6 +52,22 @@ namespace PixelGame
         [Tooltip("Ray döngüsünün 4 köşesindeki yuvarlama yarıçapı.")]
         [SerializeField] private float m_LoopCornerRadius = 0.45f;
 
+        [Tooltip("Vagonun tabanı ray yolunun DIŞ kenarına otursun. Yolun genişliği sahnedeki " +
+                 "ray parçasından ölçülür; ray modeli veya ölçeği değişse de doğru kalır. " +
+                 "Kapalıysa vagon hattın tam ortasında durur.")]
+        [SerializeField] private bool m_WagonOnTrackOuterEdge = true;
+
+        [Tooltip("Dış kenara EK ince ayar (dünya birimi). Pozitif = daha dışarı, negatif = içeri. " +
+                 "Raylar bundan etkilenmez, yalnızca vagonlar kayar.")]
+        [SerializeField] private float m_WagonOutwardOffset = 0.1f;
+
+        /// <summary>Ray yolunun yarı genişliği. Raylar kurulurken sahneden ölçülür.</summary>
+        private float m_TrackHalfWidth;
+
+        /// <summary>Vagonun hattın merkezinden dışarı doğru toplam kayması.</summary>
+        private float WagonOutwardDistance =>
+            (m_WagonOnTrackOuterEdge ? m_TrackHalfWidth : 0f) + m_WagonOutwardOffset;
+
         [Tooltip("Vagonların yerdeki parçaları vakumla çekebileceği maksimum mesafe (dünya birimi).")]
         [SerializeField] private float m_VacuumRadius = 2.4f;
 
@@ -83,6 +99,24 @@ namespace PixelGame
         [Range(0.05f, 0.50f)]
         [SerializeField] private float m_SweepInterval = 0.16f;
         public float SweepInterval { get => m_SweepInterval; set => m_SweepInterval = value; }
+
+        [Tooltip("Vagon hiçbir şey süpüremeden bu kadar saniye geçerse menzili " +
+                 "m_SweepRadius'a kadar açar. Böylece normalde yalnızca yanından geçtiği " +
+                 "küpleri alır (m_SweepNearRadius), ama tahtanın ortasında sıkışan küpler " +
+                 "de er geç toplanır ve bölüm kilitlenmez.")]
+        [Min(0f)]
+        [SerializeField] private float m_SweepReachDelay = 1.2f;
+
+        [Tooltip("Normal süpürme menzili (dünya birimi). Küp hücre boyutu ~0.25, yani 0.9 " +
+                 "yaklaşık 3-4 hücre eder. Vagonun 'yanından geçerken süpürdüğü' hissi bu " +
+                 "değerden gelir. m_SweepRadius yalnızca uzun süre hedef bulunamazsa devreye girer.")]
+        [Min(0.1f)]
+        [SerializeField] private float m_SweepNearRadius = 0.9f;
+
+        [Tooltip("Menzilde uygun küp bulunamadığında bir sonraki taramaya kadar beklenen süre (saniye). " +
+                 "Bu olmadan hedefsiz vagonlar her karede tüm küp dizisini yeniden tarıyordu.")]
+        [Min(0.01f)]
+        [SerializeField] private float m_SweepMissInterval = 0.05f;
 
         [Tooltip("Çerçeve etrafına 3D ray prefab'ı döşensin mi?")]
         [SerializeField] private bool m_ShowPerimeterRails = true;
@@ -267,6 +301,18 @@ namespace PixelGame
             public float NextSweepTime = 0f;
             public int PendingSweeps = 0;
             public int SweepComboCount = 0;
+
+            /// <summary>Bu vagonun en son küp süpürdüğü an. Menzil genişletme bunu kullanır.</summary>
+            public float LastSweepHitTime = 0f;
+
+            /// <summary>Döngüye girdiğinden beri kat ettiği toplam mesafe. Tur tamamlandı mı bundan anlaşılır.</summary>
+            public float TravelledOnLoop = 0f;
+
+            /// <summary>
+            /// Kapasitesi dolduğu (ya da toplayacak küp kalmadığı) için tur bitiminde
+            /// sahneden ayrılacak mı? Doluysa slota park etmez, yok olur.
+            /// </summary>
+            public bool LeaveAtLapEnd = false;
         }
 
         public class BoardShardGroup
@@ -775,6 +821,8 @@ namespace PixelGame
                 BuildLegacyRails(railsGroup.transform);
             }
 
+            MeasureTrackHalfWidth(railsGroup.transform);
+
             #if UNITY_EDITOR
             if (!Application.isPlaying)
             {
@@ -869,6 +917,42 @@ namespace PixelGame
             }
         }
 
+        /// <summary>
+        /// Ray yolunun yarı genişliğini sahnedeki parçadan ölçer.
+        ///
+        /// Alt kenarın ortasına en yakın parça kullanılır: hat orada +X yönünde
+        /// ilerlediği için yolun genişliği dünya Y eksenine denk gelir. Köşe
+        /// parçaları iki eksene birden yayıldığı için ölçümü bozar, o yüzden
+        /// merkeze yakınlıkla eleniyorlar.
+        ///
+        /// Elle sabit bir sayı girmek yerine ölçmenin sebebi: ray modeli, ölçeği
+        /// veya tema değiştiğinde vagonun yolun kenarında kalmaya devam etmesi.
+        /// </summary>
+        private void MeasureTrackHalfWidth(Transform railsGroup)
+        {
+            m_TrackHalfWidth = 0f;
+            if (railsGroup == null) return;
+
+            float bottomY = m_Loop.BottomY;
+            float centerX = m_Loop.Center.x;
+            float bestDist = float.MaxValue;
+            Renderer best = null;
+
+            foreach (Renderer r in railsGroup.GetComponentsInChildren<Renderer>())
+            {
+                if (r == null || !r.enabled) continue;
+
+                float d = Mathf.Abs(r.bounds.center.y - bottomY) + Mathf.Abs(r.bounds.center.x - centerX);
+                if (d < bestDist)
+                {
+                    bestDist = d;
+                    best = r;
+                }
+            }
+
+            if (best != null) m_TrackHalfWidth = best.bounds.extents.y;
+        }
+
         private void BuildLegacyRails(Transform railsGroup)
         {
             float trackStep = 0.35f;
@@ -892,10 +976,38 @@ namespace PixelGame
             }
         }
 
+        /// <summary>
+        /// Ray döngüsü üzerindeki bir noktayı döngünün dışına doğru kaydırır.
+        ///
+        /// Döngü saat yönünün tersine dolaşılıyor (alt kenar +X, sağ kenar +Y),
+        /// dolayısıyla dış normal teğetin XY düzleminde -90° döndürülmüş hâlidir:
+        /// alt kenarda teğet (1,0) iken dış yön (0,-1), sağ kenarda teğet (0,1)
+        /// iken dış yön (1,0) olur.
+        ///
+        /// Yalnızca vagonlara uygulanır; raylar hattın üzerinde kalır.
+        /// </summary>
+        private static Vector3 OffsetOutward(Vector3 position, Vector3 tangent, float amount)
+        {
+            if (Mathf.Abs(amount) < 0.0001f) return position;
+
+            Vector3 outward = new Vector3(tangent.y, -tangent.x, 0f);
+            if (outward.sqrMagnitude < 0.000001f) return position;
+
+            return position + outward.normalized * amount;
+        }
+
         private void CalibratePortalsAndAlignment()
         {
             bool isBottle = m_TruckPrefab != null && m_TruckPrefab.name.IndexOf("Bottle", System.StringComparison.OrdinalIgnoreCase) >= 0;
-            Vector3 defaultEuler = isBottle ? new Vector3(0f, 180f, 0f) : ((m_Slots != null && m_Slots.Style != null) ? m_Slots.Style.truckEuler : new Vector3(0f, -90f, -270f));
+            // Vagon duruşu TEK kaynaktan gelir: slot stilinin truckEuler'ı.
+            //
+            // Eskiden şişe modeli için burada sabit bir (0,180,0) vardı ve stildeki değeri
+            // eziyordu. Bu yüzden Inspector'dan duruşu değiştirmek havuzdaki şişelere
+            // yansıyor ama ray üzerindeki vagona yansımıyordu; ikisi farklı duruyordu.
+            // Stil yoksa model tipine göre makul bir varsayılana düşülür.
+            Vector3 defaultEuler = (m_Slots != null && m_Slots.Style != null)
+                ? m_Slots.Style.truckEuler
+                : (isBottle ? new Vector3(0f, 90f, 0f) : new Vector3(0f, -90f, -270f));
             m_WagonRotation = Quaternion.Euler(defaultEuler);
 
             if (isBottle)
@@ -1072,31 +1184,24 @@ namespace PixelGame
 
             if (m_PerimeterTrain)
             {
-                float entryDistance = m_Loop.StraightBottom * 0.5f;
-                if (m_MovingWagons.Count > 0)
-                {
-                    float maxGap = 0f;
-                    float bestGapMid = entryDistance;
-
-                    List<float> sorted = new List<float>();
-                    for (int i = 0; i < m_MovingWagons.Count; i++)
-                    {
-                        sorted.Add(m_MovingWagons[i].DistanceOnLoop);
-                    }
-                    sorted.Sort();
-
-                    for (int i = 0; i < sorted.Count; i++)
-                    {
-                        float next = (i + 1 < sorted.Count) ? sorted[i + 1] : (sorted[0] + m_Loop.TotalPerimeter);
-                        float gap = next - sorted[i];
-                        if (gap > maxGap)
-                        {
-                            maxGap = gap;
-                            bestGapMid = Mathf.Repeat(sorted[i] + gap * 0.5f, m_Loop.TotalPerimeter);
-                        }
-                    }
-                    entryDistance = bestGapMid;
-                }
+                // Tüm şişeler SOL ALT KÖŞEDEN girer.
+                //
+                // Döngü parametresinde 0 noktası, sol alt köşe yayının bittiği ve alt
+                // kenarın başladığı yerdir; yani köşe slotunun tam üstü. Eskiden burada
+                // "en büyük boşluğun ortası" hesaplanıyordu ve vagonlar hattın rastgele
+                // yerlerinden belirip dağınık duruyorlardı. Araya girme sorunu zaten
+                // UpdateMovingTrain içindeki takip mesafesi kontrolüyle çözülüyor.
+                // Sol alt köşe yayı 180°->270° arasında ilerler ve merkezi
+                // (LeftX + r, BottomY + r)'dir. Yayın ORTASI (225°) köşenin köşegen
+                // noktasıdır; köşe slotunun merkezine denk gelen yer burasıdır.
+                //
+                // Daha önce 0f kullanılıyordu, ama 0 noktası yayın BİTTİĞİ yer, yani
+                // alt kenarın başlangıcı: köşenin bir yarıçap kadar sağı. Vagonlar bu
+                // yüzden slotun tam üstünde değil biraz sağında beliriyor ve turu da
+                // orada bitiriyordu.
+                float entryDistance = Mathf.Repeat(
+                    m_Loop.TotalPerimeter - m_Loop.CornerBottomLeft * 0.5f,
+                    m_Loop.TotalPerimeter);
 
                 m_Loop.Evaluate(entryDistance, out Vector3 targetPos, out Vector3 tangent, out Quaternion targetRot, m_WagonRotation);
 
@@ -1120,7 +1225,9 @@ namespace PixelGame
                 truck.DOKill();
                 truck.DORotateQuaternion(targetRot, 0.35f).SetEase(Ease.OutQuad);
                 truck.DOScale(m_WagonScale, 0.35f);
-                truck.DOMove(targetPos, 0.35f).SetEase(Ease.OutQuad).OnComplete(() =>
+                // Giriş de aynı dış ofsetle hizalanır; yoksa vagon rayın üstüne konup
+                // ilk karede yana sıçrardı.
+                truck.DOMove(OffsetOutward(targetPos, tangent, WagonOutwardDistance), 0.35f).SetEase(Ease.OutQuad).OnComplete(() =>
                 {
                     if (truck != null)
                     {
@@ -1212,6 +1319,12 @@ namespace PixelGame
             float baseStep = m_PerimeterSpeed * Time.deltaTime;
             float minSpacing = m_Loop.TotalPerimeter / (m_MaxTrackWagons + 1);
 
+            // Turunu bitirenler burada toplanır, park işlemi döngüden SONRA başlatılır.
+            // WagonParkIntoPoolRoutine ilk yield'e kadar senkron çalışıp
+            // m_MovingWagons.Remove çağırdığı için, döngü içinde başlatmak listeyi
+            // üzerinde gezerken değiştirir ve bir vagonu o karede atlatırdı.
+            List<MovingWagon> lapFinished = null;
+
             for (int i = 0; i < m_MovingWagons.Count; i++)
             {
                 MovingWagon wagon = m_MovingWagons[i];
@@ -1233,9 +1346,20 @@ namespace PixelGame
                 }
 
                 wagon.DistanceOnLoop = Mathf.Repeat(wagon.DistanceOnLoop + moveStep, m_Loop.TotalPerimeter);
+                wagon.TravelledOnLoop += moveStep;
+
+                // Bir tam tur tamamlandı mı? Giriş noktası sol alt köşe olduğu için
+                // tam tur, vagonun o köşe slotuna geri dönmesi demektir. Dönüş bitince
+                // vagon hattan ayrılıp aşağıdaki kare slotlardan birine yerleşir.
+                if (!wagon.IsDeparting && wagon.TravelledOnLoop >= m_Loop.TotalPerimeter)
+                {
+                    if (lapFinished == null) lapFinished = new List<MovingWagon>();
+                    lapFinished.Add(wagon);
+                    continue;
+                }
                 m_Loop.Evaluate(wagon.DistanceOnLoop, out Vector3 pos, out Vector3 tangent, out Quaternion rot, m_WagonRotation);
 
-                wagon.Transform.position = pos;
+                wagon.Transform.position = OffsetOutward(pos, tangent, WagonOutwardDistance);
                 wagon.Transform.rotation = rot;
 
                 if (wagon.Mover != null)
@@ -1245,6 +1369,24 @@ namespace PixelGame
                 if (wagon.Animator != null)
                 {
                     wagon.Animator.speed = (moveStep > 0.001f) ? 1f : 0f;
+                }
+            }
+
+            if (lapFinished != null)
+            {
+                for (int k = 0; k < lapFinished.Count; k++)
+                {
+                    MovingWagon done = lapFinished[k];
+
+                    // Sayısı biten (kapasitesi dolan ya da toplayacak küpü kalmayan)
+                    // vagon sahneden ayrılır. Sayısı bitmeyen ise aşağıdaki kare slota
+                    // park eder ve tekrar kullanılabilir.
+                    bool exhausted = done.LeaveAtLapEnd ||
+                                     (done.Cargo != null && done.Cargo.IsFull);
+
+                    StartCoroutine(exhausted
+                        ? WagonDepartFromLoopRoutine(done)
+                        : WagonParkIntoPoolRoutine(done));
                 }
             }
         }
@@ -1287,6 +1429,21 @@ namespace PixelGame
                 Color wagonColor = wagon.Cargo.CargoColor;
                 Vector3 wagonPos = wagon.Transform.position;
 
+                // Menzil iki kademeli.
+                //
+                // Tek bir geniş yarıçap (2.2) hem görünüşü hem bitirilebilirliği aynı anda
+                // çözmek zorundaydı ve bu ikisi birbirine zıt: vagonlar çerçevenin dışındaki
+                // döngüde dolaşıyor, tahtanın merkezi en yakın ray noktasından ~2 birim uzakta.
+                // Menzil dar olursa ortadaki küplere hiç ulaşılamaz ve bölüm kilitlenir;
+                // geniş olursa vagon sürekli tahtanın karşı ucundan küp çekiyormuş gibi görünür.
+                //
+                // Çözüm ikisini ayırmak: normalde yalnızca yanından geçtiği küpleri alır,
+                // bir süredir hiçbir şey süpüremediyse menzilini geniş değere açar.
+                bool starving = (Time.time - wagon.LastSweepHitTime) >= m_SweepReachDelay;
+                float effectiveRadius = starving
+                    ? m_SweepRadius
+                    : Mathf.Min(m_SweepNearRadius, m_SweepRadius);
+
                 PixelCube bestTarget = null;
                 float bestDist = float.MaxValue;
                 int minDepth = int.MaxValue;
@@ -1306,7 +1463,7 @@ namespace PixelGame
                     if (s_ReservedCubes.Contains(cube)) continue;
 
                     float dist = Vector3.Distance(wagonPos, cube.transform.position);
-                    if (dist > m_SweepRadius) continue;
+                    if (dist > effectiveRadius) continue;
 
                     if (depthMap == null)
                     {
@@ -1315,7 +1472,9 @@ namespace PixelGame
 
                     int depth = (depthMap != null && depthMap.TryGetValue(cube, out int d)) ? d : 0;
 
-                    // Öncelik: 1) Dış katman (daha düşük derinlik), 2) Vagona en yakın olan
+                    // Öncelik: 1) Dış katman (daha düşük derinlik), 2) Vagona en yakın olan.
+                    // Derinliğin baskın olması doğrudur: gömülü bir küpü çekmek, üstündeki
+                    // küplerin içinden geçmek gibi görünürdü.
                     if (depth < minDepth || (depth == minDepth && dist < bestDist))
                     {
                         minDepth = depth;
@@ -1327,28 +1486,39 @@ namespace PixelGame
                 if (bestTarget != null)
                 {
                     wagon.NextSweepTime = Time.time + m_SweepInterval;
+                    wagon.LastSweepHitTime = Time.time;
                     wagon.PendingSweeps++;
                     wagon.SweepComboCount++;
                     s_ReservedCubes.Add(bestTarget);
 
                     SweepCubeIntoWagon(bestTarget, wagon);
                 }
-                else if (matchingRemainingOnBoard == 0 && wagon.PendingSweeps == 0)
+                else
                 {
-                    // Tabloda bu renkten hiç küp kalmadıysa ve yerdeki parçalar da bittiyse
-                    bool hasBoardShards = false;
-                    for (int s = 0; s < m_BoardShards.Count; s++)
-                    {
-                        if (m_BoardShards[s] != null && TruckCargo.ColorDistance(m_BoardShards[s].Color, wagonColor) <= m_ColorThreshold)
-                        {
-                            hasBoardShards = true;
-                            break;
-                        }
-                    }
+                    // Menzilde hedef yok. Burada da bekleme kurulmalı: aksi halde uygun
+                    // küpü olmayan her vagon HER KAREDE tüm küp dizisini yeniden tarıyordu
+                    // (mesafe + iki renk karşılaştırması + HashSet araması). 16x16 tahtada
+                    // 8 vagonla kare başına ~2000 tur demekti.
+                    wagon.NextSweepTime = Time.time + m_SweepMissInterval;
 
-                    if (!hasBoardShards && wagon.Cargo.Load > 0)
+                    if (matchingRemainingOnBoard == 0 && wagon.PendingSweeps == 0)
                     {
-                        StartCoroutine(WagonDepartFromLoopRoutine(wagon));
+                        // Tabloda bu renkten hiç küp kalmadıysa ve yerdeki parçalar da bittiyse
+                        bool hasBoardShards = false;
+                        for (int s = 0; s < m_BoardShards.Count; s++)
+                        {
+                            if (m_BoardShards[s] != null && TruckCargo.ColorDistance(m_BoardShards[s].Color, wagonColor) <= m_ColorThreshold)
+                            {
+                                hasBoardShards = true;
+                                break;
+                            }
+                        }
+
+                        if (!hasBoardShards && wagon.Cargo.Load > 0)
+                        {
+                            // Tur ortasında kaybolmaz; köşeye dönünce ayrılır.
+                            wagon.LeaveAtLapEnd = true;
+                        }
                     }
                 }
             }
@@ -1448,7 +1618,7 @@ namespace PixelGame
 
                                     if (targetCargo.IsFull)
                                     {
-                                        StartCoroutine(WagonDepartFromLoopRoutine(wagon));
+                                        wagon.LeaveAtLapEnd = true;
                                     }
                                 }
                             }
@@ -1542,7 +1712,7 @@ namespace PixelGame
 
                                 if (targetCargo != null && targetCargo.IsFull)
                                 {
-                                    StartCoroutine(WagonDepartFromLoopRoutine(wagon));
+                                    wagon.LeaveAtLapEnd = true;
                                 }
                             }
                         }
@@ -1551,6 +1721,88 @@ namespace PixelGame
 
                 yield return new WaitForSeconds(0.012f);
             }
+        }
+
+        /// <summary>
+        /// Turunu tamamlayan vagonu hattan alıp aşağıdaki havuz slotlarından birine yerleştirir.
+        ///
+        /// Vagon yok edilmez: aynı şişe, taşıdığı yükle birlikte kare slota park eder.
+        /// Boş slot kalmadıysa eski davranışa (sahneden çıkış) düşülür.
+        /// </summary>
+        /// <summary>
+        /// Turunu bitiren vagonun oturacağı ilk boş kare slotu bulur.
+        /// Önce hattın hemen altındaki slot sırasına (m_Slots), orada yer yoksa
+        /// bekleme havuzuna (m_Pool) bakılır.
+        /// </summary>
+        private TruckSlot FindFirstEmptySlot()
+        {
+            if (m_Slots != null && m_Slots.Slots != null)
+            {
+                for (int i = 0; i < m_Slots.Slots.Count; i++)
+                {
+                    TruckSlot s = m_Slots.Slots[i];
+                    if (s != null && s.IsEmpty) return s;
+                }
+            }
+
+            return m_Pool != null ? m_Pool.FindFirstEmpty() : null;
+        }
+
+        private IEnumerator WagonParkIntoPoolRoutine(MovingWagon wagon)
+        {
+            if (wagon == null || wagon.IsDeparting) yield break;
+            wagon.IsDeparting = true;
+
+            // Hedef: ray hattının altındaki KARE SLOT SIRASI (m_Slots / "SlotRow").
+            //
+            // Burada önce m_Pool kullanılıyordu, ama havuz hattın çok daha altındaki
+            // 4x2'lik bekleme ızgarası (y ~ -3.0 / -4.2). Oyuncunun gördüğü ve turunu
+            // bitiren şişenin oturmasını beklediği yer, hattın hemen altındaki 5'li
+            // kare sıra (y ~ -2.2). Havuz yalnızca yedek olarak kullanılır.
+            TruckSlot place = FindFirstEmptySlot();
+            Transform truck = wagon.Transform;
+
+            if (place == null || truck == null)
+            {
+                // Yer yoksa davranışı değiştirmeden eski çıkışa bırak
+                wagon.IsDeparting = false;
+                yield return WagonDepartFromLoopRoutine(wagon);
+                yield break;
+            }
+
+            m_MovingWagons.Remove(wagon);
+            UpdateTrackCornerCounter();
+
+            // Hedef duruşu öğrenmek için önce slota bağla, sonra dünya pozunu geri koyup
+            // oraya doğru tween'le. Böylece anında ışınlanma yerine yumuşak bir geçiş olur.
+            Vector3 fromWorldPos = truck.position;
+            Quaternion fromWorldRot = truck.rotation;
+            Vector3 fromWorldScale = truck.lossyScale;
+
+            truck.DOKill();
+            place.AssignTruck(truck, wagon.Cargo != null ? wagon.Cargo.CargoColor : Color.white);
+
+            Vector3 toLocalPos = truck.localPosition;
+            Quaternion toLocalRot = truck.localRotation;
+            Vector3 toLocalScale = truck.localScale;
+
+            truck.position = fromWorldPos;
+            truck.rotation = fromWorldRot;
+
+            Vector3 parentScale = truck.parent != null ? truck.parent.lossyScale : Vector3.one;
+            truck.localScale = new Vector3(
+                fromWorldScale.x / Mathf.Max(0.0001f, parentScale.x),
+                fromWorldScale.y / Mathf.Max(0.0001f, parentScale.y),
+                fromWorldScale.z / Mathf.Max(0.0001f, parentScale.z));
+
+            const float k_ParkDuration = 0.45f;
+            truck.DOLocalMove(toLocalPos, k_ParkDuration).SetEase(Ease.InOutQuad);
+            truck.DOLocalRotateQuaternion(toLocalRot, k_ParkDuration).SetEase(Ease.InOutQuad);
+            truck.DOScale(toLocalScale, k_ParkDuration).SetEase(Ease.InOutQuad);
+
+            yield return new WaitForSeconds(k_ParkDuration);
+
+            if (m_Pool != null) m_Pool.UpdateRowVisuals();
         }
 
         private IEnumerator WagonDepartFromLoopRoutine(MovingWagon wagon)
@@ -2329,6 +2581,12 @@ namespace PixelGame
             }
 
             if (m_Pool != null) m_Pool.RebuildPlaces(level.PoolColumns, level.PoolRows);
+
+            // Slot sırası yeniden KURULMAZ (park etmiş vagonları düşürmemek için),
+            // ama duruşu havuzla aynı stilden tazelenir. Aksi halde slotlar sahnede
+            // serialize edilmiş eski truckEuler ile kalıyor ve park eden vagon
+            // havuzdakinden farklı açıda/ölçekte duruyordu.
+            if (m_Slots != null) m_Slots.SyncStyleToSlots();
         }
 
         private PixelLevelData GetLevel()
@@ -2551,8 +2809,16 @@ namespace PixelGame
         {
             if (place == null || place.IsEmpty) return false;
 
-            // 🔒 En ön sıra kuralı: Sadece en ön sıradaki (Row 0) vagonlar slota/raya gönderilebilir!
-            if (m_Pool != null && !m_Pool.IsFrontRowPlace(place))
+            // 🔒 En ön sıra kuralı: havuzdaki vagonlardan yalnızca en ön sıradakiler (Row 0)
+            // raya gönderilebilir. Arkadakiler önce öne gelmeli.
+            //
+            // Bu kural YALNIZCA havuz için geçerlidir. IsFrontRowPlace, verilen yer havuz
+            // listesinde değilse false döndürüyor; turunu tamamlayıp slot sırasına park eden
+            // vagonlar havuzda olmadığı için "arka sıra" sayılıp kilitleniyor ve tıklandığında
+            // raya dönmüyorlardı. Artık kural yalnızca gerçekten havuza ait yerlere uygulanır.
+            bool isPoolPlace = m_Pool != null && m_Pool.Places != null && m_Pool.Places.Contains(place);
+
+            if (isPoolPlace && !m_Pool.IsFrontRowPlace(place))
             {
                 if (place.Truck != null)
                 {

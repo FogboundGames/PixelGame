@@ -39,18 +39,24 @@ namespace PixelGame
         [Tooltip("Otomatik olarak vagonun 3D sınırlarını (bounds) bulup modelin tam ortasına yerleştir")]
         [SerializeField] private bool m_AutoCenterOnMesh = true;
 
-        [Tooltip("Metnin vagon modeline göre büyüklük oranı (varsayılan: 0.85)")]
-        [Range(0.4f, 1.6f)]
-        [SerializeField] private float m_SizeRatio = 0.85f;
+        [Tooltip("Metnin vagon modeline göre büyüklük oranı. 0.5 = model genişliğinin yarısı. " +
+                 "Rozetler çalışma anında AddComponent ile eklendiği için sahnedeki değil " +
+                 "BU varsayılan geçerlidir.")]
+        [Range(0.2f, 1.6f)]
+        [SerializeField] private float m_SizeRatio = 0.5f;
 
-        [Tooltip("Kamera bakış açısına göre vagon boşken ortalanması için yukarı kaldırma oranı (varsayılan: 0.18)")]
-        [Range(0f, 0.5f)]
-        [SerializeField] private float m_VerticalLiftRatio = 0.18f;
+        [Tooltip("Rozetin gövde merkezinden yukarı/aşağı kayması, gövde yüksekliğinin oranı olarak. " +
+                 "0 = tam gövdenin ortasında (etiket gibi). Negatif değer aşağı indirir. " +
+                 "Rozet çalışma anında eklendiği için sahnedeki değil BU varsayılan geçerlidir.")]
+        [Range(-0.5f, 0.5f)]
+        [SerializeField] private float m_VerticalLiftRatio = 0f;
 
         [Header("📦 Doluluk Dinamik Yükselmesi (Pile Float)")]
-        [Tooltip("Kasa doldukça metnin parçaların üstünde kalması için dinamik yükselme oranı (varsayılan: 0.28)")]
+        [Tooltip("Kasa doldukça rozetin yukarı kayma oranı. 0 = hiç kaymasın (şişe gibi kapalı " +
+                 "gövdeli modellerde istenen budur; aksi halde oynarken rozetin yeri sürekli değişir). " +
+                 "Açık kasalı vagonlarda metnin yığının üstünde kalması için yükseltilebilir.")]
         [Range(0f, 0.6f)]
-        [SerializeField] private float m_FillRiseRatio = 0.28f;
+        [SerializeField] private float m_FillRiseRatio = 0f;
 
         [Tooltip("Modelin merkezine eklenecek kamera uzayı ince ayar ofseti (X: sağ/sol, Y: yukarı/aşağı, Z: derinlik)")]
         [SerializeField] private Vector3 m_CenterOffset = Vector3.zero;
@@ -65,6 +71,25 @@ namespace PixelGame
 
         [Tooltip("Rozetin manuel ölçeği")]
         [SerializeField] private float m_ManualScale = 0.012f;
+
+        /// <summary>
+        /// Bu renderer vagonun gövdesi mi? Hem obje adına hem mesh adına bakar.
+        /// </summary>
+        private static bool IsBodyRenderer(Renderer r)
+        {
+            if (r == null) return false;
+
+            if (r.name.StartsWith("MineCart_Body") || r.name.StartsWith("Truck_Cargo")) return true;
+            if (r.name.IndexOf("Bottle", System.StringComparison.OrdinalIgnoreCase) >= 0) return true;
+
+            MeshFilter filter = r.GetComponent<MeshFilter>();
+            Mesh mesh = filter != null ? filter.sharedMesh : null;
+            if (mesh == null) return false;
+
+            return mesh.name.IndexOf("Body", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   mesh.name.IndexOf("Bottle", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   mesh.name.IndexOf("Cargo", System.StringComparison.OrdinalIgnoreCase) >= 0;
+        }
 
         public int CurrentCount => m_CurrentCount;
 
@@ -128,16 +153,19 @@ namespace PixelGame
                 return;
             }
 
-            bool isBottle = name.IndexOf("Bottle", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                            (transform.parent != null && transform.parent.name.IndexOf("Bottle", System.StringComparison.OrdinalIgnoreCase) >= 0);
-
-            if (isBottle)
-            {
-                m_Canvas.transform.localPosition = new Vector3(-0.04f, 0.45f, 0.45f);
-                m_Canvas.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
-                m_Canvas.transform.localScale = Vector3.one * 0.0022f;
-                return;
-            }
+            // Şişe için ayrı bir sabit yerleşim YOK: aşağıdaki sınır (bounds) tabanlı
+            // yol zaten şişeyi tanıyor (gövde rendererı eşleşmesinde "Bottle" da aranır).
+            //
+            // Eskiden burada modele bakmayan sabit bir blok vardı:
+            //   localPosition = (-0.04, 0.45, 0.45), localRotation = (0,180,0), scale = 0.0022
+            // Üç sorun çıkarıyordu:
+            //   1) Ölçek modelden türetilmediği için yazı modele göre çok büyük kalıyordu.
+            //   2) 0.45'lik kaldırma sabitti; modelin boyuna bağlı olmadığı için çok yukarıda duruyordu.
+            //   3) localRotation ataması, yukarıda kurulan kameraya dönük (billboard)
+            //      duruşu eziyordu ve ofset yerel eksende olduğu için vagonun Y dönüşü
+            //      değişince (180 -> 90) yazı yana kayıyordu.
+            // Aşağıdaki yol ölçeği modelin genişliğinden, kaldırmayı boyundan alır ve
+            // konumu dünya uzayında kurar; bu yüzden duruş açısından bağımsızdır.
 
             // Vagonun render sınırlarını hesapla (düşen parçacıklar ve canvas hariç)
             Renderer[] rends = GetComponentsInChildren<Renderer>();
@@ -152,7 +180,10 @@ namespace PixelGame
                 if (r.transform.IsChildOf(m_Canvas.transform)) continue;
                 if (r.name.StartsWith("CargoPiece") || r.name.StartsWith("Voxel")) continue;
 
-                if (r.name.StartsWith("MineCart_Body") || r.name.StartsWith("Truck_Cargo") || r.name.IndexOf("Bottle", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                // Gövde tespiti obje adına BAKAR ama mesh adına da bakmalı: prefab örneği
+                // "Truck_FFD93D_16" gibi yeniden adlandırılıyor, gövde bilgisi yalnızca
+                // mesh adında ("Bottle_Body") kalıyordu ve tespit ıskalanıyordu.
+                if (IsBodyRenderer(r))
                 {
                     bodyRenderer = r;
                 }
@@ -170,21 +201,28 @@ namespace PixelGame
 
             if (found && b.size.magnitude > 0.01f)
             {
-                float wagonSize = Mathf.Max(b.size.x, b.size.z);
+                // Rozet GÖVDEYE sabitlenir: hem konumu hem ölçeği gövde rendererından alınır.
+                //
+                // Eskiden ölçek tüm vagon sınırlarından (b), konum ise gövdeden geliyordu.
+                // Bu ikisi farklı şeylere bağlı olduğu için rozet modele göre kayabiliyordu.
+                // Gövde tek referans olunca rozet şişenin üstünde bir etiket gibi sabit durur.
+                Bounds anchor = bodyRenderer != null ? bodyRenderer.bounds : b;
 
-                // Modelin tam merkezi (gövde rendereri varsa gövdenin merkezi, yoksa tüm vagon sınırlarının merkezi)
-                Vector3 center = bodyRenderer != null ? bodyRenderer.bounds.center : b.center;
+                float wagonSize = Mathf.Max(anchor.size.x, anchor.size.z);
+                Vector3 center = anchor.center;
 
                 // Doluluk oranını TruckCargo'dan alıp pürüzsüzce takip et
                 if (m_Cargo == null) m_Cargo = GetComponent<TruckCargo>();
                 float targetFillRatio = m_Cargo != null ? m_Cargo.FillRatio : 0f;
                 m_CurrentFillRatio = Mathf.MoveTowards(m_CurrentFillRatio, targetFillRatio, Time.deltaTime * 3.5f);
 
-                // 1. Temel yukarı kaldırma (boşken haznenin tam ortası)
-                float baseLift = Mathf.Max(b.size.y, wagonSize * 0.65f) * m_VerticalLiftRatio;
+                // 1. Gövde merkezinden kayma (0 = tam ortada, etiket gibi)
+                float baseLift = anchor.size.y * m_VerticalLiftRatio;
 
-                // 2. Doluluk yükselmesi (parçalar doldukça metin yığının üzerinde yükselir)
-                float fillLift = Mathf.Max(b.size.y, wagonSize * 0.65f) * m_FillRiseRatio * m_CurrentFillRatio;
+                // 2. Doluluk yükselmesi. Şişe gibi kapalı gövdeli modellerde 0 olmalı:
+                //    aksi halde kasa doldukça rozet yukarı tırmanır ve oyuncuya
+                //    "yazının yeri sürekli değişiyor" gibi görünür.
+                float fillLift = anchor.size.y * m_FillRiseRatio * m_CurrentFillRatio;
 
                 Vector3 camUp = cam != null ? cam.transform.up : Vector3.up;
                 center += camUp * (baseLift + fillLift);
@@ -201,7 +239,7 @@ namespace PixelGame
 
                 m_Canvas.transform.position = center;
 
-                // Vagon genişliğine göre ölçekle
+                // Gövde genişliğine göre ölçekle
                 float targetWorldSize = wagonSize * m_SizeRatio;
                 float targetScale = targetWorldSize / 140f;
 

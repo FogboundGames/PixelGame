@@ -36,6 +36,53 @@ namespace PixelGame
         /// Şeridi verilen sütun/sıra sayısına göre yeniden kurar.
         /// Bölüm verisi değiştiğinde çağrılır.
         /// </summary>
+        /// <summary>
+        /// Var olan slotların taban duruşunu güncel stile göre tazeler.
+        ///
+        /// Slotlar bir kez kurulup sahneye serialize ediliyor; stildeki truckEuler
+        /// sonradan değiştirildiğinde eski değerle kalıyorlardı. Havuz ise her seviye
+        /// yüklenişinde yeniden kurulduğu için güncel değeri alıyordu. İkisi böylece
+        /// ayrışıyor, aynı model slotta 180° havuzda 90° duruyordu. Duruş değişince
+        /// FitToRect modelin slot içindeki genişliğini farklı ölçtüğü için ölçek de
+        /// kayıyor, rozet boyutu da modele bağlı olduğu için onunla birlikte kayıyordu.
+        ///
+        /// Slotları yok edip yeniden kurmaz; yalnızca duruşu eşitleyip hizalar.
+        /// </summary>
+        public void SyncStyleToSlots()
+        {
+            if (m_Slots == null || m_Style == null) return;
+
+            Quaternion rotation = Quaternion.Euler(m_Style.truckEuler);
+
+            for (int i = 0; i < m_Slots.Count; i++)
+            {
+                TruckSlot slot = m_Slots[i];
+                if (slot == null) continue;
+
+                slot.Configure(slot.SlotRect, rotation);
+                slot.AlignAll();
+
+                // Tıklanabilirlik de tazelenmeli. Tıklama vagona değil slotun UI
+                // Image'ına gidiyor (TruckPoolPlace üzerinden), o yüzden raycastTarget
+                // kapalıysa park etmiş vagona basmak hiçbir şey yapmaz. Slotlar bir kez
+                // kurulup serialize edildiği için stildeki interactive sonradan
+                // açıldığında var olan slotlara yansımıyordu.
+                UnityEngine.UI.Image image = slot.GetComponent<UnityEngine.UI.Image>();
+                if (image != null)
+                {
+                    image.raycastTarget = m_Style.interactive;
+
+                    // Tamamen saydam bir UI elemanının mesh'i atılır ve tıklama almaz
+                    if (m_Style.interactive) image.canvasRenderer.cullTransparentMesh = false;
+                }
+
+                if (m_Style.interactive && slot.GetComponent<TruckPoolPlace>() == null)
+                {
+                    slot.gameObject.AddComponent<TruckPoolPlace>();
+                }
+            }
+        }
+
         public void RebuildPlaces(int columns, int rows)
         {
             RectTransform rect = transform as RectTransform;
@@ -79,6 +126,13 @@ namespace PixelGame
         {
             if (this == null) return;
             CollectSlotsIfEmpty();
+
+            // Stil Inspector'dan değiştirildiğinde slotların duruşu da hemen tazelensin.
+            // Aksi halde sahne görünümü eski serialize edilmiş değeri gösteriyor, oyun
+            // ise çalışırken güncel stile göre yeniden hizalıyordu; "play'den önce ve
+            // sonra farklı görünüyor" şikâyetinin sebebi buydu.
+            SyncStyleToSlots();
+
             UpdateShadows();
         }
         #endif
