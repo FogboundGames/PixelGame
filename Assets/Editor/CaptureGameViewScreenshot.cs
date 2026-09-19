@@ -51,7 +51,6 @@ namespace PixelGame.Editor
                     TrackFakeShadow shadow = TrackFakeShadow.EnsureShadow(null);
                     if (shadow != null)
                     {
-                        shadow.SyncWithSceneRails();
                         shadow.RebuildMesh();
                     }
 

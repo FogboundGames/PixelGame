@@ -7589,8 +7589,8 @@ Transform:
   m_GameObject: {fileID: 198810001}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.0632, y: -2.9677, z: -0.00000018635832}
-  m_LocalScale: {x: 0.9630444, y: 0.9255, z: 1}
+  m_LocalPosition: {x: -0.0593, y: -2.9619, z: -0.00000018635832}
+  m_LocalScale: {x: 0.9435178, y: 0.9277, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 718456860}
@@ -7673,6 +7673,7 @@ MonoBehaviour:
   m_FalloffPower: 3.5
   m_RadialSteps: 10
   m_CornerSegments: 10
+  m_AutoSyncWithRails: 0
   m_LeftX: -2.93652
   m_RightX: 2.9461803
   m_BottomY: 0.045184135

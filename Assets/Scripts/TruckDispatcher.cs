@@ -1041,6 +1041,7 @@ namespace PixelGame
             foreach (Renderer r in railsGroup.GetComponentsInChildren<Renderer>())
             {
                 if (r == null || !r.enabled) continue;
+                if (r.GetComponent<TrackFakeShadow>() != null) continue;
 
                 float d = Mathf.Abs(r.bounds.center.y - bottomY) + Mathf.Abs(r.bounds.center.x - centerX);
                 if (d < bestDist)

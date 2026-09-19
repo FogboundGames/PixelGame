@@ -47,7 +47,11 @@ namespace PixelGame
         [Range(4, 24)]
         [SerializeField] private int m_CornerSegments = 16;
 
-        [Header("Ray Referans Boyutları (Otomatik Güncellenir)")]
+        [Header("Otomatik Senkronizasyon")]
+        [Tooltip("İşaretlenirse rayların sınırlarını otomatik senkronize eder. Kapalı tutulduğunda sahnede ayarladığınız özel konum, ölçek ve ölçüler kesinlikle korunur.")]
+        [SerializeField] private bool m_AutoSyncWithRails = false;
+
+        [Header("Gölge Referans Boyutları ve Sınırları")]
         [SerializeField] private float m_LeftX = -2.7126f;
         [SerializeField] private float m_RightX = 2.6326f;
         [SerializeField] private float m_BottomY = -2.7326f;
@@ -70,7 +74,10 @@ namespace PixelGame
         private void OnEnable()
         {
             EnsureComponents();
-            SyncWithSceneRails();
+            if (m_AutoSyncWithRails)
+            {
+                SyncWithSceneRails();
+            }
             RebuildMesh();
         }
 
@@ -353,10 +360,6 @@ namespace PixelGame
             {
                 m_MeshFilter.sharedMesh = m_Mesh;
             }
-
-            transform.position = Vector3.zero;
-            transform.rotation = Quaternion.identity;
-            transform.localScale = Vector3.one;
         }
 
         /// <summary>
@@ -372,6 +375,7 @@ namespace PixelGame
 
             if (railsTransform == null) return null;
 
+            bool isNew = false;
             Transform found = railsTransform.Find("TrackFakeShadow");
             GameObject shadowObj;
             if (found == null)
@@ -389,6 +393,7 @@ namespace PixelGame
                     #endif
                     shadowObj.transform.SetParent(railsTransform, false);
                     shadowObj.transform.SetAsFirstSibling();
+                    isNew = true;
                 }
             }
             else
@@ -398,17 +403,30 @@ namespace PixelGame
             }
 
             TrackFakeShadow shadow = shadowObj.GetComponent<TrackFakeShadow>();
-            if (shadow == null) shadow = shadowObj.AddComponent<TrackFakeShadow>();
-
-            if (loop != null)
+            if (shadow == null)
             {
-                TruckDispatcher td = Object.FindFirstObjectByType<TruckDispatcher>();
-                float scale = td != null ? td.ModularTrackScale : 0.60f;
-                shadow.SetupBounds(loop.LeftX, loop.RightX, loop.BottomY, loop.TopY, loop.CornerRadius, scale, loop.Z);
+                shadow = shadowObj.AddComponent<TrackFakeShadow>();
+                isNew = true;
+            }
+
+            // Sadece YENİ bir nesne oluşturulduğunda varsayılan sınırları ata.
+            // Sahnede zaten mevcutsa kullanıcının sahnedeki Transform konumuna ve ölçülerine asla dokunma!
+            if (isNew)
+            {
+                if (loop != null)
+                {
+                    TruckDispatcher td = Object.FindFirstObjectByType<TruckDispatcher>();
+                    float scale = td != null ? td.ModularTrackScale : 0.60f;
+                    shadow.SetupBounds(loop.LeftX, loop.RightX, loop.BottomY, loop.TopY, loop.CornerRadius, scale, loop.Z);
+                }
+                else
+                {
+                    shadow.SyncWithSceneRails();
+                }
             }
             else
             {
-                shadow.SyncWithSceneRails();
+                shadow.RebuildMesh();
             }
 
             #if UNITY_EDITOR
@@ -420,17 +438,25 @@ namespace PixelGame
         }
 
         #if UNITY_EDITOR
+        [ContextMenu("🔄 Ray Ölçüleriyle Yeniden Eşitle (Sync Bounds From Rails)")]
+        public void SyncBoundsFromRailsMenu()
+        {
+            SyncWithSceneRails();
+            RebuildMesh();
+            EditorUtility.SetDirty(this);
+        }
+
         [MenuItem("Tools/PixelGame/🌑 Mavi Ray Sahte Gölgesini Güncelle (Track Fake Shadow)", priority = 38)]
         public static void CreateOrUpdateShadowMenu()
         {
             TrackFakeShadow shadow = EnsureShadow(null);
             if (shadow != null)
             {
-                shadow.SyncWithSceneRails();
+                shadow.RebuildMesh();
                 Selection.activeGameObject = shadow.gameObject;
                 UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
                     UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
-                Debug.Log("<color=#00FFAA><b>[TrackFakeShadow]</b></color> Mavi ray sahte gölgesi başarıyla güncellendi ve seçildi!");
+                Debug.Log("<color=#00FFAA><b>[TrackFakeShadow]</b></color> Mavi ray sahte gölgesi güncellendi ve seçildi!");
             }
             else
             {
