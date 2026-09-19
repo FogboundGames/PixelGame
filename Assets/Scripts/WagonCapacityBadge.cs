@@ -426,9 +426,15 @@ namespace PixelGame
 
             m_Text = textObj.GetComponent<Text>();
             if (m_Text == null) m_Text = textObj.AddComponent<Text>();
+#if UNITY_EDITOR
+            Font customFont = UnityEditor.AssetDatabase.LoadAssetAtPath<Font>("Assets/Fonts/LilitaOne-Regular.ttf");
+            if (customFont != null) m_Text.font = customFont;
+            else m_Text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+#else
             m_Text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+#endif
             m_Text.fontSize = m_FontSize;
-            m_Text.fontStyle = FontStyle.Bold;
+            m_Text.fontStyle = FontStyle.Normal;
             m_Text.alignment = TextAnchor.MiddleCenter;
             m_Text.color = Color.white;
             m_Text.raycastTarget = false;

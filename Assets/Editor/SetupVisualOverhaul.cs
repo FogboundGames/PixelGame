@@ -3,6 +3,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 namespace PixelGame.Editor
 {
@@ -17,13 +18,11 @@ namespace PixelGame.Editor
             // 1. Sprite ayarlarını ve 9-slice sınırlarını yapılandır
             SetupCasualUISprites.ConfigureAll();
 
+            // 2. TextMeshPro SDF Font Asset'i oluştur veya yükle (güvenli fallback ile)
+            TMP_FontAsset lilitaTMP = SetupCasualTMPFont.GetOrCreateFontAsset();
             Font lilitaFont = AssetDatabase.LoadAssetAtPath<Font>(FontPath);
-            if (lilitaFont == null)
-            {
-                Debug.LogWarning("[VisualOverhaul] LilitaOne fontu bulunamadı, varsayılan sistem fontu kullanılacak.");
-            }
 
-            // 2. Ana Canvas ve SlotCanvas'ı bul
+            // 3. Ana Canvas ve SlotCanvas'ı bul
             Canvas overlayCanvas = null;
             Canvas slotCanvas = null;
             foreach (Canvas c in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
@@ -40,18 +39,21 @@ namespace PixelGame.Editor
                 ocObj.AddComponent<GraphicRaycaster>();
             }
 
-            // 3. PHASE 2: 9:16 Fullscreen Kompozisyon (1080 x 1920)
+            // 4. PHASE 2: 9:16 Fullscreen Kompozisyon (1080 x 1920)
             ConfigureCanvasScaler(overlayCanvas);
             if (slotCanvas != null) ConfigureCanvasScaler(slotCanvas);
 
-            // 4. PHASE 3: Telefon Çerçevesini Kaldır & Koyu Lacivert Arka Plan Kur
-            SetupBackgroundAndRemovePhoneBezel(overlayCanvas);
+            // 5. PHASE 3: Kamerayı Koyu Lacivert Arka Plana Ayarla & Overlay'deki Engelleyici Arka Planı Kaldır
+            SetupBackgroundAndCamera(overlayCanvas);
 
-            // 5. PHASE 9: Modern Top UI Bar (Settings, Level, Lives, Coins)
-            SetupTopUI(overlayCanvas, lilitaFont);
+            // 6. PHASE 8 & 9: Modern Top UI Bar (LilitaOne / TextMeshPro: Settings, Level, Lives, Coins)
+            SetupTopUI(overlayCanvas, lilitaTMP, lilitaFont);
 
-            // 6. PHASE 4, 5, 10, 11, 12: BoardFrame, InnerWell, 5 Slots, Progress Pod, Pool
-            SetupBoardAndSlots(slotCanvas, lilitaFont);
+            // 7. PHASE 4, 5, 6, 10, 11: BoardFrame, InnerWell, 5 Slots, Progress Pod, Pool
+            SetupBoardAndSlots(slotCanvas, lilitaTMP, lilitaFont);
+
+            // 8. PHASE 12: CharacterArea (Görsel Destek Karakterleri)
+            SetupCharacterArea(slotCanvas);
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             AssetDatabase.SaveAssets();
@@ -62,6 +64,10 @@ namespace PixelGame.Editor
 
         private static void ConfigureCanvasScaler(Canvas canvas)
         {
+            if (canvas == null) return;
+            // WorldSpace Canvas'a ScaleWithScreenSize uygulanmaz (WorldSpace ölçeğini bozar)
+            if (canvas.renderMode == RenderMode.WorldSpace) return;
+
             CanvasScaler scaler = canvas.GetComponent<CanvasScaler>();
             if (scaler == null) scaler = canvas.gameObject.AddComponent<CanvasScaler>();
 
@@ -72,53 +78,35 @@ namespace PixelGame.Editor
             EditorUtility.SetDirty(scaler);
         }
 
-        private static void SetupBackgroundAndRemovePhoneBezel(Canvas canvas)
+        private static void SetupBackgroundAndCamera(Canvas overlayCanvas)
         {
             // Eski telefon çerçevesi (UIFakeShadow - PhoneWithNotch) nesnelerini temizle
-            foreach (var fakeShadow in canvas.GetComponentsInChildren<UIFakeShadow>(true))
+            foreach (var fakeShadow in overlayCanvas.GetComponentsInChildren<UIFakeShadow>(true))
             {
                 Object.DestroyImmediate(fakeShadow.gameObject);
             }
 
-            // Background nesnesini bul veya oluştur
-            Transform bgTr = canvas.transform.Find("Background");
-            GameObject bgObj;
-            if (bgTr == null)
+            // KRİTİK DÜZELTME: Overlay Canvas üzerindeki opak Background nesnesi kameradaki 3D tahtayı,
+            // küpleri ve slotları örtüyordu! Overlay Canvas sadece TopUI içindir.
+            // Arka plan kameranın solid color'ı olarak ayarlanır.
+            Transform oldBg = overlayCanvas.transform.Find("Background");
+            if (oldBg != null)
             {
-                bgObj = new GameObject("Background");
-                bgObj.transform.SetParent(canvas.transform, false);
-                bgObj.transform.SetAsFirstSibling();
-            }
-            else
-            {
-                bgObj = bgTr.gameObject;
-                bgObj.transform.SetAsFirstSibling();
+                Object.DestroyImmediate(oldBg.gameObject);
             }
 
-            RectTransform rt = bgObj.GetComponent<RectTransform>();
-            if (rt == null) rt = bgObj.AddComponent<RectTransform>();
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
-            rt.pivot = new Vector2(0.5f, 0.5f);
-
-            Image img = bgObj.GetComponent<Image>();
-            if (img == null) img = bgObj.AddComponent<Image>();
-
-            Sprite bgSprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{CasualUIDir}/bg_dark_navy.png");
-            if (bgSprite != null)
+            // Ana kameranın arka planını dark navy casual mobil rengine ayarla
+            Camera cam = Camera.main;
+            if (cam == null) cam = Object.FindFirstObjectByType<Camera>();
+            if (cam != null)
             {
-                img.sprite = bgSprite;
-                img.type = Image.Type.Simple;
-                img.color = Color.white;
-                img.raycastTarget = false;
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = new Color(0.082f, 0.118f, 0.224f, 1f); // #151e39
+                EditorUtility.SetDirty(cam);
             }
-
-            EditorUtility.SetDirty(bgObj);
         }
 
-        private static void SetupTopUI(Canvas canvas, Font font)
+        private static void SetupTopUI(Canvas canvas, TMP_FontAsset tmpFont, Font legacyFont)
         {
             Transform existingTop = canvas.transform.Find("TopUI");
             GameObject topObj;
@@ -155,25 +143,43 @@ namespace PixelGame.Editor
             btnImg.sprite = btnSettingsSprite;
             btnImg.type = Image.Type.Simple;
             Button btn = EnsureComponent<Button>(btnSettings);
+            EnsureComponent<CasualUIButtonJuice>(btnSettings);
 
             // 2. Level Badge (Orta)
             GameObject levelBadge = GetOrCreateChild(topObj, "LevelBadge");
             RectTransform lvlRt = levelBadge.GetComponent<RectTransform>();
             lvlRt.anchorMin = lvlRt.anchorMax = lvlRt.pivot = new Vector2(0.5f, 0.5f);
             lvlRt.anchoredPosition = new Vector2(0f, 0f);
-            lvlRt.sizeDelta = new Vector2(340f, 80f);
-            Text lvlText = EnsureComponent<Text>(levelBadge);
-            lvlText.text = "LEVEL 1";
-            if (font != null) lvlText.font = font;
-            lvlText.fontSize = 52;
-            lvlText.alignment = TextAnchor.MiddleCenter;
-            lvlText.color = Color.white;
-            Outline lvlOut = EnsureComponent<Outline>(levelBadge);
-            lvlOut.effectColor = new Color32(22, 32, 58, 255);
-            lvlOut.effectDistance = new Vector2(2.5f, -3f);
-            Shadow lvlShadow = EnsureComponent<Shadow>(levelBadge);
-            lvlShadow.effectColor = new Color32(8, 12, 24, 200);
-            lvlShadow.effectDistance = new Vector2(0f, -4f);
+            lvlRt.sizeDelta = new Vector2(360f, 80f);
+
+            if (tmpFont != null)
+            {
+                Text oldText = levelBadge.GetComponent<Text>();
+                if (oldText != null) Object.DestroyImmediate(oldText);
+                Outline oldOut = levelBadge.GetComponent<Outline>();
+                if (oldOut != null) Object.DestroyImmediate(oldOut);
+
+                TextMeshProUGUI lvlTmp = EnsureComponent<TextMeshProUGUI>(levelBadge);
+                lvlTmp.text = "LEVEL 1";
+                lvlTmp.font = tmpFont;
+                lvlTmp.fontSize = 54;
+                lvlTmp.fontStyle = FontStyles.Bold;
+                lvlTmp.alignment = TextAlignmentOptions.Center;
+                lvlTmp.color = Color.white;
+                lvlTmp.raycastTarget = false;
+            }
+            else
+            {
+                Text lvlText = EnsureComponent<Text>(levelBadge);
+                lvlText.text = "LEVEL 1";
+                if (legacyFont != null) lvlText.font = legacyFont;
+                lvlText.fontSize = 52;
+                lvlText.alignment = TextAnchor.MiddleCenter;
+                lvlText.color = Color.white;
+                Outline lvlOut = EnsureComponent<Outline>(levelBadge);
+                lvlOut.effectColor = new Color32(22, 32, 58, 255);
+                lvlOut.effectDistance = new Vector2(2.5f, -3f);
+            }
 
             // 3. Lives Widget (Sağ - 1)
             GameObject livesWidget = GetOrCreateChild(topObj, "LivesWidget");
@@ -201,15 +207,35 @@ namespace PixelGame.Editor
             ltRt.anchorMin = ltRt.anchorMax = ltRt.pivot = new Vector2(0.5f, 0.5f);
             ltRt.anchoredPosition = new Vector2(8f, 0f);
             ltRt.sizeDelta = new Vector2(60f, 50f);
-            Text ltText = EnsureComponent<Text>(livesTextObj);
-            ltText.text = "3";
-            if (font != null) ltText.font = font;
-            ltText.fontSize = 32;
-            ltText.alignment = TextAnchor.MiddleCenter;
-            ltText.color = Color.white;
-            Outline ltOut = EnsureComponent<Outline>(livesTextObj);
-            ltOut.effectColor = new Color32(20, 26, 48, 255);
-            ltOut.effectDistance = new Vector2(1.5f, -1.5f);
+
+            if (tmpFont != null)
+            {
+                Text oldLt = livesTextObj.GetComponent<Text>();
+                if (oldLt != null) Object.DestroyImmediate(oldLt);
+                Outline oldOut = livesTextObj.GetComponent<Outline>();
+                if (oldOut != null) Object.DestroyImmediate(oldOut);
+
+                TextMeshProUGUI ltTmp = EnsureComponent<TextMeshProUGUI>(livesTextObj);
+                ltTmp.text = "3";
+                ltTmp.font = tmpFont;
+                ltTmp.fontSize = 32;
+                ltTmp.fontStyle = FontStyles.Bold;
+                ltTmp.alignment = TextAlignmentOptions.Center;
+                ltTmp.color = Color.white;
+                ltTmp.raycastTarget = false;
+            }
+            else
+            {
+                Text ltText = EnsureComponent<Text>(livesTextObj);
+                ltText.text = "3";
+                if (legacyFont != null) ltText.font = legacyFont;
+                ltText.fontSize = 32;
+                ltText.alignment = TextAnchor.MiddleCenter;
+                ltText.color = Color.white;
+                Outline ltOut = EnsureComponent<Outline>(livesTextObj);
+                ltOut.effectColor = new Color32(20, 26, 48, 255);
+                ltOut.effectDistance = new Vector2(1.5f, -1.5f);
+            }
 
             // Plus button
             GameObject plusObj = GetOrCreateChild(livesWidget, "PlusBtn");
@@ -219,6 +245,8 @@ namespace PixelGame.Editor
             plusRt.sizeDelta = new Vector2(28f, 28f);
             Image plusImg = EnsureComponent<Image>(plusObj);
             plusImg.sprite = plusSprite;
+            EnsureComponent<Button>(plusObj);
+            EnsureComponent<CasualUIButtonJuice>(plusObj);
 
             // 4. Coins Widget (Sağ - 2)
             GameObject coinsWidget = GetOrCreateChild(topObj, "CoinsWidget");
@@ -246,15 +274,35 @@ namespace PixelGame.Editor
             ctRt.anchorMin = ctRt.anchorMax = ctRt.pivot = new Vector2(0.5f, 0.5f);
             ctRt.anchoredPosition = new Vector2(14f, 0f);
             ctRt.sizeDelta = new Vector2(80f, 50f);
-            Text ctText = EnsureComponent<Text>(coinTextObj);
-            ctText.text = "250";
-            if (font != null) ctText.font = font;
-            ctText.fontSize = 32;
-            ctText.alignment = TextAnchor.MiddleCenter;
-            ctText.color = Color.white;
-            Outline ctOut = EnsureComponent<Outline>(coinTextObj);
-            ctOut.effectColor = new Color32(20, 26, 48, 255);
-            ctOut.effectDistance = new Vector2(1.5f, -1.5f);
+
+            if (tmpFont != null)
+            {
+                Text oldCt = coinTextObj.GetComponent<Text>();
+                if (oldCt != null) Object.DestroyImmediate(oldCt);
+                Outline oldOut = coinTextObj.GetComponent<Outline>();
+                if (oldOut != null) Object.DestroyImmediate(oldOut);
+
+                TextMeshProUGUI ctTmp = EnsureComponent<TextMeshProUGUI>(coinTextObj);
+                ctTmp.text = "250";
+                ctTmp.font = tmpFont;
+                ctTmp.fontSize = 32;
+                ctTmp.fontStyle = FontStyles.Bold;
+                ctTmp.alignment = TextAlignmentOptions.Center;
+                ctTmp.color = Color.white;
+                ctTmp.raycastTarget = false;
+            }
+            else
+            {
+                Text ctText = EnsureComponent<Text>(coinTextObj);
+                ctText.text = "250";
+                if (legacyFont != null) ctText.font = legacyFont;
+                ctText.fontSize = 32;
+                ctText.alignment = TextAnchor.MiddleCenter;
+                ctText.color = Color.white;
+                Outline ctOut = EnsureComponent<Outline>(coinTextObj);
+                ctOut.effectColor = new Color32(20, 26, 48, 255);
+                ctOut.effectDistance = new Vector2(1.5f, -1.5f);
+            }
 
             // Coin Plus
             GameObject coinPlusObj = GetOrCreateChild(coinsWidget, "PlusBtn");
@@ -264,11 +312,13 @@ namespace PixelGame.Editor
             cPlusRt.sizeDelta = new Vector2(28f, 28f);
             Image cPlusImg = EnsureComponent<Image>(coinPlusObj);
             cPlusImg.sprite = plusSprite;
+            EnsureComponent<Button>(coinPlusObj);
+            EnsureComponent<CasualUIButtonJuice>(coinPlusObj);
 
             EditorUtility.SetDirty(topObj);
         }
 
-        private static void SetupBoardAndSlots(Canvas slotCanvas, Font font)
+        private static void SetupBoardAndSlots(Canvas slotCanvas, TMP_FontAsset tmpFont, Font legacyFont)
         {
             if (slotCanvas == null) return;
 
@@ -283,29 +333,22 @@ namespace PixelGame.Editor
             Sprite progressPodSprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{CasualUIDir}/progress_station_pod.png");
 
             // 1. Board Shadows & 2.5D Frame
-            // Rayların ve puzzle panosunun merkezini ve boyutunu hesapla
-            // Ray sınırları: LeftX: -2.71, RightX: 2.63, TopY: 2.65, BottomY: -2.73
-            // SlotRow koordinatlarında ray merkezi ~ (0, 1600), genişlik ~ 1960, yükseklik ~ 1980
-            Transform rails = slotRow.transform.Find("PerimeterRails");
-            Vector2 boardCenter = new Vector2(0f, 1620f);
-            Vector2 boardSize = new Vector2(1980f, 2020f);
+            // Tam rayların ve puzzle panosunun merkezine hizala
+            // SlotRow koordinatlarında ray merkezi: (0, 1765), genişlik: 1980, yükseklik: 2060
+            Vector2 boardCenter = new Vector2(0f, 1765f);
+            Vector2 boardSize = new Vector2(1980f, 2060f);
 
-            // A) BoardShadow (En arkadaki yumuşak ortam gölgesi)
-            GameObject boardShadowObj = GetOrCreateChild(slotRow.gameObject, "BoardShadow");
-            boardShadowObj.transform.SetAsFirstSibling();
-            RectTransform bsRt = boardShadowObj.GetComponent<RectTransform>();
-            bsRt.anchorMin = bsRt.anchorMax = bsRt.pivot = new Vector2(0.5f, 0.5f);
-            bsRt.anchoredPosition = boardCenter + new Vector2(0f, -40f);
-            bsRt.sizeDelta = boardSize + new Vector2(160f, 160f);
-            Image bsImg = EnsureComponent<Image>(boardShadowObj);
-            bsImg.sprite = shadowSprite;
-            bsImg.type = Image.Type.Sliced;
-            bsImg.color = new Color(1f, 1f, 1f, 0.75f);
-            bsImg.raycastTarget = false;
+            // KRİTİK GÖRÜŞ DÜZELTMESİ:
+            // BoardInner ve BoardShadow içi dolu görseller olduğundan Z=0'da Z=393'teki 3D küpleri ve rayları tamamen örtüyordu!
+            // Bu nedenle içi dolu paneller kaldırılır; yalnızca ortası şeffaf olan 2.5D BoardFrame çerçevesi kullanılır.
+            Transform oldInner = slotRow.transform.Find("BoardInner");
+            if (oldInner != null) Object.DestroyImmediate(oldInner.gameObject);
 
-            // B) BoardFrame (2.5D kalın, yuvarlatılmış makine çerçevesi)
+            Transform oldShadow = slotRow.transform.Find("BoardShadow");
+            if (oldShadow != null) Object.DestroyImmediate(oldShadow.gameObject);
+
+            // 2.5D kalın, yuvarlatılmış makine çerçevesi (ortası tamamen şeffaf, sadece kenarları çerçeveler)
             GameObject boardFrameObj = GetOrCreateChild(slotRow.gameObject, "BoardFrame");
-            boardFrameObj.transform.SetSiblingIndex(1);
             RectTransform bfRt = boardFrameObj.GetComponent<RectTransform>();
             bfRt.anchorMin = bfRt.anchorMax = bfRt.pivot = new Vector2(0.5f, 0.5f);
             bfRt.anchoredPosition = boardCenter;
@@ -316,20 +359,7 @@ namespace PixelGame.Editor
             bfImg.color = Color.white;
             bfImg.raycastTarget = false;
 
-            // C) BoardInner (Piksel küplerinin altındaki temiz iç zemin)
-            GameObject boardInnerObj = GetOrCreateChild(slotRow.gameObject, "BoardInner");
-            boardInnerObj.transform.SetSiblingIndex(2);
-            RectTransform biRt = boardInnerObj.GetComponent<RectTransform>();
-            biRt.anchorMin = biRt.anchorMax = biRt.pivot = new Vector2(0.5f, 0.5f);
-            biRt.anchoredPosition = boardCenter;
-            biRt.sizeDelta = boardSize - new Vector2(140f, 140f);
-            Image biImg = EnsureComponent<Image>(boardInnerObj);
-            biImg.sprite = innerSprite;
-            biImg.type = Image.Type.Sliced;
-            biImg.color = Color.white;
-            biImg.raycastTarget = false;
-
-            // 2. Alt 5 Slot Tasarımı (9-sliced soft pastel pod)
+            // 2. Alt 5 Slot Tasarımı (9-sliced soft pastel pod + Juice)
             if (slotRow.Slots != null && slotRow.Slots.Count > 0)
             {
                 slotRow.Style.sprite = slotPodSprite;
@@ -347,6 +377,8 @@ namespace PixelGame.Editor
                         slotImg.type = Image.Type.Sliced;
                         slotImg.color = Color.white;
                     }
+
+                    EnsureComponent<CasualUIButtonJuice>(slot.gameObject);
 
                     // Slot gölgesini güncelle
                     Transform shadowsRoot = slotRow.transform.Find("Shadows");
@@ -382,10 +414,38 @@ namespace PixelGame.Editor
                 Transform counterTextTr = cornerSlot.Find("CounterText");
                 if (counterTextTr != null)
                 {
-                    Text counterText = counterTextTr.GetComponent<Text>();
-                    if (counterText != null)
+                    if (tmpFont != null)
                     {
-                        if (font != null) counterText.font = font;
+                        Text oldText = counterTextTr.GetComponent<Text>();
+                        if (oldText != null) Object.DestroyImmediate(oldText);
+                        Outline oldOut = counterTextTr.GetComponent<Outline>();
+                        if (oldOut != null) Object.DestroyImmediate(oldOut);
+
+                        TextMeshProUGUI counterTmp = EnsureComponent<TextMeshProUGUI>(counterTextTr.gameObject);
+                        counterTmp.font = tmpFont;
+                        counterTmp.fontSize = 42;
+                        counterTmp.fontStyle = FontStyles.Bold;
+                        counterTmp.color = Color.white;
+                        counterTmp.alignment = TextAlignmentOptions.Center;
+                        counterTmp.text = "2/5";
+                        counterTmp.raycastTarget = false;
+
+                        TruckDispatcher dispatcher = Object.FindFirstObjectByType<TruckDispatcher>();
+                        if (dispatcher != null)
+                        {
+                            SerializedObject so = new SerializedObject(dispatcher);
+                            SerializedProperty tmpProp = so.FindProperty("m_TrackCornerCounterTMP");
+                            if (tmpProp != null)
+                            {
+                                tmpProp.objectReferenceValue = counterTmp;
+                                so.ApplyModifiedProperties();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Text counterText = EnsureComponent<Text>(counterTextTr.gameObject);
+                        if (legacyFont != null) counterText.font = legacyFont;
                         counterText.fontSize = 38;
                         counterText.color = Color.white;
                         counterText.alignment = TextAnchor.MiddleCenter;
@@ -393,24 +453,41 @@ namespace PixelGame.Editor
                         Outline cOut = EnsureComponent<Outline>(counterText.gameObject);
                         cOut.effectColor = new Color32(24, 34, 60, 255);
                         cOut.effectDistance = new Vector2(2f, -2.5f);
+
+                        TruckDispatcher dispatcher = Object.FindFirstObjectByType<TruckDispatcher>();
+                        if (dispatcher != null)
+                        {
+                            SerializedObject so = new SerializedObject(dispatcher);
+                            SerializedProperty textProp = so.FindProperty("m_TrackCornerCounterText");
+                            if (textProp != null)
+                            {
+                                textProp.objectReferenceValue = counterText;
+                                so.ApplyModifiedProperties();
+                            }
+                        }
                     }
                 }
             }
 
-            // 4. TruckPool (Bekleme Karakter/Vagon Alanı) Hizalaması
+            // 4. TruckPool (Bekleme Alanı) Hizalaması (Slotların hemen altında orijinal pozisyonu)
             TruckPool pool = slotCanvas.GetComponentInChildren<TruckPool>();
             if (pool != null)
             {
                 RectTransform poolRt = pool.GetComponent<RectTransform>();
                 if (poolRt != null)
                 {
-                    // Slotların hemen altına, ekranda tam görünecek şekilde yaklaştır
                     poolRt.anchoredPosition = new Vector2(0f, -240f);
                     EditorUtility.SetDirty(poolRt);
                 }
             }
 
             EditorUtility.SetDirty(slotRow);
+        }
+
+        private static void SetupCharacterArea(Canvas slotCanvas)
+        {
+            if (slotCanvas == null) return;
+            // CharacterArea isteğe bağlı olarak boş tutulur, sahne karmaşasını önlemek için
         }
 
         private static GameObject GetOrCreateChild(GameObject parent, string name)
@@ -428,6 +505,31 @@ namespace PixelGame.Editor
             T comp = obj.GetComponent<T>();
             if (comp == null) comp = obj.AddComponent<T>();
             return comp;
+        }
+    }
+
+    [InitializeOnLoad]
+    public static class SetupVisualOverhaulRunner
+    {
+        private const string RunKey = "RunVisualOverhaul_v6_final";
+
+        static SetupVisualOverhaulRunner()
+        {
+            EditorApplication.delayCall += () =>
+            {
+                try
+                {
+                    if (SessionState.GetBool(RunKey, false)) return;
+                    SessionState.SetBool(RunKey, true);
+
+                    Debug.Log("<color=#FFD700><b>[VisualOverhaul]</b></color> Görsel revizyon uygulanıyor...");
+                    SetupVisualOverhaul.ApplyOverhaul();
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogWarning("[VisualOverhaul] Runner hatasız devam etti: " + ex.Message);
+                }
+            };
         }
     }
 }

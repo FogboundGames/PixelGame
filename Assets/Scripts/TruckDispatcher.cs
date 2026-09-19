@@ -36,8 +36,9 @@ namespace PixelGame
         [SerializeField] private bool m_PerimeterTrain = true;
         public bool PerimeterTrain { get => m_PerimeterTrain; set => m_PerimeterTrain = value; }
 
-        [Tooltip("Ray döngüsünün sol alt köşesindeki vagon sayacı (Text).")]
+        [Tooltip("Ray döngüsünün sol alt köşesindeki vagon sayacı (Text / TextMeshPro).")]
         [SerializeField] private UnityEngine.UI.Text m_TrackCornerCounterText;
+        [SerializeField] private TMPro.TextMeshProUGUI m_TrackCornerCounterTMP;
 
         [Tooltip("Vagonların döngü üzerindeki seyir hızı (dünya birimi / saniye).")]
         [Range(0.5f, 6.0f)]
@@ -57,8 +58,10 @@ namespace PixelGame
                  "Kapalıysa vagon hattın tam ortasında durur.")]
         [SerializeField] private bool m_WagonOnTrackOuterEdge = true;
 
+#pragma warning disable 0414
         [Tooltip("Ray üzerindeki vagonun teğet yönüne ek dönüş açısı (0 = ray yönü / teğet, 90 = içe/tabloya dönük).")]
         [SerializeField] private float m_WagonTrackYaw = 0f;
+#pragma warning restore 0414
 
         [Tooltip("Dış kenara EK ince ayar (dünya birimi). Pozitif = daha dışarı, negatif = içeri. " +
                  "Raylar bundan etkilenmez, yalnızca vagonlar kayar.")]
@@ -176,6 +179,7 @@ namespace PixelGame
         [SerializeField] private int m_FallbackTruckCapacity = 16;
 
         [Header("📦 Küpün Parçalanıp Vagona Dolması")]
+#pragma warning disable 0414
         [Tooltip("Bir küpün en az kaç parçaya bölüneceği")]
         [Min(1)]
         [SerializeField] private int m_MinPieces = 2;
@@ -190,6 +194,7 @@ namespace PixelGame
         [Tooltip("Parçaların küpün çevresinden ne kadar dağınık kopacağı (dünya birimi)")]
         [Min(0f)]
         [SerializeField] private float m_PieceSpread = 0.06f;
+#pragma warning restore 0414
 
         [Header("📦 Kırmızı Raf: Altta Birikme & Vagona Akma (DOTween)")]
         [Tooltip("Parçaların küpten alt rafa (kırmızı işaretli alan) düşüş süresi")]
@@ -647,16 +652,39 @@ namespace PixelGame
 
         public void UpdateTrackCornerCounter()
         {
-            if (m_TrackCornerCounterText == null)
+            if (m_TrackCornerCounterTMP == null && m_TrackCornerCounterText == null)
             {
                 GameObject obj = GameObject.Find("CounterText");
-                if (obj != null) m_TrackCornerCounterText = obj.GetComponent<UnityEngine.UI.Text>();
+                if (obj != null)
+                {
+                    m_TrackCornerCounterTMP = obj.GetComponent<TMPro.TextMeshProUGUI>();
+                    if (m_TrackCornerCounterTMP == null)
+                        m_TrackCornerCounterText = obj.GetComponent<UnityEngine.UI.Text>();
+                }
             }
 
-            if (m_TrackCornerCounterText != null)
+            int count = m_MovingWagons != null ? m_MovingWagons.Count : 0;
+            string counterStr = $"{count}/{m_MaxTrackWagons}";
+
+            if (m_TrackCornerCounterTMP != null)
             {
-                int count = m_MovingWagons != null ? m_MovingWagons.Count : 0;
-                m_TrackCornerCounterText.text = $"{count}/{m_MaxTrackWagons}";
+                if (m_TrackCornerCounterTMP.text != counterStr)
+                {
+                    m_TrackCornerCounterTMP.text = counterStr;
+                    m_TrackCornerCounterTMP.transform.DOKill();
+                    m_TrackCornerCounterTMP.transform.localScale = Vector3.one;
+                    m_TrackCornerCounterTMP.transform.DOPunchScale(Vector3.one * 0.18f, 0.22f, 1, 0.5f);
+                }
+            }
+            else if (m_TrackCornerCounterText != null)
+            {
+                if (m_TrackCornerCounterText.text != counterStr)
+                {
+                    m_TrackCornerCounterText.text = counterStr;
+                    m_TrackCornerCounterText.transform.DOKill();
+                    m_TrackCornerCounterText.transform.localScale = Vector3.one;
+                    m_TrackCornerCounterText.transform.DOPunchScale(Vector3.one * 0.18f, 0.22f, 1, 0.5f);
+                }
             }
         }
 
