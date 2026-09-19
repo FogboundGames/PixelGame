@@ -521,6 +521,58 @@ namespace PixelGame
             );
         }
 
+        /// <summary>
+        /// Mermi darbesiyle küp parçalandığında Voronoi kırık parçalarını mermi yönünde ve 360 radyal
+        /// uzayda takla atarak fırlatır, havada süzülürken pürüzsüzce küçülerek (Ease.InBack) yok eder.
+        /// </summary>
+        public static CargoFlyer LaunchShardScatterAndVanish(
+            Vector3 worldStart,
+            Quaternion worldRotation,
+            Vector3 outwardDir,
+            Color color,
+            Mesh shardMesh,
+            Vector3 shardScale,
+            Vector3 impactDirection,
+            float duration = 0.52f)
+        {
+            CargoFlyer flyer = Rent();
+            flyer.CleanupTweens();
+            flyer.SetMesh(shardMesh != null ? shardMesh : FracturedCubeData.Instance.IntactMesh);
+            flyer.transform.position = worldStart;
+            flyer.transform.rotation = worldRotation;
+            flyer.transform.localScale = shardScale;
+            flyer.SetColor(color);
+            flyer.gameObject.SetActive(true);
+
+            // Mermi darbe yönü + dışa saçılma yönü
+            Vector3 flightDir = (outwardDir * 0.55f + impactDirection * 0.45f).normalized;
+            if (flightDir.sqrMagnitude < 0.001f) flightDir = UnityEngine.Random.insideUnitSphere.normalized;
+            // Kameraya doğru hafif kabarma (-Z)
+            flightDir.z = -Mathf.Abs(flightDir.z) * 0.8f - 0.25f;
+
+            float scatterDist = UnityEngine.Random.Range(0.40f, 0.90f);
+            Vector3 targetPos = worldStart + flightDir * scatterDist;
+            Vector3 randomTorque = new Vector3(
+                UnityEngine.Random.Range(-360f, 360f),
+                UnityEngine.Random.Range(-360f, 360f),
+                UnityEngine.Random.Range(-360f, 360f)
+            );
+
+            Sequence seq = DOTween.Sequence();
+            // 1. Dışarıya fırlama ve takla atma
+            seq.Append(flyer.transform.DOJump(targetPos, UnityEngine.Random.Range(0.20f, 0.45f), 1, duration).SetEase(Ease.OutQuad));
+            seq.Join(flyer.transform.DORotate(randomTorque, duration, RotateMode.FastBeyond360).SetEase(Ease.OutQuad));
+            // 2. Havada süzüldükten sonra pürüzsüzce küçülerek yok olma
+            seq.Insert(duration * 0.40f, flyer.transform.DOScale(Vector3.zero, duration * 0.60f).SetEase(Ease.InBack));
+            seq.OnComplete(() =>
+            {
+                flyer.Release();
+            });
+
+            flyer.m_ActiveSequence = seq;
+            return flyer;
+        }
+
         public void FlowToCart(Vector3 cartPosition, float delay, float flowDuration, float arcHeight, Action onArrive)
         {
             CleanupTweens();

@@ -190,9 +190,20 @@ namespace PixelGame
             sizeOverLifetime.enabled = true;
             AnimationCurve curve = new AnimationCurve();
             curve.AddKey(0f, 1f);        // Başlangıçta tam boyut
-            curve.AddKey(0.60f, 0.85f);  // Havada dağılırken görünürlüğü koru
-            curve.AddKey(1f, 0f);        // En son küçülerek kaybol
+            curve.AddKey(0.55f, 0.90f);  // Havada dağılırken net görünürlük
+            curve.AddKey(0.80f, 0.50f);  // Küçülmeye başla
+            curve.AddKey(1f, 0f);        // Tamamen küçülerek pürüzsüzce yok ol
             sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1f, curve);
+
+            // 5b. Color Over Lifetime (Ömrünün son %25'inde pürüzsüzce solup kaybolma)
+            var colorOverLifetime = m_ParticleSystem.colorOverLifetime;
+            colorOverLifetime.enabled = true;
+            Gradient alphaGrad = new Gradient();
+            alphaGrad.SetKeys(
+                new GradientColorKey[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                new GradientAlphaKey[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(1f, 0.75f), new GradientAlphaKey(0f, 1f) }
+            );
+            colorOverLifetime.color = new ParticleSystem.MinMaxGradient(alphaGrad);
 
             // 6. Emission kapalı (Sadece Emit ile çağıracağız)
             var emission = m_ParticleSystem.emission;
@@ -217,6 +228,16 @@ namespace PixelGame
         }
 
         /// <summary>
+        /// Mermi darbesiyle küp parçalandığında parçacıkları hem 360 radyal hem de merminin geliş yönü ivmesiyle etrafa saçar.
+        /// </summary>
+        public void SpawnVoxelBurstFromImpact(Vector3 position, Vector3 cubeScale, Color cubeColor, Vector3 shotOrigin, float comboPitch = 1.0f)
+        {
+            PlayGlassShatterSound(comboPitch);
+            Vector3 impactDirection = (position - shotOrigin).normalized;
+            SpawnVoxelBurstInternal(position, cubeScale, cubeColor, impactDirection);
+        }
+
+        /// <summary>
         /// Küp tıklandığında kendi renginde 3D mini voksellere bölünür ve
         /// yerçekimiyle tatmin edici bir şekilde AŞAĞIYA DOĞRU DÖKÜLÜR.
         /// Çerçeve ve diğer küpler tamamen sabit kalır.
@@ -224,7 +245,11 @@ namespace PixelGame
         public void SpawnVoxelBurst(Vector3 position, Vector3 cubeScale, Color cubeColor, int customCount = -1)
         {
             PlayPopSound();
+            SpawnVoxelBurstInternal(position, cubeScale, cubeColor, Vector3.zero);
+        }
 
+        private void SpawnVoxelBurstInternal(Vector3 position, Vector3 cubeScale, Color cubeColor, Vector3 impactDir)
+        {
             if (!m_EnableFallingParticles) return;
 
             if (m_ParticleSystem == null)
@@ -278,6 +303,12 @@ namespace PixelGame
                         // Radyal saçılma hızı + hafif doğal hız varyasyonu
                         float speed = m_ScatterForce * Random.Range(0.85f, 1.35f);
                         Vector3 initialVelocity = radialDir * speed;
+
+                        if (impactDir.sqrMagnitude > 0.001f)
+                        {
+                            // Mermi darbe yönü ivmesi ekle
+                            initialVelocity = (radialDir * 0.60f + impactDir * 0.70f) * speed;
+                        }
 
                         // 3. Renk varyasyonu: Her mini vokselin tonunda %8 hafif parlaklık farkı
                         // Bu sayede tek renk küpler bile ayrıştığında tek tek bloklar halinde net görünür

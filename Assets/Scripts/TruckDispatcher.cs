@@ -274,6 +274,20 @@ namespace PixelGame
         [Range(1.0f, 2.0f)]
         [SerializeField] private float m_ShardScaleMultiplier = 1.35f;
 
+        [Header("🚀 Mermi ile Ateş Etme Sistemi")]
+        [Tooltip("Topun ateşleyeceği mermi prefab'ı (Assets/Prefabs/CannonProjectile.prefab)")]
+        [SerializeField] private GameObject m_ProjectilePrefab;
+
+        [Tooltip("Merminin namludan küpe uçuş süresi (saniye)")]
+        [Range(0.10f, 0.45f)]
+        [SerializeField] private float m_ProjectileFlightDuration = 0.20f;
+
+        [Tooltip("Vagonların klasik vakum yerine mermi ateş ederek küpleri patlatması.")]
+        [SerializeField] private bool m_UseShootingMechanic = true;
+
+        [Tooltip("Vagonların orijinal gövde renklerini koru, yalnızca namlu/göstergeden hedef rengi belli et.")]
+        [SerializeField] private bool m_PreserveWagonColors = true;
+
         private static readonly HashSet<PixelCube> s_ReservedCubes = new HashSet<PixelCube>();
         public static void ClearReservedCubes() => s_ReservedCubes.Clear();
 
@@ -301,6 +315,7 @@ namespace PixelGame
             public Transform Transform;
             public TruckCargo Cargo;
             public TruckPaint Paint;
+            public WagonTargetIndicator Indicator;
             public MineCartMover Mover;
             public Animator Animator;
             public float PositionX;
@@ -1248,11 +1263,15 @@ namespace PixelGame
             if (triggerBox != null) Destroy(triggerBox);
 
             TruckPaint paint = truck.GetComponent<TruckPaint>();
-            if (paint != null)
+            if (paint != null && !m_PreserveWagonColors)
             {
                 paint.SetBodyColor(color);
                 paint.Apply();
             }
+
+            WagonTargetIndicator indicator = truck.GetComponent<WagonTargetIndicator>();
+            if (indicator == null) indicator = truck.gameObject.AddComponent<WagonTargetIndicator>();
+            indicator.SetTargetColor(color);
 
             MineCartMover mover = truck.GetComponent<MineCartMover>();
             if (mover != null) mover.StopMoving();
@@ -1289,6 +1308,7 @@ namespace PixelGame
                     Transform = truck,
                     Cargo = cargo,
                     Paint = paint,
+                    Indicator = indicator,
                     Mover = mover,
                     Animator = anim,
                     DistanceOnLoop = entryDistance,
@@ -1356,6 +1376,7 @@ namespace PixelGame
                 Transform = truck,
                 Cargo = cargo,
                 Paint = paint,
+                Indicator = indicator,
                 Mover = mover,
                 Animator = anim,
                 PositionX = startX,
@@ -1605,10 +1626,17 @@ namespace PixelGame
 
         /// <summary>
         /// Belirlenen küpü kırar ve 12 Voronoi parçasını hareket halindeki vagona dinamik vakumla akıtır.
+        /// Mermi sistemi açıksa top namlusundan mermi ateşleyerek küpü parçalar ve parçalar etrafa saçılarak yok olur.
         /// </summary>
         private void SweepCubeIntoWagon(PixelCube cube, MovingWagon wagon)
         {
             if (cube == null || wagon == null || wagon.Cargo == null) return;
+
+            if (m_UseShootingMechanic)
+            {
+                ShootCubeWithProjectile(cube, wagon);
+                return;
+            }
 
             Vector3 cubePos = cube.transform.position;
             Quaternion cubeRot = cube.transform.rotation;
@@ -1704,6 +1732,146 @@ namespace PixelGame
                         }
                     );
                 });
+            }
+        }
+
+        /// <summary>
+        /// Vagon namlusundan hedef küpe balistik mermi küresi ateşler.
+        /// Mermi hedefe ulaştığında küp 3D parçalara ve mini voksellere ayrılarak etrafa saçılır ve pürüzsüzce yok olur.
+        /// </summary>
+        private void ShootCubeWithProjectile(PixelCube cube, MovingWagon wagon)
+        {
+            if (cube == null || wagon == null) return;
+
+            Transform targetWagon = wagon.Transform;
+            Vector3 muzzlePos = (wagon.Indicator != null)
+                ? wagon.Indicator.MuzzleWorldPosition
+                : (targetWagon != null ? targetWagon.position + targetWagon.up * 0.45f : cube.transform.position);
+
+            Vector3 cubePos = cube.transform.position;
+            Quaternion cubeRot = cube.transform.rotation;
+            Vector3 cubeScale = cube.transform.lossyScale;
+            Color cubeColor = cube.CurrentColor;
+
+            // 1. Namlu geri tepmesi (Recoil punch)
+            if (targetWagon != null)
+            {
+                targetWagon.DOKill();
+                targetWagon.DOPunchPosition(-targetWagon.forward * 0.10f, 0.18f, 6, 0.4f);
+                targetWagon.DOPunchScale(new Vector3(0.08f, -0.06f, 0.08f), 0.16f, 4, 0.3f);
+            }
+
+            // 2. Namludaki mermi animasyonu (Fırlama ve yeniden doldurma)
+            if (wagon.Indicator != null)
+            {
+                wagon.Indicator.PlayShootAndReloadAnimation();
+            }
+
+            // 3. Enerjik Mermi Küresini Üret ve Hedefe Fırlat
+            GameObject projObj = null;
+            if (m_ProjectilePrefab != null)
+            {
+                projObj = Instantiate(m_ProjectilePrefab);
+            }
+            else
+            {
+                #if UNITY_EDITOR
+                GameObject prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/CannonProjectile.prefab");
+                if (prefab != null) projObj = Instantiate(prefab);
+                #endif
+                if (projObj == null)
+                {
+                    projObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    projObj.AddComponent<CannonProjectile>();
+                }
+            }
+
+            CannonProjectile proj = projObj.GetComponent<CannonProjectile>();
+            if (proj == null) proj = projObj.AddComponent<CannonProjectile>();
+
+            proj.Launch(muzzlePos, cubePos, cubeColor, () =>
+            {
+                OnProjectileHitCube(cube, cubePos, cubeRot, cubeScale, cubeColor, wagon, muzzlePos);
+            }, m_ProjectileFlightDuration);
+        }
+
+        private void OnProjectileHitCube(
+            PixelCube cube,
+            Vector3 cubePos,
+            Quaternion cubeRot,
+            Vector3 cubeScale,
+            Color cubeColor,
+            MovingWagon wagon,
+            Vector3 shotOrigin)
+        {
+            // 1. Voksel Patlaması ve Cam Kırılma Sesi (Fiziksel mermi çarpma ivmesiyle saçılma)
+            float comboPitch = (wagon != null)
+                ? Mathf.Clamp(0.96f + (wagon.SweepComboCount * 0.035f), 0.95f, 1.85f)
+                : 1.0f;
+
+            if (VoxelParticleManager.Instance != null)
+            {
+                VoxelParticleManager.Instance.SpawnVoxelBurstFromImpact(cubePos, cubeScale, cubeColor, shotOrigin, comboPitch);
+            }
+
+            // 2. İri Voronoi Kırık Parçalarının Etrafa Saçılıp Küçülerek Yok Olması (Juicy Scatter & Vanish)
+            FracturedCubeData fracData = FracturedCubeData.Instance;
+            int shardCount = (fracData != null && fracData.ShardCount > 0) ? Mathf.Min(8, fracData.ShardCount) : 6;
+            Vector3 sScale = cubeScale * (m_ShardScaleMultiplier * 0.9f);
+            Vector3 impactDir = (cubePos - shotOrigin).normalized;
+
+            for (int s = 0; s < shardCount; s++)
+            {
+                FracturedCubeData.ShardData shard = (fracData != null) ? fracData.GetShard(s) : default;
+                Vector3 localOffset = shard.localOffset;
+                Vector3 outwardDir = cubeRot * (shard.outwardDir.sqrMagnitude > 0.001f ? shard.outwardDir : (localOffset.sqrMagnitude > 0.001f ? localOffset.normalized : Vector3.up));
+                Vector3 shardStart = cubePos + cubeRot * Vector3.Scale(localOffset * 0.5f, cubeScale);
+                Mesh shardMesh = shard.mesh;
+
+                float sizeVar = UnityEngine.Random.Range(0.85f, 1.2f);
+                Vector3 thisShardScale = sScale * sizeVar;
+
+                CargoFlyer.LaunchShardScatterAndVanish(
+                    shardStart,
+                    cubeRot,
+                    outwardDir,
+                    cubeColor,
+                    shardMesh,
+                    thisShardScale,
+                    impactDir,
+                    UnityEngine.Random.Range(0.45f, 0.65f)
+                );
+            }
+
+            // 3. Küpün kendisini gizle ve oyuna bildir
+            if (cube != null)
+            {
+                cube.SetPoppedVisualState(true);
+                if (PixelCubeInteraction.Instance != null)
+                {
+                    PixelCubeInteraction.Instance.RegisterPoppedCube(cube);
+                }
+                s_ReservedCubes.Remove(cube);
+            }
+
+            // 4. Vagon Yükleme Sayacını ve Durumunu Güncelle
+            if (wagon != null)
+            {
+                wagon.PendingSweeps = Mathf.Max(0, wagon.PendingSweeps - 1);
+                if (wagon.Cargo != null)
+                {
+                    wagon.Cargo.LoadOneCube();
+                    if (wagon.Transform != null)
+                    {
+                        wagon.Transform.DOKill(true);
+                        wagon.Transform.DOPunchScale(new Vector3(0.05f, 0.09f, 0.05f), 0.16f, 3, 0.4f);
+                    }
+
+                    if (wagon.Cargo.IsFull)
+                    {
+                        wagon.LeaveAtLapEnd = true;
+                    }
+                }
             }
         }
 
@@ -2848,12 +3016,16 @@ namespace PixelGame
             cargo.ResetCargo(order.Color, order.Capacity);
 
             TruckPaint paint = truck.GetComponent<TruckPaint>();
-            if (paint != null)
+            if (paint != null && !m_PreserveWagonColors)
             {
                 PixelLevelData lvl = GetLevel();
                 LevelColorTheme theme = (lvl != null && lvl.ColorTheme != null) ? lvl.ColorTheme : GameThemeSettings.CurrentTheme;
                 paint.ApplyTheme(theme, order.Color);
             }
+
+            WagonTargetIndicator indicator = truck.GetComponent<WagonTargetIndicator>();
+            if (indicator == null) indicator = truck.gameObject.AddComponent<WagonTargetIndicator>();
+            indicator.SetTargetColor(order.Color);
 
             cargo.EnsureBadge();
             cargo.UpdateBadge(false);
