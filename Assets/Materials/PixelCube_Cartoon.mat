@@ -143,10 +143,10 @@ Material:
     - _OutlineTextureType: 0
     - _OutlineWidth: 1
     - _PillowRoundness: 0.5
-    - _PlasticAngleX: 0.42
-    - _PlasticBevelAO: 0.4
-    - _PlasticHighlightIntensity: 2.0
-    - _PlasticHighlightSize: 0.35
+    - _PlasticAngleX: -0.45
+    - _PlasticBevelAO: 0.45
+    - _PlasticHighlightIntensity: 2.85
+    - _PlasticHighlightSize: 0.26
     - _PlasticTopLight: 0.25
     - _ProceduralBevelIntensity: 0.8
     - _ProceduralBevelWidth: 0.05
@@ -172,7 +172,7 @@ Material:
     - _SpecularHighlights: 1
     - _SpecularMapType: 0
     - _SpecularRoughness: 0.5
-    - _SpecularRoughnessPBR: 0.3
+    - _SpecularRoughnessPBR: 0.18
     - _SpecularToonSize: 0.25
     - _SpecularToonSmoothness: 0.05
     - _SpecularType: 0
