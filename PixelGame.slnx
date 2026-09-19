@@ -1,6 +1,6 @@
 ﻿<Solution>
-  <Project Path="ToonyColorsPro.Runtime.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="ToonyColorsPro.Runtime.csproj" />
   <Project Path="ToonyColorsPro.Editor.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Assembly-CSharp-firstpass.csproj" />

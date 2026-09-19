@@ -104,10 +104,25 @@ namespace PixelGame
                 foreach (var r in renderers)
                 {
                     if (r == null || r.sharedMaterial == null) continue;
+
+                    // MaterialPropertyBlock'a yazılan _BaseColor/_Color, materyalin kendi
+                    // rengiyle ÇARPILMAZ — o shader girdisini o renderer için TAMAMEN
+                    // DEĞİŞTİRİR. "tint" burada doğrudan yazılınca (Color.white dahil)
+                    // vagonun gerçek kargo rengi (materyalde duran _BaseColor) tamamen
+                    // siliniyor ve her vagon düz beyaz/gri görünüyordu — hangi renk
+                    // verilirse verilsin fark etmiyordu, çünkü bu kod onu her seferinde
+                    // eziyordu. Doğrusu: materyalin GERÇEK rengini oku, tonlamayı ONUN
+                    // üstüne kendi hesapla, sonucu yaz.
+                    Color baseColor = r.sharedMaterial.HasProperty("_BaseColor")
+                        ? r.sharedMaterial.GetColor("_BaseColor")
+                        : (r.sharedMaterial.HasProperty("_Color") ? r.sharedMaterial.GetColor("_Color") : Color.white);
+
+                    Color shaded = new Color(baseColor.r * tint.r, baseColor.g * tint.g, baseColor.b * tint.b, baseColor.a);
+
                     MaterialPropertyBlock mpb = new MaterialPropertyBlock();
                     r.GetPropertyBlock(mpb);
-                    mpb.SetColor("_Color", tint);
-                    mpb.SetColor("_BaseColor", tint);
+                    mpb.SetColor("_Color", shaded);
+                    mpb.SetColor("_BaseColor", shaded);
                     r.SetPropertyBlock(mpb);
                 }
             }
