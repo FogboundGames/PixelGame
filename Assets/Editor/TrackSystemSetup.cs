@@ -111,11 +111,12 @@ namespace PixelGame.Editor
                 mat.shader = shader;
             }
 
-            // Renk: #F0F8FE (240, 248, 254)
-            Color rimColor = new Color(240f / 255f, 248f / 255f, 254f / 255f, 1f);
+            // Renk: Canlı parlak oyuncak mavisi #4E8CF6 (Referans modular ray rengi)
+            Color rimColor = new Color(78f / 255f, 140f / 255f, 246f / 255f, 1f);
             if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", rimColor);
             if (mat.HasProperty("_Color")) mat.SetColor("_Color", rimColor);
-            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.5f);
+            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.88f);
+            if (mat.HasProperty("_Metallic")) mat.SetFloat("_Metallic", 0.05f);
 
             EditorUtility.SetDirty(mat);
             return mat;
@@ -161,7 +162,7 @@ namespace PixelGame.Editor
             // Base Color = Beyaz
             if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", Color.white);
             if (mat.HasProperty("_Color")) mat.SetColor("_Color", Color.white);
-            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.35f);
+            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.80f);
 
             EditorUtility.SetDirty(mat);
             return mat;

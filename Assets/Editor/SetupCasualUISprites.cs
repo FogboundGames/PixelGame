@@ -8,14 +8,19 @@ namespace PixelGame.Editor
         public static void ConfigureAll()
         {
             SetSprite("Assets/UI/CasualUI/bg_dark_navy.png", Vector4.zero);
-            SetSprite("Assets/UI/CasualUI/board_frame_25d.png", new Vector4(48, 48, 48, 48));
+            SetSprite("Assets/UI/CasualUI/board_frame_25d.png", new Vector4(135, 135, 135, 135));
             SetSprite("Assets/UI/CasualUI/board_inner_well.png", new Vector4(36, 36, 36, 36));
             SetSprite("Assets/UI/CasualUI/board_shadow.png", new Vector4(52, 52, 52, 52));
-            SetSprite("Assets/UI/CasualUI/slot_pod_25d.png", new Vector4(42, 42, 42, 42));
+            SetSprite("Assets/UI/CasualUI/slot_pod_25d.png", new Vector4(45, 45, 45, 45));
             SetSprite("Assets/UI/CasualUI/slot_shadow.png", new Vector4(36, 36, 36, 36));
             SetSprite("Assets/UI/CasualUI/btn_settings.png", new Vector4(36, 36, 36, 36));
             SetSprite("Assets/UI/CasualUI/ui_pill.png", new Vector4(44, 44, 44, 44));
-            SetSprite("Assets/UI/CasualUI/progress_station_pod.png", new Vector4(36, 36, 36, 36));
+            SetSprite("Assets/UI/CasualUI/progress_station_pod.png", Vector4.zero);
+            SetSprite("Assets/UI/CasualUI/top_bar_pod.png", Vector4.zero);
+            SetSprite("Assets/UI/CasualUI/mascot_green.png", Vector4.zero);
+            SetSprite("Assets/UI/CasualUI/mascot_brown.png", Vector4.zero);
+            SetSprite("Assets/UI/CasualUI/mascot_orange.png", Vector4.zero);
+            SetSprite("Assets/UI/CasualUI/mascot_yellow.png", Vector4.zero);
             SetSprite("Assets/UI/CasualUI/icon_gear.png", Vector4.zero);
             SetSprite("Assets/UI/CasualUI/icon_heart.png", Vector4.zero);
             SetSprite("Assets/UI/CasualUI/icon_coin.png", Vector4.zero);
