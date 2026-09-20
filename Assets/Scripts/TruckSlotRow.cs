@@ -69,7 +69,7 @@ namespace PixelGame
                 RectTransform slotRect = slot.GetComponent<RectTransform>();
                 if (slotRect != null)
                 {
-                    slotRect.localRotation = Quaternion.Euler(m_Style.tilt, 0f, 0f);
+                    slotRect.localRotation = Quaternion.Euler(m_Style.tilt, m_Style.tiltYaw, m_Style.tiltRoll);
                 }
 
                 slot.Configure(slot.SlotRect, rotation);

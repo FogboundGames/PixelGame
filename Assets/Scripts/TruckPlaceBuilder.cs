@@ -33,6 +33,13 @@ namespace PixelGame
                  "yere serilmiş bir zemin parçası gibi yamuk görünür.")]
         public float tilt = 45f;
 
+        [Tooltip("Park yerinin Y ekseni etrafındaki ek dönüşü. Genelde 0; " +
+                 "vagon modelinin doğal yönü kameraya ters düştüğünde kullanılır.")]
+        public float tiltYaw = 0f;
+
+        [Tooltip("Park yerinin Z ekseni etrafındaki ek dönüşü (roll). Genelde 0.")]
+        public float tiltRoll = 0f;
+
         [Tooltip("Kamyonun park yeri içindeki duruşu (local Euler)")]
         public Vector3 truckEuler = new Vector3(-90f, 90f, -90f);
 
@@ -199,7 +206,7 @@ namespace PixelGame
                     // Alt sıralar kameraya doğru gelsin: negatif Z öne çeker
                     rect.anchoredPosition3D = new Vector3(x, y, -r * style.stepZ);
                     // Yere yatır: perspektif kamera bunu yamuk gösterir
-                    rect.localRotation = Quaternion.Euler(style.tilt, 0f, 0f);
+                    rect.localRotation = Quaternion.Euler(style.tilt, style.tiltYaw, style.tiltRoll);
 
                     Image image = obj.AddComponent<Image>();
 

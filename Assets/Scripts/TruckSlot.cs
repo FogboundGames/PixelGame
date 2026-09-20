@@ -45,7 +45,7 @@ namespace PixelGame
         [SerializeField] private float m_VerticalOffset = 0.5f;
 
         [Tooltip("Vagonun ray yüzeyinden ne kadar önde duracağı. Z kavgasını (z-fighting) önler.")]
-        [SerializeField] private float m_LiftOffset = 2f;
+        [SerializeField] private float m_LiftOffset = 0.6f;
 
         [Header("🧱 Taban Hizalama (Pedestal Anchor)")]
         [Tooltip("Vagonun tabanını (pedestal/alt dairesini) slot zeminine mi oturtsun? " +
@@ -59,7 +59,18 @@ namespace PixelGame
         [Tooltip("Tabanlı modeller için slot genişliğini doldurma oranı. " +
                  "Tabanın slot kenarlarından taşmasını önler (0.50 = slot genişliğinin yarısı).")]
         [Range(0.2f, 1.2f)]
-        [SerializeField] private float m_BaseWidthFill = 0.50f;
+        [SerializeField] private float m_BaseWidthFill = 0.85f;
+
+        [Header("✋ Elle Sabit Duruş (Manual Transform Override)")]
+        [Tooltip("Açıkken vagonun yerini/duruşunu/boyutunu otomatik hesaplama (FitToRect) yerine " +
+                 "aşağıdaki sabit değerler belirler. Inspector'da bulunan bir duruşu birebir kilitlemek için kullanılır.")]
+        [SerializeField] private bool m_UseManualTruckTransform = false;
+
+        [SerializeField] private Vector3 m_ManualTruckPosition = Vector3.zero;
+        [SerializeField] private Vector3 m_ManualTruckRotation = Vector3.zero;
+        [SerializeField] private float m_ManualTruckScale = 1f;
+
+        public bool UseManualTruckTransform { get => m_UseManualTruckTransform; set { m_UseManualTruckTransform = value; AlignTruck(); } }
 
         [Header("🛤️ Ray")]
         [Tooltip("Ray parçasının park yeri içindeki duruşu. Vagonun duruşundan bağımsızdır; " +
@@ -199,6 +210,16 @@ namespace PixelGame
 
             RectTransform rect = SlotRect;
             if (rect == null) return;
+
+            // Elle kilitlenmiş bir duruş varsa otomatik hizalamayı atla; Inspector'da
+            // bulunup onaylanmış değerleri birebir uygula.
+            if (m_UseManualTruckTransform)
+            {
+                m_Truck.localPosition = m_ManualTruckPosition;
+                m_Truck.localRotation = Quaternion.Euler(m_ManualTruckRotation);
+                m_Truck.localScale = Vector3.one * m_ManualTruckScale;
+                return;
+            }
 
             // 1. Yön: modelin taban rotasyonu korunur, yaw onun kendi ekseninde uygulanır
             m_Truck.localRotation = m_BaseRotation * Quaternion.AngleAxis(m_TruckYaw, Vector3.up);

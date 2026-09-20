@@ -31,6 +31,38 @@ namespace PixelGame
         private MeshRenderer m_BaseRingRenderer;
         private Tween m_BreathTween;
         private TruckCargo m_Cargo;
+        private bool? m_IsScifiTurret;
+
+        /// <summary>
+        /// Namlu küresi ve taban halkası yalnızca sci-fi taret modellerinde (VacuumCannon/
+        /// object_005 gibi) anlamlıdır. Başka bir model (örn. BlueBot) bu bileşeni taşıyorsa
+        /// namlu konumunda alakasız bir küre belirir ve gövde sınırlarını (bounds) şişirip
+        /// rozet/ölçek hesaplarını bozar; bu yüzden model adı/mesh adı sci-fi değilse hiç
+        /// oluşturulmazlar.
+        /// </summary>
+        private bool IsScifiTurret
+        {
+            get
+            {
+                if (m_IsScifiTurret.HasValue) return m_IsScifiTurret.Value;
+
+                bool found = false;
+                foreach (Renderer r in GetComponentsInChildren<Renderer>(true))
+                {
+                    if (r == null) continue;
+                    if (r.name.IndexOf("object_", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        r.name.IndexOf("Cannon", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        r.name.IndexOf("Turret", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+
+                m_IsScifiTurret = found;
+                return found;
+            }
+        }
 
         public Color TargetColor => m_TargetColor;
         public Vector3 MuzzleWorldPosition => m_MuzzleSphere != null ? m_MuzzleSphere.position : transform.TransformPoint(m_MuzzleLocalPos);
@@ -120,6 +152,8 @@ namespace PixelGame
 
         private void EnsureVisualIndicators()
         {
+            if (!IsScifiTurret) return;
+
             EnsureMuzzleSphere();
             EnsureBaseRing();
         }

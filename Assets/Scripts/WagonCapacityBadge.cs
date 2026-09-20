@@ -42,14 +42,14 @@ namespace PixelGame
         [Tooltip("Metnin vagon modeline göre büyüklük oranı. 0.5 = model genişliğinin yarısı. " +
                  "Rozetler çalışma anında AddComponent ile eklendiği için sahnedeki değil " +
                  "BU varsayılan geçerlidir.")]
-        [Range(0.2f, 2.5f)]
-        [SerializeField] private float m_SizeRatio = 0.95f;
+        [Range(0.1f, 2.5f)]
+        [SerializeField] private float m_SizeRatio = 0.22f;
 
         [Tooltip("Rozetin gövde merkezinden yukarı/aşağı kayması, gövde yüksekliğinin oranı olarak. " +
                  "0 = tam gövdenin ortasında (etiket gibi). Negatif değer aşağı indirir. " +
                  "Rozet çalışma anında eklendiği için sahnedeki değil BU varsayılan geçerlidir.")]
         [Range(-0.5f, 0.8f)]
-        [SerializeField] private float m_VerticalLiftRatio = 0.32f;
+        [SerializeField] private float m_VerticalLiftRatio = 0.42f;
 
         [Header("📦 Doluluk Dinamik Yükselmesi (Pile Float)")]
         [Tooltip("Kasa doldukça rozetin yukarı kayma oranı. 0 = hiç kaymasın (şişe gibi kapalı " +
@@ -58,8 +58,9 @@ namespace PixelGame
         [Range(0f, 0.6f)]
         [SerializeField] private float m_FillRiseRatio = 0f;
 
-        [Tooltip("Modelin merkezine eklenecek kamera uzayı ince ayar ofseti (X: sağ/sol, Y: yukarı/aşağı, Z: derinlik)")]
-        [SerializeField] private Vector3 m_CenterOffset = Vector3.zero;
+        [Tooltip("Modelin merkezine eklenecek kamera uzayı ince ayar ofseti (X: sağ/sol, Y: yukarı/aşağı, Z: derinlik). " +
+                 "Pozitif Z rozeti kameradan uzağa, modelin içine doğru iter.")]
+        [SerializeField] private Vector3 m_CenterOffset = new Vector3(0f, 0f, 0.12f);
 
         [Tooltip("Yazı boyutu (Canvas birimi, varsayılan: 140)")]
         [Range(40, 200)]
@@ -78,6 +79,17 @@ namespace PixelGame
         private static bool IsBodyRenderer(Renderer r)
         {
             if (r == null) return false;
+
+            // Yüz parçaları ("Eye_L_Body" gibi) asla gövde olamaz; aksi halde aşağıdaki
+            // gevşek "Body" alt-dize eşleşmesi göz küresini gövde sanıp rozeti minicik
+            // bir mesh'e göre ölçeklendiriyor (neredeyse görünmez oluyor).
+            if (r.name.IndexOf("Eye", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                r.name.IndexOf("Brow", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                r.name.IndexOf("Glint", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                r.name.IndexOf("Snout", System.StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return false;
+            }
 
             if (r.name.StartsWith("MineCart_Body") || r.name.StartsWith("Truck_Cargo")) return true;
             if (r.name.IndexOf("Bottle", System.StringComparison.OrdinalIgnoreCase) >= 0) return true;

@@ -25,8 +25,8 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 706441942260105071}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0.46999985}
-  m_LocalScale: {x: 0.001, y: 0.001, z: 0.001}
+  m_LocalPosition: {x: 0, y: 0, z: 0.13675004}
+  m_LocalScale: {x: 0.010270178, y: 0.010270178, z: 0.010270178}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3140724021111249802}
@@ -34,7 +34,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -0.18, y: 0.978}
+  m_AnchoredPosition: {x: 0, y: 0.90199995}
   m_SizeDelta: {x: 140, y: 140}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &8766861793329667271
@@ -376,10 +376,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.WagonCapacityBadge
   m_ShowBackgroundBox: 0
   m_AutoCenterOnMesh: 1
-  m_SizeRatio: 0.95
-  m_VerticalLiftRatio: 0.32
+  m_SizeRatio: 0.22
+  m_VerticalLiftRatio: 0.42
   m_FillRiseRatio: 0
-  m_CenterOffset: {x: 0, y: 0, z: 0}
+  m_CenterOffset: {x: 0, y: 0, z: 0.12}
   m_FontSize: 140
   m_ManualOffset: {x: 0, y: 0.15, z: 0}
   m_ManualScale: 0.012
@@ -402,8 +402,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.24, y: 1.1, z: 1.51}
-  m_Center: {x: 0, y: 0.55, z: 0.14}
+  m_Size: {x: 1.2399999, y: 1.1000001, z: 1.5135}
+  m_Center: {x: 0, y: 0.54999995, z: 0.13675004}
 --- !u!114 &2477542277797557750
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -439,7 +439,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 76eb58eb4b7144ad7addb635b276e675, type: 3}
       propertyPath: m_LocalRotation.w
-      value: -0.00000004371139
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 76eb58eb4b7144ad7addb635b276e675, type: 3}
       propertyPath: m_LocalRotation.x
@@ -447,7 +447,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 76eb58eb4b7144ad7addb635b276e675, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 76eb58eb4b7144ad7addb635b276e675, type: 3}
       propertyPath: m_LocalRotation.z

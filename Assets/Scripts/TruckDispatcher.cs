@@ -1104,11 +1104,18 @@ namespace PixelGame
                                                      m_TruckPrefab.name.IndexOf("Cannon", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                                                      m_TruckPrefab.name.IndexOf("Turret", System.StringComparison.OrdinalIgnoreCase) >= 0);
 
-            // Vagon duruşu TEK kaynaktan gelir: slot stilinin truckEuler'ı.
+            // Vagon duruşu TEK kaynaktan gelir: havuz stilinin truckEuler'ı.
+            // Havuzdaki slotlar hiç eğilmediği (tilt=0) için buradaki truckEuler zaten
+            // "çıplak" dünya duruşudur — raydaki vagon, ek bir slot eğimine ihtiyaç
+            // duymadan doğrudan bunu kullanabilir. Slot şeridi (m_Slots) ise kendi
+            // zemin eğimine (tilt) sahip olduğundan onun truckEuler'ı BU eğime göre
+            // görelidir ve rayda doğrudan kullanılamaz.
             // Sci-fi topu için ray teğetine kilitli taban duruşu (0, 90, 0) uygulanır.
-            Vector3 defaultEuler = (m_Slots != null && m_Slots.Style != null)
-                ? m_Slots.Style.truckEuler
-                : (isBottle ? new Vector3(0f, 90f, 0f) : new Vector3(0f, -90f, -270f));
+            Vector3 defaultEuler = (m_Pool != null && m_Pool.Style != null)
+                ? m_Pool.Style.truckEuler
+                : (m_Slots != null && m_Slots.Style != null)
+                    ? m_Slots.Style.truckEuler
+                    : (isBottle ? new Vector3(0f, 90f, 0f) : new Vector3(0f, -90f, -270f));
 
             if (isScifi)
             {
@@ -1117,8 +1124,12 @@ namespace PixelGame
                 // Ağız/namlu kısmı daima çektikleri küplere (içeri/panoya) doğru bakar:
                 // Alt kenarda +Y (yukarı), sağda -X (sola), üstte -Y (aşağı), solda +X (sağa).
                 defaultEuler = new Vector3(-90f, 0f, 0f);
+                m_WagonRotation = Quaternion.Euler(defaultEuler);
             }
-            m_WagonRotation = Quaternion.Euler(defaultEuler);
+            else
+            {
+                m_WagonRotation = Quaternion.Euler(defaultEuler);
+            }
 
             if (isBottle)
             {

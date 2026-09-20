@@ -318,10 +318,13 @@ namespace PixelGame
             {
                 if (target == null) continue;
 
-                // Göz ve kaş parçaları (örn. BlueBot) her zaman kendi koyu rengini korur;
-                // vagon rengine boyanmaz.
+                // Yüz parçaları (göz, kaş, burun deliği, parlama) her zaman kendi
+                // rengini korur; vagon rengine boyanmazlar. Gövde rengiyle boyanırlarsa
+                // yüz detayları tamamen kaybolur.
                 if (target.name.IndexOf("Eye", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    target.name.IndexOf("Brow", StringComparison.OrdinalIgnoreCase) >= 0)
+                    target.name.IndexOf("Brow", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    target.name.IndexOf("Snout", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    target.name.IndexOf("Glint", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     continue;
                 }

@@ -733,6 +733,127 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 22446606}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &23802809
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 23802810}
+  - component: {fileID: 23802814}
+  - component: {fileID: 23802813}
+  - component: {fileID: 23802812}
+  - component: {fileID: 23802811}
+  m_Layer: 0
+  m_Name: Place_4
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &23802810
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 23802809}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 198998303}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 570, y: 190}
+  m_SizeDelta: {x: 340, y: 340}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &23802811
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 23802809}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1581a9a4770eab434a6dd65e0ac80ed9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPoolPlace
+--- !u!114 &23802812
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 23802809}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 704c00520f1e41c418e709f181bfcd93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckSlot
+  m_SlotRect: {fileID: 23802810}
+  m_Truck: {fileID: 0}
+  m_Ground: {fileID: 0}
+  m_BaseRotation: {x: -0.7057879, y: -0.018509984, z: -0.04316774, w: 0.7068645}
+  m_TruckYaw: 0
+  m_WidthFill: 0.78
+  m_VerticalOffset: 0.5
+  m_LiftOffset: 0.6
+  m_AnchorToBase: 1
+  m_BaseVerticalRatio: -0.07
+  m_BaseWidthFill: 0.85
+  m_UseManualTruckTransform: 0
+  m_ManualTruckPosition: {x: 0, y: 0, z: 0}
+  m_ManualTruckRotation: {x: 0, y: 0, z: 0}
+  m_ManualTruckScale: 1
+  m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_GroundYaw: 0
+  m_GroundWidthFill: 1.08
+  m_GroundVerticalOffset: 0.5
+  m_TruckColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+--- !u!114 &23802813
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 23802809}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &23802814
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 23802809}
+  m_CullTransparentMesh: 0
 --- !u!1001 &24522190
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1737,6 +1858,127 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 49724369}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &50388135
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 50388136}
+  - component: {fileID: 50388140}
+  - component: {fileID: 50388139}
+  - component: {fileID: 50388138}
+  - component: {fileID: 50388137}
+  m_Layer: 0
+  m_Name: Place_3
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &50388136
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 50388135}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 198998303}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 190, y: 190}
+  m_SizeDelta: {x: 340, y: 340}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &50388137
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 50388135}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1581a9a4770eab434a6dd65e0ac80ed9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPoolPlace
+--- !u!114 &50388138
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 50388135}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 704c00520f1e41c418e709f181bfcd93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckSlot
+  m_SlotRect: {fileID: 50388136}
+  m_Truck: {fileID: 0}
+  m_Ground: {fileID: 0}
+  m_BaseRotation: {x: -0.7057879, y: -0.018509984, z: -0.04316774, w: 0.7068645}
+  m_TruckYaw: 0
+  m_WidthFill: 0.78
+  m_VerticalOffset: 0.5
+  m_LiftOffset: 0.6
+  m_AnchorToBase: 1
+  m_BaseVerticalRatio: -0.07
+  m_BaseWidthFill: 0.85
+  m_UseManualTruckTransform: 0
+  m_ManualTruckPosition: {x: 0, y: 0, z: 0}
+  m_ManualTruckRotation: {x: 0, y: 0, z: 0}
+  m_ManualTruckScale: 1
+  m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_GroundYaw: 0
+  m_GroundWidthFill: 1.08
+  m_GroundVerticalOffset: 0.5
+  m_TruckColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+--- !u!114 &50388139
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 50388135}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &50388140
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 50388135}
+  m_CullTransparentMesh: 0
 --- !u!1001 &51061694
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3434,123 +3676,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 102615903}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &103872789
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 103872790}
-  - component: {fileID: 103872793}
-  - component: {fileID: 103872792}
-  - component: {fileID: 103872794}
-  - component: {fileID: 103872791}
-  m_Layer: 0
-  m_Name: Place_3
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &103872790
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 103872789}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 198998303}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 190, y: 190}
-  m_SizeDelta: {x: 340, y: 340}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &103872791
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 103872789}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1581a9a4770eab434a6dd65e0ac80ed9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPoolPlace
---- !u!114 &103872792
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 103872789}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
---- !u!222 &103872793
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 103872789}
-  m_CullTransparentMesh: 0
---- !u!114 &103872794
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 103872789}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 704c00520f1e41c418e709f181bfcd93, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckSlot
-  m_SlotRect: {fileID: 103872790}
-  m_Truck: {fileID: 0}
-  m_Ground: {fileID: 0}
-  m_BaseRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
-  m_TruckYaw: 0
-  m_WidthFill: 0.78
-  m_VerticalOffset: 0.5
-  m_LiftOffset: 2
-  m_AnchorToBase: 1
-  m_BaseVerticalRatio: -0.07
-  m_BaseWidthFill: 0.5
-  m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_GroundYaw: 0
-  m_GroundWidthFill: 1.08
-  m_GroundVerticalOffset: 0.5
-  m_TruckColor: {r: 0.96, g: 0.5, b: 0.12, a: 1}
 --- !u!1001 &109035301
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4037,123 +4162,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 121514803}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &123706243
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 123706244}
-  - component: {fileID: 123706247}
-  - component: {fileID: 123706246}
-  - component: {fileID: 123706248}
-  - component: {fileID: 123706245}
-  m_Layer: 0
-  m_Name: Place_7
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &123706244
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 123706243}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -60}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 198998303}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 190, y: -190}
-  m_SizeDelta: {x: 340, y: 340}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &123706245
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 123706243}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1581a9a4770eab434a6dd65e0ac80ed9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPoolPlace
---- !u!114 &123706246
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 123706243}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
---- !u!222 &123706247
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 123706243}
-  m_CullTransparentMesh: 0
---- !u!114 &123706248
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 123706243}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 704c00520f1e41c418e709f181bfcd93, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckSlot
-  m_SlotRect: {fileID: 123706244}
-  m_Truck: {fileID: 0}
-  m_Ground: {fileID: 0}
-  m_BaseRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
-  m_TruckYaw: 0
-  m_WidthFill: 0.78
-  m_VerticalOffset: 0.5
-  m_LiftOffset: 2
-  m_AnchorToBase: 1
-  m_BaseVerticalRatio: -0.07
-  m_BaseWidthFill: 0.5
-  m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_GroundYaw: 0
-  m_GroundWidthFill: 1.08
-  m_GroundVerticalOffset: 0.5
-  m_TruckColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
 --- !u!1001 &124164592
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7711,14 +7719,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPool
   m_Places:
-  - {fileID: 651487765}
-  - {fileID: 365100029}
-  - {fileID: 103872794}
-  - {fileID: 226700556}
-  - {fileID: 2037985526}
-  - {fileID: 422197918}
-  - {fileID: 123706248}
-  - {fileID: 608950282}
+  - {fileID: 340320538}
+  - {fileID: 2060062814}
+  - {fileID: 50388138}
+  - {fileID: 23802812}
+  - {fileID: 725133962}
+  - {fileID: 445409254}
+  - {fileID: 1125662248}
+  - {fileID: 785417535}
   m_Columns: 4
   m_Rows: 2
   m_Style:
@@ -7728,7 +7736,9 @@ MonoBehaviour:
     gapY: 40
     stepZ: 60
     tilt: 0
-    truckEuler: {x: 0, y: 180, z: 0}
+    tiltYaw: 0
+    tiltRoll: 0
+    truckEuler: {x: 272, y: 85, z: 270}
     showSprite: 0
     interactive: 1
     rowWidthFill: 0.96
@@ -7768,14 +7778,14 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 651487761}
-  - {fileID: 365100025}
-  - {fileID: 103872790}
-  - {fileID: 226700552}
-  - {fileID: 2037985522}
-  - {fileID: 422197914}
-  - {fileID: 123706244}
-  - {fileID: 608950283}
+  - {fileID: 340320536}
+  - {fileID: 2060062812}
+  - {fileID: 50388136}
+  - {fileID: 23802810}
+  - {fileID: 725133960}
+  - {fileID: 445409252}
+  - {fileID: 1125662246}
+  - {fileID: 785417533}
   m_Father: {fileID: 144958604}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -8682,123 +8692,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 224478037}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &226700551
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 226700552}
-  - component: {fileID: 226700555}
-  - component: {fileID: 226700554}
-  - component: {fileID: 226700556}
-  - component: {fileID: 226700553}
-  m_Layer: 0
-  m_Name: Place_4
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &226700552
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 226700551}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 198998303}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 570, y: 190}
-  m_SizeDelta: {x: 340, y: 340}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &226700553
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 226700551}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1581a9a4770eab434a6dd65e0ac80ed9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPoolPlace
---- !u!114 &226700554
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 226700551}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
---- !u!222 &226700555
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 226700551}
-  m_CullTransparentMesh: 0
---- !u!114 &226700556
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 226700551}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 704c00520f1e41c418e709f181bfcd93, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckSlot
-  m_SlotRect: {fileID: 226700552}
-  m_Truck: {fileID: 0}
-  m_Ground: {fileID: 0}
-  m_BaseRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
-  m_TruckYaw: 0
-  m_WidthFill: 0.78
-  m_VerticalOffset: 0.5
-  m_LiftOffset: 2
-  m_AnchorToBase: 1
-  m_BaseVerticalRatio: -0.07
-  m_BaseWidthFill: 0.5
-  m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_GroundYaw: 0
-  m_GroundWidthFill: 1.08
-  m_GroundVerticalOffset: 0.5
-  m_TruckColor: {r: 0.98, g: 0.82, b: 0.15, a: 1}
 --- !u!1001 &235526435
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -12258,6 +12151,127 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 337166348}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &340320535
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 340320536}
+  - component: {fileID: 340320540}
+  - component: {fileID: 340320539}
+  - component: {fileID: 340320538}
+  - component: {fileID: 340320537}
+  m_Layer: 0
+  m_Name: Place_1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &340320536
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 340320535}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 198998303}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: -570, y: 190}
+  m_SizeDelta: {x: 340, y: 340}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &340320537
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 340320535}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1581a9a4770eab434a6dd65e0ac80ed9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPoolPlace
+--- !u!114 &340320538
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 340320535}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 704c00520f1e41c418e709f181bfcd93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckSlot
+  m_SlotRect: {fileID: 340320536}
+  m_Truck: {fileID: 0}
+  m_Ground: {fileID: 0}
+  m_BaseRotation: {x: -0.7057879, y: -0.018509984, z: -0.04316774, w: 0.7068645}
+  m_TruckYaw: 0
+  m_WidthFill: 0.78
+  m_VerticalOffset: 0.5
+  m_LiftOffset: 0.6
+  m_AnchorToBase: 1
+  m_BaseVerticalRatio: -0.07
+  m_BaseWidthFill: 0.85
+  m_UseManualTruckTransform: 0
+  m_ManualTruckPosition: {x: 0, y: 0, z: 0}
+  m_ManualTruckRotation: {x: 0, y: 0, z: 0}
+  m_ManualTruckScale: 1
+  m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_GroundYaw: 0
+  m_GroundWidthFill: 1.08
+  m_GroundVerticalOffset: 0.5
+  m_TruckColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+--- !u!114 &340320539
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 340320535}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &340320540
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 340320535}
+  m_CullTransparentMesh: 0
 --- !u!1001 &343085078
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -12737,123 +12751,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 363598150}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &365100024
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 365100025}
-  - component: {fileID: 365100028}
-  - component: {fileID: 365100027}
-  - component: {fileID: 365100029}
-  - component: {fileID: 365100026}
-  m_Layer: 0
-  m_Name: Place_2
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &365100025
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 365100024}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 198998303}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -190, y: 190}
-  m_SizeDelta: {x: 340, y: 340}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &365100026
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 365100024}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1581a9a4770eab434a6dd65e0ac80ed9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPoolPlace
---- !u!114 &365100027
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 365100024}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
---- !u!222 &365100028
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 365100024}
-  m_CullTransparentMesh: 0
---- !u!114 &365100029
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 365100024}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 704c00520f1e41c418e709f181bfcd93, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckSlot
-  m_SlotRect: {fileID: 365100025}
-  m_Truck: {fileID: 0}
-  m_Ground: {fileID: 0}
-  m_BaseRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
-  m_TruckYaw: 0
-  m_WidthFill: 0.78
-  m_VerticalOffset: 0.5
-  m_LiftOffset: 2
-  m_AnchorToBase: 1
-  m_BaseVerticalRatio: -0.07
-  m_BaseWidthFill: 0.5
-  m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_GroundYaw: 0
-  m_GroundWidthFill: 1.08
-  m_GroundVerticalOffset: 0.5
-  m_TruckColor: {r: 0.55, g: 0.35, b: 0.22, a: 1}
 --- !u!1001 &367006232
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -14387,123 +14284,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 422038691}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &422197913
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 422197914}
-  - component: {fileID: 422197917}
-  - component: {fileID: 422197916}
-  - component: {fileID: 422197918}
-  - component: {fileID: 422197915}
-  m_Layer: 0
-  m_Name: Place_6
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &422197914
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 422197913}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -60}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 198998303}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -190, y: -190}
-  m_SizeDelta: {x: 340, y: 340}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &422197915
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 422197913}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1581a9a4770eab434a6dd65e0ac80ed9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPoolPlace
---- !u!114 &422197916
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 422197913}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
---- !u!222 &422197917
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 422197913}
-  m_CullTransparentMesh: 0
---- !u!114 &422197918
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 422197913}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 704c00520f1e41c418e709f181bfcd93, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckSlot
-  m_SlotRect: {fileID: 422197914}
-  m_Truck: {fileID: 0}
-  m_Ground: {fileID: 0}
-  m_BaseRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
-  m_TruckYaw: 0
-  m_WidthFill: 0.78
-  m_VerticalOffset: 0.5
-  m_LiftOffset: 2
-  m_AnchorToBase: 1
-  m_BaseVerticalRatio: -0.07
-  m_BaseWidthFill: 0.5
-  m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_GroundYaw: 0
-  m_GroundWidthFill: 1.08
-  m_GroundVerticalOffset: 0.5
-  m_TruckColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
 --- !u!1 &424066151
 GameObject:
   m_ObjectHideFlags: 0
@@ -15098,34 +14878,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 436073898}
   m_PrefabAsset: {fileID: 0}
---- !u!83 &441547744
-AudioClip:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: ProceduralVoxelPop
-  m_LoadType: 0
-  m_Channels: 1
-  m_Frequency: 44100
-  m_BitsPerSample: 32
-  m_Length: 0
-  m_IsTrackerFormat: 0
-  m_Ambisonic: 0
-  m_SubsoundIndex: 0
-  m_PreloadAudioData: 1
-  m_LoadInBackground: 0
-  m_Legacy3D: 0
-  m_Resource:
-    m_Source: 
-    m_Offset: 0
-    m_Size: 0
-  m_CompressionFormat: 0
-  m_EditorResource:
-    m_Source: 
-    m_Offset: 0
-    m_Size: 0
-  m_EditorCompressionFormat: 0
 --- !u!1001 &442107016
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -15334,6 +15086,127 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 443080285}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &445409251
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 445409252}
+  - component: {fileID: 445409256}
+  - component: {fileID: 445409255}
+  - component: {fileID: 445409254}
+  - component: {fileID: 445409253}
+  m_Layer: 0
+  m_Name: Place_6
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &445409252
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 445409251}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -60}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 198998303}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: -190, y: -190}
+  m_SizeDelta: {x: 340, y: 340}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &445409253
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 445409251}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1581a9a4770eab434a6dd65e0ac80ed9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPoolPlace
+--- !u!114 &445409254
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 445409251}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 704c00520f1e41c418e709f181bfcd93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckSlot
+  m_SlotRect: {fileID: 445409252}
+  m_Truck: {fileID: 0}
+  m_Ground: {fileID: 0}
+  m_BaseRotation: {x: -0.7057879, y: -0.018509984, z: -0.04316774, w: 0.7068645}
+  m_TruckYaw: 0
+  m_WidthFill: 0.78
+  m_VerticalOffset: 0.5
+  m_LiftOffset: 0.6
+  m_AnchorToBase: 1
+  m_BaseVerticalRatio: -0.07
+  m_BaseWidthFill: 0.85
+  m_UseManualTruckTransform: 0
+  m_ManualTruckPosition: {x: 0, y: 0, z: 0}
+  m_ManualTruckRotation: {x: 0, y: 0, z: 0}
+  m_ManualTruckScale: 1
+  m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_GroundYaw: 0
+  m_GroundWidthFill: 1.08
+  m_GroundVerticalOffset: 0.5
+  m_TruckColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+--- !u!114 &445409255
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 445409251}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &445409256
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 445409251}
+  m_CullTransparentMesh: 0
 --- !u!1 &447716702
 GameObject:
   m_ObjectHideFlags: 0
@@ -19904,123 +19777,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 607928935}
   m_Mesh: {fileID: 4310012651018529579, guid: d14fd5523e02f084997fe0f017a6a835, type: 3}
---- !u!1 &608950281
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 608950283}
-  - component: {fileID: 608950286}
-  - component: {fileID: 608950285}
-  - component: {fileID: 608950282}
-  - component: {fileID: 608950284}
-  m_Layer: 0
-  m_Name: Place_8
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &608950282
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 608950281}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 704c00520f1e41c418e709f181bfcd93, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckSlot
-  m_SlotRect: {fileID: 608950283}
-  m_Truck: {fileID: 0}
-  m_Ground: {fileID: 0}
-  m_BaseRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
-  m_TruckYaw: 0
-  m_WidthFill: 0.78
-  m_VerticalOffset: 0.5
-  m_LiftOffset: 2
-  m_AnchorToBase: 1
-  m_BaseVerticalRatio: -0.07
-  m_BaseWidthFill: 0.5
-  m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_GroundYaw: 0
-  m_GroundWidthFill: 1.08
-  m_GroundVerticalOffset: 0.5
-  m_TruckColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
---- !u!224 &608950283
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 608950281}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -60}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 198998303}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 570, y: -190}
-  m_SizeDelta: {x: 340, y: 340}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &608950284
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 608950281}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1581a9a4770eab434a6dd65e0ac80ed9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPoolPlace
---- !u!114 &608950285
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 608950281}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
---- !u!222 &608950286
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 608950281}
-  m_CullTransparentMesh: 0
 --- !u!1001 &612510464
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -21841,123 +21597,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 646768899}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &651487760
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 651487761}
-  - component: {fileID: 651487764}
-  - component: {fileID: 651487763}
-  - component: {fileID: 651487765}
-  - component: {fileID: 651487762}
-  m_Layer: 0
-  m_Name: Place_1
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &651487761
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 651487760}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 198998303}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -570, y: 190}
-  m_SizeDelta: {x: 340, y: 340}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &651487762
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 651487760}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1581a9a4770eab434a6dd65e0ac80ed9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPoolPlace
---- !u!114 &651487763
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 651487760}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
---- !u!222 &651487764
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 651487760}
-  m_CullTransparentMesh: 0
---- !u!114 &651487765
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 651487760}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 704c00520f1e41c418e709f181bfcd93, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckSlot
-  m_SlotRect: {fileID: 651487761}
-  m_Truck: {fileID: 0}
-  m_Ground: {fileID: 0}
-  m_BaseRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
-  m_TruckYaw: 0
-  m_WidthFill: 0.78
-  m_VerticalOffset: 0.5
-  m_LiftOffset: 2
-  m_AnchorToBase: 1
-  m_BaseVerticalRatio: -0.07
-  m_BaseWidthFill: 0.5
-  m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_GroundYaw: 0
-  m_GroundWidthFill: 1.08
-  m_GroundVerticalOffset: 0.5
-  m_TruckColor: {r: 0.25, g: 0.78, b: 0.3, a: 1}
 --- !u!1001 &658683059
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -23749,6 +23388,127 @@ Transform:
   - {fileID: 1517052244}
   m_Father: {fileID: 1644854352}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &725133959
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 725133960}
+  - component: {fileID: 725133964}
+  - component: {fileID: 725133963}
+  - component: {fileID: 725133962}
+  - component: {fileID: 725133961}
+  m_Layer: 0
+  m_Name: Place_5
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &725133960
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 725133959}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -60}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 198998303}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: -570, y: -190}
+  m_SizeDelta: {x: 340, y: 340}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &725133961
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 725133959}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1581a9a4770eab434a6dd65e0ac80ed9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPoolPlace
+--- !u!114 &725133962
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 725133959}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 704c00520f1e41c418e709f181bfcd93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckSlot
+  m_SlotRect: {fileID: 725133960}
+  m_Truck: {fileID: 0}
+  m_Ground: {fileID: 0}
+  m_BaseRotation: {x: -0.7057879, y: -0.018509984, z: -0.04316774, w: 0.7068645}
+  m_TruckYaw: 0
+  m_WidthFill: 0.78
+  m_VerticalOffset: 0.5
+  m_LiftOffset: 0.6
+  m_AnchorToBase: 1
+  m_BaseVerticalRatio: -0.07
+  m_BaseWidthFill: 0.85
+  m_UseManualTruckTransform: 0
+  m_ManualTruckPosition: {x: 0, y: 0, z: 0}
+  m_ManualTruckRotation: {x: 0, y: 0, z: 0}
+  m_ManualTruckScale: 1
+  m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_GroundYaw: 0
+  m_GroundWidthFill: 1.08
+  m_GroundVerticalOffset: 0.5
+  m_TruckColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+--- !u!114 &725133963
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 725133959}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &725133964
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 725133959}
+  m_CullTransparentMesh: 0
 --- !u!1001 &725223370
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -25464,6 +25224,127 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 783953106}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &785417532
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 785417533}
+  - component: {fileID: 785417537}
+  - component: {fileID: 785417536}
+  - component: {fileID: 785417535}
+  - component: {fileID: 785417534}
+  m_Layer: 0
+  m_Name: Place_8
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &785417533
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 785417532}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -60}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 198998303}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 570, y: -190}
+  m_SizeDelta: {x: 340, y: 340}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &785417534
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 785417532}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1581a9a4770eab434a6dd65e0ac80ed9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPoolPlace
+--- !u!114 &785417535
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 785417532}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 704c00520f1e41c418e709f181bfcd93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckSlot
+  m_SlotRect: {fileID: 785417533}
+  m_Truck: {fileID: 0}
+  m_Ground: {fileID: 0}
+  m_BaseRotation: {x: -0.7057879, y: -0.018509984, z: -0.04316774, w: 0.7068645}
+  m_TruckYaw: 0
+  m_WidthFill: 0.78
+  m_VerticalOffset: 0.5
+  m_LiftOffset: 0.6
+  m_AnchorToBase: 1
+  m_BaseVerticalRatio: -0.07
+  m_BaseWidthFill: 0.85
+  m_UseManualTruckTransform: 0
+  m_ManualTruckPosition: {x: 0, y: 0, z: 0}
+  m_ManualTruckRotation: {x: 0, y: 0, z: 0}
+  m_ManualTruckScale: 1
+  m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_GroundYaw: 0
+  m_GroundWidthFill: 1.08
+  m_GroundVerticalOffset: 0.5
+  m_TruckColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+--- !u!114 &785417536
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 785417532}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &785417537
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 785417532}
+  m_CullTransparentMesh: 0
 --- !u!1001 &785944042
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -36204,6 +36085,127 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 1125270668}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1125662245
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1125662246}
+  - component: {fileID: 1125662250}
+  - component: {fileID: 1125662249}
+  - component: {fileID: 1125662248}
+  - component: {fileID: 1125662247}
+  m_Layer: 0
+  m_Name: Place_7
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1125662246
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1125662245}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -60}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 198998303}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 190, y: -190}
+  m_SizeDelta: {x: 340, y: 340}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1125662247
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1125662245}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1581a9a4770eab434a6dd65e0ac80ed9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPoolPlace
+--- !u!114 &1125662248
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1125662245}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 704c00520f1e41c418e709f181bfcd93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckSlot
+  m_SlotRect: {fileID: 1125662246}
+  m_Truck: {fileID: 0}
+  m_Ground: {fileID: 0}
+  m_BaseRotation: {x: -0.7057879, y: -0.018509984, z: -0.04316774, w: 0.7068645}
+  m_TruckYaw: 0
+  m_WidthFill: 0.78
+  m_VerticalOffset: 0.5
+  m_LiftOffset: 0.6
+  m_AnchorToBase: 1
+  m_BaseVerticalRatio: -0.07
+  m_BaseWidthFill: 0.85
+  m_UseManualTruckTransform: 0
+  m_ManualTruckPosition: {x: 0, y: 0, z: 0}
+  m_ManualTruckRotation: {x: 0, y: 0, z: 0}
+  m_ManualTruckScale: 1
+  m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_GroundYaw: 0
+  m_GroundWidthFill: 1.08
+  m_GroundVerticalOffset: 0.5
+  m_TruckColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+--- !u!114 &1125662249
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1125662245}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &1125662250
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1125662245}
+  m_CullTransparentMesh: 0
 --- !u!1001 &1132879115
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -39162,7 +39164,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckDispatcher
   m_Slots: {fileID: 1644854353}
   m_Pool: {fileID: 198998302}
-  m_TruckPrefab: {fileID: 8905784932920294152, guid: 953afc6a7f9a1c5f0a1ac6dc70b3b14c, type: 3}
+  m_TruckPrefab: {fileID: 698715729382471407, guid: 01617e97f0289c36c8048274bd83dd7f, type: 3}
   m_Generator: {fileID: 1700000003}
   m_PerimeterTrain: 1
   m_TrackCornerCounterText: {fileID: 0}
@@ -40409,14 +40411,18 @@ MonoBehaviour:
   m_SlotRect: {fileID: 1283853979}
   m_Truck: {fileID: 0}
   m_Ground: {fileID: 0}
-  m_BaseRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
+  m_BaseRotation: {x: -0.7920365, y: -0.02397148, z: -0.040369138, w: 0.60866576}
   m_TruckYaw: 0
   m_WidthFill: 0.78
   m_VerticalOffset: 0.5
-  m_LiftOffset: 2
+  m_LiftOffset: 0.6
   m_AnchorToBase: 1
   m_BaseVerticalRatio: -0.07
-  m_BaseWidthFill: 0.5
+  m_BaseWidthFill: 0.85
+  m_UseManualTruckTransform: 1
+  m_ManualTruckPosition: {x: -11, y: 12, z: 2}
+  m_ManualTruckRotation: {x: -104.96, y: -7.73999, z: 2.479996}
+  m_ManualTruckScale: 221.3676
   m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
   m_GroundYaw: 0
   m_GroundWidthFill: 1.08
@@ -41056,14 +41062,18 @@ MonoBehaviour:
   m_SlotRect: {fileID: 1308082508}
   m_Truck: {fileID: 0}
   m_Ground: {fileID: 0}
-  m_BaseRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
+  m_BaseRotation: {x: -0.7920365, y: -0.02397148, z: -0.040369138, w: 0.60866576}
   m_TruckYaw: 0
   m_WidthFill: 0.78
   m_VerticalOffset: 0.5
-  m_LiftOffset: 2
+  m_LiftOffset: 0.6
   m_AnchorToBase: 1
   m_BaseVerticalRatio: -0.07
-  m_BaseWidthFill: 0.5
+  m_BaseWidthFill: 0.85
+  m_UseManualTruckTransform: 1
+  m_ManualTruckPosition: {x: -11, y: 12, z: 2}
+  m_ManualTruckRotation: {x: -104.96, y: -7.73999, z: 2.479996}
+  m_ManualTruckScale: 221.3676
   m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
   m_GroundYaw: 0
   m_GroundWidthFill: 1.08
@@ -41268,14 +41278,18 @@ MonoBehaviour:
   m_SlotRect: {fileID: 1310567036}
   m_Truck: {fileID: 0}
   m_Ground: {fileID: 0}
-  m_BaseRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
+  m_BaseRotation: {x: -0.7920365, y: -0.02397148, z: -0.040369138, w: 0.60866576}
   m_TruckYaw: 0
   m_WidthFill: 0.78
   m_VerticalOffset: 0.5
-  m_LiftOffset: 2
+  m_LiftOffset: 0.6
   m_AnchorToBase: 1
   m_BaseVerticalRatio: -0.07
-  m_BaseWidthFill: 0.5
+  m_BaseWidthFill: 0.85
+  m_UseManualTruckTransform: 1
+  m_ManualTruckPosition: {x: -11, y: 12, z: 2}
+  m_ManualTruckRotation: {x: -104.96, y: -7.73999, z: 2.479996}
+  m_ManualTruckScale: 221.3676
   m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
   m_GroundYaw: 0
   m_GroundWidthFill: 1.08
@@ -44762,14 +44776,18 @@ MonoBehaviour:
   m_SlotRect: {fileID: 1383233311}
   m_Truck: {fileID: 0}
   m_Ground: {fileID: 0}
-  m_BaseRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
+  m_BaseRotation: {x: -0.7920365, y: -0.02397148, z: -0.040369138, w: 0.60866576}
   m_TruckYaw: 0
   m_WidthFill: 0.78
   m_VerticalOffset: 0.5
-  m_LiftOffset: 2
+  m_LiftOffset: 0.6
   m_AnchorToBase: 1
   m_BaseVerticalRatio: -0.07
-  m_BaseWidthFill: 0.5
+  m_BaseWidthFill: 0.85
+  m_UseManualTruckTransform: 1
+  m_ManualTruckPosition: {x: -11, y: 12, z: 2}
+  m_ManualTruckRotation: {x: -104.96, y: -7.73999, z: 2.479996}
+  m_ManualTruckScale: 221.3676
   m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
   m_GroundYaw: 0
   m_GroundWidthFill: 1.08
@@ -52268,7 +52286,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 441547744}
+  m_Resource: {fileID: 1939058210}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1.1789732
@@ -59630,7 +59648,9 @@ MonoBehaviour:
     gapY: 0
     stepZ: 0
     tilt: 15
-    truckEuler: {x: 0, y: 180, z: 0}
+    tiltYaw: 0
+    tiltRoll: 0
+    truckEuler: {x: 284.96, y: 172.26, z: 182.48}
     showSprite: 1
     interactive: 1
     rowWidthFill: 0.96
@@ -67276,19 +67296,23 @@ MonoBehaviour:
   m_SlotRect: {fileID: 1906262362}
   m_Truck: {fileID: 0}
   m_Ground: {fileID: 0}
-  m_BaseRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
+  m_BaseRotation: {x: -0.7920365, y: -0.02397148, z: -0.040369138, w: 0.60866576}
   m_TruckYaw: 0
   m_WidthFill: 0.78
   m_VerticalOffset: 0.5
-  m_LiftOffset: 2
+  m_LiftOffset: 0.6
   m_AnchorToBase: 1
   m_BaseVerticalRatio: -0.07
-  m_BaseWidthFill: 0.5
+  m_BaseWidthFill: 0.85
+  m_UseManualTruckTransform: 1
+  m_ManualTruckPosition: {x: -11, y: 12, z: 2}
+  m_ManualTruckRotation: {x: -104.96, y: -7.73999, z: 2.479996}
+  m_ManualTruckScale: 221.3676
   m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
   m_GroundYaw: 0
   m_GroundWidthFill: 1.08
   m_GroundVerticalOffset: 0.5
-  m_TruckColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+  m_TruckColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!114 &1906262364
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -68170,6 +68194,34 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 1938205691}
   m_PrefabAsset: {fileID: 0}
+--- !u!83 &1939058210
+AudioClip:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: ProceduralVoxelPop
+  m_LoadType: 0
+  m_Channels: 1
+  m_Frequency: 44100
+  m_BitsPerSample: 32
+  m_Length: 0
+  m_IsTrackerFormat: 0
+  m_Ambisonic: 0
+  m_SubsoundIndex: 0
+  m_PreloadAudioData: 1
+  m_LoadInBackground: 0
+  m_Legacy3D: 0
+  m_Resource:
+    m_Source: 
+    m_Offset: 0
+    m_Size: 0
+  m_CompressionFormat: 0
+  m_EditorResource:
+    m_Source: 
+    m_Offset: 0
+    m_Size: 0
+  m_EditorCompressionFormat: 0
 --- !u!1001 &1953983885
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -69878,123 +69930,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 2026435258}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &2037985521
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2037985522}
-  - component: {fileID: 2037985525}
-  - component: {fileID: 2037985524}
-  - component: {fileID: 2037985526}
-  - component: {fileID: 2037985523}
-  m_Layer: 0
-  m_Name: Place_5
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &2037985522
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2037985521}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -60}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 198998303}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -570, y: -190}
-  m_SizeDelta: {x: 340, y: 340}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &2037985523
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2037985521}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1581a9a4770eab434a6dd65e0ac80ed9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPoolPlace
---- !u!114 &2037985524
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2037985521}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
---- !u!222 &2037985525
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2037985521}
-  m_CullTransparentMesh: 0
---- !u!114 &2037985526
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2037985521}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 704c00520f1e41c418e709f181bfcd93, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckSlot
-  m_SlotRect: {fileID: 2037985522}
-  m_Truck: {fileID: 0}
-  m_Ground: {fileID: 0}
-  m_BaseRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
-  m_TruckYaw: 0
-  m_WidthFill: 0.78
-  m_VerticalOffset: 0.5
-  m_LiftOffset: 2
-  m_AnchorToBase: 1
-  m_BaseVerticalRatio: -0.07
-  m_BaseWidthFill: 0.5
-  m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_GroundYaw: 0
-  m_GroundWidthFill: 1.08
-  m_GroundVerticalOffset: 0.5
-  m_TruckColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
 --- !u!1 &2038050207
 GameObject:
   m_ObjectHideFlags: 0
@@ -70376,6 +70311,127 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 2054139213}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2060062811
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2060062812}
+  - component: {fileID: 2060062816}
+  - component: {fileID: 2060062815}
+  - component: {fileID: 2060062814}
+  - component: {fileID: 2060062813}
+  m_Layer: 0
+  m_Name: Place_2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &2060062812
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2060062811}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 198998303}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: -190, y: 190}
+  m_SizeDelta: {x: 340, y: 340}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &2060062813
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2060062811}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1581a9a4770eab434a6dd65e0ac80ed9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckPoolPlace
+--- !u!114 &2060062814
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2060062811}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 704c00520f1e41c418e709f181bfcd93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.TruckSlot
+  m_SlotRect: {fileID: 2060062812}
+  m_Truck: {fileID: 0}
+  m_Ground: {fileID: 0}
+  m_BaseRotation: {x: -0.7057879, y: -0.018509984, z: -0.04316774, w: 0.7068645}
+  m_TruckYaw: 0
+  m_WidthFill: 0.78
+  m_VerticalOffset: 0.5
+  m_LiftOffset: 0.6
+  m_AnchorToBase: 1
+  m_BaseVerticalRatio: -0.07
+  m_BaseWidthFill: 0.85
+  m_UseManualTruckTransform: 0
+  m_ManualTruckPosition: {x: 0, y: 0, z: 0}
+  m_ManualTruckRotation: {x: 0, y: 0, z: 0}
+  m_ManualTruckScale: 1
+  m_GroundBaseRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_GroundYaw: 0
+  m_GroundWidthFill: 1.08
+  m_GroundVerticalOffset: 0.5
+  m_TruckColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+--- !u!114 &2060062815
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2060062811}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &2060062816
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2060062811}
+  m_CullTransparentMesh: 0
 --- !u!1001 &2060411317
 PrefabInstance:
   m_ObjectHideFlags: 0
