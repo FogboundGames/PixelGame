@@ -192,39 +192,36 @@ namespace PixelGame
 
             Camera cam = Camera.main;
             if (cam == null) cam = Object.FindFirstObjectByType<Camera>();
-            if (cam != null)
-            {
-                m_Canvas.transform.rotation = cam.transform.rotation;
-            }
 
             if (!m_AutoCenterOnMesh)
             {
-                // Kameraya bakan duruşun üstüne, referans görseldeki gibi hafif bir
-                // Z ekseni eğimi (roll) ekler; rozet camera-facing kalır ama eğik durur.
-                if (Mathf.Abs(m_ManualTiltDegrees) > 0.01f)
-                {
-                    m_Canvas.transform.rotation *= Quaternion.Euler(0f, 0f, m_ManualTiltDegrees);
-                }
-
-                // Manual Offset, vagonun kendi (döndürülmüş) yerel eksenine göre değil,
-                // KAMERA eksenine göre uygulanır: X=sağ/sol, Y=yukarı/aşağı, Z=derinlik
-                // (ekranda gerçekten göründüğü gibi). Eskiden localPosition kullanılıyordu;
-                // vagon döndüğünde "aşağı" dediğin yön gövdenin içine/yanına kayıyordu.
+                // Hem konum hem duruş KAMERA eksenine göre hesaplanır, vagonun kendi
+                // rotasyonundan tamamen bağımsız. Böylece havuz/slot/ray'deki vagonlar
+                // birbirinden çok farklı dünya rotasyonlarına sahip olsa bile (bazılarının
+                // "yerel aşağısı" derinliğe, bazılarının yukarıya denk geliyordu) rozet
+                // HER ZAMAN ekranda aynı yerde ve okunaklı görünür.
                 Vector3 basePos = transform.position;
                 if (cam != null)
                 {
                     basePos += cam.transform.right * m_ManualOffset.x;
                     basePos += cam.transform.up * m_ManualOffset.y;
                     basePos += cam.transform.forward * m_ManualOffset.z;
+                    m_Canvas.transform.position = basePos;
+                    m_Canvas.transform.rotation = cam.transform.rotation * Quaternion.Euler(0f, 0f, m_ManualTiltDegrees);
                 }
                 else
                 {
-                    basePos += m_ManualOffset;
+                    m_Canvas.transform.position = basePos + m_ManualOffset;
+                    m_Canvas.transform.localRotation = Quaternion.Euler(0f, 0f, m_ManualTiltDegrees);
                 }
 
-                m_Canvas.transform.position = basePos;
                 m_Canvas.transform.localScale = Vector3.one * m_ManualScale;
                 return;
+            }
+
+            if (cam != null)
+            {
+                m_Canvas.transform.rotation = cam.transform.rotation;
             }
 
             // Şişe için ayrı bir sabit yerleşim YOK: aşağıdaki sınır (bounds) tabanlı
