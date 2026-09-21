@@ -8403,6 +8403,34 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 193203988}
   m_PrefabAsset: {fileID: 0}
+--- !u!83 &195743162
+AudioClip:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: ProceduralVoxelPop
+  m_LoadType: 0
+  m_Channels: 1
+  m_Frequency: 44100
+  m_BitsPerSample: 32
+  m_Length: 0
+  m_IsTrackerFormat: 0
+  m_Ambisonic: 0
+  m_SubsoundIndex: 0
+  m_PreloadAudioData: 1
+  m_LoadInBackground: 0
+  m_Legacy3D: 0
+  m_Resource:
+    m_Source: 
+    m_Offset: 0
+    m_Size: 0
+  m_CompressionFormat: 0
+  m_EditorResource:
+    m_Source: 
+    m_Offset: 0
+    m_Size: 0
+  m_EditorCompressionFormat: 0
 --- !u!1 &198810001
 GameObject:
   m_ObjectHideFlags: 0
@@ -18005,34 +18033,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7217428206380703560, guid: f467cfead3607f7409ca73d53ee3a59d, type: 3}
   m_PrefabInstance: {fileID: 452641997}
   m_PrefabAsset: {fileID: 0}
---- !u!83 &453673328
-AudioClip:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: ProceduralVoxelPop
-  m_LoadType: 0
-  m_Channels: 1
-  m_Frequency: 44100
-  m_BitsPerSample: 32
-  m_Length: 0
-  m_IsTrackerFormat: 0
-  m_Ambisonic: 0
-  m_SubsoundIndex: 0
-  m_PreloadAudioData: 1
-  m_LoadInBackground: 0
-  m_Legacy3D: 0
-  m_Resource:
-    m_Source: 
-    m_Offset: 0
-    m_Size: 0
-  m_CompressionFormat: 0
-  m_EditorResource:
-    m_Source: 
-    m_Offset: 0
-    m_Size: 0
-  m_EditorCompressionFormat: 0
 --- !u!1001 &455357950
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -20843,7 +20843,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -30}
+  m_AnchoredPosition: {x: 0, y: -56}
   m_SizeDelta: {x: 0, y: 140}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!1001 &562967867
@@ -33362,7 +33362,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -2.611, y: -2.68, z: -0.345}
-  m_LocalScale: {x: 0.2, y: 0.2, z: 1}
+  m_LocalScale: {x: 0.24356751, y: 0.22286001, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 718456860}
@@ -33416,7 +33416,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 10
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: ad2daf9bb64c4f87b1f7d0e36a6d882f, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 46abe86b12a94f6db58072b2ad9386cc, type: 3}
   m_Color: {r: 0.7830189, g: 0.7830189, b: 0.7830189, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -51410,7 +51410,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 453673328}
+  m_Resource: {fileID: 195743162}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1.1789732
