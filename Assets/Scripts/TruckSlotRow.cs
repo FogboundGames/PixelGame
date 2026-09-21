@@ -246,7 +246,8 @@ namespace PixelGame
             }
 
             GameObject shadowsObj;
-            if (shadowsTrans == null)
+            bool shadowsContainerIsNew = (shadowsTrans == null);
+            if (shadowsContainerIsNew)
             {
                 shadowsObj = new GameObject("Shadows", typeof(RectTransform));
                 shadowsObj.transform.SetParent(transform, false);
@@ -267,14 +268,22 @@ namespace PixelGame
             shadowsObj.transform.SetAsFirstSibling();
 
             RectTransform shadowsRect = shadowsObj.GetComponent<RectTransform>();
-            shadowsRect.anchorMin = Vector2.zero;
-            shadowsRect.anchorMax = Vector2.one;
-            shadowsRect.offsetMin = Vector2.zero;
-            shadowsRect.offsetMax = Vector2.zero;
-            shadowsRect.pivot = new Vector2(0.5f, 0.5f);
-            shadowsRect.localPosition = Vector3.zero;
-            shadowsRect.localRotation = Quaternion.identity;
-            shadowsRect.localScale = Vector3.one;
+
+            // Container'ın kendi duruşu yalnızca YENİ oluşturulduğunda sıfırlanır.
+            // Elle ayarlama modu açıkken (varsayılan) var olan container'ın pozisyonuna
+            // dokunulmaz; aksi halde kullanıcının Inspector'da/sahnede taşıdığı konum
+            // Play'e girer girmez (OnEnable -> UpdateShadows) sıfıra dönüyordu.
+            if (shadowsContainerIsNew || !m_ManualShadowMode)
+            {
+                shadowsRect.anchorMin = Vector2.zero;
+                shadowsRect.anchorMax = Vector2.one;
+                shadowsRect.offsetMin = Vector2.zero;
+                shadowsRect.offsetMax = Vector2.zero;
+                shadowsRect.pivot = new Vector2(0.5f, 0.5f);
+                shadowsRect.localPosition = Vector3.zero;
+                shadowsRect.localRotation = Quaternion.identity;
+                shadowsRect.localScale = Vector3.one;
+            }
 
             // 1. Şerit Zemin Gölgesi (Row Ground Shadow - tüm rayı ve portalları kapsar)
             UpdateRowGroundShadow(shadowsRect);

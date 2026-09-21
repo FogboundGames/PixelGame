@@ -10,7 +10,9 @@ namespace PixelGame.Editor
 
         static FracturedCubeSetup()
         {
-            EditorApplication.delayCall += RunSetupOnLoad;
+            // Otomatik tetikleme kapatıldı: proje her açıldığında sahneyi elle onay
+            // almadan değiştirip kaydediyordu. Gerekirse elle çalıştırılır.
+            // EditorApplication.delayCall += RunSetupOnLoad;
         }
 
         private static void RunSetupOnLoad()

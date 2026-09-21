@@ -357,7 +357,9 @@ namespace PixelGame.Editor
 
         static PixelArtAutoSetup()
         {
-            EditorApplication.delayCall += OnEditorReady;
+            // Otomatik tetikleme kapatıldı: proje her açıldığında sahneyi elle onay
+            // almadan değiştirip kaydediyordu. Gerekirse elle çalıştırılır.
+            // EditorApplication.delayCall += OnEditorReady;
         }
 
         private static void OnEditorReady()

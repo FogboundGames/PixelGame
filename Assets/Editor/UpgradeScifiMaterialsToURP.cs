@@ -14,7 +14,9 @@ namespace PixelGame.Editor
 
         static UpgradeScifiMaterialsToURP()
         {
-            EditorApplication.delayCall += UpgradeMaterialsDelayed;
+            // Otomatik tetikleme kapatıldı: proje her açıldığında sahneyi elle onay
+            // almadan değiştirip kaydediyordu. Gerekirse elle çalıştırılır.
+            // EditorApplication.delayCall += UpgradeMaterialsDelayed;
         }
 
         private static void UpgradeMaterialsDelayed()

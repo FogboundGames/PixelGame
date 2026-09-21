@@ -11,7 +11,9 @@ namespace PixelGame.Editor
 
         static CaptureGameViewScreenshot()
         {
-            EditorApplication.delayCall += Capture;
+            // Otomatik tetikleme kapatıldı: proje her açıldığında ekran görüntüsü
+            // almaya çalışıp beklenmedik yan etkilere sebep oluyordu. Gerekirse elle çalıştırılır.
+            // EditorApplication.delayCall += Capture;
         }
 
         private static bool s_IsCapturing = false;

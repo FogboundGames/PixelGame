@@ -21,7 +21,9 @@ namespace PixelGame.Editor
 
         static TrackSystemSetup()
         {
-            EditorApplication.delayCall += RunSetupIfMissing;
+            // Otomatik tetikleme kapatıldı: proje her açıldığında sahneyi elle onay
+            // almadan değiştirip kaydediyordu. Gerekirse elle çalıştırılır.
+            // EditorApplication.delayCall += RunSetupIfMissing;
         }
 
         private static void RunSetupIfMissing()

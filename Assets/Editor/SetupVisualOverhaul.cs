@@ -445,6 +445,9 @@ namespace PixelGame.Editor
 
         static SetupVisualOverhaulRunner()
         {
+            // Otomatik tetikleme kapatıldı: proje her açıldığında sahneyi elle onay
+            // almadan değiştirip kaydediyordu. Gerekirse Tools menüsünden elle çalıştırılır.
+            /*
             EditorApplication.delayCall += () =>
             {
                 try
@@ -460,6 +463,7 @@ namespace PixelGame.Editor
                     Debug.LogWarning("[VisualOverhaul] Runner hatasız devam etti: " + ex.Message);
                 }
             };
+            */
         }
     }
 }

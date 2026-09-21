@@ -16,7 +16,9 @@ namespace PixelGame.Editor
 
         static CleanupSceneShadows()
         {
-            EditorApplication.delayCall += RunPurge;
+            // Otomatik tetikleme kapatıldı: proje her açıldığında sahneyi elle onay
+            // almadan değiştirip kaydediyordu. Gerekirse Tools menüsünden elle çalıştırılır.
+            // EditorApplication.delayCall += RunPurge;
         }
 
         [MenuItem("Tools/PixelGame/🧹 Pano ve Obje Arkasındaki Gölgeleri Tamamen Temizle", priority = 20)]
