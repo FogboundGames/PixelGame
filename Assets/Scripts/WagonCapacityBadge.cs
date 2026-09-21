@@ -33,17 +33,34 @@ namespace PixelGame
         private static Material s_AlwaysOnTopMaterial;
 
         [Header("📐 Görsel Stil & Boyut")]
-        [Tooltip("Arka plan kutusu görünsün mü? (Varsayılan: false, doğrudan vagonun üzerinde)")]
-        [SerializeField] private bool m_ShowBackgroundBox = false;
+        [Tooltip("Arka plan kutusu görünsün mü? Açıkken rozet, vagonun kargo rengine göre boyanan " +
+                 "parlak bir 3B kapsül şekli üzerinde durur (Assets/UI/Count_Tintable.png).")]
+        [SerializeField] private bool m_ShowBackgroundBox = true;
+
+        [Tooltip("Arka plan şekli. Boşsa Assets/UI/Count_Tintable.png otomatik yüklenir. " +
+                 "Beyaza yakın/gri tonlamalı olmalı ki renk boyaması (tint) temiz çıksın.")]
+        [SerializeField] private Sprite m_BackgroundSprite;
 
         [Tooltip("Otomatik olarak vagonun 3D sınırlarını (bounds) bulup modelin tam ortasına yerleştir")]
         [SerializeField] private bool m_AutoCenterOnMesh = true;
 
         [Tooltip("Metnin vagon modeline göre büyüklük oranı. 0.5 = model genişliğinin yarısı. " +
                  "Rozetler çalışma anında AddComponent ile eklendiği için sahnedeki değil " +
-                 "BU varsayılan geçerlidir.")]
+                 "BU varsayılan geçerlidir. SADECE 'Sabit Boyut Kullan' kapalıyken etkilidir.")]
         [Range(0.1f, 2.5f)]
         [SerializeField] private float m_SizeRatio = 0.22f;
+
+        [Header("📏 Sabit Boyut (Önerilen)")]
+        [Tooltip("Açıkken rozet boyutu SizeRatio/bounds hesabından değil, doğrudan aşağıdaki " +
+                 "'Fixed Local Scale' değerinden gelir. Havuz/slot/ray farklı dünya ölçeğine " +
+                 "sahip olduğu için otomatik hesap bağlama göre çok farklı sonuç veriyordu; " +
+                 "bu, hepsinde aynı, öngörülebilir bir boyut sağlar.")]
+        [SerializeField] private bool m_UseFixedScale = true;
+
+        [Tooltip("Rozetin vagona göre SABİT yerel ölçeği (truck.localScale'e görelidir, dünya " +
+                 "ölçeğinden bağımsızdır). Inspector'dan serbestçe ayarlanabilir, her yerde aynı görünür.")]
+        [Range(0.001f, 0.05f)]
+        [SerializeField] private float m_FixedLocalScale = 0.012f;
 
         [Tooltip("Rozetin gövde merkezinden yukarı/aşağı kayması, gövde yüksekliğinin oranı olarak. " +
                  "0 = tam gövdenin ortasında (etiket gibi). Negatif değer aşağı indirir. " +
@@ -66,12 +83,21 @@ namespace PixelGame
         [Range(40, 200)]
         [SerializeField] private int m_FontSize = 140;
 
+        [Tooltip("Yazı fontu. Boş bırakılırsa varsayılan (LilitaOne) kullanılır. " +
+                 "Buraya bir font atarsan Play'e her girişte ezilmeden korunur.")]
+        [SerializeField] private Font m_CustomFont;
+
         [Header("🔧 Manuel Mod (AutoCenter kapalıysa)")]
         [Tooltip("Vagonun merkezinden manuel yerleşim ofseti")]
         [SerializeField] private Vector3 m_ManualOffset = new Vector3(0f, 0.15f, 0f);
 
         [Tooltip("Rozetin manuel ölçeği")]
         [SerializeField] private float m_ManualScale = 0.012f;
+
+        [Tooltip("Rozetin ekranda kameraya göre hafif eğik durması için Z ekseni dönüşü (derece). " +
+                 "Referans görseldeki gibi oynak/eğlenceli bir duruş için ~10-15 derece dene.")]
+        [Range(-45f, 45f)]
+        [SerializeField] private float m_ManualTiltDegrees = 12f;
 
         /// <summary>
         /// Bu renderer vagonun gövdesi mi? Hem obje adına hem mesh adına bakar.
@@ -157,6 +183,13 @@ namespace PixelGame
         {
             if (m_Canvas == null) return;
 
+            // Kargo rengi (boyanan vagon rengi) her karede değişebilir (renk ataması,
+            // tema değişimi vb.); rozet arka planı bunu canlı takip etsin.
+            if (m_Background != null && m_ShowBackgroundBox)
+            {
+                m_Background.color = GetBackgroundColor();
+            }
+
             Camera cam = Camera.main;
             if (cam == null) cam = Object.FindFirstObjectByType<Camera>();
             if (cam != null)
@@ -166,7 +199,30 @@ namespace PixelGame
 
             if (!m_AutoCenterOnMesh)
             {
-                m_Canvas.transform.localPosition = m_ManualOffset;
+                // Kameraya bakan duruşun üstüne, referans görseldeki gibi hafif bir
+                // Z ekseni eğimi (roll) ekler; rozet camera-facing kalır ama eğik durur.
+                if (Mathf.Abs(m_ManualTiltDegrees) > 0.01f)
+                {
+                    m_Canvas.transform.rotation *= Quaternion.Euler(0f, 0f, m_ManualTiltDegrees);
+                }
+
+                // Manual Offset, vagonun kendi (döndürülmüş) yerel eksenine göre değil,
+                // KAMERA eksenine göre uygulanır: X=sağ/sol, Y=yukarı/aşağı, Z=derinlik
+                // (ekranda gerçekten göründüğü gibi). Eskiden localPosition kullanılıyordu;
+                // vagon döndüğünde "aşağı" dediğin yön gövdenin içine/yanına kayıyordu.
+                Vector3 basePos = transform.position;
+                if (cam != null)
+                {
+                    basePos += cam.transform.right * m_ManualOffset.x;
+                    basePos += cam.transform.up * m_ManualOffset.y;
+                    basePos += cam.transform.forward * m_ManualOffset.z;
+                }
+                else
+                {
+                    basePos += m_ManualOffset;
+                }
+
+                m_Canvas.transform.position = basePos;
                 m_Canvas.transform.localScale = Vector3.one * m_ManualScale;
                 return;
             }
@@ -268,11 +324,19 @@ namespace PixelGame
 
                 m_Canvas.transform.position = center;
 
-                // Gövde genişliğine göre ölçekle
-                float targetWorldSize = wagonSize * activeSizeRatio;
-                float targetScale = targetWorldSize / 140f;
-
-                m_Canvas.transform.localScale = Vector3.one * Mathf.Max(0.001f, targetScale);
+                if (m_UseFixedScale)
+                {
+                    // Sabit, öngörülebilir boyut: havuz/slot/ray'de dünya ölçeği farklı
+                    // olsa da Inspector'dan verilen değer birebir uygulanır.
+                    m_Canvas.transform.localScale = Vector3.one * m_FixedLocalScale;
+                }
+                else
+                {
+                    // Gövde genişliğine göre ölçekle (eski otomatik davranış)
+                    float targetWorldSize = wagonSize * activeSizeRatio;
+                    float targetScale = targetWorldSize / 140f;
+                    m_Canvas.transform.localScale = Vector3.one * Mathf.Max(0.001f, targetScale);
+                }
             }
             else
             {
@@ -285,10 +349,11 @@ namespace PixelGame
         {
             if (m_Text != null)
             {
+                // Best Fit KAPALI: Font Size artık bir tavan değil, doğrudan uygulanan
+                // gerçek boyut. Açıkken Unity kutuya göre kendi boyutunu seçiyordu ve
+                // Inspector'dan Font Size değiştirmenin görünürde hiçbir etkisi olmuyordu.
+                m_Text.resizeTextForBestFit = false;
                 m_Text.fontSize = m_FontSize;
-                m_Text.resizeTextForBestFit = true;
-                m_Text.resizeTextMinSize = 30;
-                m_Text.resizeTextMaxSize = m_FontSize;
                 m_Text.horizontalOverflow = HorizontalWrapMode.Overflow;
                 m_Text.verticalOverflow = VerticalWrapMode.Overflow;
 
@@ -302,8 +367,48 @@ namespace PixelGame
 
             if (m_Background != null)
             {
-                m_Background.color = m_ShowBackgroundBox ? new Color(0.1f, 0.12f, 0.18f, 0.85f) : Color.clear;
+                // Metin gibi arka plan da asla vagon gövdesinin arkasında kalmamalı;
+                // aksi halde raydaki/dönük açılardaki vagonlarda kapsül şekli kayboluyor,
+                // sadece üstündeki yazı görünüyordu.
+                Material bgAlwaysOnTop = GetAlwaysOnTopMaterial();
+                if (bgAlwaysOnTop != null && m_Background.material != bgAlwaysOnTop)
+                {
+                    m_Background.material = bgAlwaysOnTop;
+                }
+
+                if (m_Background.sprite == null)
+                {
+                    m_Background.sprite = ResolveBackgroundSprite();
+                    m_Background.type = Image.Type.Simple;
+                    m_Background.preserveAspect = true;
+                }
+                m_Background.color = m_ShowBackgroundBox ? GetBackgroundColor() : Color.clear;
             }
+        }
+
+        /// <summary>
+        /// Rozet arka planının rengi: vagonun kargo (hedef küp) rengini takip eder.
+        /// Kargo henüz atanmamışsa nötr bir sarı/altın tona düşer.
+        /// </summary>
+        private Color GetBackgroundColor()
+        {
+            if (m_Cargo == null) m_Cargo = GetComponent<TruckCargo>();
+            if (m_Cargo != null) return m_Cargo.CargoColor;
+            return new Color32(255, 196, 30, 255);
+        }
+
+        private Sprite ResolveBackgroundSprite()
+        {
+            if (m_BackgroundSprite != null) return m_BackgroundSprite;
+            #if UNITY_EDITOR
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("Count_Tintable t:Sprite");
+            if (guids.Length > 0)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+                m_BackgroundSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            }
+            #endif
+            return m_BackgroundSprite;
         }
 
         /// <summary>
@@ -410,11 +515,16 @@ namespace PixelGame
             m_BadgeRect.sizeDelta = Vector2.zero;
             m_BadgeRect.anchoredPosition = Vector2.zero;
 
-            // İsteğe bağlı arka plan (varsayılan saydam)
+            // Arka plan: kargo rengine göre boyanan rozet kapsülü (varsayılan görünür)
             m_Background = badgeObj.GetComponent<Image>();
             if (m_Background == null) m_Background = badgeObj.AddComponent<Image>();
             m_Background.raycastTarget = false;
-            m_Background.color = m_ShowBackgroundBox ? new Color(0.1f, 0.12f, 0.18f, 0.85f) : Color.clear;
+            m_Background.sprite = ResolveBackgroundSprite();
+            m_Background.type = Image.Type.Simple;
+            m_Background.preserveAspect = true;
+            m_Background.color = m_ShowBackgroundBox ? GetBackgroundColor() : Color.clear;
+            Material bgAlwaysOnTopInit = GetAlwaysOnTopMaterial();
+            if (bgAlwaysOnTopInit != null) m_Background.material = bgAlwaysOnTopInit;
 
             // Metin nesnesi
             Transform textTrans = badgeObj.transform.Find("CountText");
@@ -436,15 +546,28 @@ namespace PixelGame
             textRect.sizeDelta = Vector2.zero;
             textRect.anchoredPosition = Vector2.zero;
 
+            bool textWasNew = textObj.GetComponent<Text>() == null;
             m_Text = textObj.GetComponent<Text>();
             if (m_Text == null) m_Text = textObj.AddComponent<Text>();
+
+            // Font önceliği: 1) Inspector'da atanmış m_CustomFont  2) zaten Text üzerinde
+            // duran font (prefabda elle seçilmiş olabilir)  3) proje varsayılanı (LilitaOne).
+            // Eskiden burası her Play/domain reload'da fontu koşulsuz LilitaOne'a eziyordu;
+            // m_Canvas/m_Text alanları serileştirilmediği için her yeniden yüklemede bu
+            // "sıfırdan kurulum" yoluna düşülüyor ve elle seçilen font kayboluyordu.
+            Font fontToUse = m_CustomFont;
+            if (fontToUse == null && !textWasNew && m_Text.font != null) fontToUse = m_Text.font;
+            if (fontToUse == null)
+            {
 #if UNITY_EDITOR
-            Font customFont = UnityEditor.AssetDatabase.LoadAssetAtPath<Font>("Assets/Fonts/LilitaOne-Regular.ttf");
-            if (customFont != null) m_Text.font = customFont;
-            else m_Text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
-#else
-            m_Text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+                fontToUse = UnityEditor.AssetDatabase.LoadAssetAtPath<Font>("Assets/Fonts/LilitaOne-Regular.ttf");
 #endif
+            }
+            if (fontToUse == null)
+            {
+                fontToUse = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+            }
+            m_Text.font = fontToUse;
             m_Text.fontSize = m_FontSize;
             m_Text.fontStyle = FontStyle.Normal;
             m_Text.alignment = TextAnchor.MiddleCenter;
@@ -452,9 +575,7 @@ namespace PixelGame
             m_Text.raycastTarget = false;
             m_Text.horizontalOverflow = HorizontalWrapMode.Overflow;
             m_Text.verticalOverflow = VerticalWrapMode.Overflow;
-            m_Text.resizeTextForBestFit = true;
-            m_Text.resizeTextMinSize = 30;
-            m_Text.resizeTextMaxSize = m_FontSize;
+            m_Text.resizeTextForBestFit = false;
 
             // 3B nesneler ve yığılan parçalar metni asla örtmesin
             Material alwaysOnTop = GetAlwaysOnTopMaterial();
