@@ -172,13 +172,8 @@ namespace PixelGame
                 });
             }
 
-            // 4. Sayaç Rozeti Punch Efekti
-            if (m_CounterBadgeRect != null)
-            {
-                m_CounterBadgeRect.DOKill();
-                m_CounterBadgeRect.localScale = Vector3.one;
-                m_CounterBadgeRect.DOPunchScale(Vector3.one * 0.24f, 0.28f, 6, 0.5f);
-            }
+            // 4. Sayaç Rozeti
+            // Sahnede ayarlanan boyutun kesinlikle korunması için scale müdahalesi yapılmıyor.
         }
 
         public void SetCount(int currentCount, int maxCount)

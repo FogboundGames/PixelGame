@@ -692,48 +692,73 @@ namespace PixelGame
 
         public void UpdateTrackCornerCounter()
         {
-            if (m_TrackCornerCounterTMP == null && m_TrackCornerCounterText == null)
+            int count = 0;
+
+            // 1. Ray üzerindeki hareketli vagonlar
+            if (m_MovingWagons != null)
             {
-                if (Application.isPlaying)
+                count += m_MovingWagons.Count;
+            }
+
+            // 2. Slottaki dolu/aktif vagonlar
+            if (m_Slots == null)
+            {
+                m_Slots = Object.FindFirstObjectByType<TruckSlotRow>();
+            }
+
+            if (m_Slots != null && m_Slots.Slots != null)
+            {
+                foreach (TruckSlot slot in m_Slots.Slots)
                 {
-                    GameObject obj = GameObject.Find("CounterText");
-                    if (obj != null)
+                    if (slot != null && !slot.IsEmpty)
                     {
-                        m_TrackCornerCounterTMP = obj.GetComponent<TMPro.TextMeshProUGUI>();
-                        if (m_TrackCornerCounterTMP == null)
-                            m_TrackCornerCounterText = obj.GetComponent<UnityEngine.UI.Text>();
+                        count++;
                     }
                 }
             }
 
+            // 3. Toplam 5 Slot Kapasitesi
+            int maxSlots = 5;
+            if (m_Slots != null && m_Slots.SlotCount >= 5)
+            {
+                maxSlots = m_Slots.SlotCount;
+            }
+            if (m_MaxTrackWagons >= 5)
+            {
+                maxSlots = Mathf.Max(maxSlots, m_MaxTrackWagons);
+            }
+            m_MaxTrackWagons = maxSlots;
 
-            int count = m_MovingWagons != null ? m_MovingWagons.Count : 0;
-            string counterStr = $"{count}/{m_MaxTrackWagons}";
+            string counterStr = $"{count}/{maxSlots}";
+
+            // 4. Sahnede 'CounterText' adını taşıyan TÜM TMP ve Text bileşenlerini bul ve güncelle!
+            var tmps = Object.FindObjectsByType<TMPro.TextMeshProUGUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (var tmp in tmps)
+            {
+                if (tmp != null && (tmp.gameObject.name == "CounterText" || tmp.gameObject.name.Contains("Counter")))
+                {
+                    if (tmp.text != counterStr)
+                    {
+                        tmp.text = counterStr;
+                    }
+                }
+            }
+
+            var texts = Object.FindObjectsByType<UnityEngine.UI.Text>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (var txt in texts)
+            {
+                if (txt != null && (txt.gameObject.name == "CounterText" || txt.gameObject.name.Contains("Counter")))
+                {
+                    if (txt.text != counterStr)
+                    {
+                        txt.text = counterStr;
+                    }
+                }
+            }
 
             if (TrackCornerLauncher.Instance != null)
             {
-                TrackCornerLauncher.Instance.SetCount(count, m_MaxTrackWagons);
-            }
-
-            if (m_TrackCornerCounterTMP != null)
-            {
-                if (m_TrackCornerCounterTMP.text != counterStr)
-                {
-                    m_TrackCornerCounterTMP.text = counterStr;
-                    m_TrackCornerCounterTMP.transform.DOKill();
-                    m_TrackCornerCounterTMP.transform.localScale = Vector3.one;
-                    m_TrackCornerCounterTMP.transform.DOPunchScale(Vector3.one * 0.18f, 0.22f, 1, 0.5f);
-                }
-            }
-            else if (m_TrackCornerCounterText != null)
-            {
-                if (m_TrackCornerCounterText.text != counterStr)
-                {
-                    m_TrackCornerCounterText.text = counterStr;
-                    m_TrackCornerCounterText.transform.DOKill();
-                    m_TrackCornerCounterText.transform.localScale = Vector3.one;
-                    m_TrackCornerCounterText.transform.DOPunchScale(Vector3.one * 0.18f, 0.22f, 1, 0.5f);
-                }
+                TrackCornerLauncher.Instance.SetCount(count, maxSlots);
             }
         }
 

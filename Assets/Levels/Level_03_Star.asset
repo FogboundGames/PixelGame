@@ -39,6 +39,7 @@ MonoBehaviour:
   m_EmissionIntensity: 0.35
   m_CubeSpacing: 0.04
   m_CubeDepth: 0.4
+  m_BoardTiltAngle: 18
   m_InnerPadding: 0.08
   m_SkipTransparent: 1
   m_SlotSprite: {fileID: 0}
@@ -46,4 +47,57 @@ MonoBehaviour:
   m_PoolColumns: 4
   m_PoolRows: 2
   m_TruckCapacity: 16
+  m_UseCustomWagonSequence: 0
+  m_WagonSequence: []
   m_FigureShadowTexture: {fileID: 0}
+  m_UseCustomColorTheme: 0
+  m_ColorTheme:
+    m_Parts:
+    - part: 6
+      matchBlockColor: 1
+      customColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+    - part: 7
+      matchBlockColor: 1
+      customColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+    - part: 0
+      matchBlockColor: 0
+      customColor: {r: 0.19607843, g: 0.19607843, b: 0.21568628, a: 1}
+    - part: 1
+      matchBlockColor: 0
+      customColor: {r: 0.7647059, g: 0.77254903, b: 0.7921569, a: 1}
+    - part: 2
+      matchBlockColor: 0
+      customColor: {r: 0.3529412, g: 0.43137255, b: 0.50980395, a: 1}
+    - part: 3
+      matchBlockColor: 0
+      customColor: {r: 0.9882353, g: 0.98039216, b: 0.93333334, a: 1}
+    - part: 4
+      matchBlockColor: 0
+      customColor: {r: 0.5294118, g: 0.09411765, b: 0.11764706, a: 1}
+    - part: 5
+      matchBlockColor: 0
+      customColor: {r: 0.23529412, g: 0.23529412, b: 0.25882354, a: 1}
+    - part: 8
+      matchBlockColor: 0
+      customColor: {r: 0.5019608, g: 0.5176471, b: 0.54901963, a: 1}
+    - part: 11
+      matchBlockColor: 0
+      customColor: {r: 0.3764706, g: 0.3882353, b: 0.42352942, a: 1}
+    - part: 9
+      matchBlockColor: 0
+      customColor: {r: 0.47058824, g: 0.30588236, b: 0.1882353, a: 1}
+    - part: 10
+      matchBlockColor: 0
+      customColor: {r: 0.07058824, g: 0.0627451, b: 0.08627451, a: 1}
+    - part: 12
+      matchBlockColor: 0
+      customColor: {r: 0.92156863, g: 0.39215687, b: 0.078431375, a: 1}
+    - part: 13
+      matchBlockColor: 0
+      customColor: {r: 1, g: 0.78431374, b: 0, a: 1}
+    - part: 14
+      matchBlockColor: 0
+      customColor: {r: 0.15686275, g: 0.17254902, b: 0.20392157, a: 1}
+    - part: 15
+      matchBlockColor: 0
+      customColor: {r: 1, g: 0.972549, b: 0.78431374, a: 1}

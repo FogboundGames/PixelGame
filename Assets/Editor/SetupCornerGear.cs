@@ -79,7 +79,7 @@ namespace PixelGame.Editor
 
             gearObj.transform.position = cornerPos;
             gearObj.transform.rotation = Quaternion.identity;
-            gearObj.transform.localScale = new Vector3(0.25f, 0.25f, 1.0f);
+            gearObj.transform.localScale = new Vector3(0.20f, 0.20f, 1.0f);
 
             // 4. SpriteRenderer bileşeni
             SpriteRenderer sr = gearObj.GetComponent<SpriteRenderer>();

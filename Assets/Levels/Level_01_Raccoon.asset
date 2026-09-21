@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_01_Sevimli Rakun
   m_EditorClassIdentifier: PixelGame::PixelGame.PixelLevelData
   m_LevelName: Sevimli Rakun
-  m_LevelIndex: 1
+  m_LevelIndex: 2
   m_LevelTexture: {fileID: 2800000, guid: 71d45c83e29147fa90015f70e129f744, type: 3}
   m_LevelSprite: {fileID: 0}
   m_UseNativeResolution: 1

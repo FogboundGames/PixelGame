@@ -173,6 +173,11 @@ namespace PixelGame
 
             AlignTruck();
             ApplyTruckColor();
+
+            if (TruckDispatcher.Instance != null)
+            {
+                TruckDispatcher.Instance.UpdateTrackCornerCounter();
+            }
         }
 
         /// <summary>
@@ -182,6 +187,12 @@ namespace PixelGame
         {
             Transform truck = m_Truck;
             m_Truck = null;
+
+            if (TruckDispatcher.Instance != null)
+            {
+                TruckDispatcher.Instance.UpdateTrackCornerCounter();
+            }
+
             return truck;
         }
 
