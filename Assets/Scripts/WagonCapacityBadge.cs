@@ -7,10 +7,11 @@ namespace PixelGame
 {
     /// <summary>
     /// Vagonun üzerinde kalan parça/küp sayısını gösteren dinamik rozet (Badge).
-    /// Kullanıcının referans görselindeki gibi:
-    /// - Kalın beyaz yazı (#FFFFFF),
-    /// - Her yönden belirgin koyu/siyah dış çizgi (Outline) ve hafif derinlik gölgesi (Shadow),
-    /// - Arka planda fazlalık kutu olmadan doğrudan vagonun üzerinde temiz ve doğal duruş,
+    /// - Havuz Modunda (Pool): İkinci görseldeki gibi parlak 3B tombul altın sarısı Tile (model gizli).
+    /// - Aktif 3B Model Modunda (Slot / Ray Bandı): 3B robot modeli tamamen açık; rozet robotun yüzünü
+    ///   kapatmayacak şekilde başının üstünde şık ve kompakt bir 3B mini kapsül (Badge_MiniPill) olarak süzülür.
+    /// - Kalın beyaz LilitaOne yazı (#FFFFFF),
+    /// - Belirgin derinlik gölgesi (Shadow) ve dış çizgi (Outline),
     /// - Her zaman kameraya dik bakan Billboard modu,
     /// - Küp yüklendiğinde tatlı bir büyüme-küçülme (DOPunchScale) geri bildirimi.
     /// </summary>
@@ -21,121 +22,65 @@ namespace PixelGame
     {
         private Canvas m_Canvas;
         private RectTransform m_BadgeRect;
+        private Image m_InnerPlate;
         private Image m_Background;
         private Text m_Text;
-        private Outline m_Outline1;
-        private Outline m_Outline2;
         private Shadow m_Shadow;
+        private Outline m_Outline;
         private int m_CurrentCount = -1;
         private TruckCargo m_Cargo;
-        private float m_CurrentFillRatio = 0f;
 
         private static Material s_AlwaysOnTopMaterial;
 
-        [Header("📐 Görsel Stil & Boyut")]
-        [Tooltip("Arka plan kutusu görünsün mü? Açıkken rozet, vagonun kargo rengine göre boyanan " +
-                 "parlak bir 3B kapsül şekli üzerinde durur (Assets/UI/Count_Tintable.png).")]
-        [SerializeField] private bool m_ShowBackgroundBox = true;
+        [Header("🤖 3B Model & Mod Ayarları")]
+        [Tooltip("Açıkken vagonun 3B gövde modelleri gizlenir ve sadece 3B tombul rozet (Tile) görünür. " +
+                 "Kapalıyken 3B robot modeli aktiftir ve rozet başın üstünde şık mini kapsül olarak durur.")]
+        [SerializeField] private bool m_HideModel = false;
 
-        [Tooltip("Arka plan şekli. Boşsa Assets/UI/Count_Tintable.png otomatik yüklenir. " +
-                 "Beyaza yakın/gri tonlamalı olmalı ki renk boyaması (tint) temiz çıksın.")]
+        [Header("🌟 Havuz Modu (Tile) Görselleri")]
+        [Tooltip("Havuz modundaki dış 3B çerçeve görseli (Assets/UI/Count.png)")]
         [SerializeField] private Sprite m_BackgroundSprite;
 
-        [Tooltip("Otomatik olarak vagonun 3D sınırlarını (bounds) bulup modelin tam ortasına yerleştir")]
-        [SerializeField] private bool m_AutoCenterOnMesh = true;
+        [Tooltip("Havuz modundaki iç kuyu (recess) görseli (Assets/UI/Count_InnerPlate.png)")]
+        [SerializeField] private Sprite m_InnerPlateSprite;
 
-        [Tooltip("Metnin vagon modeline göre büyüklük oranı. 0.5 = model genişliğinin yarısı. " +
-                 "Rozetler çalışma anında AddComponent ile eklendiği için sahnedeki değil " +
-                 "BU varsayılan geçerlidir. SADECE 'Sabit Boyut Kullan' kapalıyken etkilidir.")]
-        [Range(0.1f, 2.5f)]
-        [SerializeField] private float m_SizeRatio = 0.22f;
+        [Header("🚀 Aktif 3B Model Modu (Floating Head-Up Badge)")]
+        [Tooltip("Aktif model modunda rozetin arka planında parlak 3B kapsül görünsün mü?")]
+        [SerializeField] private bool m_ActiveShowMiniPill = true;
 
-        [Header("📏 Sabit Boyut (Önerilen)")]
-        [Tooltip("Açıkken rozet boyutu SizeRatio/bounds hesabından değil, doğrudan aşağıdaki " +
-                 "'Fixed Local Scale' değerinden gelir. Havuz/slot/ray farklı dünya ölçeğine " +
-                 "sahip olduğu için otomatik hesap bağlama göre çok farklı sonuç veriyordu; " +
-                 "bu, hepsinde aynı, öngörülebilir bir boyut sağlar.")]
-        [SerializeField] private bool m_UseFixedScale = true;
+        [Tooltip("Aktif model modundaki şık 3B kapsül görseli (Assets/UI/Badge_JuicyPill.png)")]
+        [SerializeField] private Sprite m_MiniPillSprite;
 
-        [Tooltip("Rozetin vagona göre SABİT yerel ölçeği (truck.localScale'e görelidir, dünya " +
-                 "ölçeğinden bağımsızdır). Inspector'dan serbestçe ayarlanabilir, her yerde aynı görünür.")]
-        [Range(0.001f, 0.05f)]
-        [SerializeField] private float m_FixedLocalScale = 0.012f;
+        [Tooltip("Aktif model modunda rozetin robot başının ne kadar üstünde duracağı (metre)")]
+        [Range(0.02f, 0.40f)]
+        [SerializeField] private float m_ActiveHeadElevation = 0.09f;
 
-        [Tooltip("Rozetin gövde merkezinden yukarı/aşağı kayması, gövde yüksekliğinin oranı olarak. " +
-                 "0 = tam gövdenin ortasında (etiket gibi). Negatif değer aşağı indirir. " +
-                 "Rozet çalışma anında eklendiği için sahnedeki değil BU varsayılan geçerlidir.")]
-        [Range(-0.5f, 0.8f)]
-        [SerializeField] private float m_VerticalLiftRatio = 0.42f;
+        [Tooltip("Aktif model modunda rozetin dünya genişliği (metre, varsayılan: 0.65)")]
+        [Range(0.30f, 1.20f)]
+        [SerializeField] private float m_ActiveWorldWidth = 0.65f;
 
-        [Header("📦 Doluluk Dinamik Yükselmesi (Pile Float)")]
-        [Tooltip("Kasa doldukça rozetin yukarı kayma oranı. 0 = hiç kaymasın (şişe gibi kapalı " +
-                 "gövdeli modellerde istenen budur; aksi halde oynarken rozetin yeri sürekli değişir). " +
-                 "Açık kasalı vagonlarda metnin yığının üstünde kalması için yükseltilebilir.")]
-        [Range(0f, 0.6f)]
-        [SerializeField] private float m_FillRiseRatio = 0f;
+        [Header("📐 İnce Ayarlar")]
+        [Tooltip("Arka plan kutusu görünsün mü?")]
+        [SerializeField] private bool m_ShowBackgroundBox = true;
 
-        [Tooltip("Modelin merkezine eklenecek kamera uzayı ince ayar ofseti (X: sağ/sol, Y: yukarı/aşağı, Z: derinlik). " +
-                 "Pozitif Z rozeti kameradan uzağa, modelin içine doğru iter.")]
-        [SerializeField] private Vector3 m_CenterOffset = new Vector3(0f, 0f, 0.12f);
+        [Tooltip("Modelin merkezine eklenecek kamera uzayı ince ayar ofseti (X: sağ/sol, Y: yukarı/aşağı, Z: derinlik)")]
+        [SerializeField] private Vector3 m_CenterOffset = new Vector3(0f, 0f, 0.05f);
 
-        [Tooltip("Yazı boyutu (Canvas birimi, varsayılan: 140)")]
-        [Range(40, 200)]
-        [SerializeField] private int m_FontSize = 140;
-
-        [Tooltip("Yazı fontu. Boş bırakılırsa varsayılan (LilitaOne) kullanılır. " +
-                 "Buraya bir font atarsan Play'e her girişte ezilmeden korunur.")]
+        [Tooltip("Yazı fontu. Boş bırakılırsa varsayılan (LilitaOne) kullanılır.")]
         [SerializeField] private Font m_CustomFont;
 
-        [Header("🔧 Manuel Mod (AutoCenter kapalıysa)")]
-        [Tooltip("Vagonun merkezinden manuel yerleşim ofseti")]
-        [SerializeField] private Vector3 m_ManualOffset = new Vector3(0f, 0.15f, 0f);
+        [Tooltip("Vagonun merkezinden manuel yerleşim ofseti (Havuz modu için)")]
+        [SerializeField] private Vector3 m_ManualOffset = Vector3.zero;
 
-        [Tooltip("Rozetin manuel ölçeği")]
-        [SerializeField] private float m_ManualScale = 0.012f;
+        [Tooltip("Rozetin havuz modundaki dünya ölçek çarpanı (büyük, parlak ve tombul görünüm)")]
+        [SerializeField] private float m_PoolTargetWorldScale = 0.0070f;
 
-        [Tooltip("Rozetin ekranda kameraya göre hafif eğik durması için Z ekseni dönüşü (derece). " +
-                 "Referans görseldeki gibi oynak/eğlenceli bir duruş için ~10-15 derece dene.")]
+        [Tooltip("Rozetin ekranda kameraya göre hafif eğik durması için Z ekseni dönüşü (derece, sadece havuz modu)")]
         [Range(-45f, 45f)]
-        [SerializeField] private float m_ManualTiltDegrees = 12f;
-
-        /// <summary>
-        /// Bu renderer vagonun gövdesi mi? Hem obje adına hem mesh adına bakar.
-        /// </summary>
-        private static bool IsBodyRenderer(Renderer r)
-        {
-            if (r == null) return false;
-
-            // Yüz parçaları ("Eye_L_Body" gibi) asla gövde olamaz; aksi halde aşağıdaki
-            // gevşek "Body" alt-dize eşleşmesi göz küresini gövde sanıp rozeti minicik
-            // bir mesh'e göre ölçeklendiriyor (neredeyse görünmez oluyor).
-            if (r.name.IndexOf("Eye", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                r.name.IndexOf("Brow", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                r.name.IndexOf("Glint", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                r.name.IndexOf("Snout", System.StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                return false;
-            }
-
-            if (r.name.StartsWith("MineCart_Body") || r.name.StartsWith("Truck_Cargo")) return true;
-            if (r.name.IndexOf("Bottle", System.StringComparison.OrdinalIgnoreCase) >= 0) return true;
-            if (r.name.IndexOf("object_", System.StringComparison.OrdinalIgnoreCase) >= 0) return true;
-            if (r.name.IndexOf("Cannon", System.StringComparison.OrdinalIgnoreCase) >= 0) return true;
-            if (r.name.IndexOf("Turret", System.StringComparison.OrdinalIgnoreCase) >= 0) return true;
-
-            MeshFilter filter = r.GetComponent<MeshFilter>();
-            Mesh mesh = filter != null ? filter.sharedMesh : null;
-            if (mesh == null) return false;
-
-            return mesh.name.IndexOf("Body", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                   mesh.name.IndexOf("Bottle", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                   mesh.name.IndexOf("object_", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                   mesh.name.IndexOf("Cannon", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                   mesh.name.IndexOf("Turret", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                   mesh.name.IndexOf("Cargo", System.StringComparison.OrdinalIgnoreCase) >= 0;
-        }
+        [SerializeField] private float m_ManualTiltDegrees = 0f;
 
         public int CurrentCount => m_CurrentCount;
+        public bool IsPoolMode => m_HideModel;
 
         /// <summary>
         /// 3B parçaların ve vagon gövdesinin metni asla kapatamaması için ZTest Always UI materyali.
@@ -153,21 +98,97 @@ namespace PixelGame
             return s_AlwaysOnTopMaterial;
         }
 
+        /// <summary>
+        /// Sahnede veya DontDestroyOnLoad altında kalmış tüm sahipsiz/bağlantısız rozet nesnelerini temizler.
+        /// </summary>
+        public static void PurgeOrphanBadges()
+        {
+            if (Application.isPlaying) return;
+
+            GameObject container = GameObject.Find("[WagonBadgesContainer]");
+            if (container != null)
+            {
+                DestroyImmediate(container);
+            }
+
+            Canvas[] allCanvases = Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            for (int i = 0; i < allCanvases.Length; i++)
+            {
+                Canvas c = allCanvases[i];
+                if (c == null) continue;
+                if (c.name == "CapacityBadgeCanvas")
+                {
+                    if (c.transform.parent == null || c.GetComponentInParent<WagonCapacityBadge>() == null)
+                    {
+                        DestroyImmediate(c.gameObject);
+                    }
+                }
+            }
+        }
+
+        private bool CheckIfInPool()
+        {
+            if (transform.parent == null) return false;
+            return GetComponentInParent<TruckPool>() != null;
+        }
+
         private void Awake()
         {
             EnsureBadgeUI();
+            if (transform.parent == null)
+            {
+                if (m_Canvas != null) m_Canvas.gameObject.SetActive(false);
+            }
+            else
+            {
+                bool inPool = CheckIfInPool();
+                SetPoolMode(inPool);
+            }
         }
 
         private void OnEnable()
         {
             EnsureBadgeUI();
-            ApplyStyle();
-            UpdatePlacement();
+            if (transform.parent == null)
+            {
+                if (m_Canvas != null) m_Canvas.gameObject.SetActive(false);
+            }
+            else
+            {
+                bool inPool = CheckIfInPool();
+                SetPoolMode(inPool);
+                ApplyStyle();
+                UpdatePlacement();
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (m_Canvas != null && m_Canvas.gameObject != null)
+            {
+                m_Canvas.gameObject.SetActive(false);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (m_Canvas != null && m_Canvas.gameObject != null)
+            {
+                if (Application.isPlaying)
+                {
+                    Destroy(m_Canvas.gameObject);
+                }
+                else
+                {
+                    DestroyImmediate(m_Canvas.gameObject);
+                }
+            }
         }
 
         private void OnValidate()
         {
             ApplyStyle();
+            UpdatePlacement();
         }
 
         private void LateUpdate()
@@ -176,30 +197,124 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Rozeti vagon modelinin tam merkezine yerleştirir ve kameraya tam dik bakmasını sağlar (Billboard).
-        /// Kasa doldukça metin yığının üzerinde dinamik olarak yükselir ve parçaların altında kalmaz.
+        /// Havuz modunda mı (tile görünümü) yoksa aktif oyun/slot/ray modunda mı (3B robot modeli görünümü)?
+        /// Kullanıcının "+ ona tıkladıktan sonra modelim aktif olsun slota falan da model şeklinde yerleşsin ama bant kısmında hareket ederken modelim aktif olsun istiyorum"
+        /// talebini yönetir.
+        /// </summary>
+        public void SetPoolMode(bool inPool)
+        {
+            m_HideModel = inPool;
+
+            if (m_HideModel)
+            {
+                HideWagonModels();
+            }
+            else
+            {
+                ShowWagonModels();
+            }
+
+            ApplyStyle();
+            UpdatePlacement();
+        }
+
+        /// <summary>
+        /// Vagon üzerindeki 3B gövde modellerini gizler (Havuzda bekleme modu).
+        /// </summary>
+        public void HideWagonModels()
+        {
+            if (!m_HideModel) return;
+
+            Transform modelChild = transform.Find("Model");
+            if (modelChild != null && !modelChild.gameObject.activeSelf)
+            {
+                modelChild.gameObject.SetActive(true);
+            }
+
+            foreach (Renderer r in GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null) continue;
+                if (m_Canvas != null && r.transform.IsChildOf(m_Canvas.transform)) continue;
+                if (r.enabled) r.enabled = false;
+            }
+        }
+
+        /// <summary>
+        /// Vagon üzerindeki 3B gövde modellerini aktif eder (Slota veya ray bandına yerleşme modu).
+        /// </summary>
+        public void ShowWagonModels()
+        {
+            Transform modelChild = transform.Find("Model");
+            if (modelChild != null && !modelChild.gameObject.activeSelf)
+            {
+                modelChild.gameObject.SetActive(true);
+            }
+
+            foreach (Renderer r in GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null) continue;
+                if (m_Canvas != null && r.transform.IsChildOf(m_Canvas.transform)) continue;
+                r.enabled = true;
+            }
+        }
+
+        /// <summary>
+        /// Rozeti konumlandırır ve kameraya tam dik bakmasını sağlar (Billboard).
+        /// Ebeveyn nesnenin çocuğu olarak kalır, böylece vagon silindiğinde veya gizlendiğinde rozet asla başıboş kalmaz.
         /// </summary>
         public void UpdatePlacement()
         {
             if (m_Canvas == null) return;
 
-            // Kargo rengi (boyanan vagon rengi) her karede değişebilir (renk ataması,
-            // tema değişimi vb.); rozet arka planı bunu canlı takip etsin.
-            if (m_Background != null && m_ShowBackgroundBox)
+            if (!gameObject.activeInHierarchy || !enabled)
             {
-                m_Background.color = GetBackgroundColor();
+                if (m_Canvas.gameObject.activeSelf) m_Canvas.gameObject.SetActive(false);
+                return;
+            }
+
+            // Sahipsiz (parent == null) ve rayda hareket etmeyen vagonların rozetini gösterme
+            if (transform.parent == null)
+            {
+                bool isTrackWagon = false;
+                if (TruckDispatcher.Instance != null && TruckDispatcher.Instance.MovingWagons != null)
+                {
+                    for (int i = 0; i < TruckDispatcher.Instance.MovingWagons.Count; i++)
+                    {
+                        var mw = TruckDispatcher.Instance.MovingWagons[i];
+                        if (mw != null && mw.Transform == transform)
+                        {
+                            isTrackWagon = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!isTrackWagon)
+                {
+                    if (m_Canvas.gameObject.activeSelf) m_Canvas.gameObject.SetActive(false);
+                    return;
+                }
+            }
+
+            // Canvas'ın her zaman vagonun kendi çocuğu olduğundan emin ol
+            if (m_Canvas.transform.parent != transform)
+            {
+                m_Canvas.transform.SetParent(transform, true);
             }
 
             Camera cam = Camera.main;
             if (cam == null) cam = Object.FindFirstObjectByType<Camera>();
 
-            if (!m_AutoCenterOnMesh)
+            float parentLossy = transform.lossyScale.x;
+            if (Mathf.Abs(parentLossy) < 0.0001f) parentLossy = 1f;
+
+            if (m_HideModel)
             {
-                // Hem konum hem duruş KAMERA eksenine göre hesaplanır, vagonun kendi
-                // rotasyonundan tamamen bağımsız. Böylece havuz/slot/ray'deki vagonlar
-                // birbirinden çok farklı dünya rotasyonlarına sahip olsa bile (bazılarının
-                // "yerel aşağısı" derinliğe, bazılarının yukarıya denk geliyordu) rozet
-                // HER ZAMAN ekranda aynı yerde ve okunaklı görünür.
+                // ==========================================
+                // 1. HAVUZ MODU (Glossy 3D Tile)
+                // ==========================================
+                HideWagonModels();
+
                 Vector3 basePos = transform.position;
                 if (cam != null)
                 {
@@ -215,197 +330,305 @@ namespace PixelGame
                     m_Canvas.transform.localRotation = Quaternion.Euler(0f, 0f, m_ManualTiltDegrees);
                 }
 
-                m_Canvas.transform.localScale = Vector3.one * m_ManualScale;
-                return;
-            }
-
-            if (cam != null)
-            {
-                m_Canvas.transform.rotation = cam.transform.rotation;
-            }
-
-            // Şişe için ayrı bir sabit yerleşim YOK: aşağıdaki sınır (bounds) tabanlı
-            // yol zaten şişeyi tanıyor (gövde rendererı eşleşmesinde "Bottle" da aranır).
-            //
-            // Eskiden burada modele bakmayan sabit bir blok vardı:
-            //   localPosition = (-0.04, 0.45, 0.45), localRotation = (0,180,0), scale = 0.0022
-            // Üç sorun çıkarıyordu:
-            //   1) Ölçek modelden türetilmediği için yazı modele göre çok büyük kalıyordu.
-            //   2) 0.45'lik kaldırma sabitti; modelin boyuna bağlı olmadığı için çok yukarıda duruyordu.
-            //   3) localRotation ataması, yukarıda kurulan kameraya dönük (billboard)
-            //      duruşu eziyordu ve ofset yerel eksende olduğu için vagonun Y dönüşü
-            //      değişince (180 -> 90) yazı yana kayıyordu.
-            // Aşağıdaki yol ölçeği modelin genişliğinden, kaldırmayı boyundan alır ve
-            // konumu dünya uzayında kurar; bu yüzden duruş açısından bağımsızdır.
-
-            // Vagonun render sınırlarını hesapla (düşen parçacıklar ve canvas hariç)
-            Renderer[] rends = GetComponentsInChildren<Renderer>();
-            Bounds b = new Bounds();
-            bool found = false;
-            Renderer bodyRenderer = null;
-
-            for (int i = 0; i < rends.Length; i++)
-            {
-                Renderer r = rends[i];
-                if (r == null || !r.enabled || !r.gameObject.activeInHierarchy) continue;
-                if (r.transform.IsChildOf(m_Canvas.transform)) continue;
-                if (r.name.StartsWith("CargoPiece") || r.name.StartsWith("Voxel")) continue;
-
-                // Gövde tespiti obje adına BAKAR ama mesh adına da bakmalı: prefab örneği
-                // "Truck_FFD93D_16" gibi yeniden adlandırılıyor, gövde bilgisi yalnızca
-                // mesh adında ("Bottle_Body") kalıyordu ve tespit ıskalanıyordu.
-                if (IsBodyRenderer(r))
-                {
-                    bodyRenderer = r;
-                }
-
-                if (!found)
-                {
-                    b = r.bounds;
-                    found = true;
-                }
-                else
-                {
-                    b.Encapsulate(r.bounds);
-                }
-            }
-
-            if (found && b.size.magnitude > 0.01f)
-            {
-                // Rozet GÖVDEYE sabitlenir: hem konumu hem ölçeği gövde rendererından alınır.
-                //
-                // Eskiden ölçek tüm vagon sınırlarından (b), konum ise gövdeden geliyordu.
-                // Bu ikisi farklı şeylere bağlı olduğu için rozet modele göre kayabiliyordu.
-                // Gövde tek referans olunca rozet şişenin üstünde bir etiket gibi sabit durur.
-                Bounds anchor = bodyRenderer != null ? bodyRenderer.bounds : b;
-
-                float wagonSize = Mathf.Max(anchor.size.x, anchor.size.z);
-                Vector3 center = anchor.center;
-
-                // Doluluk oranını TruckCargo'dan alıp pürüzsüzce takip et
-                if (m_Cargo == null) m_Cargo = GetComponent<TruckCargo>();
-                float targetFillRatio = m_Cargo != null ? m_Cargo.FillRatio : 0f;
-                m_CurrentFillRatio = Mathf.MoveTowards(m_CurrentFillRatio, targetFillRatio, Time.deltaTime * 3.5f);
-
-                bool isScifi = bodyRenderer != null && (
-                    bodyRenderer.name.IndexOf("object_", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    bodyRenderer.name.IndexOf("Cannon", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    bodyRenderer.name.IndexOf("Turret", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    (bodyRenderer.GetComponent<MeshFilter>() != null && bodyRenderer.GetComponent<MeshFilter>().sharedMesh != null &&
-                     bodyRenderer.GetComponent<MeshFilter>().sharedMesh.name.IndexOf("object_", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                );
-
-                float activeLiftRatio = isScifi ? 0.14f : m_VerticalLiftRatio;
-                float activeSizeRatio = isScifi ? 1.05f : m_SizeRatio;
-
-                // 1. Gövde merkezinden kayma (0 = tam ortada, etiket gibi)
-                float baseLift = anchor.size.y * activeLiftRatio;
-
-                // 2. Doluluk yükselmesi. Şişe gibi kapalı gövdeli modellerde 0 olmalı:
-                //    aksi halde kasa doldukça rozet yukarı tırmanır ve oyuncuya
-                //    "yazının yeri sürekli değişiyor" gibi görünür.
-                float fillLift = anchor.size.y * m_FillRiseRatio * m_CurrentFillRatio;
-
-                Vector3 camUp = cam != null ? cam.transform.up : Vector3.up;
-                center += camUp * (baseLift + fillLift);
-
-                // 3. Kamera bakış açısına göre kullanıcı ince ayar ofseti
-                if (cam != null)
-                {
-                    center += cam.transform.rotation * m_CenterOffset;
-                }
-                else
-                {
-                    center += m_CenterOffset;
-                }
-
-                m_Canvas.transform.position = center;
-
-                if (m_UseFixedScale)
-                {
-                    // Sabit, öngörülebilir boyut: havuz/slot/ray'de dünya ölçeği farklı
-                    // olsa da Inspector'dan verilen değer birebir uygulanır.
-                    m_Canvas.transform.localScale = Vector3.one * m_FixedLocalScale;
-                }
-                else
-                {
-                    // Gövde genişliğine göre ölçekle (eski otomatik davranış)
-                    float targetWorldSize = wagonSize * activeSizeRatio;
-                    float targetScale = targetWorldSize / 140f;
-                    m_Canvas.transform.localScale = Vector3.one * Mathf.Max(0.001f, targetScale);
-                }
+                m_Canvas.transform.localScale = Vector3.one * (m_PoolTargetWorldScale / parentLossy);
             }
             else
             {
-                m_Canvas.transform.localPosition = m_ManualOffset;
-                m_Canvas.transform.localScale = Vector3.one * m_ManualScale;
+                // ==========================================
+                // 2. AKTİF 3B MODEL MODU (Robot Başının Üstünde Yüzen Şık 3B Kapsül)
+                // ==========================================
+                ShowWagonModels();
+
+                if (cam != null)
+                {
+                    m_Canvas.transform.rotation = cam.transform.rotation;
+                }
+
+                Renderer[] rends = GetComponentsInChildren<Renderer>();
+                Bounds b = new Bounds();
+                bool found = false;
+
+                for (int i = 0; i < rends.Length; i++)
+                {
+                    Renderer r = rends[i];
+                    if (r == null || !r.enabled || !r.gameObject.activeInHierarchy) continue;
+                    if (m_Canvas != null && r.transform.IsChildOf(m_Canvas.transform)) continue;
+                    if (r.name.StartsWith("CargoPiece") || r.name.StartsWith("Voxel")) continue;
+
+                    if (!found)
+                    {
+                        b = r.bounds;
+                        found = true;
+                    }
+                    else
+                    {
+                        b.Encapsulate(r.bounds);
+                    }
+                }
+
+                Vector3 headTopPos;
+                if (found && b.size.magnitude > 0.01f)
+                {
+                    Vector3 camUp = cam != null ? cam.transform.up : Vector3.up;
+                    Vector3 camFwd = cam != null ? cam.transform.forward : Vector3.forward;
+
+                    // Robot modelinin en üst tepesi + baş üstü yükseltmesi
+                    headTopPos = b.center + camUp * (b.extents.y + m_ActiveHeadElevation) - camFwd * 0.04f;
+                }
+                else
+                {
+                    headTopPos = transform.position + (cam != null ? cam.transform.up * 0.85f : Vector3.up * 0.85f);
+                }
+
+                m_Canvas.transform.position = headTopPos;
+
+                float targetActiveWorldScale = m_ActiveWorldWidth / 130f;
+                m_Canvas.transform.localScale = Vector3.one * (targetActiveWorldScale / parentLossy);
+            }
+
+            if (!m_Canvas.gameObject.activeSelf)
+            {
+                m_Canvas.gameObject.SetActive(true);
             }
         }
 
         public void ApplyStyle()
         {
-            if (m_Text != null)
+            Material alwaysOnTopMat = GetAlwaysOnTopMaterial();
+
+            if (m_Canvas == null) EnsureBadgeUI();
+
+            RectTransform canvasRt = m_Canvas != null ? m_Canvas.GetComponent<RectTransform>() : null;
+
+            if (m_HideModel)
             {
-                // Best Fit KAPALI: Font Size artık bir tavan değil, doğrudan uygulanan
-                // gerçek boyut. Açıkken Unity kutuya göre kendi boyutunu seçiyordu ve
-                // Inspector'dan Font Size değiştirmenin görünürde hiçbir etkisi olmuyordu.
-                m_Text.resizeTextForBestFit = false;
-                m_Text.fontSize = m_FontSize;
-                m_Text.horizontalOverflow = HorizontalWrapMode.Overflow;
-                m_Text.verticalOverflow = VerticalWrapMode.Overflow;
+                // ==========================================
+                // HAVUZ MODU STİLİ: Kare 3B Tombul Tile (140x140)
+                // 2. görseldeki gibi %100 parlak, doygun altın sarısı 3B karo
+                // ==========================================
+                if (canvasRt != null) canvasRt.sizeDelta = new Vector2(140f, 140f);
+                if (m_BadgeRect != null) m_BadgeRect.sizeDelta = Vector2.zero;
 
-                // Asla parçaların arkasında kalmaması için Always-On-Top materyali ata
-                Material alwaysOnTop = GetAlwaysOnTopMaterial();
-                if (alwaysOnTop != null && m_Text.material != alwaysOnTop)
+                Sprite bgSprite = ResolveBackgroundSprite();
+                bool isFullPlate = bgSprite != null && bgSprite.name.IndexOf("FullPlate", System.StringComparison.OrdinalIgnoreCase) >= 0;
+
+                if (m_InnerPlate != null)
                 {
-                    m_Text.material = alwaysOnTop;
+                    if (isFullPlate)
+                    {
+                        m_InnerPlate.gameObject.SetActive(false);
+                    }
+                    else
+                    {
+                        m_InnerPlate.gameObject.SetActive(true);
+                        m_InnerPlate.sprite = ResolveInnerPlateSprite();
+                        m_InnerPlate.type = Image.Type.Simple;
+                        m_InnerPlate.preserveAspect = true;
+                        m_InnerPlate.color = Color.white;
+                        if (alwaysOnTopMat != null) m_InnerPlate.material = alwaysOnTopMat;
+
+                        RectTransform innerRt = m_InnerPlate.rectTransform;
+                        innerRt.anchorMin = Vector2.zero;
+                        innerRt.anchorMax = Vector2.one;
+                        innerRt.sizeDelta = Vector2.zero;
+                    }
                 }
-            }
 
-            if (m_Background != null)
-            {
-                // Metin gibi arka plan da asla vagon gövdesinin arkasında kalmamalı;
-                // aksi halde raydaki/dönük açılardaki vagonlarda kapsül şekli kayboluyor,
-                // sadece üstündeki yazı görünüyordu.
-                Material bgAlwaysOnTop = GetAlwaysOnTopMaterial();
-                if (bgAlwaysOnTop != null && m_Background.material != bgAlwaysOnTop)
+                if (m_Background != null)
                 {
-                    m_Background.material = bgAlwaysOnTop;
-                }
-
-                if (m_Background.sprite == null)
-                {
-                    m_Background.sprite = ResolveBackgroundSprite();
+                    m_Background.gameObject.SetActive(m_ShowBackgroundBox);
+                    m_Background.sprite = bgSprite;
                     m_Background.type = Image.Type.Simple;
                     m_Background.preserveAspect = true;
+                    m_Background.color = m_ShowBackgroundBox ? GetBackgroundColor() : Color.clear;
+                    if (alwaysOnTopMat != null) m_Background.material = alwaysOnTopMat;
+
+                    RectTransform bgRt = m_Background.rectTransform;
+                    bgRt.anchorMin = Vector2.zero;
+                    bgRt.anchorMax = Vector2.one;
+                    bgRt.sizeDelta = Vector2.zero;
                 }
-                m_Background.color = m_ShowBackgroundBox ? GetBackgroundColor() : Color.clear;
+
+                if (m_Text != null)
+                {
+                    RectTransform textRt = m_Text.rectTransform;
+                    textRt.anchorMin = new Vector2(0.18f, 0.20f);
+                    textRt.anchorMax = new Vector2(0.82f, 0.78f);
+                    textRt.sizeDelta = Vector2.zero;
+
+                    m_Text.fontSize = 62;
+                    m_Text.color = Color.white;
+                    if (alwaysOnTopMat != null) m_Text.material = alwaysOnTopMat;
+                }
+
+                if (m_Shadow != null)
+                {
+                    m_Shadow.effectColor = new Color(0.04f, 0.08f, 0.22f, 0.95f);
+                    m_Shadow.effectDistance = new Vector2(0f, -4f);
+                }
+
+                if (m_Outline != null)
+                {
+                    m_Outline.effectColor = new Color(0.05f, 0.10f, 0.26f, 0.85f);
+                    m_Outline.effectDistance = new Vector2(0f, -1.5f);
+                }
+            }
+            else
+            {
+                // ==========================================
+                // AKTİF 3B MODEL MODU STİLİ: Parlak 3B Kapsül (130x68)
+                // ==========================================
+                if (canvasRt != null) canvasRt.sizeDelta = new Vector2(130f, 68f);
+                if (m_BadgeRect != null) m_BadgeRect.sizeDelta = Vector2.zero;
+
+                if (m_InnerPlate != null)
+                {
+                    m_InnerPlate.gameObject.SetActive(false);
+                }
+
+                if (m_Background != null)
+                {
+                    m_Background.gameObject.SetActive(m_ActiveShowMiniPill);
+                    m_Background.sprite = ResolveMiniPillSprite();
+                    m_Background.type = Image.Type.Simple;
+                    m_Background.preserveAspect = true;
+                    m_Background.color = Color.white;
+                    if (alwaysOnTopMat != null) m_Background.material = alwaysOnTopMat;
+
+                    RectTransform bgRt = m_Background.rectTransform;
+                    bgRt.anchorMin = Vector2.zero;
+                    bgRt.anchorMax = Vector2.one;
+                    bgRt.sizeDelta = Vector2.zero;
+                }
+
+                if (m_Text != null)
+                {
+                    RectTransform textRt = m_Text.rectTransform;
+                    textRt.anchorMin = new Vector2(0.05f, 0.05f);
+                    textRt.anchorMax = new Vector2(0.95f, 0.95f);
+                    textRt.sizeDelta = Vector2.zero;
+
+                    m_Text.fontSize = 54;
+                    m_Text.color = Color.white;
+                    if (alwaysOnTopMat != null) m_Text.material = alwaysOnTopMat;
+                }
+
+                if (m_Shadow != null)
+                {
+                    m_Shadow.effectColor = new Color(0.01f, 0.02f, 0.08f, 0.98f);
+                    m_Shadow.effectDistance = new Vector2(0f, -3.5f);
+                }
+
+                if (m_Outline != null)
+                {
+                    m_Outline.effectColor = new Color(0.02f, 0.04f, 0.12f, 0.90f);
+                    m_Outline.effectDistance = new Vector2(0f, -1.8f);
+                }
             }
         }
 
+        [SerializeField] private Color m_OverrideColor = Color.clear;
+
+        public void SetOverrideColor(Color color)
+        {
+            m_OverrideColor = color;
+            ApplyStyle();
+        }
+
         /// <summary>
-        /// Rozet arka planının rengi: vagonun kargo (hedef küp) rengini takip eder.
-        /// Kargo henüz atanmamışsa nötr bir sarı/altın tona düşer.
+        /// Rozet arka planının rengi: Sarı ve altın tonlarında %100 orijinal görsel parlaklığını (Color.white) korur.
         /// </summary>
         private Color GetBackgroundColor()
         {
+            if (m_OverrideColor.a > 0.01f)
+            {
+                Color.RGBToHSV(m_OverrideColor, out float oh, out float os, out float ov);
+                // Altın sarısı tonu ise doğrudan Color.white döndür (görselin orijinal parlaklığını korur)
+                if (oh >= 0.08f && oh <= 0.22f) return Color.white;
+                return m_OverrideColor;
+            }
+
             if (m_Cargo == null) m_Cargo = GetComponent<TruckCargo>();
-            if (m_Cargo != null) return m_Cargo.CargoColor;
-            return new Color32(255, 196, 30, 255);
+            Color baseColor = (m_Cargo != null) ? m_Cargo.CargoColor : new Color32(255, 218, 16, 255);
+
+            Color.RGBToHSV(baseColor, out float h, out float s, out float v);
+            if (h >= 0.08f && h <= 0.22f)
+            {
+                return Color.white; // Altın sarısı görsel için tam beyaz çarpan -> %100 orijinal canlılık
+            }
+
+            v = Mathf.Max(v, 1.0f);
+            s = Mathf.Clamp(s * 1.15f, 0f, 1f);
+            return Color.HSVToRGB(h, s, v);
+        }
+
+        private Sprite ResolveInnerPlateSprite()
+        {
+            if (m_InnerPlateSprite != null) return m_InnerPlateSprite;
+#if UNITY_EDITOR
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("Count_InnerPlate t:Sprite");
+            if (guids.Length > 0)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+                m_InnerPlateSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            }
+#endif
+            return m_InnerPlateSprite;
         }
 
         private Sprite ResolveBackgroundSprite()
         {
             if (m_BackgroundSprite != null) return m_BackgroundSprite;
-            #if UNITY_EDITOR
-            string[] guids = UnityEditor.AssetDatabase.FindAssets("Count_Tintable t:Sprite");
+#if UNITY_EDITOR
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("Count_FullPlate t:Sprite");
             if (guids.Length > 0)
             {
                 string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
                 m_BackgroundSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(path);
             }
-            #endif
+            if (m_BackgroundSprite == null)
+            {
+                guids = UnityEditor.AssetDatabase.FindAssets("Count t:Sprite");
+                if (guids.Length > 0)
+                {
+                    string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+                    m_BackgroundSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(path);
+                }
+            }
+            if (m_BackgroundSprite == null)
+            {
+                guids = UnityEditor.AssetDatabase.FindAssets("Count_Tintable t:Sprite");
+                if (guids.Length > 0)
+                {
+                    string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+                    m_BackgroundSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(path);
+                }
+            }
+#endif
             return m_BackgroundSprite;
+        }
+
+        private Sprite ResolveMiniPillSprite()
+        {
+            if (m_MiniPillSprite != null) return m_MiniPillSprite;
+#if UNITY_EDITOR
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("Badge_JuicyPill t:Sprite");
+            if (guids.Length > 0)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+                m_MiniPillSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            }
+            if (m_MiniPillSprite == null)
+            {
+                guids = UnityEditor.AssetDatabase.FindAssets("Badge_MiniPill t:Sprite");
+                if (guids.Length > 0)
+                {
+                    string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+                    m_MiniPillSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(path);
+                }
+            }
+#endif
+            return m_MiniPillSprite;
         }
 
         /// <summary>
@@ -428,13 +651,6 @@ namespace PixelGame
             m_Text.text = m_CurrentCount.ToString();
             m_Text.color = Color.white;
 
-            if (m_Cargo == null) m_Cargo = GetComponent<TruckCargo>();
-            if (m_Cargo != null && m_Cargo.RemainingCapacity == m_Cargo.Capacity)
-            {
-                // Vagon sıfırlandıysa doluluk yükselmesini de anında tabana al
-                m_CurrentFillRatio = 0f;
-            }
-
             if (punchAnimation && prev != -1 && prev != m_CurrentCount && m_BadgeRect != null)
             {
                 m_BadgeRect.DOKill();
@@ -456,15 +672,15 @@ namespace PixelGame
             m_Text.DOKill();
 
             m_Text.text = "✓";
-            m_Text.color = new Color(0.25f, 0.95f, 0.45f, 1f); // Parlak tatlı yeşil
+            m_Text.color = new Color(0.25f, 0.95f, 0.45f, 1f);
 
             m_BadgeRect.localScale = Vector3.one;
-            m_BadgeRect.DOPunchScale(new Vector3(0.55f, 0.55f, 0.55f), 0.45f, 6, 0.55f);
+            m_BadgeRect.DOPunchScale(new Vector3(0.48f, 0.48f, 0.48f), 0.38f, 6, 0.55f);
         }
 
         public void EnsureBadgeUI()
         {
-            if (m_Canvas != null && m_Text != null)
+            if (m_Canvas != null && m_Text != null && m_InnerPlate != null && m_Background != null)
             {
                 ApplyStyle();
                 return;
@@ -486,11 +702,11 @@ namespace PixelGame
             m_Canvas = canvasObj.GetComponent<Canvas>();
             if (m_Canvas == null) m_Canvas = canvasObj.AddComponent<Canvas>();
             m_Canvas.renderMode = RenderMode.WorldSpace;
-            m_Canvas.sortingOrder = 100; // Her şeyin önünde, net ve berrak görünsün
+            m_Canvas.sortingOrder = 100;
 
             RectTransform canvasRect = canvasObj.GetComponent<RectTransform>();
-            canvasRect.sizeDelta = new Vector2(140f, 140f);
-            canvasRect.localScale = Vector3.one * m_ManualScale;
+            if (canvasRect == null) canvasRect = canvasObj.AddComponent<RectTransform>();
+            canvasRect.sizeDelta = m_HideModel ? new Vector2(140f, 140f) : new Vector2(130f, 68f);
 
             // Rozet Kökü
             Transform badgeTrans = canvasObj.transform.Find("BadgeRoot");
@@ -511,19 +727,57 @@ namespace PixelGame
             m_BadgeRect.anchorMax = Vector2.one;
             m_BadgeRect.sizeDelta = Vector2.zero;
             m_BadgeRect.anchoredPosition = Vector2.zero;
+            m_BadgeRect.anchoredPosition3D = Vector3.zero;
+            m_BadgeRect.localPosition = Vector3.zero;
+            m_BadgeRect.localRotation = Quaternion.identity;
 
-            // Arka plan: kargo rengine göre boyanan rozet kapsülü (varsayılan görünür)
-            m_Background = badgeObj.GetComponent<Image>();
-            if (m_Background == null) m_Background = badgeObj.AddComponent<Image>();
+            Material alwaysOnTopMat = GetAlwaysOnTopMaterial();
+
+            // 1. Katman: İç Koyu Lacivert Plaka (InnerPlate)
+            Transform innerTrans = badgeObj.transform.Find("InnerPlate");
+            GameObject innerObj = innerTrans != null ? innerTrans.gameObject : new GameObject("InnerPlate");
+            if (innerTrans == null) innerObj.transform.SetParent(badgeObj.transform, false);
+            innerObj.transform.SetSiblingIndex(0);
+
+            RectTransform innerRt = innerObj.GetComponent<RectTransform>();
+            if (innerRt == null) innerRt = innerObj.AddComponent<RectTransform>();
+            innerRt.anchorMin = Vector2.zero;
+            innerRt.anchorMax = Vector2.one;
+            innerRt.sizeDelta = Vector2.zero;
+            innerRt.anchoredPosition = Vector2.zero;
+
+            m_InnerPlate = innerObj.GetComponent<Image>();
+            if (m_InnerPlate == null) m_InnerPlate = innerObj.AddComponent<Image>();
+            m_InnerPlate.raycastTarget = false;
+            m_InnerPlate.sprite = ResolveInnerPlateSprite();
+            m_InnerPlate.type = Image.Type.Simple;
+            m_InnerPlate.preserveAspect = true;
+            m_InnerPlate.color = Color.white;
+            if (alwaysOnTopMat != null) m_InnerPlate.material = alwaysOnTopMat;
+
+            // 2. Katman: Dış 3B Çerçeve / Mini Pill (Background)
+            Transform frameTrans = badgeObj.transform.Find("Frame");
+            GameObject frameObj = frameTrans != null ? frameTrans.gameObject : new GameObject("Frame");
+            if (frameTrans == null) frameObj.transform.SetParent(badgeObj.transform, false);
+            frameObj.transform.SetSiblingIndex(1);
+
+            RectTransform frameRt = frameObj.GetComponent<RectTransform>();
+            if (frameRt == null) frameRt = frameObj.AddComponent<RectTransform>();
+            frameRt.anchorMin = Vector2.zero;
+            frameRt.anchorMax = Vector2.one;
+            frameRt.sizeDelta = Vector2.zero;
+            frameRt.anchoredPosition = Vector2.zero;
+
+            m_Background = frameObj.GetComponent<Image>();
+            if (m_Background == null) m_Background = frameObj.AddComponent<Image>();
             m_Background.raycastTarget = false;
-            m_Background.sprite = ResolveBackgroundSprite();
+            m_Background.sprite = m_HideModel ? ResolveBackgroundSprite() : ResolveMiniPillSprite();
             m_Background.type = Image.Type.Simple;
             m_Background.preserveAspect = true;
-            m_Background.color = m_ShowBackgroundBox ? GetBackgroundColor() : Color.clear;
-            Material bgAlwaysOnTopInit = GetAlwaysOnTopMaterial();
-            if (bgAlwaysOnTopInit != null) m_Background.material = bgAlwaysOnTopInit;
+            m_Background.color = m_HideModel ? (m_ShowBackgroundBox ? GetBackgroundColor() : Color.clear) : Color.white;
+            if (alwaysOnTopMat != null) m_Background.material = alwaysOnTopMat;
 
-            // Metin nesnesi
+            // 3. Katman: Metin Nesnesi (CountText)
             Transform textTrans = badgeObj.transform.Find("CountText");
             GameObject textObj;
             if (textTrans != null)
@@ -535,11 +789,12 @@ namespace PixelGame
                 textObj = new GameObject("CountText");
                 textObj.transform.SetParent(badgeObj.transform, false);
             }
+            textObj.transform.SetAsLastSibling();
 
             RectTransform textRect = textObj.GetComponent<RectTransform>();
             if (textRect == null) textRect = textObj.AddComponent<RectTransform>();
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
+            textRect.anchorMin = m_HideModel ? new Vector2(0.18f, 0.20f) : new Vector2(0.05f, 0.05f);
+            textRect.anchorMax = m_HideModel ? new Vector2(0.82f, 0.78f) : new Vector2(0.95f, 0.95f);
             textRect.sizeDelta = Vector2.zero;
             textRect.anchoredPosition = Vector2.zero;
 
@@ -547,11 +802,6 @@ namespace PixelGame
             m_Text = textObj.GetComponent<Text>();
             if (m_Text == null) m_Text = textObj.AddComponent<Text>();
 
-            // Font önceliği: 1) Inspector'da atanmış m_CustomFont  2) zaten Text üzerinde
-            // duran font (prefabda elle seçilmiş olabilir)  3) proje varsayılanı (LilitaOne).
-            // Eskiden burası her Play/domain reload'da fontu koşulsuz LilitaOne'a eziyordu;
-            // m_Canvas/m_Text alanları serileştirilmediği için her yeniden yüklemede bu
-            // "sıfırdan kurulum" yoluna düşülüyor ve elle seçilen font kayboluyordu.
             Font fontToUse = m_CustomFont;
             if (fontToUse == null && !textWasNew && m_Text.font != null) fontToUse = m_Text.font;
             if (fontToUse == null)
@@ -565,7 +815,7 @@ namespace PixelGame
                 fontToUse = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
             }
             m_Text.font = fontToUse;
-            m_Text.fontSize = m_FontSize;
+            m_Text.fontSize = m_HideModel ? 58 : 54;
             m_Text.fontStyle = FontStyle.Normal;
             m_Text.alignment = TextAnchor.MiddleCenter;
             m_Text.color = Color.white;
@@ -574,37 +824,24 @@ namespace PixelGame
             m_Text.verticalOverflow = VerticalWrapMode.Overflow;
             m_Text.resizeTextForBestFit = false;
 
-            // 3B nesneler ve yığılan parçalar metni asla örtmesin
-            Material alwaysOnTop = GetAlwaysOnTopMaterial();
-            if (alwaysOnTop != null)
+            if (alwaysOnTopMat != null)
             {
-                m_Text.material = alwaysOnTop;
+                m_Text.material = alwaysOnTopMat;
             }
 
-            // 8 Yönlü Kesintisiz Kalın Outline:
-            // Beyaz, sarı, siyah ya da herhangi bir renkteki parçanın üstünde %100 net kontrast sağlar
-            Outline[] outlines = textObj.GetComponents<Outline>();
-            m_Outline1 = outlines.Length > 0 ? outlines[0] : textObj.AddComponent<Outline>();
-            m_Outline1.effectColor = new Color(0.04f, 0.04f, 0.06f, 1f);
-            m_Outline1.effectDistance = new Vector2(4.5f, 4.5f);
-
-            m_Outline2 = outlines.Length > 1 ? outlines[1] : textObj.AddComponent<Outline>();
-            m_Outline2.effectColor = new Color(0.04f, 0.04f, 0.06f, 1f);
-            m_Outline2.effectDistance = new Vector2(-4.5f, 4.5f);
-
-            Outline outline3 = outlines.Length > 2 ? outlines[2] : textObj.AddComponent<Outline>();
-            outline3.effectColor = new Color(0.04f, 0.04f, 0.06f, 1f);
-            outline3.effectDistance = new Vector2(4.5f, 0f);
-
-            Outline outline4 = outlines.Length > 3 ? outlines[3] : textObj.AddComponent<Outline>();
-            outline4.effectColor = new Color(0.04f, 0.04f, 0.06f, 1f);
-            outline4.effectDistance = new Vector2(0f, 4.5f);
-
-            // Alt gölge: 3B derinlik
+            // Gölge
             m_Shadow = textObj.GetComponent<Shadow>();
             if (m_Shadow == null) m_Shadow = textObj.AddComponent<Shadow>();
-            m_Shadow.effectColor = new Color(0f, 0f, 0f, 0.85f);
-            m_Shadow.effectDistance = new Vector2(2.5f, -5.5f);
+            m_Shadow.effectColor = new Color(0.02f, 0.05f, 0.16f, 0.95f);
+            m_Shadow.effectDistance = m_HideModel ? new Vector2(0f, -4.5f) : new Vector2(0f, -3.5f);
+
+            // Dış çizgi
+            m_Outline = textObj.GetComponent<Outline>();
+            if (m_Outline == null) m_Outline = textObj.AddComponent<Outline>();
+            m_Outline.effectColor = new Color(0.03f, 0.07f, 0.20f, 0.85f);
+            m_Outline.effectDistance = m_HideModel ? new Vector2(0f, -1.5f) : new Vector2(0f, -1.8f);
         }
     }
 }
+
+

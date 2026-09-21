@@ -25,6 +25,10 @@ namespace PixelGame.Editor
             SetSprite("Assets/UI/CasualUI/icon_heart.png", Vector4.zero);
             SetSprite("Assets/UI/CasualUI/icon_coin.png", Vector4.zero);
             SetSprite("Assets/UI/CasualUI/btn_plus.png", Vector4.zero);
+            SetSprite("Assets/UI/Count.png", Vector4.zero);
+            SetSprite("Assets/UI/Count_Tintable.png", Vector4.zero);
+            SetSprite("Assets/UI/Count_InnerPlate.png", Vector4.zero);
+            SetSprite("Assets/UI/Count_FullPlate.png", Vector4.zero);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();

@@ -15,18 +15,31 @@ namespace PixelGame
     {
         [Header("🅿️ Havuz Yerleri")]
         [SerializeField] private List<TruckSlot> m_Places = new List<TruckSlot>();
-        [SerializeField] private int m_Columns = 1;
-        [SerializeField] private int m_Rows = 1;
+        [SerializeField] private int m_Columns = 2;
+        [SerializeField] private int m_Rows = 2;
 
         [Header("🎨 Görünüm")]
         [Tooltip("Bekleme yerlerinin boyutu, aralığı ve görünümü. " +
                  "Kaç tane ve kaç sıra olacağı bölüm verisinden gelir.")]
         [SerializeField] private TruckPlaceStyle m_Style = new TruckPlaceStyle();
 
+        [Header("👁️ Editör Önizlemesi (Edit Mode Preview)")]
+        [Tooltip("Oyun başlatılmadan da havuz karolarını (2. görseldeki tombul 3B sarı rozetler) Edit Mode'da sahnede gösterir ve anlık düzenlemenizi sağlar.")]
+        [SerializeField] private bool m_PreviewInEditor = true;
+
+        [Tooltip("Önizleme kapasite sayısı (Varsayılan: 16)")]
+        [SerializeField] private int m_PreviewCapacity = 16;
+
+        [Tooltip("Önizleme karo rengi (Varsayılan: Parlak Altın Sarısı)")]
+        [SerializeField] private Color m_PreviewColor = new Color(1f, 0.85f, 0.24f, 1f);
+
         public List<TruckSlot> Places => m_Places;
         public TruckPlaceStyle Style => m_Style;
         public int Columns => m_Columns;
         public int Rows => m_Rows;
+        public bool PreviewInEditor { get => m_PreviewInEditor; set { m_PreviewInEditor = value; RefreshEditorPreview(); } }
+        public int PreviewCapacity { get => m_PreviewCapacity; set { m_PreviewCapacity = value; RefreshEditorPreview(); } }
+        public Color PreviewColor { get => m_PreviewColor; set { m_PreviewColor = value; RefreshEditorPreview(); } }
 
         /// <summary>
         /// Havuzu verilen sütun/sıra sayısına göre yeniden kurar.
@@ -46,6 +59,11 @@ namespace PixelGame
             m_Style.interactive = true;
 
             m_Places = TruckPlaceBuilder.Build(rect, m_Style, m_Columns, m_Rows, "Place");
+
+            if (!Application.isPlaying && m_PreviewInEditor)
+            {
+                RefreshEditorPreview();
+            }
         }
         public int PlaceCount => m_Places != null ? m_Places.Count : 0;
 
@@ -99,7 +117,7 @@ namespace PixelGame
                 bool isFront = (rowIndex == 0);
 
                 Renderer[] renderers = place.Truck.GetComponentsInChildren<Renderer>(true);
-                Color tint = isFront ? Color.white : new Color(0.6f, 0.6f, 0.72f, 1f);
+                Color tint = isFront ? Color.white : new Color(0.90f, 0.90f, 0.95f, 1f);
 
                 foreach (var r in renderers)
                 {
@@ -128,18 +146,174 @@ namespace PixelGame
             }
         }
 
+        private void Awake()
+        {
+            if (Application.isPlaying)
+            {
+                ClearEditorPreview();
+            }
+        }
+
         private void OnEnable()
         {
             if (m_Places == null || m_Places.Count == 0)
             {
                 m_Places = new List<TruckSlot>(GetComponentsInChildren<TruckSlot>(true));
             }
+
+            if (!Application.isPlaying && m_PreviewInEditor)
+            {
+                RefreshEditorPreview();
+            }
         }
 
-        public TruckSlot GetPlace(int index)
+        private void OnDisable()
         {
-            if (m_Places == null || index < 0 || index >= m_Places.Count) return null;
-            return m_Places[index];
+            if (!Application.isPlaying)
+            {
+                ClearEditorPreview();
+            }
+        }
+
+        private void OnValidate()
+        {
+            if (!Application.isPlaying && m_PreviewInEditor)
+            {
+#if UNITY_EDITOR
+                UnityEditor.EditorApplication.delayCall -= DeferredEditorPreview;
+                UnityEditor.EditorApplication.delayCall += DeferredEditorPreview;
+#endif
+            }
+        }
+
+#if UNITY_EDITOR
+        private void DeferredEditorPreview()
+        {
+            if (this == null) return;
+            RefreshEditorPreview();
+        }
+#endif
+
+        /// <summary>
+        /// Oyun başlatılmadan önce sahnede havuz karolarını (2. görseldeki 3B altın sarısı rozetler)
+        /// birebir aynı görünümde oluşturur ve anlık düzenleme imkanı sunar.
+        /// </summary>
+        [ContextMenu("👁️ Editör Önizlemesini Tazele")]
+        public void RefreshEditorPreview()
+        {
+            if (Application.isPlaying) return;
+
+            if (m_Places == null || m_Places.Count == 0)
+            {
+                m_Places = new List<TruckSlot>(GetComponentsInChildren<TruckSlot>(true));
+            }
+
+            if (m_Places.Count == 0)
+            {
+                RebuildPlaces(m_Columns, m_Rows);
+            }
+
+            if (!m_PreviewInEditor)
+            {
+                ClearEditorPreview();
+                return;
+            }
+
+            // Aktif bölüm verisi varsa sütun/satır ve kapasite bilgilerini al
+            int cap = m_PreviewCapacity;
+            Color col = m_PreviewColor;
+
+            PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
+            PixelLevelData lvl = gen != null ? gen.ActiveLevelData : null;
+            if (lvl == null)
+            {
+                LevelManager lm = Object.FindFirstObjectByType<LevelManager>();
+                if (lm != null) lvl = lm.CurrentLevel;
+            }
+
+            if (lvl != null)
+            {
+                if (lvl.TruckCapacity > 0) cap = lvl.TruckCapacity;
+                if (lvl.ColorPalette != null && lvl.ColorPalette.Count > 0)
+                {
+                    col = lvl.ColorPalette[0].targetColor;
+                }
+            }
+
+            for (int i = 0; i < m_Places.Count; i++)
+            {
+                TruckSlot place = m_Places[i];
+                if (place == null) continue;
+
+                Color placeColor = col;
+                if (lvl != null && lvl.UseCustomWagonSequence && lvl.WagonSequence != null && i < lvl.WagonSequence.Count)
+                {
+                    placeColor = lvl.WagonSequence[i].wagonColor;
+                    if (lvl.WagonSequence[i].capacity > 0) cap = lvl.WagonSequence[i].capacity;
+                }
+
+                Transform currentTruck = place.Truck;
+                GameObject tileObj;
+
+                if (currentTruck == null)
+                {
+                    tileObj = new GameObject($"[PreviewTile_{i}]");
+                    tileObj.hideFlags = HideFlags.DontSave;
+                    place.AssignTruck(tileObj.transform, placeColor);
+                }
+                else
+                {
+                    tileObj = currentTruck.gameObject;
+                }
+
+                WagonCapacityBadge badge = tileObj.GetComponent<WagonCapacityBadge>();
+                if (badge == null) badge = tileObj.AddComponent<WagonCapacityBadge>();
+
+                badge.SetPoolMode(true);
+                badge.SetOverrideColor(placeColor);
+                badge.SetCount(cap, false);
+                badge.ApplyStyle();
+                badge.UpdatePlacement();
+
+                place.AlignTruck();
+            }
+
+            UpdateRowVisuals();
+        }
+
+        /// <summary>
+        /// Editör modunda oluşturulan geçici önizleme karolarını temizler.
+        /// </summary>
+        [ContextMenu("🧹 Editör Önizlemesini Temizle")]
+        public void ClearEditorPreview()
+        {
+            if (m_Places == null) return;
+
+            for (int i = 0; i < m_Places.Count; i++)
+            {
+                TruckSlot place = m_Places[i];
+                if (place == null) continue;
+
+                Transform truck = place.ReleaseTruck();
+                if (truck != null && truck.name.StartsWith("[PreviewTile"))
+                {
+                    if (Application.isPlaying) Destroy(truck.gameObject);
+                    else DestroyImmediate(truck.gameObject);
+                }
+
+                if (place.SlotRect != null)
+                {
+                    for (int c = place.SlotRect.childCount - 1; c >= 0; c--)
+                    {
+                        Transform child = place.SlotRect.GetChild(c);
+                        if (child != null && child.name.StartsWith("[PreviewTile"))
+                        {
+                            if (Application.isPlaying) Destroy(child.gameObject);
+                            else DestroyImmediate(child.gameObject);
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>Havuzda kamyon bekleyen ilk boş olmayan yeri bulur.</summary>

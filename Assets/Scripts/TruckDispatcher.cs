@@ -67,6 +67,12 @@ namespace PixelGame
                  "Raylar bundan etkilenmez, yalnızca vagonlar kayar.")]
         [SerializeField] private float m_WagonOutwardOffset = 0f;
 
+        [Header("🤖 Vagon Boyut & Duruş Ayarları (Track Wagon Scale)")]
+        [Tooltip("Raya/Banda oturan 3B robot vagonun ölçeği. Mavi konveyör bandına tam ve tok oturması için 0.50 - 0.55 idealdir.")]
+        [Range(0.20f, 0.90f)]
+        [SerializeField] private float m_TrackWagonScale = 0.52f;
+        public float TrackWagonScale { get => m_TrackWagonScale; set { m_TrackWagonScale = value; CalibratePortalsAndAlignment(); } }
+
         /// <summary>Ray yolunun yarı genişliği. Raylar kurulurken sahneden ölçülür.</summary>
         private float m_TrackHalfWidth;
 
@@ -548,6 +554,9 @@ namespace PixelGame
         {
             s_Instance = this;
             DOTween.SetTweensCapacity(2000, 500);
+            WagonCapacityBadge.PurgeOrphanBadges();
+            ClearSlots();
+            ClearMovingTrain();
         }
 
         private void OnEnable()
@@ -571,6 +580,9 @@ namespace PixelGame
         private void Start()
         {
             if (!Application.isPlaying) return;
+            WagonCapacityBadge.PurgeOrphanBadges();
+            ClearSlots();
+            ClearMovingTrain();
             StartCoroutine(RebuildNextFrame());
         }
 
@@ -601,6 +613,7 @@ namespace PixelGame
             m_ShelfCubes.Clear();
             m_BoardShards.Clear();
             ClearReservedCubes();
+            WagonCapacityBadge.PurgeOrphanBadges();
             ClearSlots();
             ClearMovingTrain();
 
@@ -643,29 +656,60 @@ namespace PixelGame
             {
                 if (m_MovingWagons[i] != null && m_MovingWagons[i].GameObject != null)
                 {
-                    Destroy(m_MovingWagons[i].GameObject);
+                    if (Application.isPlaying) Destroy(m_MovingWagons[i].GameObject);
+                    else DestroyImmediate(m_MovingWagons[i].GameObject);
                 }
             }
             m_MovingWagons.Clear();
+
+            // Sahnede WagonsRoot altında kalmış olabilecek tüm sahipsiz nesneleri temizle
+            Transform wagonsRoot = m_WagonsRoot;
+            if (wagonsRoot == null)
+            {
+                GameObject rootObj = GameObject.Find("[PerimeterWagonsRoot]");
+                if (rootObj != null) wagonsRoot = rootObj.transform;
+            }
+            if (wagonsRoot != null)
+            {
+                for (int i = wagonsRoot.childCount - 1; i >= 0; i--)
+                {
+                    Transform child = wagonsRoot.GetChild(i);
+                    if (child != null)
+                    {
+                        if (Application.isPlaying) Destroy(child.gameObject);
+                        else DestroyImmediate(child.gameObject);
+                    }
+                }
+            }
+
+            WagonCapacityBadge.PurgeOrphanBadges();
             UpdateTrackCornerCounter();
-            // m_WagonsRoot asla silinmez; sahnedeki raylar ve hiyerarşi korunur!
         }
 
         public void UpdateTrackCornerCounter()
         {
             if (m_TrackCornerCounterTMP == null && m_TrackCornerCounterText == null)
             {
-                GameObject obj = GameObject.Find("CounterText");
-                if (obj != null)
+                if (Application.isPlaying)
                 {
-                    m_TrackCornerCounterTMP = obj.GetComponent<TMPro.TextMeshProUGUI>();
-                    if (m_TrackCornerCounterTMP == null)
-                        m_TrackCornerCounterText = obj.GetComponent<UnityEngine.UI.Text>();
+                    GameObject obj = GameObject.Find("CounterText");
+                    if (obj != null)
+                    {
+                        m_TrackCornerCounterTMP = obj.GetComponent<TMPro.TextMeshProUGUI>();
+                        if (m_TrackCornerCounterTMP == null)
+                            m_TrackCornerCounterText = obj.GetComponent<UnityEngine.UI.Text>();
+                    }
                 }
             }
 
+
             int count = m_MovingWagons != null ? m_MovingWagons.Count : 0;
             string counterStr = $"{count}/{m_MaxTrackWagons}";
+
+            if (TrackCornerLauncher.Instance != null)
+            {
+                TrackCornerLauncher.Instance.SetCount(count, m_MaxTrackWagons);
+            }
 
             if (m_TrackCornerCounterTMP != null)
             {
@@ -1131,50 +1175,19 @@ namespace PixelGame
                 m_WagonRotation = Quaternion.Euler(defaultEuler);
             }
 
+            float rootScale = (m_WagonsRoot != null && m_WagonsRoot.lossyScale.x > 0.001f)
+                ? m_WagonsRoot.lossyScale.x
+                : 1f;
+
             if (isBottle)
             {
-                m_WagonScale = Vector3.one * 0.65f;
-            }
-            else if (isScifi)
-            {
-                // Konveyör bandı genişliği m_ModularTrackScale (~0.60 birim).
-                // object_005 modelinin mesh genişliği 0.875 birimdir.
-                // 0.45f ölçek ile dünya genişliği ~0.39 birim olur;
-                // böylece konveyör bandının iki beyaz kenarlığı arasına tam oturur,
-                // rayın chevron deseninden kaymaz veya taşmaz.
-                float rootScale = (m_WagonsRoot != null && m_WagonsRoot.lossyScale.x > 0.001f)
-                    ? m_WagonsRoot.lossyScale.x
-                    : 1f;
-                m_WagonScale = Vector3.one * (0.45f / rootScale);
-            }
-            else if (m_Pool != null && m_Pool.Places != null && m_Pool.Places.Count > 0 && m_Pool.Places[0] != null && m_Pool.Places[0].Truck != null)
-            {
-                m_WagonScale = m_Pool.Places[0].Truck.lossyScale;
-            }
-            else if (m_Slots != null && m_Slots.Slots != null && m_Slots.Slots.Count > 0 && m_Slots.Slots[0] != null && m_TruckPrefab != null)
-            {
-                TruckSlot refSlot = m_Slots.Slots[0];
-                GameObject sampleObj = Instantiate(m_TruckPrefab, refSlot.SlotRect);
-                sampleObj.name = "SampleWagon";
-                refSlot.AssignTruck(sampleObj.transform, Color.white);
-
-                m_WagonScale = sampleObj.transform.lossyScale;
-                m_WagonY = sampleObj.transform.localPosition.y;
-                m_WagonZ = sampleObj.transform.localPosition.z;
-
-                refSlot.ReleaseTruck();
-                if (Application.isPlaying) Destroy(sampleObj);
-                else DestroyImmediate(sampleObj);
+                m_WagonScale = Vector3.one * (0.55f / rootScale);
             }
             else
             {
-                m_WagonScale = Vector3.one * 0.38f;
-            }
-
-            if (m_WagonScale.sqrMagnitude < 0.0000001f || m_WagonScale.x > 5f)
-            {
-                float rootScale = (m_WagonsRoot != null && m_WagonsRoot.lossyScale.x > 0.001f) ? m_WagonsRoot.lossyScale.x : 1f;
-                m_WagonScale = isBottle ? Vector3.one * 0.65f : (isScifi ? Vector3.one * (0.48f / rootScale) : Vector3.one * 0.38f);
+                // Konveyör bandı genişliği m_ModularTrackScale (~0.60 birim).
+                // Vagonun banda taşmadan tam oturması için m_TrackWagonScale (~0.36 birim) kullanılır.
+                m_WagonScale = Vector3.one * (m_TrackWagonScale / rootScale);
             }
 
             if (m_Slots != null)
@@ -1298,6 +1311,12 @@ namespace PixelGame
             cargo.EnsureBadge();
             cargo.UpdateBadge(false);
 
+            WagonCapacityBadge badge = truck.GetComponent<WagonCapacityBadge>();
+            if (badge != null)
+            {
+                badge.SetPoolMode(false); // 3B Model aktif olur, bant üzerinde robot olarak dolaşır!
+            }
+
             WagonClickTarget clickTarget = truck.GetComponent<WagonClickTarget>();
             if (clickTarget != null) clickTarget.PoolPlace = null;
             BoxCollider triggerBox = truck.GetComponent<BoxCollider>();
@@ -1361,6 +1380,11 @@ namespace PixelGame
                 m_MovingWagons.Add(movingWagon);
                 UpdateTrackCornerCounter();
 
+                if (TrackCornerLauncher.Instance != null)
+                {
+                    TrackCornerLauncher.Instance.TriggerLaunch(m_MovingWagons.Count, m_MaxTrackWagons);
+                }
+
                 truck.DOKill();
                 truck.DORotateQuaternion(targetRot, 0.35f).SetEase(Ease.OutQuad);
                 truck.DOScale(m_WagonScale, 0.35f);
@@ -1374,6 +1398,11 @@ namespace PixelGame
                         truck.position = startTrackPos;
                         truck.rotation = targetRot;
                         movingWagon.IsJumpingToTrack = false;
+
+                        if (TrackCornerLauncher.Instance != null)
+                        {
+                            TrackCornerLauncher.Instance.TriggerLaunch(m_MovingWagons.Count, m_MaxTrackWagons);
+                        }
                     }
                 });
 
@@ -2910,9 +2939,27 @@ namespace PixelGame
             if (m_Slots == null) return;
             foreach (TruckSlot slot in m_Slots.Slots)
             {
-                if (slot == null || slot.IsEmpty) continue;
+                if (slot == null) continue;
                 Transform truck = slot.ReleaseTruck();
-                if (truck != null) Destroy(truck.gameObject);
+                if (truck != null)
+                {
+                    if (Application.isPlaying) Destroy(truck.gameObject);
+                    else DestroyImmediate(truck.gameObject);
+                }
+
+                // Slot içinde sahipsiz kalmış tüm başıboş çocuk nesneleri (Ground hariç) temizle
+                if (slot.SlotRect != null)
+                {
+                    for (int i = slot.SlotRect.childCount - 1; i >= 0; i--)
+                    {
+                        Transform child = slot.SlotRect.GetChild(i);
+                        if (child != null && child != slot.Ground)
+                        {
+                            if (Application.isPlaying) Destroy(child.gameObject);
+                            else DestroyImmediate(child.gameObject);
+                        }
+                    }
+                }
             }
         }
 
@@ -2921,9 +2968,26 @@ namespace PixelGame
             if (m_Pool == null) return;
             foreach (TruckSlot place in m_Pool.Places)
             {
-                if (place == null || place.IsEmpty) continue;
+                if (place == null) continue;
                 Transform truck = place.ReleaseTruck();
-                if (truck != null) Destroy(truck.gameObject);
+                if (truck != null)
+                {
+                    if (Application.isPlaying) Destroy(truck.gameObject);
+                    else DestroyImmediate(truck.gameObject);
+                }
+
+                if (place.SlotRect != null)
+                {
+                    for (int i = place.SlotRect.childCount - 1; i >= 0; i--)
+                    {
+                        Transform child = place.SlotRect.GetChild(i);
+                        if (child != null && child != place.Ground)
+                        {
+                            if (Application.isPlaying) Destroy(child.gameObject);
+                            else DestroyImmediate(child.gameObject);
+                        }
+                    }
+                }
             }
         }
 

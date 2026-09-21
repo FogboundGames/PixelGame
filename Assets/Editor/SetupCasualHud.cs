@@ -198,7 +198,7 @@ namespace PixelGame.Editor
             tmp.fontSize = 52f;
             tmp.alignment = TextAlignmentOptions.MidlineRight;
             tmp.color = Color.white;
-            tmp.enableWordWrapping = false;
+            tmp.textWrappingMode = TextWrappingModes.NoWrap;
             tmp.overflowMode = TextOverflowModes.Overflow;
             tmp.fontStyle = FontStyles.Normal;
 
@@ -269,7 +269,7 @@ namespace PixelGame.Editor
             textTMP.fontSize = 42f;
             textTMP.alignment = TextAlignmentOptions.Center;
             textTMP.color = Color.white;
-            textTMP.enableWordWrapping = false;
+            textTMP.textWrappingMode = TextWrappingModes.NoWrap;
             textTMP.overflowMode = TextOverflowModes.Overflow;
 
             // (+) düğmesi: pilin SAĞ kenarına ortalanmış

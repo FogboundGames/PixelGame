@@ -55,9 +55,8 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Materyalin rengini ayarlar. Toon gölgeleme aydınlık ve gölge tonlarını
-        /// ayrı okuduğu için ana rengin yanında onları da renge göre türetiyoruz;
-        /// aksi halde bütün nesneler aynı gri gölgeyle çıkıyor.
+        /// Materyalin rengini ve Toony Colors Pro 2 hypercasual cel-shading / plastik
+        /// cila ayarlarını uygular (PixelCube_Cartoon.mat ile %100 uyumlu).
         /// </summary>
         public static void ApplyColor(Material material, Color color)
         {
@@ -67,29 +66,37 @@ namespace PixelGame
 
             if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
 
-            // PixelCube_Cartoon.mat ile birebir aynı toon aydınlık ve gölge tonlaması:
-            // _HColor saf beyaz (1,1,1) kalmalıdır; albedo ile çarpıldığında rengi karartmaz.
-            // _SColor ise küplerle aynı hafif soğuk gölge tonudur.
-            if (material.HasProperty("_HColor"))
-            {
-                material.SetColor("_HColor", Color.white);
-            }
+            // 1. Toony Colors Pro 2 Cel-Shading (Açık, parlak ve canlı tonlama)
+            if (material.HasProperty("_HColor")) material.SetColor("_HColor", Color.white);
+            // Yumuşak, açık pastel gölge tonu (asla çamurlu/koyu gri olmaz)
+            if (material.HasProperty("_SColor")) material.SetColor("_SColor", new Color(0.84f, 0.82f, 0.88f, 1f));
+            if (material.HasProperty("_RampThreshold")) material.SetFloat("_RampThreshold", 0.383f);
+            if (material.HasProperty("_RampSmoothing")) material.SetFloat("_RampSmoothing", 0.908f);
 
-            if (material.HasProperty("_SColor"))
-            {
-                material.SetColor("_SColor", new Color(0.643f, 0.6556f, 0.7144f, 1f));
-            }
-
+            // 2. Parlak 3B Plastik Oyuncak Cilası (Stylized Plastic & Specular Gloss)
             if (material.HasProperty("_StylizedPlasticOn"))
             {
                 material.SetFloat("_StylizedPlasticOn", 1f);
+                if (material.HasProperty("_PlasticHighlightIntensity")) material.SetFloat("_PlasticHighlightIntensity", 2.85f);
+                if (material.HasProperty("_PlasticHighlightSize")) material.SetFloat("_PlasticHighlightSize", 0.26f);
+                if (material.HasProperty("_PlasticHighlightColor")) material.SetColor("_PlasticHighlightColor", Color.white);
                 if (material.HasProperty("_PlasticTopLight")) material.SetFloat("_PlasticTopLight", 0.25f);
-                if (material.HasProperty("_PlasticBevelAO")) material.SetFloat("_PlasticBevelAO", 0.4f);
+                if (material.HasProperty("_PlasticBevelAO")) material.SetFloat("_PlasticBevelAO", 0.45f);
                 if (material.HasProperty("_ProceduralBevelWidth")) material.SetFloat("_ProceduralBevelWidth", 0.05f);
-                if (material.HasProperty("_ProceduralBevelIntensity")) material.SetFloat("_ProceduralBevelIntensity", 0.8f);
-                if (material.HasProperty("_SpecularColor")) material.SetColor("_SpecularColor", Color.white);
-                if (material.HasProperty("_SpecularRoughnessPBR")) material.SetFloat("_SpecularRoughnessPBR", 0.3f);
+                if (material.HasProperty("_ProceduralBevelIntensity")) material.SetFloat("_ProceduralBevelIntensity", 0.80f);
+                if (material.HasProperty("_PillowRoundness")) material.SetFloat("_PillowRoundness", 0.50f);
+                if (material.HasProperty("_PlasticAngleX")) material.SetFloat("_PlasticAngleX", -0.45f);
             }
+
+            // 3. PBR Speküler Parlama ve Pürüzsüzlük
+            if (material.HasProperty("_SpecularColor")) material.SetColor("_SpecularColor", Color.white);
+            if (material.HasProperty("_SpecularRoughnessPBR")) material.SetFloat("_SpecularRoughnessPBR", 0.18f);
+            if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.85f);
+
+            // 4. Kenar Işığı (Rim Lighting)
+            if (material.HasProperty("_RimColor")) material.SetColor("_RimColor", new Color(0.18f, 0.18f, 0.18f, 0.5f));
+            if (material.HasProperty("_RimMin")) material.SetFloat("_RimMin", 0.55f);
+            if (material.HasProperty("_RimMax")) material.SetFloat("_RimMax", 0.78f);
         }
     }
 }

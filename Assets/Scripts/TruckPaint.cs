@@ -41,14 +41,14 @@ namespace PixelGame
     [DisallowMultipleComponent]
     public class TruckPaint : MonoBehaviour
     {
-        public static readonly Color Red = new Color32(230, 40, 40, 255);
-        public static readonly Color Blue = new Color32(40, 110, 235, 255);
-        public static readonly Color Yellow = new Color32(255, 196, 30, 255);
-        public static readonly Color Green = new Color32(60, 190, 80, 255);
-        public static readonly Color Purple = new Color32(150, 70, 220, 255);
-        public static readonly Color Orange = new Color32(255, 128, 30, 255);
-        public static readonly Color White = new Color32(245, 245, 245, 255);
-        public static readonly Color Black = new Color32(30, 30, 34, 255);
+        public static readonly Color Red = new Color32(255, 46, 77, 255);
+        public static readonly Color Blue = new Color32(36, 136, 255, 255);
+        public static readonly Color Yellow = new Color32(255, 210, 20, 255);
+        public static readonly Color Green = new Color32(50, 220, 100, 255);
+        public static readonly Color Purple = new Color32(176, 72, 255, 255);
+        public static readonly Color Orange = new Color32(255, 124, 26, 255);
+        public static readonly Color White = new Color32(255, 255, 255, 255);
+        public static readonly Color Black = new Color32(22, 24, 32, 255);
 
         [Tooltip("Vagon ve ray materyali cartoon shader ile üretilsin mi? " +
                  "Palet dokusu _BaseMap üzerinden okunduğu için shader değişimi renk şemasını bozmaz.")]
@@ -295,51 +295,80 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// UV paleti kullanmayan modeller (şişe gibi) için materyal rengini doğrudan uygular.
-        ///
-        /// İki şeye dikkat:
-        /// 1) Küplerle aynı toon shader kullanılır. Eskiden burada URP/Lit sabitti ve
-        ///    şişeler, üzerinde uğraşılan karikatür görünümün (ramp, gölge tonu, specular,
-        ///    matcap) tamamen dışında, düz PBR olarak kalıyordu.
-        /// 2) Materyaller renge göre önbelleğe alınır. Eskiden her çağrıda yeni Material
-        ///    üretiliyordu; Apply() vagon başına en az üç kez çağrıldığı için (AssignTruck,
-        ///    ResetCargo, ApplyTheme) her doğumda renderer başına 6 materyal sızıyor ve
-        ///    batch'lenme imkânsız hâle geliyordu.
+        /// UV paleti kullanmayan 3B karakter ve nesne modelleri (BlueBot, şişe vb.) için
+        /// Toony Colors Pro 2 materyal renklerini uygular.
+        /// 
+        /// Karakter modellerinde yüz detaylarının (gözler, gözbebekleri, ağız içi, parlama)
+        /// tek renk çamura dönmemesi için submesh katmanları korunur:
+        /// - Submesh 0 (Gövde): Dinamik vagon hedef rengi (m_Cabin / bodyColor) + toon plastik cila.
+        /// - Submesh 1 (Göz/Ağız/Eklemler): Parlak koyu grafit/siyah (#161820) + Toon specular.
+        /// - Submesh 2 (Göz Parlamaları/Diş): Saf parlak beyaz (#FFFFFF) + Toon catchlight.
         /// </summary>
         private void ApplyDirectColors()
         {
             Color bodyColor = m_Cabin;
-            Color innerColor = new Color(0.95f, 0.90f, 0.75f, 1f);
+            Color darkColor = new Color32(22, 24, 32, 255);        // Derin karikatür siyah/grafit (göz, pupil, ağız içi)
+            Color whiteColor = Color.white;                         // Saf parlak beyaz (göz parlaması, diş)
+            Color accentColor = new Color(0.78f, 0.80f, 0.85f, 1f); // Metalik çelik/eklem halkası
 
             Material body = GetOrCreateDirectMaterial(bodyColor, 0.45f);
-            Material inner = GetOrCreateDirectMaterial(innerColor, 0.30f);
+            Material dark = GetOrCreateDirectMaterial(darkColor, 0.85f);
+            Material white = GetOrCreateDirectMaterial(whiteColor, 0.90f);
+            Material accent = GetOrCreateDirectMaterial(accentColor, 0.60f);
 
             foreach (Renderer target in m_Renderers)
             {
                 if (target == null) continue;
 
-                // Yüz parçaları (göz, kaş, burun deliği, parlama) her zaman kendi
-                // rengini korur; vagon rengine boyanmazlar. Gövde rengiyle boyanırlarsa
-                // yüz detayları tamamen kaybolur.
-                if (target.name.IndexOf("Eye", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    target.name.IndexOf("Brow", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    target.name.IndexOf("Snout", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    target.name.IndexOf("Glint", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    continue;
-                }
-
                 Material[] mats = target.sharedMaterials;
                 if (mats == null || mats.Length == 0) mats = new Material[1];
 
-                mats[0] = body;
-                if (mats.Length > 1) mats[1] = inner;
+                if (mats.Length >= 3)
+                {
+                    mats[0] = body;
+                    mats[1] = dark;
+                    mats[2] = white;
+                    for (int i = 3; i < mats.Length; i++)
+                    {
+                        mats[i] = accent;
+                    }
+                }
+                else if (mats.Length == 2)
+                {
+                    mats[0] = body;
+                    mats[1] = dark;
+                }
+                else
+                {
+                    // Tek submesh'li parçalar için isim kontrolü
+                    string n = target.name;
+                    if (n.IndexOf("Eye", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        n.IndexOf("Pupil", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        n.IndexOf("Brow", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        n.IndexOf("Snout", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        n.IndexOf("Dark", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        n.IndexOf("Mouth", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        mats[0] = dark;
+                    }
+                    else if (n.IndexOf("Glint", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                             n.IndexOf("White", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                             n.IndexOf("Highlight", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                             n.IndexOf("Teeth", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        mats[0] = white;
+                    }
+                    else
+                    {
+                        mats[0] = body;
+                    }
+                }
 
                 target.sharedMaterials = mats;
             }
         }
 
-        /// <summary>Renge göre önbelleğe alınmış düz renk materyali döndürür.</summary>
+        /// <summary>Renge göre önbelleğe alınmış düz renk toon materyali döndürür.</summary>
         private Material GetOrCreateDirectMaterial(Color color, float smoothness)
         {
             string key = $"direct_{ColorUtility.ToHtmlStringRGBA(color)}_{smoothness:F2}_{(m_UseCartoonShader ? "toon" : "lit")}";
@@ -365,6 +394,7 @@ namespace PixelGame
                 if (material.HasProperty(s_ColorId)) material.SetColor(s_ColorId, color);
             }
             if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", smoothness);
+            if (material.HasProperty("_SpecularRoughnessPBR")) material.SetFloat("_SpecularRoughnessPBR", Mathf.Clamp01(1f - smoothness * 0.7f));
 
             s_MaterialsByScheme[key] = material;
             return material;

@@ -160,6 +160,15 @@ namespace PixelGame
                 {
                     clickTarget.PoolPlace = this;
                 }
+
+                // Havuzdaysa (TruckPool) -> Tile modu (3B Model gizli, parlak tombul tile)
+                // Normal Park Slotundaysa (SlotRow / TruckSlotRow) -> 3B Model modu (Robot modeli aktif!)
+                WagonCapacityBadge badge = m_Truck.GetComponent<WagonCapacityBadge>();
+                if (badge != null)
+                {
+                    bool isPool = GetComponentInParent<TruckPool>() != null;
+                    badge.SetPoolMode(isPool);
+                }
             }
 
             AlignTruck();
@@ -303,7 +312,8 @@ namespace PixelGame
 
             bool found = false;
 
-            foreach (MeshFilter filter in model.GetComponentsInChildren<MeshFilter>())
+            // 1. MeshFilter'ları (inaktif nesneler dahil!) ara
+            foreach (MeshFilter filter in model.GetComponentsInChildren<MeshFilter>(true))
             {
                 Mesh mesh = filter.sharedMesh;
                 if (mesh == null) continue;
@@ -328,6 +338,38 @@ namespace PixelGame
                     else
                     {
                         bounds.Encapsulate(point);
+                    }
+                }
+            }
+
+            // 2. Mesh bulunamazsa BoxCollider sınırlarını kullan
+            if (!found)
+            {
+                BoxCollider col = model.GetComponent<BoxCollider>();
+                if (col != null)
+                {
+                    Matrix4x4 toSlot = parent.worldToLocalMatrix * model.localToWorldMatrix;
+                    Vector3 c = col.center;
+                    Vector3 s = col.size * 0.5f;
+
+                    for (int i = 0; i < 8; i++)
+                    {
+                        Vector3 corner = new Vector3(
+                            c.x + ((i & 1) == 0 ? -s.x : s.x),
+                            c.y + ((i & 2) == 0 ? -s.y : s.y),
+                            c.z + ((i & 4) == 0 ? -s.z : s.z));
+
+                        Vector3 point = toSlot.MultiplyPoint3x4(corner);
+
+                        if (!found)
+                        {
+                            bounds = new Bounds(point, Vector3.zero);
+                            found = true;
+                        }
+                        else
+                        {
+                            bounds.Encapsulate(point);
+                        }
                     }
                 }
             }
