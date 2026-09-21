@@ -81,6 +81,31 @@ namespace PixelGame.Editor
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.Space(6);
+            EditorGUILayout.LabelField("🌑 Havuz Sahte Gölgeleri (Pool Fake Shadows)", EditorStyles.boldLabel);
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            SerializedProperty enableShadowsProp = serializedObject.FindProperty("m_EnableShadows");
+            EditorGUILayout.PropertyField(enableShadowsProp, new GUIContent("Slot Gölgeleri Aktif", "Her havuz karosunun altına 3B temas gölgesi ekler."));
+            if (enableShadowsProp.boolValue)
+            {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("m_ShadowSprite"), new GUIContent("Gölge Görseli"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("m_ShadowColor"), new GUIContent("Gölge Rengi & Opaklığı"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("m_ShadowOffset"), new GUIContent("Gölge Ofseti (X, Y)"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("m_ShadowScale"), new GUIContent("Gölge Boyut Çarpanı"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("m_ShadowZ"), new GUIContent("Gölge Z Derinliği"));
+                EditorGUI.indentLevel--;
+
+                EditorGUILayout.Space(4);
+                if (GUILayout.Button("🌑 Gölgeleri Güncelle", GUILayout.Height(24)))
+                {
+                    serializedObject.ApplyModifiedProperties();
+                    m_Pool.UpdateShadows();
+                    SceneView.RepaintAll();
+                }
+            }
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.Space(6);
             EditorGUILayout.LabelField("🎨 Stil & Yerleşim Ayarları (Style)", EditorStyles.boldLabel);
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             SerializedProperty styleProp = serializedObject.FindProperty("m_Style");

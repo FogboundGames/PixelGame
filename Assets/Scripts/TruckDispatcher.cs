@@ -625,7 +625,11 @@ namespace PixelGame
             RebuildStrips();
             BuildQueue();
             RefillPool();
-            if (m_Pool != null) m_Pool.UpdateRowVisuals();
+            if (m_Pool != null)
+            {
+                m_Pool.UpdateRowVisuals();
+                m_Pool.UpdateShadows();
+            }
             UpdateTrackCornerCounter();
         }
 

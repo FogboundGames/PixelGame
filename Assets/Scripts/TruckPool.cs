@@ -23,6 +23,25 @@ namespace PixelGame
                  "Kaç tane ve kaç sıra olacağı bölüm verisinden gelir.")]
         [SerializeField] private TruckPlaceStyle m_Style = new TruckPlaceStyle();
 
+        [Header("🌑 Havuz Slot Gölgeleri (Pool Fake Shadows)")]
+        [Tooltip("Havuzdaki her bekleme karosunun/slotunun altına yumuşak 3B temas gölgesi ekler.")]
+        [SerializeField] private bool m_EnableShadows = true;
+
+        [Tooltip("Havuz slot gölgesi görseli (Assets/UI/PoolSlot_Shadow.png).")]
+        [SerializeField] private Sprite m_ShadowSprite;
+
+        [Tooltip("Gölge rengi ve opaklığı.")]
+        [SerializeField] private Color m_ShadowColor = new Color(0.015f, 0.025f, 0.06f, 0.55f);
+
+        [Tooltip("Gölgenin karoya göre X ve Y ofseti.")]
+        [SerializeField] private Vector2 m_ShadowOffset = new Vector2(0f, -20f);
+
+        [Tooltip("Gölgenin boyut çarpanı.")]
+        [SerializeField] private Vector2 m_ShadowScale = new Vector2(0.82f, 0.58f);
+
+        [Tooltip("Gölgenin derinliği (Z).")]
+        [SerializeField] private float m_ShadowZ = 2f;
+
         [Header("👁️ Editör Önizlemesi (Edit Mode Preview)")]
         [Tooltip("Oyun başlatılmadan da havuz karolarını (2. görseldeki tombul 3B sarı rozetler) Edit Mode'da sahnede gösterir ve anlık düzenlemenizi sağlar.")]
         [SerializeField] private bool m_PreviewInEditor = true;
@@ -37,6 +56,11 @@ namespace PixelGame
         public TruckPlaceStyle Style => m_Style;
         public int Columns => m_Columns;
         public int Rows => m_Rows;
+        public bool EnableShadows { get => m_EnableShadows; set { m_EnableShadows = value; UpdateShadows(); } }
+        public Color ShadowColor { get => m_ShadowColor; set { m_ShadowColor = value; UpdateShadows(); } }
+        public Vector2 ShadowOffset { get => m_ShadowOffset; set { m_ShadowOffset = value; UpdateShadows(); } }
+        public Vector2 ShadowScale { get => m_ShadowScale; set { m_ShadowScale = value; UpdateShadows(); } }
+        public float ShadowZ { get => m_ShadowZ; set { m_ShadowZ = value; UpdateShadows(); } }
         public bool PreviewInEditor { get => m_PreviewInEditor; set { m_PreviewInEditor = value; RefreshEditorPreview(); } }
         public int PreviewCapacity { get => m_PreviewCapacity; set { m_PreviewCapacity = value; RefreshEditorPreview(); } }
         public Color PreviewColor { get => m_PreviewColor; set { m_PreviewColor = value; RefreshEditorPreview(); } }
@@ -59,6 +83,7 @@ namespace PixelGame
             m_Style.interactive = true;
 
             m_Places = TruckPlaceBuilder.Build(rect, m_Style, m_Columns, m_Rows, "Place");
+            UpdateShadows();
 
             if (!Application.isPlaying && m_PreviewInEditor)
             {
@@ -144,6 +169,8 @@ namespace PixelGame
                     r.SetPropertyBlock(mpb);
                 }
             }
+
+            UpdateShadows();
         }
 
         private void Awake()
@@ -154,12 +181,19 @@ namespace PixelGame
             }
         }
 
+        private void Start()
+        {
+            UpdateShadows();
+        }
+
         private void OnEnable()
         {
             if (m_Places == null || m_Places.Count == 0)
             {
                 m_Places = new List<TruckSlot>(GetComponentsInChildren<TruckSlot>(true));
             }
+
+            UpdateShadows();
 
             if (!Application.isPlaying && m_PreviewInEditor)
             {
@@ -177,6 +211,8 @@ namespace PixelGame
 
         private void OnValidate()
         {
+            UpdateShadows();
+
             if (!Application.isPlaying && m_PreviewInEditor)
             {
 #if UNITY_EDITOR
@@ -190,9 +226,51 @@ namespace PixelGame
         private void DeferredEditorPreview()
         {
             if (this == null) return;
+            UpdateShadows();
             RefreshEditorPreview();
         }
 #endif
+
+        private Sprite ResolveShadowSprite()
+        {
+            if (m_ShadowSprite != null) return m_ShadowSprite;
+#if UNITY_EDITOR
+            m_ShadowSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/PoolSlot_Shadow.png");
+            if (m_ShadowSprite == null)
+                m_ShadowSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/SlotShadow.png");
+#endif
+            return m_ShadowSprite;
+        }
+
+        /// <summary>
+        /// Havuzdaki tüm bekleme slotlarının/karolarının gölgelerini günceller.
+        /// Artık gölgeler vagon/rozet nesnesinin kendi alt nesnesi (child) olduğu için obje hareket ettiğinde onunla birlikte taşınır.
+        /// </summary>
+        [ContextMenu("🌑 Havuz Gölgelerini Güncelle (Update Shadows)")]
+        public void UpdateShadows()
+        {
+            // Eski statik havuz gölgelerini temizle (artık gölgeler vagonun doğrudan child objesidir)
+            Transform shadowsTrans = transform.Find("Shadows");
+            if (shadowsTrans != null)
+            {
+                if (Application.isPlaying) Destroy(shadowsTrans.gameObject);
+                else DestroyImmediate(shadowsTrans.gameObject);
+            }
+
+            if (m_Places == null) return;
+            for (int i = 0; i < m_Places.Count; i++)
+            {
+                TruckSlot place = m_Places[i];
+                if (place == null || place.Truck == null) continue;
+
+                WagonCapacityBadge badge = place.Truck.GetComponent<WagonCapacityBadge>();
+                if (badge != null)
+                {
+                    badge.ApplyStyle();
+                    badge.UpdatePlacement();
+                }
+            }
+        }
 
         /// <summary>
         /// Oyun başlatılmadan önce sahnede havuz karolarını (2. görseldeki 3B altın sarısı rozetler)

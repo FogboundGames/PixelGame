@@ -344,6 +344,7 @@ namespace PixelGame
             for (int i = parent.childCount - 1; i >= 0; i--)
             {
                 GameObject child = parent.GetChild(i).gameObject;
+                if (child.name == "Shadows" || child.name.StartsWith("Shadows")) continue;
 
                 if (Application.isPlaying) UnityEngine.Object.Destroy(child);
                 else UnityEngine.Object.DestroyImmediate(child);

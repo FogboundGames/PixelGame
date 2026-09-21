@@ -22,6 +22,7 @@ namespace PixelGame
     {
         private Canvas m_Canvas;
         private RectTransform m_BadgeRect;
+        private Image m_FakeShadow;
         private Image m_InnerPlate;
         private Image m_Background;
         private Text m_Text;
@@ -36,6 +37,22 @@ namespace PixelGame
         [Tooltip("Açıkken vagonun 3B gövde modelleri gizlenir ve sadece 3B tombul rozet (Tile) görünür. " +
                  "Kapalıyken 3B robot modeli aktiftir ve rozet başın üstünde şık mini kapsül olarak durur.")]
         [SerializeField] private bool m_HideModel = false;
+
+        [Header("🌑 3B Zemin Temas Gölgesi (Fake Shadow)")]
+        [Tooltip("Havuz modunda karonun altına 3B yumuşak temas gölgesi ekler. Obje taşındığında gölge onunla birlikte hareket eder.")]
+        [SerializeField] private bool m_EnableFakeShadow = true;
+
+        [Tooltip("Gölge görseli (Assets/UI/PoolSlot_Shadow.png)")]
+        [SerializeField] private Sprite m_FakeShadowSprite;
+
+        [Tooltip("Gölge rengi ve opaklığı")]
+        [SerializeField] private Color m_FakeShadowColor = new Color(0.015f, 0.025f, 0.06f, 0.55f);
+
+        [Tooltip("Gölgenin karoya göre X ve Y ofseti (piksel)")]
+        [SerializeField] private Vector2 m_FakeShadowOffset = new Vector2(0f, -14f);
+
+        [Tooltip("Gölgenin boyut çarpanı (varsayılan: 1.50x genişlik, 1.35x yükseklik)")]
+        [SerializeField] private Vector2 m_FakeShadowScale = new Vector2(1.50f, 1.35f);
 
         [Header("🌟 Havuz Modu (Tile) Görselleri")]
         [Tooltip("Havuz modundaki dış 3B çerçeve görseli (Assets/UI/Count.png)")]
@@ -409,6 +426,22 @@ namespace PixelGame
                 if (canvasRt != null) canvasRt.sizeDelta = new Vector2(140f, 140f);
                 if (m_BadgeRect != null) m_BadgeRect.sizeDelta = Vector2.zero;
 
+                if (m_FakeShadow != null)
+                {
+                    m_FakeShadow.gameObject.SetActive(m_EnableFakeShadow);
+                    m_FakeShadow.sprite = ResolveFakeShadowSprite();
+                    m_FakeShadow.color = m_FakeShadowColor;
+                    if (alwaysOnTopMat != null) m_FakeShadow.material = alwaysOnTopMat;
+
+                    RectTransform shadowRt = m_FakeShadow.rectTransform;
+                    shadowRt.anchorMin = new Vector2(0.5f, 0.5f);
+                    shadowRt.anchorMax = new Vector2(0.5f, 0.5f);
+                    shadowRt.pivot = new Vector2(0.5f, 0.5f);
+                    shadowRt.sizeDelta = new Vector2(140f * m_FakeShadowScale.x, 140f * m_FakeShadowScale.y);
+                    shadowRt.anchoredPosition = m_FakeShadowOffset;
+                    shadowRt.localPosition = new Vector3(m_FakeShadowOffset.x, m_FakeShadowOffset.y, 0f);
+                }
+
                 Sprite bgSprite = ResolveBackgroundSprite();
                 bool isFullPlate = bgSprite != null && bgSprite.name.IndexOf("FullPlate", System.StringComparison.OrdinalIgnoreCase) >= 0;
 
@@ -480,6 +513,11 @@ namespace PixelGame
                 // ==========================================
                 if (canvasRt != null) canvasRt.sizeDelta = new Vector2(130f, 68f);
                 if (m_BadgeRect != null) m_BadgeRect.sizeDelta = Vector2.zero;
+
+                if (m_FakeShadow != null)
+                {
+                    m_FakeShadow.gameObject.SetActive(false);
+                }
 
                 if (m_InnerPlate != null)
                 {
@@ -560,6 +598,29 @@ namespace PixelGame
             v = Mathf.Max(v, 1.0f);
             s = Mathf.Clamp(s * 1.15f, 0f, 1f);
             return Color.HSVToRGB(h, s, v);
+        }
+
+        private Sprite ResolveFakeShadowSprite()
+        {
+            if (m_FakeShadowSprite != null) return m_FakeShadowSprite;
+#if UNITY_EDITOR
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("PoolSlot_Shadow t:Sprite");
+            if (guids.Length > 0)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+                m_FakeShadowSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            }
+            if (m_FakeShadowSprite == null)
+            {
+                guids = UnityEditor.AssetDatabase.FindAssets("SlotShadow t:Sprite");
+                if (guids.Length > 0)
+                {
+                    string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+                    m_FakeShadowSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(path);
+                }
+            }
+#endif
+            return m_FakeShadowSprite;
         }
 
         private Sprite ResolveInnerPlateSprite()
@@ -680,7 +741,7 @@ namespace PixelGame
 
         public void EnsureBadgeUI()
         {
-            if (m_Canvas != null && m_Text != null && m_InnerPlate != null && m_Background != null)
+            if (m_Canvas != null && m_Text != null && m_InnerPlate != null && m_Background != null && m_FakeShadow != null)
             {
                 ApplyStyle();
                 return;
@@ -708,6 +769,32 @@ namespace PixelGame
             if (canvasRect == null) canvasRect = canvasObj.AddComponent<RectTransform>();
             canvasRect.sizeDelta = m_HideModel ? new Vector2(140f, 140f) : new Vector2(130f, 68f);
 
+            Material alwaysOnTopMat = GetAlwaysOnTopMaterial();
+
+            // 0. Katman: 3B Zemin Temas Gölgesi (Fake Shadow - Karonun doğrudan alt nesnesi)
+            Transform shadowTrans = canvasObj.transform.Find("FakeShadow");
+            GameObject shadowObj = shadowTrans != null ? shadowTrans.gameObject : new GameObject("FakeShadow");
+            if (shadowTrans == null) shadowObj.transform.SetParent(canvasObj.transform, false);
+            shadowObj.transform.SetSiblingIndex(0);
+
+            RectTransform shadowRt = shadowObj.GetComponent<RectTransform>();
+            if (shadowRt == null) shadowRt = shadowObj.AddComponent<RectTransform>();
+            shadowRt.anchorMin = new Vector2(0.5f, 0.5f);
+            shadowRt.anchorMax = new Vector2(0.5f, 0.5f);
+            shadowRt.pivot = new Vector2(0.5f, 0.5f);
+            shadowRt.sizeDelta = new Vector2(140f * m_FakeShadowScale.x, 140f * m_FakeShadowScale.y);
+            shadowRt.anchoredPosition = m_FakeShadowOffset;
+            shadowRt.localPosition = new Vector3(m_FakeShadowOffset.x, m_FakeShadowOffset.y, 0f);
+
+            m_FakeShadow = shadowObj.GetComponent<Image>();
+            if (m_FakeShadow == null) m_FakeShadow = shadowObj.AddComponent<Image>();
+            m_FakeShadow.raycastTarget = false;
+            m_FakeShadow.sprite = ResolveFakeShadowSprite();
+            m_FakeShadow.type = Image.Type.Simple;
+            m_FakeShadow.preserveAspect = true;
+            m_FakeShadow.color = m_FakeShadowColor;
+            if (alwaysOnTopMat != null) m_FakeShadow.material = alwaysOnTopMat;
+
             // Rozet Kökü
             Transform badgeTrans = canvasObj.transform.Find("BadgeRoot");
             GameObject badgeObj;
@@ -730,8 +817,6 @@ namespace PixelGame
             m_BadgeRect.anchoredPosition3D = Vector3.zero;
             m_BadgeRect.localPosition = Vector3.zero;
             m_BadgeRect.localRotation = Quaternion.identity;
-
-            Material alwaysOnTopMat = GetAlwaysOnTopMaterial();
 
             // 1. Katman: İç Koyu Lacivert Plaka (InnerPlate)
             Transform innerTrans = badgeObj.transform.Find("InnerPlate");
