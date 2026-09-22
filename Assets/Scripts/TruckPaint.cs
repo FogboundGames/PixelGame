@@ -307,6 +307,117 @@ namespace PixelGame
         private void ApplyDirectColors()
         {
             Color bodyColor = m_Cabin;
+
+            // KawaiiCube / JellyCube algılaması (Kullanıcının paylaştığı parlak renkli gülen yüzlü küp modeli)
+            bool isKawaiiCube = transform.name.IndexOf("KawaiiCube", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                transform.name.IndexOf("JellyCube", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (!isKawaiiCube)
+            {
+                foreach (Renderer r in m_Renderers)
+                {
+                    if (r == null) continue;
+                    if (r.name.IndexOf("KawaiiCube", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        r.name.IndexOf("JellyCube", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        isKawaiiCube = true;
+                        break;
+                    }
+                    MeshFilter mf = r.GetComponent<MeshFilter>();
+                    if (mf != null && mf.sharedMesh != null &&
+                        (mf.sharedMesh.name.IndexOf("KawaiiCube", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                         mf.sharedMesh.name.IndexOf("JellyCube", StringComparison.OrdinalIgnoreCase) >= 0))
+                    {
+                        isKawaiiCube = true;
+                        break;
+                    }
+                }
+            }
+
+            if (isKawaiiCube)
+            {
+                Color themeColor = bodyColor;
+                Color faceColor = new Color(0.06f, 0.07f, 0.10f, 1f);
+
+                // Submesh 0: Jelibon/plastik parlaklığında tam vagon rengi gövde (Mavi, Sarı vb.)
+                Material bodyMat = GetOrCreateDirectMaterial(themeColor, 0.94f);
+                // Submesh 1: Derin parlak siyah gözler ve gülen ağız
+                Material faceMat = GetOrCreateDirectMaterial(faceColor, 0.90f);
+
+                foreach (Renderer target in m_Renderers)
+                {
+                    if (target == null) continue;
+                    // Yüz sprite/quad renderer'ını atla (yüzün kendi çizimi korunur)
+                    if (target is SpriteRenderer || target.name.IndexOf("Face", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        continue;
+                    }
+
+                    Material[] mats = target.sharedMaterials;
+                    if (mats == null || mats.Length < 1) mats = new Material[1];
+                    mats[0] = bodyMat;
+                    if (mats.Length > 1) mats[1] = faceMat;
+
+                    target.sharedMaterials = mats;
+                }
+
+                // Yüz bileşenini tetikle
+                KawaiiFaceController faceCtrl = GetComponent<KawaiiFaceController>();
+                if (faceCtrl != null)
+                {
+                    faceCtrl.ApplyExpression(force: false);
+                }
+
+                return;
+            }
+
+            // CyberCube algılaması (Görseldeki beyaz gövdeli + renkli neon buton ve lambalı model)
+            bool isCyberCube = transform.name.IndexOf("CyberCube", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (!isCyberCube)
+            {
+                foreach (Renderer r in m_Renderers)
+                {
+                    if (r == null) continue;
+                    if (r.name.IndexOf("CyberCube", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        isCyberCube = true;
+                        break;
+                    }
+                    MeshFilter mf = r.GetComponent<MeshFilter>();
+                    if (mf != null && mf.sharedMesh != null && mf.sharedMesh.name.IndexOf("CyberCube", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        isCyberCube = true;
+                        break;
+                    }
+                }
+            }
+
+            if (isCyberCube)
+            {
+                Color cubeBodyWhite = new Color(0.98f, 0.99f, 1.0f, 1.0f);
+                Color themeColor = bodyColor;
+                Color baseGrey = new Color(0.65f, 0.68f, 0.74f, 1.0f);
+
+                Material bodyMat = GetOrCreateDirectMaterial(cubeBodyWhite, 0.88f);
+                Material accentMat = GetOrCreateDirectMaterial(themeColor, 0.82f);
+                Material neonMat = GetOrCreateDirectNeonMaterial(themeColor);
+                Material baseMat = GetOrCreateDirectMaterial(baseGrey, 0.45f);
+
+                foreach (Renderer target in m_Renderers)
+                {
+                    if (target == null) continue;
+                    Material[] mats = target.sharedMaterials;
+                    if (mats == null || mats.Length < 4) mats = new Material[4];
+
+                    mats[0] = bodyMat;
+                    mats[1] = accentMat;
+                    mats[2] = neonMat;
+                    mats[3] = baseMat;
+
+                    target.sharedMaterials = mats;
+                }
+                return;
+            }
+
             Color darkColor = new Color32(22, 24, 32, 255);        // Derin karikatür siyah/grafit (göz, pupil, ağız içi)
             Color whiteColor = Color.white;                         // Saf parlak beyaz (göz parlaması, diş)
             Color accentColor = new Color(0.78f, 0.80f, 0.85f, 1f); // Metalik çelik/eklem halkası
@@ -395,6 +506,44 @@ namespace PixelGame
             }
             if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", smoothness);
             if (material.HasProperty("_SpecularRoughnessPBR")) material.SetFloat("_SpecularRoughnessPBR", Mathf.Clamp01(1f - smoothness * 0.7f));
+
+            s_MaterialsByScheme[key] = material;
+            return material;
+        }
+
+        /// <summary>CyberCube'un üst butonu ve yan kapsülleri için parlak HDR emissive neon materyali üretir.</summary>
+        private Material GetOrCreateDirectNeonMaterial(Color color)
+        {
+            string key = $"direct_neon_{ColorUtility.ToHtmlStringRGBA(color)}_{(m_UseCartoonShader ? "toon" : "lit")}";
+
+            if (s_MaterialsByScheme.TryGetValue(key, out Material cached) && cached != null)
+            {
+                return cached;
+            }
+
+            Shader shader = null;
+            if (m_UseCartoonShader) shader = CartoonShader.Get();
+            if (shader == null) shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null) shader = Shader.Find("Standard");
+
+            Material material = new Material(shader) { name = $"Mat_Direct_Neon_{ColorUtility.ToHtmlStringRGB(color)}" };
+            if (m_UseCartoonShader)
+            {
+                CartoonShader.ApplyColor(material, color);
+            }
+            else
+            {
+                if (material.HasProperty(s_BaseColorId)) material.SetColor(s_BaseColorId, color);
+                if (material.HasProperty(s_ColorId)) material.SetColor(s_ColorId, color);
+            }
+
+            material.EnableKeyword("_EMISSION");
+            if (material.HasProperty("_EmissionColor"))
+            {
+                material.SetColor("_EmissionColor", color * 2.5f);
+            }
+            if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.95f);
+            if (material.HasProperty("_SpecularRoughnessPBR")) material.SetFloat("_SpecularRoughnessPBR", 0.08f);
 
             s_MaterialsByScheme[key] = material;
             return material;

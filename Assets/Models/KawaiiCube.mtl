@@ -1,0 +1,16 @@
+# MTL for KawaiiCube
+newmtl 01_Body
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.900 0.900 0.900
+Ns 100.0
+d 1.0
+illum 2
+
+newmtl 02_Face
+Ka 0.040 0.040 0.050
+Kd 0.040 0.040 0.050
+Ks 0.850 0.850 0.850
+Ns 80.0
+d 1.0
+illum 2

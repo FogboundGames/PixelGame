@@ -12,19 +12,21 @@ namespace PixelGame.Editor
     /// </summary>
     public class ModelColorStudioWindow : EditorWindow
     {
+        private const string CyberCubePath = "Assets/Prefabs/CyberCubeWagon.prefab";
         private const string BlueBotWithNeckPath = "Assets/Prefabs/BlueBotWithNeckWagon.prefab";
         private const string BlueBotPath = "Assets/Prefabs/BlueBotWagon.prefab";
         private const string VacuumCannonPath = "Assets/Prefabs/VacuumCannon.prefab";
 
         private enum ModelTab
         {
+            CyberCube,
             BlueBotWithNeck,
             BlueBotClassic,
             VacuumCannon,
             CustomSelection
         }
 
-        private ModelTab m_CurrentTab = ModelTab.BlueBotWithNeck;
+        private ModelTab m_CurrentTab = ModelTab.CyberCube;
         private GameObject m_CustomTarget;
         private PreviewRenderUtility m_PreviewUtility;
         private Vector2 m_PreviewDir = new Vector2(145f, -18f);
@@ -123,6 +125,8 @@ namespace PixelGame.Editor
         {
             switch (m_CurrentTab)
             {
+                case ModelTab.CyberCube:
+                    return AssetDatabase.LoadAssetAtPath<GameObject>(CyberCubePath);
                 case ModelTab.BlueBotWithNeck:
                     return AssetDatabase.LoadAssetAtPath<GameObject>(BlueBotWithNeckPath);
                 case ModelTab.BlueBotClassic:
@@ -130,9 +134,9 @@ namespace PixelGame.Editor
                 case ModelTab.VacuumCannon:
                     return AssetDatabase.LoadAssetAtPath<GameObject>(VacuumCannonPath);
                 case ModelTab.CustomSelection:
-                    return m_CustomTarget != null ? m_CustomTarget : (Selection.activeGameObject != null ? Selection.activeGameObject : AssetDatabase.LoadAssetAtPath<GameObject>(BlueBotWithNeckPath));
+                    return m_CustomTarget != null ? m_CustomTarget : (Selection.activeGameObject != null ? Selection.activeGameObject : AssetDatabase.LoadAssetAtPath<GameObject>(CyberCubePath));
                 default:
-                    return AssetDatabase.LoadAssetAtPath<GameObject>(BlueBotWithNeckPath);
+                    return AssetDatabase.LoadAssetAtPath<GameObject>(CyberCubePath);
             }
         }
 
@@ -337,6 +341,7 @@ namespace PixelGame.Editor
             EditorGUI.BeginChangeCheck();
             m_CurrentTab = (ModelTab)GUILayout.Toolbar((int)m_CurrentTab, new string[]
             {
+                "🧊 CyberCube (Aktif)",
                 "🤖 Boyunlu Robot Bot",
                 "🤖 Klasik Robot Bot",
                 "🔫 Vakum Topu",

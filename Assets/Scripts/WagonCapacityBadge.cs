@@ -204,9 +204,28 @@ namespace PixelGame
 
         private void OnValidate()
         {
-            ApplyStyle();
-            UpdatePlacement();
+#if UNITY_EDITOR
+            if (UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode) return;
+            UnityEditor.EditorApplication.delayCall -= DelayedOnValidate;
+            UnityEditor.EditorApplication.delayCall += DelayedOnValidate;
+#endif
         }
+
+#if UNITY_EDITOR
+        private void DelayedOnValidate()
+        {
+            if (this == null) return;
+            if (m_Canvas == null)
+            {
+                EnsureBadgeUI();
+            }
+            else
+            {
+                ApplyStyle();
+                UpdatePlacement();
+            }
+        }
+#endif
 
         private void LateUpdate()
         {

@@ -81,6 +81,16 @@ namespace PixelGame
         {
             get
             {
+                bool isKawaiiCube = m_TruckPrefab != null && (m_TruckPrefab.name.IndexOf("KawaiiCube", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                              m_TruckPrefab.name.IndexOf("JellyCube", System.StringComparison.OrdinalIgnoreCase) >= 0);
+                bool isCyberCube = m_TruckPrefab != null && m_TruckPrefab.name.IndexOf("CyberCube", System.StringComparison.OrdinalIgnoreCase) >= 0;
+                if (isKawaiiCube || isCyberCube)
+                {
+                    // Konveyör bandının merkez hattı: iç ray kenarından 0.15 birim dışarıdadır (okların tam üzeri).
+                    float beltCenter = (m_TrackHalfWidth > 0.05f) ? m_TrackHalfWidth : 0.15f;
+                    return beltCenter + m_WagonOutwardOffset;
+                }
+
                 bool isScifi = m_TruckPrefab != null && (m_TruckPrefab.name.IndexOf("object_", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                                                          m_TruckPrefab.name.IndexOf("Cannon", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                                                          m_TruckPrefab.name.IndexOf("Turret", System.StringComparison.OrdinalIgnoreCase) >= 0);
@@ -1172,30 +1182,31 @@ namespace PixelGame
 
         private void CalibratePortalsAndAlignment()
         {
+            bool isKawaiiCube = m_TruckPrefab != null && (m_TruckPrefab.name.IndexOf("KawaiiCube", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                          m_TruckPrefab.name.IndexOf("JellyCube", System.StringComparison.OrdinalIgnoreCase) >= 0);
+            bool isCyberCube = m_TruckPrefab != null && m_TruckPrefab.name.IndexOf("CyberCube", System.StringComparison.OrdinalIgnoreCase) >= 0;
             bool isBottle = m_TruckPrefab != null && m_TruckPrefab.name.IndexOf("Bottle", System.StringComparison.OrdinalIgnoreCase) >= 0;
             bool isScifi = m_TruckPrefab != null && (m_TruckPrefab.name.IndexOf("object_", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                                                      m_TruckPrefab.name.IndexOf("Cannon", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                                                      m_TruckPrefab.name.IndexOf("Turret", System.StringComparison.OrdinalIgnoreCase) >= 0);
 
             // Vagon duruşu TEK kaynaktan gelir: havuz stilinin truckEuler'ı.
-            // Havuzdaki slotlar hiç eğilmediği (tilt=0) için buradaki truckEuler zaten
-            // "çıplak" dünya duruşudur — raydaki vagon, ek bir slot eğimine ihtiyaç
-            // duymadan doğrudan bunu kullanabilir. Slot şeridi (m_Slots) ise kendi
-            // zemin eğimine (tilt) sahip olduğundan onun truckEuler'ı BU eğime göre
-            // görelidir ve rayda doğrudan kullanılamaz.
-            // Sci-fi topu için ray teğetine kilitli taban duruşu (0, 90, 0) uygulanır.
             Vector3 defaultEuler = (m_Pool != null && m_Pool.Style != null)
                 ? m_Pool.Style.truckEuler
                 : (m_Slots != null && m_Slots.Style != null)
                     ? m_Slots.Style.truckEuler
                     : (isBottle ? new Vector3(0f, 90f, 0f) : new Vector3(0f, -90f, -270f));
 
-            if (isScifi)
+            if (isKawaiiCube || isCyberCube)
             {
-                // Sci-fi vakum topu için:
-                // Taban dairesi konveyör bandına tam oturur (normal = [0, 0, -1], kameraya bakar).
-                // Ağız/namlu kısmı daima çektikleri küplere (içeri/panoya) doğru bakar:
-                // Alt kenarda +Y (yukarı), sağda -X (sola), üstte -Y (aşağı), solda +X (sağa).
+                // KawaiiCube / Cute Cube:
+                // İkinci referans görseldeki gibi üst yüzeydeki parlak jelibon cila ile
+                // ön yüzdeki sevimli yüzü eşzamanlı gösterebilmek için 38° X açısı verilir.
+                defaultEuler = new Vector3(38f, 0f, 0f);
+                m_WagonRotation = Quaternion.Euler(defaultEuler);
+            }
+            else if (isScifi)
+            {
                 defaultEuler = new Vector3(-90f, 0f, 0f);
                 m_WagonRotation = Quaternion.Euler(defaultEuler);
             }
@@ -1208,14 +1219,17 @@ namespace PixelGame
                 ? m_WagonsRoot.lossyScale.x
                 : 1f;
 
-            if (isBottle)
+            if (isKawaiiCube || isCyberCube)
+            {
+                // Referanstaki gibi bandı dolgun ve sevimli gösteren cüsseli vagon ölçeği
+                m_WagonScale = Vector3.one * (0.64f / rootScale);
+            }
+            else if (isBottle)
             {
                 m_WagonScale = Vector3.one * (0.55f / rootScale);
             }
             else
             {
-                // Konveyör bandı genişliği m_ModularTrackScale (~0.60 birim).
-                // Vagonun banda taşmadan tam oturması için m_TrackWagonScale (~0.36 birim) kullanılır.
                 m_WagonScale = Vector3.one * (m_TrackWagonScale / rootScale);
             }
 
@@ -1352,10 +1366,20 @@ namespace PixelGame
             if (triggerBox != null) Destroy(triggerBox);
 
             TruckPaint paint = truck.GetComponent<TruckPaint>();
-            if (paint != null && !m_PreserveWagonColors)
+            if (paint != null)
             {
-                paint.SetBodyColor(color);
-                paint.Apply();
+                bool isCuteCube = (truck.name.IndexOf("KawaiiCube", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                   truck.name.IndexOf("JellyCube", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                   truck.name.IndexOf("CyberCube", System.StringComparison.OrdinalIgnoreCase) >= 0) ||
+                                  (m_TruckPrefab != null && (m_TruckPrefab.name.IndexOf("KawaiiCube", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                             m_TruckPrefab.name.IndexOf("JellyCube", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                             m_TruckPrefab.name.IndexOf("CyberCube", System.StringComparison.OrdinalIgnoreCase) >= 0));
+
+                if (!m_PreserveWagonColors || isCuteCube)
+                {
+                    paint.SetBodyColor(color);
+                    paint.Apply();
+                }
             }
 
             WagonTargetIndicator indicator = truck.GetComponent<WagonTargetIndicator>();
@@ -1415,7 +1439,14 @@ namespace PixelGame
                 }
 
                 truck.DOKill();
-                truck.DORotateQuaternion(targetRot, 0.35f).SetEase(Ease.OutQuad);
+                bool isKawaiiCube = (truck.name.IndexOf("KawaiiCube", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                     truck.name.IndexOf("JellyCube", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                     truck.name.IndexOf("CyberCube", System.StringComparison.OrdinalIgnoreCase) >= 0) ||
+                                    (m_TruckPrefab != null && (m_TruckPrefab.name.IndexOf("KawaiiCube", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                               m_TruckPrefab.name.IndexOf("JellyCube", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                               m_TruckPrefab.name.IndexOf("CyberCube", System.StringComparison.OrdinalIgnoreCase) >= 0));
+                Quaternion enterRot = isKawaiiCube ? m_WagonRotation : targetRot;
+                truck.DORotateQuaternion(enterRot, 0.35f).SetEase(Ease.OutQuad);
                 truck.DOScale(m_WagonScale, 0.35f);
                 // Giriş de aynı dış ofsetle hizalanır; yoksa vagon rayın üstüne konup
                 // ilk karede yana sıçrardı.
@@ -1425,7 +1456,7 @@ namespace PixelGame
                     if (truck != null)
                     {
                         truck.position = startTrackPos;
-                        truck.rotation = targetRot;
+                        truck.rotation = enterRot;
                         movingWagon.IsJumpingToTrack = false;
 
                         if (TrackCornerLauncher.Instance != null)
@@ -1557,6 +1588,17 @@ namespace PixelGame
                     continue;
                 }
                 m_Loop.Evaluate(wagon.DistanceOnLoop, out Vector3 pos, out Vector3 tangent, out Quaternion rot, m_WagonRotation);
+
+                bool isKawaiiCube = (wagon.GameObject != null && (wagon.GameObject.name.IndexOf("KawaiiCube", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                                  wagon.GameObject.name.IndexOf("JellyCube", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                                  wagon.GameObject.name.IndexOf("CyberCube", System.StringComparison.OrdinalIgnoreCase) >= 0)) ||
+                                    (m_TruckPrefab != null && (m_TruckPrefab.name.IndexOf("KawaiiCube", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                               m_TruckPrefab.name.IndexOf("JellyCube", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                               m_TruckPrefab.name.IndexOf("CyberCube", System.StringComparison.OrdinalIgnoreCase) >= 0));
+                if (isKawaiiCube)
+                {
+                    rot = m_WagonRotation;
+                }
 
                 wagon.Transform.position = OffsetOutward(pos, tangent, WagonOutwardDistance) + new Vector3(0f, 0f, -0.03f);
                 wagon.Transform.rotation = rot;
