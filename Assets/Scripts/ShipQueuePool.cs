@@ -141,7 +141,7 @@ namespace PixelGame
             if (ship == null) ship = shipObj.AddComponent<ShipController>();
 
             Color shipColor = GetNextNeededColor();
-            int capacity = GetRecommendedCapacity();
+            int capacity = GetRecommendedCapacity(shipColor);
             ship.Configure(shipColor, capacity);
 
             while (m_WaitingShips.Count <= spotIndex)
@@ -237,7 +237,7 @@ namespace PixelGame
             if (ship == null) ship = shipObj.AddComponent<ShipController>();
 
             Color shipColor = GetNextNeededColor();
-            int capacity = GetRecommendedCapacity();
+            int capacity = GetRecommendedCapacity(shipColor);
             ship.Configure(shipColor, capacity);
 
             while (m_WaitingShips.Count <= spotIndex)
@@ -286,8 +286,17 @@ namespace PixelGame
             return defaults[UnityEngine.Random.Range(0, defaults.Length)];
         }
 
-        private int GetRecommendedCapacity()
+        private int GetRecommendedCapacity(Color shipColor)
         {
+            if (ShipDispatcher.Instance != null)
+            {
+                int remaining = ShipDispatcher.Instance.GetRemainingCountForColor(shipColor);
+                if (remaining > 0)
+                {
+                    if (remaining <= 20) return remaining;
+                    return UnityEngine.Random.Range(10, Mathf.Min(21, remaining + 1));
+                }
+            }
             return UnityEngine.Random.Range(10, 21);
         }
     }

@@ -376,6 +376,11 @@ namespace PixelGame
             m_IsDocked = true;
             m_EnableWaterBobbing = true;
 
+            if (ShipDispatcher.Instance != null)
+            {
+                ShipDispatcher.Instance.OnShipDocked(this);
+            }
+
             onComplete?.Invoke();
         }
 

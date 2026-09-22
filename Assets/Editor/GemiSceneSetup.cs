@@ -22,7 +22,7 @@ namespace PixelGame.Editor
         private const string ShipTexturePath = "Assets/Kenney/kenney_watercraft-pack/Models/FBX format/Textures/colormap.png";
         private const string ShipMatPath = "Assets/Materials/Ship_Watercraft_Mat.mat";
         private const string ScreenshotPath = "scratch/gemi_gameplay_view.png";
-        private const string AutoRunKey = "GemiSceneSetup_AutoRun_v25";
+        private const string AutoRunKey = "GemiSceneSetup_AutoRun_v26";
 
         // Kum alanı taş çerçevesinin tam ortası (World Units):
         // 9:16 ekranda orthoSize=8 iken Y=3.25f taş çerçevenin tam geometrik merkezidir.
