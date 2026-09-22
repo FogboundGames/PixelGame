@@ -7,8 +7,8 @@ namespace PixelGame
 {
     /// <summary>
     /// Su üzerinde bekleyen gemi kuyruğunu (sırasını) yönetir.
-    /// Renkleri seviyedeki piksel sanatına göre belirler.
-    /// Ön sıradaki gemilere tıklandığında boş slotlara yanaştırır ve arkadaki gemileri öne kaydırır.
+    /// 2 sıra x 4 sütun halinde ferah ve düzenli bir filo yerleşimi sağlar.
+    /// Ön sıradaki gemi ayrıldığında, aynı kulvardaki (sütundaki) arka gemi öne kayar ve arkaya denizden yeni gemi gelir.
     /// </summary>
     [DisallowMultipleComponent]
     [AddComponentMenu("PixelGame/Ship Queue Pool")]
@@ -18,7 +18,7 @@ namespace PixelGame
         [SerializeField] private GameObject m_ShipPrefab;
         [SerializeField] private int m_Columns = 4;
         [SerializeField] private int m_Rows = 2;
-        [SerializeField] private Vector2 m_Spacing = new Vector2(1.5f, 1.4f);
+        [SerializeField] private Vector2 m_Spacing = new Vector2(1.28f, 1.35f);
         [SerializeField] private float m_ShipScale = 0.126f;
 
         [Header("📍 Kuyruk Yerleri")]
@@ -46,29 +46,40 @@ namespace PixelGame
         /// </summary>
         public void EnsureSpots()
         {
-            m_QueueSpots.Clear();
-            int total = m_Columns * m_Rows;
+            // Eski çocuk spotları temizle
+            for (int i = transform.childCount - 1; i >= 0; i--)
+            {
+                Transform cTr = transform.GetChild(i);
+                if (cTr.name.StartsWith("Spot_"))
+                {
+#if UNITY_EDITOR
+                    if (!Application.isPlaying)
+                        DestroyImmediate(cTr.gameObject);
+                    else
+                        Destroy(cTr.gameObject);
+#else
+                    Destroy(cTr.gameObject);
+#endif
+                }
+            }
 
+            m_QueueSpots.Clear();
             float startX = -(m_Columns - 1) * m_Spacing.x * 0.5f;
 
             for (int r = 0; r < m_Rows; r++)
             {
                 for (int c = 0; c < m_Columns; c++)
                 {
-                    int index = r * m_Columns + c;
                     string spotName = $"Spot_R{r}_C{c}";
-                    Transform spotTr = transform.Find(spotName);
-                    if (spotTr == null)
-                    {
-                        GameObject spotObj = new GameObject(spotName);
-                        spotTr = spotObj.transform;
-                        spotTr.SetParent(transform, false);
-                    }
+                    GameObject spotObj = new GameObject(spotName);
+                    Transform spotTr = spotObj.transform;
+                    spotTr.SetParent(transform, false);
 
                     float posX = startX + c * m_Spacing.x;
-                    float posY = -r * m_Spacing.y;
+                    // Tilted su düzleminde Z ekseni dikeyde sıra aralığıdır:
+                    float posZ = -r * m_Spacing.y;
 
-                    spotTr.localPosition = new Vector3(posX, 0f, posY * 0.4f);
+                    spotTr.localPosition = new Vector3(posX, 0f, posZ);
                     spotTr.localRotation = Quaternion.identity;
                     spotTr.localScale = Vector3.one;
 
@@ -97,7 +108,14 @@ namespace PixelGame
             {
                 if (m_WaitingShips[i] != null)
                 {
+#if UNITY_EDITOR
+                    if (!Application.isPlaying)
+                        DestroyImmediate(m_WaitingShips[i].gameObject);
+                    else
+                        Destroy(m_WaitingShips[i].gameObject);
+#else
                     Destroy(m_WaitingShips[i].gameObject);
+#endif
                 }
             }
             m_WaitingShips.Clear();
@@ -116,18 +134,16 @@ namespace PixelGame
             GameObject shipObj = Instantiate(m_ShipPrefab, spot.position, spot.rotation, spot);
             shipObj.name = $"Waiting_Ship_{spotIndex}";
             shipObj.transform.localPosition = Vector3.zero;
-            shipObj.transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
+            shipObj.transform.localRotation = Quaternion.identity;
             shipObj.transform.localScale = Vector3.one * m_ShipScale;
 
             ShipController ship = shipObj.GetComponent<ShipController>();
             if (ship == null) ship = shipObj.AddComponent<ShipController>();
 
-            // Renk ve kapasite belirle
             Color shipColor = GetNextNeededColor();
             int capacity = GetRecommendedCapacity();
             ship.Configure(shipColor, capacity);
 
-            // Listeyi genişlet
             while (m_WaitingShips.Count <= spotIndex)
             {
                 m_WaitingShips.Add(null);
@@ -149,55 +165,105 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Gemiyi kuyruktan çıkarır ve arkadaki gemileri öne kaydırır.
+        /// Ön sıradan bir gemi slota gönderildiğinde çağrılır.
+        /// Aynı sütundaki arka gemi öne kayar ve arkaya denizden yeni gemi gelir.
         /// </summary>
-        public void RemoveShipFromQueue(ShipController ship)
+        public void OnFrontShipDispatched(ShipController frontShip)
         {
-            int index = m_WaitingShips.IndexOf(ship);
-            if (index >= 0)
+            int frontIndex = m_WaitingShips.IndexOf(frontShip);
+            if (frontIndex < 0) return;
+
+            int col = frontIndex % m_Columns;
+            int backIndex = m_Columns + col;
+
+            m_WaitingShips[frontIndex] = null;
+
+            // 1. Arkadaki gemiyi aynı sütunda öne kaydır
+            if (backIndex < m_WaitingShips.Count && m_WaitingShips[backIndex] != null)
             {
-                m_WaitingShips[index] = null;
-                CompactAndRefill();
+                ShipController backShip = m_WaitingShips[backIndex];
+                m_WaitingShips[frontIndex] = backShip;
+                m_WaitingShips[backIndex] = null;
+
+                Transform frontSpot = m_QueueSpots[frontIndex];
+                backShip.transform.SetParent(frontSpot, true);
+
+                // Su üzerinde öne doğru süzülme animasyonu
+                backShip.transform.DOKill(true);
+                backShip.transform.DOLocalMove(Vector3.zero, 0.48f).SetEase(Ease.OutQuad)
+                    .OnUpdate(() =>
+                    {
+                        if (UnityEngine.Random.value < 0.20f && backShip != null)
+                        {
+                            ShipController.SpawnWaterRipple(backShip.transform.position + new Vector3(0f, -0.08f, 0.05f), 0.16f, 0.65f, 0.4f);
+                        }
+                    })
+                    .OnComplete(() =>
+                    {
+                        if (backShip != null)
+                        {
+                            backShip.transform.localPosition = Vector3.zero;
+                            backShip.transform.localRotation = Quaternion.identity;
+                            backShip.transform.localScale = Vector3.one * m_ShipScale;
+                        }
+                    });
+            }
+
+            // 2. Boşalan arka yere açık denizden yeni gemi yüzerek gelsin
+            if (gameObject.activeInHierarchy)
+            {
+                StartCoroutine(SpawnAndSailInNewShip(backIndex, 0.22f));
             }
         }
 
-        /// <summary>
-        /// Boşalan yerleri arkadan öne doğru kaydırarak doldurur ve en arkaya yeni gemiler ekler.
-        /// </summary>
-        public void CompactAndRefill()
+        private IEnumerator SpawnAndSailInNewShip(int spotIndex, float delay)
         {
-            // 1. Kaydırma (Compact)
-            for (int i = 0; i < m_QueueSpots.Count - 1; i++)
+            if (delay > 0f) yield return new WaitForSeconds(delay);
+            if (spotIndex < 0 || spotIndex >= m_QueueSpots.Count) yield break;
+            if (m_ShipPrefab == null) yield break;
+
+            Transform spot = m_QueueSpots[spotIndex];
+
+            // Gemiyi arkadan (açık denizden, local Z = -2.6f) başlat
+            Vector3 startLocal = new Vector3(0f, 0f, -2.6f);
+
+            GameObject shipObj = Instantiate(m_ShipPrefab, spot.TransformPoint(startLocal), spot.rotation, spot);
+            shipObj.name = $"Waiting_Ship_{spotIndex}";
+            shipObj.transform.localPosition = startLocal;
+            shipObj.transform.localRotation = Quaternion.identity;
+            shipObj.transform.localScale = Vector3.one * m_ShipScale;
+
+            ShipController ship = shipObj.GetComponent<ShipController>();
+            if (ship == null) ship = shipObj.AddComponent<ShipController>();
+
+            Color shipColor = GetNextNeededColor();
+            int capacity = GetRecommendedCapacity();
+            ship.Configure(shipColor, capacity);
+
+            while (m_WaitingShips.Count <= spotIndex)
             {
-                if (m_WaitingShips[i] == null)
+                m_WaitingShips.Add(null);
+            }
+            m_WaitingShips[spotIndex] = ship;
+
+            // Arkadan öne doğru süzülerek yerine yerleşsin
+            shipObj.transform.DOLocalMove(Vector3.zero, 0.58f).SetEase(Ease.OutQuad)
+                .OnUpdate(() =>
                 {
-                    // Arkadaki ilk dolu gemiyi bul
-                    for (int j = i + 1; j < m_QueueSpots.Count; j++)
+                    if (UnityEngine.Random.value < 0.20f && ship != null)
                     {
-                        if (m_WaitingShips[j] != null)
-                        {
-                            ShipController movingShip = m_WaitingShips[j];
-                            m_WaitingShips[i] = movingShip;
-                            m_WaitingShips[j] = null;
-
-                            // Yeni spotuna yumuşakça kaydır
-                            Transform newSpot = m_QueueSpots[i];
-                            movingShip.transform.SetParent(newSpot, true);
-                            movingShip.transform.DOLocalMove(Vector3.zero, 0.35f).SetEase(Ease.OutQuad);
-                            break;
-                        }
+                        ShipController.SpawnWaterRipple(ship.transform.position + new Vector3(0f, -0.08f, 0.05f), 0.16f, 0.65f, 0.4f);
                     }
-                }
-            }
-
-            // 2. Arkadaki boş yerleri yeni gemilerle doldur (Refill)
-            for (int i = 0; i < m_QueueSpots.Count; i++)
-            {
-                if (i >= m_WaitingShips.Count || m_WaitingShips[i] == null)
+                })
+                .OnComplete(() =>
                 {
-                    SpawnShipAtSpot(i);
-                }
-            }
+                    if (ship != null)
+                    {
+                        ship.transform.localPosition = Vector3.zero;
+                        ship.transform.localRotation = Quaternion.identity;
+                        ship.transform.localScale = Vector3.one * m_ShipScale;
+                    }
+                });
         }
 
         private Color GetNextNeededColor()
@@ -208,7 +274,6 @@ namespace PixelGame
                 if (color != Color.clear) return color;
             }
 
-            // Varsayılan canlı casual renkler
             Color[] defaults = new Color[]
             {
                 new Color(0.18f, 0.52f, 0.95f, 1f), // Canlı Mavi

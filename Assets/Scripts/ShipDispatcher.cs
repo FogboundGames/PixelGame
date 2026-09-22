@@ -229,12 +229,14 @@ namespace PixelGame
                 return false;
             }
 
-            // 3. Kuyruktan çıkar ve slota gönder
+            // 3. Kuyruktan çıkar, arkadaki gemiyi öne kaydır ve açık denizden yenisini getir
             if (m_QueuePool != null)
             {
-                m_QueuePool.RemoveShipFromQueue(ship);
+                m_QueuePool.OnFrontShipDispatched(ship);
             }
 
+            // Gemiyi kuyruk ebeveyninden hemen ayır ki arkadaki gemi geldiğinde çakışmasın
+            ship.transform.SetParent(null, true);
             ship.SailToSlot(emptySlot);
             return true;
         }

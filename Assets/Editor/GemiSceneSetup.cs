@@ -22,7 +22,7 @@ namespace PixelGame.Editor
         private const string ShipTexturePath = "Assets/Kenney/kenney_watercraft-pack/Models/FBX format/Textures/colormap.png";
         private const string ShipMatPath = "Assets/Materials/Ship_Watercraft_Mat.mat";
         private const string ScreenshotPath = "scratch/gemi_gameplay_view.png";
-        private const string AutoRunKey = "GemiSceneSetup_AutoRun_v12";
+        private const string AutoRunKey = "GemiSceneSetup_AutoRun_v25";
 
         // Kum alanı taş çerçevesinin tam ortası (World Units):
         // 9:16 ekranda orthoSize=8 iken Y=3.25f taş çerçevenin tam geometrik merkezidir.
@@ -32,17 +32,15 @@ namespace PixelGame.Editor
 
         static GemiSceneSetup()
         {
-            EditorApplication.update += OnEditorUpdate;
-        }
-
-        private static void OnEditorUpdate()
-        {
-            if (EditorApplication.isPlayingOrWillChangePlaymode) return;
-            EditorApplication.update -= OnEditorUpdate;
-            if (SessionState.GetBool(AutoRunKey, false)) return;
-            SessionState.SetBool(AutoRunKey, true);
-            Setup(includePixelArt: true, includeWaterSlots: true);
-            CaptureScreenshot();
+            EditorApplication.delayCall += () =>
+            {
+                if (!SessionState.GetBool(AutoRunKey, false))
+                {
+                    SessionState.SetBool(AutoRunKey, true);
+                    Setup(includePixelArt: true, includeWaterSlots: true);
+                    CaptureScreenshot();
+                }
+            };
         }
 
         [MenuItem("Tools/PixelGame/🏝️ Gemi Sahnesini Kur & Tüm Ögeleri Getir", priority = 10)]
@@ -448,7 +446,7 @@ namespace PixelGame.Editor
                 slotsGroup.SetParent(waterZone, false);
             }
 
-            slotsGroup.localPosition = new Vector3(0f, 0f, 0f);
+            slotsGroup.localPosition = new Vector3(0f, 0.40f, 0f);
             slotsGroup.localRotation = Quaternion.identity;
             slotsGroup.localScale = Vector3.one;
 
@@ -487,13 +485,14 @@ namespace PixelGame.Editor
 
                 float posX = startX + i * slotSpacing;
                 slotTr.localPosition = new Vector3(posX, 0f, 0f);
-                // 3D su perspektif açısıyla uyumlu eğim:
+                // 3D su perspektif açısıyla uyumlu eğim (Ebeveyn ölçeği tamamen UNIFORM 1.35):
                 slotTr.localRotation = Quaternion.Euler(-68f, 0f, 0f);
                 slotTr.localScale = Vector3.one * 1.35f;
 
                 ShipSlot shipSlot = slotTr.GetComponent<ShipSlot>();
                 if (shipSlot == null) shipSlot = slotTr.gameObject.AddComponent<ShipSlot>();
                 shipSlot.SlotIndex = i;
+                shipSlot.ReleaseShip();
 
                 // Eski model çocuklarını temizle
                 while (slotTr.childCount > 0)
@@ -501,14 +500,14 @@ namespace PixelGame.Editor
                     Undo.DestroyObjectImmediate(slotTr.GetChild(0).gameObject);
                 }
 
-                // 1. indicator-square-b taban modelini ekle
+                // indicator-square-b taban modelini ekle (Mesh'i dikeyde uzatarak ferah kıldık, ebeveyn ölçeği bozulmadı!)
                 if (indicatorPrefab != null)
                 {
                     GameObject indicatorInstance = (GameObject)PrefabUtility.InstantiatePrefab(indicatorPrefab, slotTr);
                     indicatorInstance.name = "IndicatorMesh";
                     indicatorInstance.transform.localPosition = Vector3.zero;
                     indicatorInstance.transform.localRotation = Quaternion.identity;
-                    indicatorInstance.transform.localScale = Vector3.one;
+                    indicatorInstance.transform.localScale = new Vector3(1.0f, 1.0f, 1.25f);
 
                     var indRenderers = indicatorInstance.GetComponentsInChildren<MeshRenderer>(true);
                     foreach (var mr in indRenderers)
@@ -521,36 +520,9 @@ namespace PixelGame.Editor
                         mr.receiveShadows = true;
                     }
                 }
-
-                // 2. ship-cargo-a gemi modelini ekle
-                if (shipPrefab != null)
-                {
-                    GameObject shipInstance = (GameObject)PrefabUtility.InstantiatePrefab(shipPrefab, slotTr);
-                    shipInstance.name = "Ship_Cargo";
-                    shipInstance.transform.localPosition = new Vector3(0f, 0.08f, 0.02f);
-                    shipInstance.transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
-                    shipInstance.transform.localScale = Vector3.one * 0.126f;
-
-                    var shipRenderers = shipInstance.GetComponentsInChildren<MeshRenderer>(true);
-                    foreach (var smr in shipRenderers)
-                    {
-                        if (shipMat != null)
-                        {
-                            smr.sharedMaterial = shipMat;
-                        }
-                        smr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
-                        smr.receiveShadows = true;
-                    }
-
-                    ShipController controller = shipInstance.GetComponent<ShipController>();
-                    if (controller == null) controller = shipInstance.AddComponent<ShipController>();
-                    controller.Configure(initialShipColors[i % initialShipColors.Length], 16);
-
-                    shipSlot.DockShip(controller);
-                }
             }
 
-            // 3. Su Alanı Bekleme Kuyruğu (Ship Queue Pool)
+            // 3. Su Alanı Bekleme Kuyruğu (Ship Queue Pool - Ferah su kanalı ve aralıklar)
             Transform queueObj = waterZone.Find("[ShipQueuePool]");
             if (queueObj == null)
             {
@@ -560,7 +532,7 @@ namespace PixelGame.Editor
                 queueObj.SetParent(waterZone, false);
             }
 
-            queueObj.localPosition = new Vector3(0f, -2.10f, 0f);
+            queueObj.localPosition = new Vector3(0f, -1.35f, 0f);
             queueObj.localRotation = Quaternion.Euler(-68f, 0f, 0f);
             queueObj.localScale = Vector3.one * 1.35f;
 
@@ -571,11 +543,21 @@ namespace PixelGame.Editor
             qSo.FindProperty("m_ShipPrefab").objectReferenceValue = shipPrefab;
             qSo.FindProperty("m_Columns").intValue = 4;
             qSo.FindProperty("m_Rows").intValue = 2;
-            qSo.FindProperty("m_Spacing").vector2Value = new Vector2(1.10f, 1.45f);
+            qSo.FindProperty("m_Spacing").vector2Value = new Vector2(1.28f, 1.22f);
             qSo.FindProperty("m_ShipScale").floatValue = 0.126f;
             qSo.ApplyModifiedPropertiesWithoutUndo();
 
             queuePool.EnsureSpots();
+
+            // Edit Mode önizleme gemilerini oluştur
+            if (shipPrefab != null && !Application.isPlaying)
+            {
+                queuePool.ClearQueue();
+                for (int s = 0; s < queuePool.Capacity; s++)
+                {
+                    queuePool.SpawnShipAtSpot(s);
+                }
+            }
 
             dispatcher.EnsureReferences();
         }
