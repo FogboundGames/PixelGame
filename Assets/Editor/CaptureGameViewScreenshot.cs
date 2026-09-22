@@ -97,16 +97,15 @@ namespace PixelGame.Editor
                 const string prefabPath = "Assets/Prefabs/MainCube.prefab";
                 const string matPath = "Assets/Materials/PixelCube_Cartoon.mat";
 
-                // 1. Mesh'i oluştur veya yükle
-                Mesh roundedMesh = AssetDatabase.LoadAssetAtPath<Mesh>(assetPath);
-                if (roundedMesh == null)
-                {
-                    if (!Directory.Exists(modelDir)) Directory.CreateDirectory(modelDir);
-                    roundedMesh = CreateRoundedCubeMesh(1.0f, 0.125f, 3);
-                    AssetDatabase.CreateAsset(roundedMesh, assetPath);
-                    AssetDatabase.SaveAssets();
-                    Debug.Log("<color=#00FFAA><b>[SetupRoundedCubes]</b></color> RoundedCube.asset başarıyla oluşturuldu!");
-                }
+                // 1. Mesh'i oluştur (deterministic — her seferinde yeniden üret,
+                //    winding düzeltmesi mevcut bozuk asset'i de onarır)
+                if (!Directory.Exists(modelDir)) Directory.CreateDirectory(modelDir);
+                Mesh roundedMesh = CreateRoundedCubeMesh(1.0f, 0.125f, 3);
+                roundedMesh.name = "RoundedCube";
+                AssetDatabase.DeleteAsset(assetPath);
+                AssetDatabase.CreateAsset(roundedMesh, assetPath);
+                AssetDatabase.SaveAssets();
+                Debug.Log("<color=#00FFAA><b>[SetupRoundedCubes]</b></color> RoundedCube.asset yeniden oluşturuldu (winding düzeltildi)!");
 
                 // 2. MainCube.prefab'a yeni mesh'i bağla
                 GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
@@ -298,7 +297,12 @@ namespace PixelGame.Editor
                         int v11 = grid[j + 1, i + 1];
                         int v01 = grid[j + 1, i];
 
-                        if (f.wSign > 0)
+                        // Winding: normalin dışa bakması için hem wSign hem de
+                        // (axU, axV, axW) eksen permütasyonunun handedness'i hesaba katılır.
+                        // Even permütasyon (cyclic: 0→1, 1→2, 2→0) normali sabit tutar;
+                        // tek permütasyonda (cross(axU, axV) = -axW) sarma çevrilmelidir.
+                        bool evenPerm = ((f.axU + 1) % 3 == f.axV) && ((f.axV + 1) % 3 == f.axW);
+                        if (evenPerm == (f.wSign > 0))
                         {
                             triangles.Add(v00); triangles.Add(v10); triangles.Add(v11);
                             triangles.Add(v00); triangles.Add(v11); triangles.Add(v01);

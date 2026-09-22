@@ -13,11 +13,15 @@ namespace PixelGame.Editor
 
         static SetupCornerGear()
         {
+            // Otomatik tetikleme kapatıldı: sahne editör açılışında değiştirilmesin.
+            // Gerekirse Tools menüsünden elle çalıştırılır.
+            /*
             EditorApplication.delayCall += () =>
             {
                 if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;
                 EnsureCornerGearInScene(silent: true);
             };
+            */
         }
 
         [MenuItem("Tools/PixelGame/⚙️ Sol Alt Köşeye Animasyonlu Dişliyi Yerleştir (Corner Gear Setup)", priority = 38)]

@@ -10,7 +10,9 @@ namespace PixelGame.Editor
     {
         static DumpCornerAndCanvasHierarchy()
         {
-            EditorApplication.delayCall += Dump;
+            // Otomatik tetikleme kapatıldı: dump dosyası editör açılışında yazılmasın.
+            // Gerekirse Tools menüsünden elle çalıştırılır.
+            // EditorApplication.delayCall += Dump;
         }
 
         [MenuItem("Tools/PixelGame/Dump Corner & Canvas Hierarchy")]

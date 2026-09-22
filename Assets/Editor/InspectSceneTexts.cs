@@ -10,7 +10,9 @@ namespace PixelGame.Editor
     {
         static InspectSceneTexts()
         {
-            EditorApplication.delayCall += Inspect;
+            // Otomatik tetikleme kapatıldı: scene_texts.txt editör açılışında yazılmasın.
+            // Gerekirse Tools menüsünden elle çalıştırılır.
+            // EditorApplication.delayCall += Inspect;
         }
 
         [MenuItem("Tools/PixelGame/Inspect All Scene Texts")]

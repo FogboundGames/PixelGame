@@ -10,7 +10,9 @@ namespace PixelGame.Editor
     {
         static SetupHypercasualLightingAndMaterials()
         {
-            EditorApplication.delayCall += ApplyHypercasualOverhaul;
+            // Otomatik tetikleme kapatıldı: sahne editör açılışında değiştirilmesin.
+            // Gerekirse Tools menüsünden elle çalıştırılır.
+            // EditorApplication.delayCall += ApplyHypercasualOverhaul;
         }
 
         [MenuItem("Tools/PixelGame/🌟 Hypercasual Parlak Işık ve Karakter Renklerini Uygula")]

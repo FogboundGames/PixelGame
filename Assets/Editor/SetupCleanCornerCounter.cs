@@ -15,7 +15,9 @@ namespace PixelGame.Editor
 
         static SetupCleanCornerCounter()
         {
-            EditorApplication.delayCall += ApplyCleanCorner;
+            // Otomatik tetikleme kapatıldı: sahne editör açılışında değiştirilmesin.
+            // Gerekirse Tools menüsünden elle çalıştırılır.
+            // EditorApplication.delayCall += ApplyCleanCorner;
         }
 
         [MenuItem("Tools/PixelGame/🎯 Köşe Sayacını & Üst HUD'ı Düzenle (Clean Corner & Top UI)")]

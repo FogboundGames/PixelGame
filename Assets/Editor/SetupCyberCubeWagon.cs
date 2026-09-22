@@ -19,7 +19,9 @@ namespace PixelGame.Editor
 
         static SetupCyberCubeWagon()
         {
-            EditorApplication.delayCall += AutoRunOnce;
+            // Otomatik tetikleme kapatıldı: sahne/editör açılışında değiştirilmesin.
+            // Gerekirse Tools menüsünden elle çalıştırılır.
+            // EditorApplication.delayCall += AutoRunOnce;
         }
 
         private static void AutoRunOnce()

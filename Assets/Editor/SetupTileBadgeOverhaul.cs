@@ -10,7 +10,9 @@ namespace PixelGame.Editor
     {
         static SetupTileBadgeOverhaul()
         {
-            EditorApplication.delayCall += ApplyOverhaul;
+            // Otomatik tetikleme kapatıldı: sahne editör açılışında değiştirilmesin.
+            // Gerekirse Tools menüsünden elle çalıştırılır.
+            // EditorApplication.delayCall += ApplyOverhaul;
         }
 
         private const string CountPath = "Assets/UI/Count.png";
@@ -181,6 +183,9 @@ namespace PixelGame.Editor
 
         static SetupTileBadgeOverhaulRunner()
         {
+            // Otomatik tetikleme kapatıldı: sahne editör açılışında değiştirilmesin.
+            // Gerekirse Tools menüsünden elle çalıştırılır.
+            /*
             EditorApplication.delayCall += () =>
             {
                 try
@@ -195,6 +200,7 @@ namespace PixelGame.Editor
                     Debug.LogWarning("[TileBadgeOverhaul] Runner hatasız devam etti: " + ex.Message);
                 }
             };
+            */
         }
     }
 }

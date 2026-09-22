@@ -12,7 +12,9 @@ namespace PixelGame.Editor
 
         static SetupPoolSlotShadows()
         {
-            EditorApplication.delayCall += ApplyPoolShadows;
+            // Otomatik tetikleme kapatıldı: sahne editör açılışında değiştirilmesin.
+            // Gerekirse Tools menüsünden elle çalıştırılır.
+            // EditorApplication.delayCall += ApplyPoolShadows;
         }
 
         [MenuItem("Tools/PixelGame/🌑 Havuz Slot Gölgelerini Uygula (Setup Pool Fake Shadows)", priority = 4)]

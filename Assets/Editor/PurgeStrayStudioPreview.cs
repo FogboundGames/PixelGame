@@ -8,7 +8,9 @@ namespace PixelGame.Editor
     {
         static PurgeStrayStudioPreview()
         {
-            EditorApplication.delayCall += ExecutePurge;
+            // Otomatik tetikleme kapatıldı: sahne editör açılışında değiştirilmesin.
+            // Gerekirse Tools menüsünden elle çalıştırılır.
+            // EditorApplication.delayCall += ExecutePurge;
         }
 
         [MenuItem("Tools/PixelGame/🧹 Sahnede Kalan Gizli Önizleme Robotlarını Temizle", priority = 1)]

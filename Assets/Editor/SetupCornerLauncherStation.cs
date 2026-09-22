@@ -21,7 +21,9 @@ namespace PixelGame.Editor
 
         static SetupCornerLauncherStation()
         {
-            EditorApplication.delayCall += ApplyCornerLauncher;
+            // Otomatik tetikleme kapatıldı: sahne editör açılışında değiştirilmesin.
+            // Gerekirse Tools menüsünden elle çalıştırılır.
+            // EditorApplication.delayCall += ApplyCornerLauncher;
         }
 
         [MenuItem("Tools/PixelGame/🚀 Köşe Fırlatma İstasyonunu & Canlı Butonu Kur (Corner Launcher Setup)", priority = 3)]
