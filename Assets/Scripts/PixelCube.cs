@@ -322,10 +322,12 @@ namespace PixelGame
             if (!Application.isPlaying) return;
             if (m_IsPopped || !gameObject.activeSelf) return;
 
-            // 0. Kamyon kuralı: rengine uyan bir kamyon slotta yoksa küp patlamaz.
-            //    Dispatcher yoksa kural da yoktur; küp serbestçe patlar.
-            TruckDispatcher dispatcher = TruckDispatcher.Instance;
-            if (dispatcher != null && !dispatcher.CanPop(m_CurrentColor)) return;
+            // 0. Gemi veya Kamyon kuralı: rengine uyan bir gemi/kamyon slotta yoksa küp patlamaz.
+            ShipDispatcher shipDispatcher = ShipDispatcher.Instance;
+            if (shipDispatcher != null && !shipDispatcher.CanPop(m_CurrentColor)) return;
+
+            TruckDispatcher truckDispatcher = TruckDispatcher.Instance;
+            if (truckDispatcher != null && !truckDispatcher.CanPop(m_CurrentColor)) return;
 
             // 1. Kendi renginde 3D mini vokseller aşağıya doğru dökülsün
             if (VoxelParticleManager.Instance != null)
@@ -333,10 +335,14 @@ namespace PixelGame
                 VoxelParticleManager.Instance.SpawnVoxelBurst(transform.position, transform.lossyScale, m_CurrentColor);
             }
 
-            // 2. Küpü rengine uyan kamyonun kasasına yükle (12 kırık parça kendi açılarından fırlar)
-            if (dispatcher != null)
+            // 2. Küpü rengine uyan gemiye veya kamyona yükle
+            if (shipDispatcher != null)
             {
-                dispatcher.NotifyCubePopped(m_CurrentColor, transform.position, m_CurrentColor, transform.lossyScale, transform.rotation);
+                shipDispatcher.NotifyCubePopped(m_CurrentColor, transform.position, m_CurrentColor, transform.lossyScale, transform.rotation);
+            }
+            else if (truckDispatcher != null)
+            {
+                truckDispatcher.NotifyCubePopped(m_CurrentColor, transform.position, m_CurrentColor, transform.lossyScale, transform.rotation);
             }
 
             // 3. Etkileşim yöneticisine bildir

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -13,42 +14,95 @@ namespace PixelGame.Editor
         private const string BgImagePath = "Assets/Kenney/ChatGPT Image 22 Eyl 2026 19_23_43.png";
         private const string ShadowShaderName = "Custom/URP_ShadowCatcher";
         private const string ShadowMatPath = "Assets/Materials/Gemi_ShadowCatcher_Mat.mat";
+        private const string IndicatorMatPath = "Assets/Materials/Indicator_Slot_Mat.mat";
+        private const string MainCubePrefabPath = "Assets/Prefabs/MainCube.prefab";
+        private const string IndicatorModelPath = "Assets/Kenney/kenney_prototype-kit/Models/FBX format/indicator-square-b.fbx";
+        private const string IndicatorTexturePath = "Assets/Kenney/kenney_prototype-kit/Models/Textures/variation-a.png";
+        private const string ShipCargoModelPath = "Assets/Kenney/kenney_watercraft-pack/Models/FBX format/ship-cargo-a.fbx";
+        private const string ShipTexturePath = "Assets/Kenney/kenney_watercraft-pack/Models/FBX format/Textures/colormap.png";
+        private const string ShipMatPath = "Assets/Materials/Ship_Watercraft_Mat.mat";
         private const string ScreenshotPath = "scratch/gemi_gameplay_view.png";
-        private const string AutoRunKey = "GemiSceneSetup_AutoRun_v2";
+        private const string AutoRunKey = "GemiSceneSetup_AutoRun_v12";
+
+        // Kum alanı taş çerçevesinin tam ortası (World Units):
+        // 9:16 ekranda orthoSize=8 iken Y=3.25f taş çerçevenin tam geometrik merkezidir.
+        private static readonly Vector3 SandFrameCenterWorld = new Vector3(0f, 3.25f, 0f);
+        private const float SandFrameCanvasY = 390.0f;
+        private const float SandFrameCanvasSize = 510f;
 
         static GemiSceneSetup()
         {
-            EditorApplication.delayCall += OnEditorDelayCall;
+            EditorApplication.update += OnEditorUpdate;
         }
 
-        private static void OnEditorDelayCall()
+        private static void OnEditorUpdate()
         {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+            EditorApplication.update -= OnEditorUpdate;
             if (SessionState.GetBool(AutoRunKey, false)) return;
             SessionState.SetBool(AutoRunKey, true);
-            Setup(includeDemoModels: true);
+            Setup(includePixelArt: true, includeWaterSlots: true);
             CaptureScreenshot();
         }
 
-        [MenuItem("Tools/PixelGame/🏝️ Gemi Sahnesi Kurulumunu Yap (Setup Gemi Scene)", priority = 10)]
+        [MenuItem("Tools/PixelGame/🏝️ Gemi Sahnesini Kur & Tüm Ögeleri Getir", priority = 10)]
         public static void SetupGemiSceneMenu()
         {
-            Setup(includeDemoModels: true);
+            Setup(includePixelArt: true, includeWaterSlots: true);
             CaptureScreenshot();
-            EditorUtility.DisplayDialog("Gemi Sahnesi Hazır!",
-                "2D sabit arka plan, URP şeffaf gölge yakalayıcı zemin ve 3D gameplay katmanları başarıyla kuruldu!\n\n" +
-                "Örnek 3D modeller [GAMEPLAY_MODELS] altında yerleştirildi. Kendi modellerinizi [Zone_Sand_PlayArea], [Zone_Wooden_Bridge] ve [Zone_Water_LowerArea] gruplarına serbestçe ekleyebilirsiniz.", "Harika");
+            EditorUtility.DisplayDialog("Gemi Sahnesi Hazır! 🏝️⚓",
+                "Sahne tüm ögeleriyle başarıyla yapılandırıldı!\n\n" +
+                "• Kum alanında taş çerçevenin ortasına 3D Piksel Görseli yerleştirildi.\n" +
+                "• Su alanına 5 adet 'indicator-square-b' slotu yan yana dizildi.\n" +
+                "• LevelManager ve PixelCubeInteraction tam aktif.\n" +
+                "• URP yumuşak gölgeler zemin üzerinde canlı olarak çalışıyor.", "Harika!");
         }
 
-        [MenuItem("Tools/PixelGame/🏝️ Gemi Sahnesi Kur (Temiz - Demosuz)", priority = 11)]
-        public static void SetupGemiSceneCleanMenu()
+        [MenuItem("Tools/PixelGame/🎨 Kum Alanındaki Piksel Resmi Yenile (Regenerate)", priority = 11)]
+        public static void RegeneratePixelArtMenu()
         {
-            Setup(includeDemoModels: false);
-            CaptureScreenshot();
-            EditorUtility.DisplayDialog("Gemi Sahnesi Hazır (Temiz)",
-                "2D sabit arka plan ve 3D katmanlar demosuz, tertemiz şekilde kuruldu!", "Tamam");
+            PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (gen != null)
+            {
+                gen.GeneratePixelArt();
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+                EditorSceneManager.SaveOpenScenes();
+                CaptureScreenshot();
+                Debug.Log("<color=#00FFAA><b>[GemiSceneSetup]</b></color> Piksel sanatı başarıyla yenilendi!");
+            }
+            else
+            {
+                Setup(includePixelArt: true, includeWaterSlots: true);
+            }
         }
 
-        [MenuItem("Tools/PixelGame/📸 Gemi Sahnesi Ekran Görüntüsü Al", priority = 12)]
+        [MenuItem("Tools/PixelGame/➡️ Sonraki Seviyeyi Yükle (Next Level)", priority = 12)]
+        public static void NextLevelMenu()
+        {
+            LevelManager lm = Object.FindFirstObjectByType<LevelManager>();
+            if (lm != null)
+            {
+                lm.NextLevel();
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+                EditorSceneManager.SaveOpenScenes();
+                CaptureScreenshot();
+            }
+        }
+
+        [MenuItem("Tools/PixelGame/⬅️ Önceki Seviyeyi Yükle (Prev Level)", priority = 13)]
+        public static void PrevLevelMenu()
+        {
+            LevelManager lm = Object.FindFirstObjectByType<LevelManager>();
+            if (lm != null)
+            {
+                lm.PreviousLevel();
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+                EditorSceneManager.SaveOpenScenes();
+                CaptureScreenshot();
+            }
+        }
+
+        [MenuItem("Tools/PixelGame/📸 Gemi Sahnesi Ekran Görüntüsü Al", priority = 14)]
         public static void CaptureScreenshotMenu()
         {
             CaptureScreenshot();
@@ -56,14 +110,14 @@ namespace PixelGame.Editor
                 $"Ekran görüntüsü kaydedildi:\n{ScreenshotPath}", "Tamam");
         }
 
-        public static void Setup(bool includeDemoModels = true)
+        public static void Setup(bool includePixelArt = true, bool includeWaterSlots = true)
         {
             if (EditorSceneManager.GetActiveScene().path != ScenePath)
             {
                 EditorSceneManager.OpenScene(ScenePath);
             }
 
-            Undo.SetCurrentGroupName("Setup Gemi Scene");
+            Undo.SetCurrentGroupName("Setup Gemi Scene with Pixel Art and Water Slots");
             int undoGroup = Undo.GetCurrentGroup();
 
             // 1. Kamera Düzeni
@@ -97,7 +151,7 @@ namespace PixelGame.Editor
                 camData.renderShadows = true;
             }
 
-            // 2. Işıklandırma (Directional Light) - Görseldeki doğal güneş açısıyla eşleşir
+            // 2. Işıklandırma (Directional Light) - Doğal sıcak güneş açısı
             Light dirLight = Object.FindFirstObjectByType<Light>();
             if (dirLight == null || dirLight.type != LightType.Directional)
             {
@@ -108,7 +162,6 @@ namespace PixelGame.Editor
 
             dirLight.transform.SetParent(null, true);
             dirLight.transform.position = new Vector3(-3f, 8f, -6f);
-            // Sol-üstten hafif açıyla düşen sıcak gün ışığı:
             dirLight.transform.rotation = Quaternion.Euler(48f, -32f, 0f);
             dirLight.color = new Color(1.0f, 0.95f, 0.88f, 1f);
             dirLight.intensity = 1.25f;
@@ -125,7 +178,6 @@ namespace PixelGame.Editor
             GameObject canvasObj = GameObject.Find("Background_Canvas");
             if (canvasObj == null)
             {
-                // Eski Canvas varsa adını güncelle
                 GameObject oldCanvas = GameObject.Find("Canvas");
                 if (oldCanvas != null) canvasObj = oldCanvas;
                 else canvasObj = new GameObject("Background_Canvas");
@@ -136,37 +188,23 @@ namespace PixelGame.Editor
             if (canvas == null) canvas = canvasObj.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceCamera;
             canvas.worldCamera = cam;
-            canvas.planeDistance = 35f; // 3D modellerin arkasında
-            canvas.sortingOrder = -100; // En alt katman
+            canvas.planeDistance = 35f;
+            canvas.sortingOrder = -100;
 
             CanvasScaler scaler = canvasObj.GetComponent<CanvasScaler>();
             if (scaler == null) scaler = canvasObj.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1080f, 1920f);
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight = 0f; // Genişliğe göre eşle (mobil dikey tam dolum)
+            scaler.matchWidthOrHeight = 0f;
 
             if (canvasObj.GetComponent<GraphicRaycaster>() == null)
             {
                 canvasObj.AddComponent<GraphicRaycaster>();
             }
 
-            // RawImage temizliği ve ayarı
-            RawImage[] existingRawImages = canvasObj.GetComponentsInChildren<RawImage>(true);
-            RawImage activeRawImg = null;
-            for (int i = 0; i < existingRawImages.Length; i++)
-            {
-                if (activeRawImg == null)
-                {
-                    activeRawImg = existingRawImages[i];
-                    activeRawImg.gameObject.SetActive(true);
-                }
-                else
-                {
-                    Undo.DestroyObjectImmediate(existingRawImages[i].gameObject);
-                }
-            }
-
+            // BackgroundImage
+            RawImage activeRawImg = canvasObj.GetComponentInChildren<RawImage>(true);
             if (activeRawImg == null)
             {
                 GameObject rawObj = new GameObject("BackgroundImage", typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
@@ -174,8 +212,11 @@ namespace PixelGame.Editor
                 activeRawImg = rawObj.GetComponent<RawImage>();
             }
             activeRawImg.name = "BackgroundImage";
-            activeRawImg.texture = bgTex;
-            activeRawImg.raycastTarget = false; // Tıklamaları yutmaz, 3D modellere geçiş sağlar
+            if (activeRawImg.texture == null && bgTex != null)
+            {
+                activeRawImg.texture = bgTex;
+            }
+            activeRawImg.raycastTarget = false;
 
             RectTransform rawRect = activeRawImg.rectTransform;
             rawRect.anchorMin = Vector2.zero;
@@ -183,6 +224,30 @@ namespace PixelGame.Editor
             rawRect.offsetMin = Vector2.zero;
             rawRect.offsetMax = Vector2.zero;
             rawRect.localScale = Vector3.one;
+
+            // MainPlane UI Kılavuzu (Taş çerçevenin tam ortasını belirten görünmez UI hedefi)
+            RectTransform targetFrameRect = null;
+            Transform mainPlaneTr = canvasObj.transform.Find("MainPlane");
+            if (mainPlaneTr == null)
+            {
+                GameObject planeObj = new GameObject("MainPlane", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                planeObj.transform.SetParent(canvasObj.transform, false);
+                mainPlaneTr = planeObj.transform;
+            }
+            targetFrameRect = mainPlaneTr.GetComponent<RectTransform>();
+            targetFrameRect.anchorMin = new Vector2(0.5f, 0.5f);
+            targetFrameRect.anchorMax = new Vector2(0.5f, 0.5f);
+            targetFrameRect.pivot = new Vector2(0.5f, 0.5f);
+            targetFrameRect.anchoredPosition = new Vector2(0f, SandFrameCanvasY);
+            targetFrameRect.sizeDelta = new Vector2(SandFrameCanvasSize, SandFrameCanvasSize);
+            targetFrameRect.localScale = Vector3.one;
+
+            Image planeImg = targetFrameRect.GetComponent<Image>();
+            if (planeImg != null)
+            {
+                planeImg.enabled = false;
+                planeImg.raycastTarget = false;
+            }
 
             // 4. URP Şeffaf Gölge Yakalayıcı Zemin (Shadow Catcher)
             Material shadowMat = GetOrCreateShadowMaterial();
@@ -194,13 +259,12 @@ namespace PixelGame.Editor
                 Undo.RegisterCreatedObjectUndo(shadowPlane, "Create Ground Shadow Catcher");
             }
 
-            // Collider gerekmez, tıklamaları engellemesin
             Collider col = shadowPlane.GetComponent<Collider>();
             if (col != null) Object.DestroyImmediate(col);
 
-            shadowPlane.transform.position = new Vector3(0f, 0f, 0.05f); // 3D modellerin hemen arkasında
+            shadowPlane.transform.position = new Vector3(0f, 0f, 0.05f);
             shadowPlane.transform.rotation = Quaternion.identity;
-            shadowPlane.transform.localScale = new Vector3(14f, 24f, 1f); // Tüm ekranı kapsar
+            shadowPlane.transform.localScale = new Vector3(14f, 24f, 1f);
 
             MeshRenderer shadowMr = shadowPlane.GetComponent<MeshRenderer>();
             if (shadowMr != null)
@@ -222,19 +286,28 @@ namespace PixelGame.Editor
             }
             gameplayRoot.transform.position = Vector3.zero;
             gameplayRoot.transform.rotation = Quaternion.identity;
+            gameplayRoot.transform.localScale = Vector3.one;
 
-            // Bölgeleri oluştur
-            Transform zoneSand = EnsureZone(gameplayRoot.transform, "[Zone_Sand_PlayArea]", new Vector3(0f, 3.85f, 0f));
+            Transform zoneSand = EnsureZone(gameplayRoot.transform, "[Zone_Sand_PlayArea]", SandFrameCenterWorld);
             Transform zoneBridge = EnsureZone(gameplayRoot.transform, "[Zone_Wooden_Bridge]", new Vector3(0f, -0.32f, 0f));
             Transform zoneWater = EnsureZone(gameplayRoot.transform, "[Zone_Water_LowerArea]", new Vector3(0f, -4.80f, 0f));
 
-            // 7. Demo Modelleri (Kullanıcı kendi modellerini ekleyebilsin diye örnek)
-            Transform existingDemo = gameplayRoot.transform.Find("Demo_Showcase");
-            if (existingDemo != null) Undo.DestroyObjectImmediate(existingDemo.gameObject);
+            // Eski Demo_Showcase nesnesini temizle
+            Transform oldDemo = gameplayRoot.transform.Find("Demo_Showcase");
+            if (oldDemo != null) Undo.DestroyObjectImmediate(oldDemo.gameObject);
+            Transform strayDemo = GameObject.Find("Demo_Showcase")?.transform;
+            if (strayDemo != null) Undo.DestroyObjectImmediate(strayDemo.gameObject);
 
-            if (includeDemoModels)
+            // 7. Piksel Görsellerini (PixelArtGenerator & LevelManager) Kum Çerçevesinin Ortasına Yerleştir
+            if (includePixelArt)
             {
-                SetupDemoShowcase(zoneSand, zoneWater);
+                SetupPixelArtSystem(zoneSand, targetFrameRect, cam);
+            }
+
+            // 8. Su Bölgesine 5 Adet Slot Yerleştir (indicator-square-b)
+            if (includeWaterSlots)
+            {
+                SetupWaterSlots(zoneWater);
             }
 
             // Sahneyi kaydet
@@ -242,7 +315,315 @@ namespace PixelGame.Editor
             EditorSceneManager.SaveOpenScenes();
             Undo.CollapseUndoOperations(undoGroup);
 
-            Debug.Log("<color=#00FFAA><b>[GemiSceneSetup]</b></color> Gemi sahnesi başarıyla yapılandırıldı ve kaydedildi!");
+            Debug.Log("<color=#00FFAA><b>[GemiSceneSetup]</b></color> Gemi sahnesi 5 su slotu ve piksel görselleriyle başarıyla yapılandırıldı!");
+        }
+
+        private static void SetupPixelArtSystem(Transform sandZone, RectTransform targetFrameRect, Camera cam)
+        {
+            GameObject genObj = GameObject.Find("[PixelArtGenerator]");
+            if (genObj == null)
+            {
+                Transform inZone = sandZone.Find("[PixelArtGenerator]");
+                if (inZone != null) genObj = inZone.gameObject;
+                else
+                {
+                    genObj = new GameObject("[PixelArtGenerator]");
+                    Undo.RegisterCreatedObjectUndo(genObj, "Create PixelArtGenerator");
+                }
+            }
+
+            genObj.transform.SetParent(sandZone, false);
+            genObj.transform.localPosition = Vector3.zero;
+            genObj.transform.localRotation = Quaternion.identity;
+            genObj.transform.localScale = Vector3.one;
+
+            // 1. PixelArtGenerator bileşeni
+            PixelArtGenerator generator = genObj.GetComponent<PixelArtGenerator>();
+            if (generator == null) generator = genObj.AddComponent<PixelArtGenerator>();
+
+            GameObject cubePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(MainCubePrefabPath);
+            if (cubePrefab == null)
+            {
+                Debug.LogError($"[GemiSceneSetup] MainCube prefab'ı bulunamadı: {MainCubePrefabPath}");
+            }
+
+            PixelLevelData defaultLevel = AssetDatabase.LoadAssetAtPath<PixelLevelData>("Assets/Levels/Level_01_Raccoon.asset");
+            Texture2D defaultTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/PixelArt_Raccoon.png");
+
+            var so = new SerializedObject(generator);
+            so.FindProperty("m_CubePrefab").objectReferenceValue = cubePrefab;
+            so.FindProperty("m_SourceTexture").objectReferenceValue = defaultTex;
+            so.FindProperty("m_ActiveLevelData").objectReferenceValue = defaultLevel;
+            so.FindProperty("m_TargetFrameRect").objectReferenceValue = targetFrameRect;
+            so.FindProperty("m_WorldCamera").objectReferenceValue = cam;
+            so.FindProperty("m_UseNativeResolution").boolValue = true;
+            so.FindProperty("m_InnerPadding").floatValue = 0.05f;
+            so.FindProperty("m_CubeSpacing").floatValue = 0.02f;
+            so.FindProperty("m_CubeDepth").floatValue = 0.75f;
+            so.FindProperty("m_ColorBrightness").floatValue = 1.15f;
+            so.FindProperty("m_ColorSaturation").floatValue = 1.25f;
+            so.FindProperty("m_ColorContrast").floatValue = 1.05f;
+            so.FindProperty("m_EmissionIntensity").floatValue = 0.25f;
+            so.FindProperty("m_PreserveSceneEdits").boolValue = false;
+            so.FindProperty("m_EnableCubeShadows").boolValue = false;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            // 2. LevelManager bileşeni
+            LevelManager levelManager = genObj.GetComponent<LevelManager>();
+            if (levelManager == null) levelManager = genObj.AddComponent<LevelManager>();
+
+            var lmSo = new SerializedObject(levelManager);
+            var levelsProp = lmSo.FindProperty("m_Levels");
+            levelsProp.ClearArray();
+
+            string[] levelGuids = AssetDatabase.FindAssets("t:PixelLevelData", new[] { "Assets/Levels" });
+            for (int i = 0; i < levelGuids.Length; i++)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(levelGuids[i]);
+                PixelLevelData levelData = AssetDatabase.LoadAssetAtPath<PixelLevelData>(path);
+                if (levelData != null)
+                {
+                    levelsProp.InsertArrayElementAtIndex(levelsProp.arraySize);
+                    levelsProp.GetArrayElementAtIndex(levelsProp.arraySize - 1).objectReferenceValue = levelData;
+                }
+            }
+
+            lmSo.FindProperty("m_CurrentLevelIndex").intValue = 0;
+            lmSo.FindProperty("m_Generator").objectReferenceValue = generator;
+            lmSo.ApplyModifiedPropertiesWithoutUndo();
+
+            // 3. PixelCubeInteraction bileşeni
+            PixelCubeInteraction interaction = genObj.GetComponent<PixelCubeInteraction>();
+            if (interaction == null) interaction = genObj.AddComponent<PixelCubeInteraction>();
+
+            var interSo = new SerializedObject(interaction);
+            interSo.FindProperty("m_WorldCamera").objectReferenceValue = cam;
+            interSo.FindProperty("m_AllowDragPopping").boolValue = true;
+            interSo.FindProperty("m_BlockOverUIButtonsOnly").boolValue = true;
+            interSo.FindProperty("m_ShowResetButtonOnScreen").boolValue = false;
+            interSo.ApplyModifiedPropertiesWithoutUndo();
+
+            // 4. Piksel küplerini doğrudan çerçeve içerisine üret
+            generator.GeneratePixelArt();
+
+            if (generator.CubesContainer != null)
+            {
+                var meshRenderers = generator.CubesContainer.GetComponentsInChildren<MeshRenderer>(true);
+                foreach (var mr in meshRenderers)
+                {
+                    mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                    mr.receiveShadows = true;
+                }
+            }
+        }
+
+        private static void SetupWaterSlots(Transform waterZone)
+        {
+            // Eski tüm geçici dekorasyonları ve prefab instance'larını temizle
+            for (int i = waterZone.childCount - 1; i >= 0; i--)
+            {
+                Transform child = waterZone.GetChild(i);
+                if (child.name != "[WaterSlotsRow]" && child.name != "[ShipQueuePool]")
+                {
+                    GameObject root = PrefabUtility.GetOutermostPrefabInstanceRoot(child.gameObject);
+                    if (root != null)
+                        Undo.DestroyObjectImmediate(root);
+                    else
+                        Undo.DestroyObjectImmediate(child.gameObject);
+                }
+            }
+
+            // 1. ShipDispatcher Yöneticisi
+            GameObject gameplayRoot = waterZone.parent != null ? waterZone.parent.gameObject : waterZone.gameObject;
+            ShipDispatcher dispatcher = gameplayRoot.GetComponent<ShipDispatcher>();
+            if (dispatcher == null) dispatcher = gameplayRoot.AddComponent<ShipDispatcher>();
+
+            // 2. Su alanı altındaki Slotlar grubu
+            Transform slotsGroup = waterZone.Find("[WaterSlotsRow]");
+            if (slotsGroup == null)
+            {
+                GameObject slotsObj = new GameObject("[WaterSlotsRow]");
+                Undo.RegisterCreatedObjectUndo(slotsObj, "Create WaterSlotsRow");
+                slotsGroup = slotsObj.transform;
+                slotsGroup.SetParent(waterZone, false);
+            }
+
+            slotsGroup.localPosition = new Vector3(0f, 0f, 0f);
+            slotsGroup.localRotation = Quaternion.identity;
+            slotsGroup.localScale = Vector3.one;
+
+            // Indicator ve Gemi Modellerini yükle
+            GameObject indicatorPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(IndicatorModelPath);
+            GameObject shipPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(ShipCargoModelPath);
+
+            Material indicatorMat = GetOrCreateIndicatorMaterial();
+            Material shipMat = GetOrCreateShipMaterial();
+
+            // 5 adet slot yerleştir
+            const int slotCount = 5;
+            const float slotSpacing = 1.48f; // Ekran genişliğine (9.0 birim) tam oturan dengeli aralık
+            float startX = -(slotCount - 1) * slotSpacing * 0.5f; // -2.96f
+
+            Color[] initialShipColors = new Color[]
+            {
+                new Color(0.18f, 0.52f, 0.95f, 1f), // Canlı Mavi (Rakun Gövdesi)
+                new Color(0.95f, 0.28f, 0.25f, 1f), // Canlı Kırmızı
+                new Color(0.22f, 0.82f, 0.42f, 1f), // Canlı Yeşil
+                new Color(0.98f, 0.78f, 0.15f, 1f), // Canlı Sarı (Zemin)
+                new Color(0.25f, 0.28f, 0.38f, 1f)  // Koyu Gri/Mavi (Rakun Gözleri/Kuyruk)
+            };
+
+            for (int i = 0; i < slotCount; i++)
+            {
+                string slotName = $"WaterSlot_{i + 1}";
+                Transform slotTr = slotsGroup.Find(slotName);
+                if (slotTr == null)
+                {
+                    GameObject slotGo = new GameObject(slotName);
+                    Undo.RegisterCreatedObjectUndo(slotGo, $"Create {slotName}");
+                    slotTr = slotGo.transform;
+                    slotTr.SetParent(slotsGroup, false);
+                }
+
+                float posX = startX + i * slotSpacing;
+                slotTr.localPosition = new Vector3(posX, 0f, 0f);
+                // 3D su perspektif açısıyla uyumlu eğim:
+                slotTr.localRotation = Quaternion.Euler(-68f, 0f, 0f);
+                slotTr.localScale = Vector3.one * 1.35f;
+
+                ShipSlot shipSlot = slotTr.GetComponent<ShipSlot>();
+                if (shipSlot == null) shipSlot = slotTr.gameObject.AddComponent<ShipSlot>();
+                shipSlot.SlotIndex = i;
+
+                // Eski model çocuklarını temizle
+                while (slotTr.childCount > 0)
+                {
+                    Undo.DestroyObjectImmediate(slotTr.GetChild(0).gameObject);
+                }
+
+                // 1. indicator-square-b taban modelini ekle
+                if (indicatorPrefab != null)
+                {
+                    GameObject indicatorInstance = (GameObject)PrefabUtility.InstantiatePrefab(indicatorPrefab, slotTr);
+                    indicatorInstance.name = "IndicatorMesh";
+                    indicatorInstance.transform.localPosition = Vector3.zero;
+                    indicatorInstance.transform.localRotation = Quaternion.identity;
+                    indicatorInstance.transform.localScale = Vector3.one;
+
+                    var indRenderers = indicatorInstance.GetComponentsInChildren<MeshRenderer>(true);
+                    foreach (var mr in indRenderers)
+                    {
+                        if (indicatorMat != null)
+                        {
+                            mr.sharedMaterial = indicatorMat;
+                        }
+                        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                        mr.receiveShadows = true;
+                    }
+                }
+
+                // 2. ship-cargo-a gemi modelini ekle
+                if (shipPrefab != null)
+                {
+                    GameObject shipInstance = (GameObject)PrefabUtility.InstantiatePrefab(shipPrefab, slotTr);
+                    shipInstance.name = "Ship_Cargo";
+                    shipInstance.transform.localPosition = new Vector3(0f, 0.08f, 0.02f);
+                    shipInstance.transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
+                    shipInstance.transform.localScale = Vector3.one * 0.126f;
+
+                    var shipRenderers = shipInstance.GetComponentsInChildren<MeshRenderer>(true);
+                    foreach (var smr in shipRenderers)
+                    {
+                        if (shipMat != null)
+                        {
+                            smr.sharedMaterial = shipMat;
+                        }
+                        smr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                        smr.receiveShadows = true;
+                    }
+
+                    ShipController controller = shipInstance.GetComponent<ShipController>();
+                    if (controller == null) controller = shipInstance.AddComponent<ShipController>();
+                    controller.Configure(initialShipColors[i % initialShipColors.Length], 16);
+
+                    shipSlot.DockShip(controller);
+                }
+            }
+
+            // 3. Su Alanı Bekleme Kuyruğu (Ship Queue Pool)
+            Transform queueObj = waterZone.Find("[ShipQueuePool]");
+            if (queueObj == null)
+            {
+                GameObject qGo = new GameObject("[ShipQueuePool]");
+                Undo.RegisterCreatedObjectUndo(qGo, "Create ShipQueuePool");
+                queueObj = qGo.transform;
+                queueObj.SetParent(waterZone, false);
+            }
+
+            queueObj.localPosition = new Vector3(0f, -2.10f, 0f);
+            queueObj.localRotation = Quaternion.Euler(-68f, 0f, 0f);
+            queueObj.localScale = Vector3.one * 1.35f;
+
+            ShipQueuePool queuePool = queueObj.GetComponent<ShipQueuePool>();
+            if (queuePool == null) queuePool = queueObj.gameObject.AddComponent<ShipQueuePool>();
+
+            var qSo = new SerializedObject(queuePool);
+            qSo.FindProperty("m_ShipPrefab").objectReferenceValue = shipPrefab;
+            qSo.FindProperty("m_Columns").intValue = 4;
+            qSo.FindProperty("m_Rows").intValue = 2;
+            qSo.FindProperty("m_Spacing").vector2Value = new Vector2(1.10f, 1.45f);
+            qSo.FindProperty("m_ShipScale").floatValue = 0.126f;
+            qSo.ApplyModifiedPropertiesWithoutUndo();
+
+            queuePool.EnsureSpots();
+
+            dispatcher.EnsureReferences();
+        }
+
+        private static Material GetOrCreateShipMaterial()
+        {
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>(ShipMatPath);
+            Shader toonShader = Shader.Find("Toony Colors Pro 2/PixelGame/Cartoon");
+            if (toonShader == null) toonShader = Shader.Find("Universal Render Pipeline/Lit");
+
+            if (mat == null)
+            {
+                mat = new Material(toonShader);
+                mat.name = "Ship_Watercraft_Mat";
+
+                string dir = Path.GetDirectoryName(ShipMatPath);
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                AssetDatabase.CreateAsset(mat, ShipMatPath);
+            }
+            else if (mat.shader != toonShader && toonShader != null)
+            {
+                mat.shader = toonShader;
+            }
+
+            Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(ShipTexturePath);
+            if (tex != null)
+            {
+                mat.SetTexture("_BaseMap", tex);
+            }
+            mat.SetColor("_BaseColor", Color.white);
+
+            // Toony Colors Pro Şık Cel-Shading & Toy Plastic Ayarları
+            if (mat.HasProperty("_HColor")) mat.SetColor("_HColor", new Color(1.0f, 0.98f, 0.92f, 1f));
+            if (mat.HasProperty("_SColor")) mat.SetColor("_SColor", new Color(0.42f, 0.48f, 0.65f, 1f));
+            if (mat.HasProperty("_RampThreshold")) mat.SetFloat("_RampThreshold", 0.50f);
+            if (mat.HasProperty("_RampSmoothing")) mat.SetFloat("_RampSmoothing", 0.18f);
+            if (mat.HasProperty("_SpecularColor")) mat.SetColor("_SpecularColor", new Color(0.9f, 0.9f, 0.9f, 1f));
+            if (mat.HasProperty("_SpecularRoughnessPBR")) mat.SetFloat("_SpecularRoughnessPBR", 0.35f);
+            if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", new Color(0.35f, 0.80f, 1.0f, 0.65f));
+            if (mat.HasProperty("_RimMin")) mat.SetFloat("_RimMin", 0.45f);
+            if (mat.HasProperty("_RimMax")) mat.SetFloat("_RimMax", 0.95f);
+            if (mat.HasProperty("_StylizedPlasticOn")) mat.SetFloat("_StylizedPlasticOn", 1f);
+            if (mat.HasProperty("_PlasticHighlightIntensity")) mat.SetFloat("_PlasticHighlightIntensity", 1.2f);
+            if (mat.HasProperty("_PlasticHighlightColor")) mat.SetColor("_PlasticHighlightColor", Color.white);
+
+            EditorUtility.SetDirty(mat);
+            AssetDatabase.SaveAssets();
+            return mat;
         }
 
         private static Transform EnsureZone(Transform parent, string name, Vector3 pos)
@@ -256,6 +637,8 @@ namespace PixelGame.Editor
                 found.SetParent(parent, false);
             }
             found.position = pos;
+            found.localRotation = Quaternion.identity;
+            found.localScale = Vector3.one;
             return found;
         }
 
@@ -286,6 +669,49 @@ namespace PixelGame.Editor
             }
         }
 
+        private static Material GetOrCreateIndicatorMaterial()
+        {
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>(IndicatorMatPath);
+            Shader toonShader = Shader.Find("Toony Colors Pro 2/PixelGame/Cartoon");
+            if (toonShader == null) toonShader = Shader.Find("Universal Render Pipeline/Lit");
+
+            if (mat == null)
+            {
+                mat = new Material(toonShader);
+                mat.name = "Indicator_Slot_Mat";
+
+                string dir = Path.GetDirectoryName(IndicatorMatPath);
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                AssetDatabase.CreateAsset(mat, IndicatorMatPath);
+            }
+            else if (mat.shader != toonShader && toonShader != null)
+            {
+                mat.shader = toonShader;
+            }
+
+            Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(IndicatorTexturePath);
+            if (tex != null)
+            {
+                mat.SetTexture("_BaseMap", tex);
+            }
+            mat.SetColor("_BaseColor", new Color(1.0f, 0.95f, 0.82f, 1.0f));
+
+            if (mat.HasProperty("_HColor")) mat.SetColor("_HColor", new Color(1f, 1f, 0.95f, 1f));
+            if (mat.HasProperty("_SColor")) mat.SetColor("_SColor", new Color(0.85f, 0.70f, 0.45f, 1f));
+            if (mat.HasProperty("_RampThreshold")) mat.SetFloat("_RampThreshold", 0.50f);
+            if (mat.HasProperty("_RampSmoothing")) mat.SetFloat("_RampSmoothing", 0.20f);
+            if (mat.HasProperty("_SpecularColor")) mat.SetColor("_SpecularColor", new Color(0.9f, 0.9f, 0.9f, 1f));
+            if (mat.HasProperty("_SpecularRoughnessPBR")) mat.SetFloat("_SpecularRoughnessPBR", 0.30f);
+            if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", new Color(1.0f, 0.88f, 0.40f, 0.85f));
+            if (mat.HasProperty("_RimMin")) mat.SetFloat("_RimMin", 0.40f);
+            if (mat.HasProperty("_RimMax")) mat.SetFloat("_RimMax", 0.90f);
+            if (mat.HasProperty("_StylizedPlasticOn")) mat.SetFloat("_StylizedPlasticOn", 1f);
+
+            EditorUtility.SetDirty(mat);
+            AssetDatabase.SaveAssets();
+            return mat;
+        }
+
         private static Material GetOrCreateShadowMaterial()
         {
             Material mat = AssetDatabase.LoadAssetAtPath<Material>(ShadowMatPath);
@@ -302,7 +728,6 @@ namespace PixelGame.Editor
             mat.name = "Gemi_ShadowCatcher_Mat";
             if (mat.HasProperty("_ShadowColor"))
             {
-                // Yumuşak, sıcak-soğuk dengeli temas gölgesi rengi:
                 mat.SetColor("_ShadowColor", new Color(0.04f, 0.08f, 0.16f, 0.42f));
             }
 
@@ -311,51 +736,6 @@ namespace PixelGame.Editor
             AssetDatabase.CreateAsset(mat, ShadowMatPath);
             AssetDatabase.SaveAssets();
             return mat;
-        }
-
-        private static void SetupDemoShowcase(Transform sandZone, Transform waterZone)
-        {
-            GameObject showcaseRoot = new GameObject("Demo_Showcase");
-            Undo.RegisterCreatedObjectUndo(showcaseRoot, "Create Demo Showcase");
-            showcaseRoot.transform.position = Vector3.zero;
-
-            // 1. Kum alanına 3D küp/puzzle objesi
-            string cubePrefabPath = "Assets/Prefabs/MainCube.prefab";
-            GameObject cubePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(cubePrefabPath);
-            if (cubePrefab != null)
-            {
-                GameObject cubeInstance = (GameObject)PrefabUtility.InstantiatePrefab(cubePrefab, showcaseRoot.transform);
-                cubeInstance.name = "Demo_SandCube";
-                cubeInstance.transform.position = sandZone.position + new Vector3(0f, 0f, -0.2f);
-                cubeInstance.transform.rotation = Quaternion.Euler(28f, -25f, 0f);
-                cubeInstance.transform.localScale = Vector3.one * 1.6f;
-
-                var mr = cubeInstance.GetComponent<MeshRenderer>();
-                if (mr != null)
-                {
-                    mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
-                    mr.receiveShadows = true;
-                }
-            }
-
-            // 2. Su alanına Kenney teknesi
-            string boatPath = "Assets/Kenney/kenney_watercraft-pack/Models/FBX format/boat-speed-a.fbx";
-            GameObject boatModel = AssetDatabase.LoadAssetAtPath<GameObject>(boatPath);
-            if (boatModel != null)
-            {
-                GameObject boatInstance = (GameObject)PrefabUtility.InstantiatePrefab(boatModel, showcaseRoot.transform);
-                boatInstance.name = "Demo_WaterBoat";
-                boatInstance.transform.position = waterZone.position + new Vector3(0f, 0.4f, -0.3f);
-                boatInstance.transform.rotation = Quaternion.Euler(32f, -145f, 0f);
-                boatInstance.transform.localScale = Vector3.one * 1.8f;
-
-                var renderers = boatInstance.GetComponentsInChildren<MeshRenderer>();
-                foreach (var r in renderers)
-                {
-                    r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
-                    r.receiveShadows = true;
-                }
-            }
         }
 
         public static void CaptureScreenshot()

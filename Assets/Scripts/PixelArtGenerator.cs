@@ -1572,47 +1572,11 @@ namespace PixelGame
                 return true;
             }
 
-            // 2. Sahnede mevcut küpler varsa doğrudan 3D dünya sınırlarını hesapla
-            // (TruckDispatcher, Miner ve Scene Frame ile %100 senkron ve hatasız yöntem)
-            if (m_CubesContainer == null) EnsureContainer();
-            if (m_CubesContainer != null && m_CubesContainer.childCount > 0)
-            {
-                Bounds bounds = default;
-                bool hasCube = false;
-                for (int i = 0; i < m_CubesContainer.childCount; i++)
-                {
-                    Transform child = m_CubesContainer.GetChild(i);
-                    if (child == null || !child.gameObject.activeSelf) continue;
-                    string cName = child.name;
-                    if (cName.StartsWith("BoardGrid") || cName.StartsWith("FigureContour") || cName.Contains("Shadow") || cName.Contains("[SceneFrame")) continue;
-
-                    Vector3 pos = child.position;
-                    if (!hasCube)
-                    {
-                        bounds = new Bounds(pos, Vector3.one * 0.16f);
-                        hasCube = true;
-                    }
-                    else
-                    {
-                        bounds.Encapsulate(pos);
-                    }
-                }
-
-                if (hasCube && bounds.size.x > 0.3f && bounds.size.y > 0.3f)
-                {
-                    worldCenter = bounds.center;
-                    worldCenter.z = m_TargetZ;
-                    worldWidth = bounds.size.x;
-                    worldHeight = bounds.size.y;
-                    return true;
-                }
-            }
-
-            // 2. Küp yoksa: Hedef çerçeve UI RectTransform'unu (MainPlane) dünya uzayına izdüşür
+            // 2. Hedef çerçeve UI RectTransform'u (MainPlane) varsa dünya uzayına izdüşür
             EnsureTargetFrameRect();
             if (cam == null) cam = GetActiveCamera();
 
-            if (m_TargetFrameRect != null && cam != null && cam.pixelWidth >= 50 && cam.pixelHeight >= 50)
+            if (m_TargetFrameRect != null && cam != null)
             {
                 Canvas.ForceUpdateCanvases();
 
@@ -1664,12 +1628,6 @@ namespace PixelGame
                     }
                     else
                     {
-                        for (int i = 0; i < 4; i++)
-                        {
-                            Vector3 screenPoint = cam.WorldToScreenPoint(corners[i]);
-                            corners[i] = cam.ScreenToWorldPoint(new Vector3(screenPoint.x, screenPoint.y, camDist));
-                        }
-
                         Vector3 bottomLeft = corners[0];
                         Vector3 topRight = corners[2];
 
@@ -1678,8 +1636,7 @@ namespace PixelGame
 
                         if (rawW >= 0.5f && rawH >= 0.5f)
                         {
-                            worldCenter = (bottomLeft + topRight) * 0.5f;
-                            worldCenter.z = m_TargetZ;
+                            worldCenter = new Vector3((bottomLeft.x + topRight.x) * 0.5f, (bottomLeft.y + topRight.y) * 0.5f, m_TargetZ);
                             float padX = rawW * m_InnerPadding;
                             float padY = rawH * m_InnerPadding;
                             worldWidth = Mathf.Max(0.1f, rawW - padX * 2f);
@@ -1687,6 +1644,42 @@ namespace PixelGame
                             return true;
                         }
                     }
+                }
+            }
+
+            // 3. Sahnede mevcut küpler varsa doğrudan 3D dünya sınırlarını hesapla
+            // (TruckDispatcher, Miner ve Scene Frame ile %100 senkron ve hatasız yöntem)
+            if (m_CubesContainer == null) EnsureContainer();
+            if (m_CubesContainer != null && m_CubesContainer.childCount > 0)
+            {
+                Bounds bounds = default;
+                bool hasCube = false;
+                for (int i = 0; i < m_CubesContainer.childCount; i++)
+                {
+                    Transform child = m_CubesContainer.GetChild(i);
+                    if (child == null || !child.gameObject.activeSelf) continue;
+                    string cName = child.name;
+                    if (cName.StartsWith("BoardGrid") || cName.StartsWith("FigureContour") || cName.Contains("Shadow") || cName.Contains("[SceneFrame")) continue;
+
+                    Vector3 pos = child.position;
+                    if (!hasCube)
+                    {
+                        bounds = new Bounds(pos, Vector3.one * 0.16f);
+                        hasCube = true;
+                    }
+                    else
+                    {
+                        bounds.Encapsulate(pos);
+                    }
+                }
+
+                if (hasCube && bounds.size.x > 0.3f && bounds.size.y > 0.3f)
+                {
+                    worldCenter = bounds.center;
+                    worldCenter.z = m_TargetZ;
+                    worldWidth = bounds.size.x;
+                    worldHeight = bounds.size.y;
+                    return true;
                 }
             }
 
