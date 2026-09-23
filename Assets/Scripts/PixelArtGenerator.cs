@@ -289,7 +289,10 @@ namespace PixelGame
         {
             if (m_CubesContainer != null && m_CubesContainer.childCount > 0)
             {
-                UpdateExistingCubesTransforms();
+                if (!m_PreserveSceneEdits)
+                {
+                    UpdateExistingCubesTransforms();
+                }
                 UpdateExistingCubesLive();
                 #if UNITY_EDITOR
                 if (m_EnableCubeShadows)
@@ -1556,23 +1559,7 @@ namespace PixelGame
             worldWidth = 0f;
             worldHeight = 0f;
 
-            // 1. Mavi ray çerçevesi varsa onun tam ortasına ve içine hizala (Mükemmel merkezleme)
-            TruckDispatcher dispatcher = Object.FindFirstObjectByType<TruckDispatcher>();
-            if (dispatcher != null && dispatcher.TryGetExistingRailBounds(out Vector3 railCenter, out float railW, out float railH, out _, out _))
-            {
-                worldCenter = railCenter;
-                worldCenter.z = m_TargetZ;
-                float trackPadding = dispatcher.ModularTrackScale * 0.90f;
-                float innerW = Mathf.Max(0.5f, railW - trackPadding * 2f);
-                float innerH = Mathf.Max(0.5f, railH - trackPadding * 2f);
-                float padX = innerW * m_InnerPadding;
-                float padY = innerH * m_InnerPadding;
-                worldWidth = Mathf.Max(0.1f, innerW - padX * 2f);
-                worldHeight = Mathf.Max(0.1f, innerH - padY * 2f);
-                return true;
-            }
-
-            // 2. Hedef çerçeve UI RectTransform'u (MainPlane) varsa dünya uzayına izdüşür
+            // 1. Kullanıcının yerleştirdiği OtCerceve veya BoardFrame varsa doğrudan onun dünya sınırlarına tam oturt
             EnsureTargetFrameRect();
             if (cam == null) cam = GetActiveCamera();
 
@@ -1599,9 +1586,8 @@ namespace PixelGame
                         float frameScreenHeight = Mathf.Abs(corners[2].y - corners[0].y);
                         float frameScreenCenterY = (corners[0].y + corners[2].y) * 0.5f;
 
-                        if (frameScreenWidth >= cam.pixelWidth * 0.2f &&
-                            frameScreenHeight >= cam.pixelHeight * 0.1f &&
-                            frameScreenCenterY >= cam.pixelHeight * 0.25f)
+                        if (frameScreenWidth >= cam.pixelWidth * 0.15f &&
+                            frameScreenHeight >= cam.pixelHeight * 0.1f)
                         {
                             for (int i = 0; i < 4; i++)
                             {
@@ -1645,6 +1631,22 @@ namespace PixelGame
                         }
                     }
                 }
+            }
+
+            // 2. Mavi ray çerçevesi varsa onun tam ortasına ve içine hizala
+            TruckDispatcher dispatcher = Object.FindFirstObjectByType<TruckDispatcher>();
+            if (dispatcher != null && dispatcher.TryGetExistingRailBounds(out Vector3 railCenter, out float railW, out float railH, out _, out _))
+            {
+                worldCenter = railCenter;
+                worldCenter.z = m_TargetZ;
+                float trackPadding = dispatcher.ModularTrackScale * 0.90f;
+                float innerW = Mathf.Max(0.5f, railW - trackPadding * 2f);
+                float innerH = Mathf.Max(0.5f, railH - trackPadding * 2f);
+                float padX = innerW * m_InnerPadding;
+                float padY = innerH * m_InnerPadding;
+                worldWidth = Mathf.Max(0.1f, innerW - padX * 2f);
+                worldHeight = Mathf.Max(0.1f, innerH - padY * 2f);
+                return true;
             }
 
             // 3. Sahnede mevcut küpler varsa doğrudan 3D dünya sınırlarını hesapla
@@ -1777,17 +1779,46 @@ namespace PixelGame
 
         private void EnsureTargetFrameRect()
         {
-            if (m_TargetFrameRect == null)
+            // 1. Kullanıcının yerleştirdiği OtCerceve'yi doğrudan ve en yüksek öncelikle ara
+            GameObject otGo = GameObject.Find("OtCerceve");
+            if (otGo != null)
             {
-                GameObject mainPlane = GameObject.Find("MainPlane");
-                if (mainPlane != null)
+                RectTransform rt = otGo.GetComponent<RectTransform>();
+                if (rt != null)
                 {
-                    m_TargetFrameRect = mainPlane.GetComponent<RectTransform>();
+                    m_TargetFrameRect = rt;
+                    EnsureOtCerceveShadow(otGo);
+                    return;
                 }
             }
 
-            // 2D Canvas'taki MainPlane Image bileşeninin ekranda hayalet boş çerçeve çizmesini engelle
-            if (m_TargetFrameRect != null)
+            if (m_TargetFrameRect != null && m_TargetFrameRect.gameObject != null)
+            {
+                if (m_TargetFrameRect.name == "OtCerceve")
+                {
+                    EnsureOtCerceveShadow(m_TargetFrameRect.gameObject);
+                }
+                return;
+            }
+
+            // 2. Diğer alternatif çerçeve isimlerini dene
+            string[] preferredNames = new string[] { "BoardFrame", "MainPlane", "SandFrame", "Frame" };
+            foreach (var name in preferredNames)
+            {
+                GameObject go = GameObject.Find(name);
+                if (go != null)
+                {
+                    RectTransform rt = go.GetComponent<RectTransform>();
+                    if (rt != null)
+                    {
+                        m_TargetFrameRect = rt;
+                        break;
+                    }
+                }
+            }
+
+            // 2D Canvas'taki kılavuz nesnenin ekranda hayalet beyaz kutu çizmesini engelle
+            if (m_TargetFrameRect != null && m_TargetFrameRect.name == "MainPlane")
             {
                 UnityEngine.UI.Image img = m_TargetFrameRect.GetComponent<UnityEngine.UI.Image>();
                 if (img != null && img.enabled)
@@ -1795,6 +1826,123 @@ namespace PixelGame
                     img.enabled = false;
                 }
             }
+        }
+
+        /// <summary>
+        /// OtCerceve çerçevesinin arkasındaki gölgeyi (OtCerceve_Shadow) kontrol eder.
+        /// Nesne sahnede zaten varsa kullanıcının Scene View veya Inspector'da yaptığı TÜM ayarlamaları (konum, boyut, renk, açı) %100 korur.
+        /// </summary>
+        public static void EnsureOtCerceveShadow(GameObject otGo)
+        {
+            if (otGo == null) return;
+
+            bool isNewlyCreated = false;
+            Transform shadowTr = otGo.transform.Find("OtCerceve_Shadow");
+            if (shadowTr == null && otGo.transform.parent != null)
+            {
+                shadowTr = otGo.transform.parent.Find("OtCerceve_Shadow");
+            }
+
+            if (shadowTr == null)
+            {
+                GameObject shadowGo = new GameObject("OtCerceve_Shadow", typeof(RectTransform), typeof(CanvasRenderer), typeof(UnityEngine.UI.Image));
+                shadowGo.transform.SetParent(otGo.transform, false);
+                shadowGo.transform.SetAsFirstSibling(); // Çerçevenin arkasında kalması için en arkaya al
+                shadowTr = shadowGo.transform;
+                isNewlyCreated = true;
+            }
+
+            // Eğer nesne yeni oluşturulduysa başlangıç değerlerini ata; önceden varsa kullanıcının ayarlarını KESİNLİKLE elleme!
+            RectTransform rt = shadowTr.GetComponent<RectTransform>();
+            if (rt != null && isNewlyCreated)
+            {
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.anchoredPosition = new Vector2(4f, -10f); // Kum üzerinde aşağı ve sağa düşen doğal gölge
+                rt.sizeDelta = new Vector2(36f, 36f);       // Çerçevenin etrafına yayılan yumuşak pay
+                rt.localScale = Vector3.one;
+            }
+
+            UnityEngine.UI.Image img = shadowTr.GetComponent<UnityEngine.UI.Image>();
+            if (img != null)
+            {
+                img.raycastTarget = false;
+                if (isNewlyCreated)
+                {
+                    img.color = new Color(0.14f, 0.09f, 0.03f, 0.60f); // Sıcak kehribar / kum gölgesi tonu
+                }
+
+#if UNITY_EDITOR
+                if (img.sprite == null)
+                {
+                    Sprite shadowSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/OtCerceve_Shadow.png");
+                    if (shadowSprite == null) shadowSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Kenney/OtCerceve_Shadow.png");
+                    if (shadowSprite != null) img.sprite = shadowSprite;
+                }
+#endif
+            }
+        }
+
+        /// <summary>
+        /// Sahnedeki OtCerceve çerçevesini dünya uzayında referans alır ve mevcut tüm küpleri
+        /// hiçbirini silmeden / yapılarını bozmadan doğrudan çerçevenin tam ortasına oturtur.
+        /// </summary>
+        [ContextMenu("🎯 Küpleri OtCerceve Çerçevesine Tam Oturt / Hizala")]
+        public void AlignCubesToTargetFrame()
+        {
+            EnsureTargetFrameRect();
+            Camera cam = GetActiveCamera();
+            if (cam == null) cam = Camera.main;
+
+            if (m_CubesContainer == null) EnsureContainer();
+            if (m_CubesContainer == null || m_CubesContainer.childCount == 0)
+            {
+                Debug.LogWarning("[PixelArtGenerator] Hizalanacak küp bulunamadı!");
+                return;
+            }
+
+            if (!CalculateTargetWorldBounds(cam, out Vector3 targetCenter, out float targetW, out float targetH))
+            {
+                Debug.LogError("[PixelArtGenerator] Hedef çerçevenin dünya sınırları hesaplanamadı!");
+                return;
+            }
+
+            // Mevcut küplerin geometrik merkezini hesapla
+            Bounds bounds = default;
+            bool hasCube = false;
+            for (int i = 0; i < m_CubesContainer.childCount; i++)
+            {
+                Transform child = m_CubesContainer.GetChild(i);
+                if (child == null || !child.gameObject.activeSelf) continue;
+                string cName = child.name;
+                if (cName.StartsWith("BoardGrid") || cName.StartsWith("FigureContour") || cName.Contains("Shadow") || cName.Contains("[SceneFrame")) continue;
+
+                Vector3 pos = child.position;
+                if (!hasCube) { bounds = new Bounds(pos, Vector3.one * 0.16f); hasCube = true; }
+                else bounds.Encapsulate(pos);
+            }
+
+            if (!hasCube) return;
+
+            Vector3 delta = targetCenter - bounds.center;
+            delta.z = 0f;
+
+            for (int i = 0; i < m_CubesContainer.childCount; i++)
+            {
+                Transform child = m_CubesContainer.GetChild(i);
+                if (child == null) continue;
+                child.position += delta;
+            }
+
+            EnsureWorldFramePreview();
+
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(gameObject);
+            if (m_CubesContainer != null) UnityEditor.EditorUtility.SetDirty(m_CubesContainer.gameObject);
+#endif
+            string frameName = m_TargetFrameRect != null ? m_TargetFrameRect.name : "Çerçeve";
+            Debug.Log($"<color=#00FFAA><b>[PixelArtGenerator]</b></color> Tüm küpler '{frameName}' çerçevesinin merkezine ({targetCenter}) başarıyla oturtuldu!");
         }
 
         private void EnsureContainer()

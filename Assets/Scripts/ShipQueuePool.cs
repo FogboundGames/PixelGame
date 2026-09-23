@@ -42,28 +42,29 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Kuyruk için bekleme noktalarını (spot) oluşturur.
+        /// Kuyruk için bekleme noktalarını (spot) bulur veya gerekirse oluşturur.
+        /// Sahnede önceden ayarlanmış spot konumlarını KESİNLİKLE korur.
         /// </summary>
         public void EnsureSpots()
         {
-            // Eski çocuk spotları temizle
-            for (int i = transform.childCount - 1; i >= 0; i--)
+            // 1. Önce sahnede halihazırda var olan çocuk spotları topla
+            m_QueueSpots.Clear();
+            for (int i = 0; i < transform.childCount; i++)
             {
                 Transform cTr = transform.GetChild(i);
                 if (cTr.name.StartsWith("Spot_"))
                 {
-#if UNITY_EDITOR
-                    if (!Application.isPlaying)
-                        DestroyImmediate(cTr.gameObject);
-                    else
-                        Destroy(cTr.gameObject);
-#else
-                    Destroy(cTr.gameObject);
-#endif
+                    m_QueueSpots.Add(cTr);
                 }
             }
 
-            m_QueueSpots.Clear();
+            // Sahnede zaten yeterli sayıda spot varsa mevcut konumlarını koru ve çık
+            if (m_QueueSpots.Count >= Capacity)
+            {
+                return;
+            }
+
+            // Eğer eksik spot varsa veya hiç oluşturulmamışsa tamamla
             float startX = -(m_Columns - 1) * m_Spacing.x * 0.5f;
 
             for (int r = 0; r < m_Rows; r++)
@@ -71,19 +72,25 @@ namespace PixelGame
                 for (int c = 0; c < m_Columns; c++)
                 {
                     string spotName = $"Spot_R{r}_C{c}";
-                    GameObject spotObj = new GameObject(spotName);
-                    Transform spotTr = spotObj.transform;
-                    spotTr.SetParent(transform, false);
+                    Transform existingSpot = transform.Find(spotName);
+                    if (existingSpot == null)
+                    {
+                        GameObject spotObj = new GameObject(spotName);
+                        existingSpot = spotObj.transform;
+                        existingSpot.SetParent(transform, false);
 
-                    float posX = startX + c * m_Spacing.x;
-                    // Tilted su düzleminde Z ekseni dikeyde sıra aralığıdır:
-                    float posZ = -r * m_Spacing.y;
+                        float posX = startX + c * m_Spacing.x;
+                        float posZ = -r * m_Spacing.y;
 
-                    spotTr.localPosition = new Vector3(posX, 0f, posZ);
-                    spotTr.localRotation = Quaternion.identity;
-                    spotTr.localScale = Vector3.one;
+                        existingSpot.localPosition = new Vector3(posX, 0f, posZ);
+                        existingSpot.localRotation = Quaternion.identity;
+                        existingSpot.localScale = Vector3.one;
+                    }
 
-                    m_QueueSpots.Add(spotTr);
+                    if (!m_QueueSpots.Contains(existingSpot))
+                    {
+                        m_QueueSpots.Add(existingSpot);
+                    }
                 }
             }
         }

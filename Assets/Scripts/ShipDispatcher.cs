@@ -177,11 +177,12 @@ namespace PixelGame
 
         private IEnumerator FlyCubeThroughPierToShip(Vector3 startPos, Color color, float size, ShipController ship, PixelCube sourceCube)
         {
-            // 3D Voksel küp nesnesi
+            // 1. Parlak, Canlı 3D Voksel Küp Nesnesi
             GameObject flyerObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            flyerObj.name = "PierJumping_Voxel";
+            flyerObj.name = "RadiantFlying_Voxel";
             flyerObj.transform.position = startPos;
-            flyerObj.transform.localScale = Vector3.one * Mathf.Clamp(size, 0.18f, 0.32f);
+            float baseScale = Mathf.Clamp(size, 0.20f, 0.36f);
+            flyerObj.transform.localScale = Vector3.one * baseScale;
 
             Collider col = flyerObj.GetComponent<Collider>();
             if (col != null) Destroy(col);
@@ -191,17 +192,74 @@ namespace PixelGame
             {
                 Shader shader = Shader.Find("Toony Colors Pro 2/PixelGame/Cartoon");
                 if (shader == null) shader = Shader.Find("Universal Render Pipeline/Lit");
+                if (shader == null) shader = Shader.Find("Universal Render Pipeline/Unlit");
+
                 Material mat = new Material(shader);
-                mat.color = color;
-                if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
+                Color brightColor = Color.Lerp(color, Color.white, 0.28f);
+                mat.color = brightColor;
+                if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", brightColor);
+                if (mat.HasProperty("_Color")) mat.SetColor("_Color", brightColor);
+
+                // Parlama (Emission / HDR Glow)
+                mat.EnableKeyword("_EMISSION");
+                if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", color * 2.8f);
+
+                // TCP2 Toon Plastik Vurgusu
+                if (mat.HasProperty("_HColor")) mat.SetColor("_HColor", Color.white);
+                if (mat.HasProperty("_SColor")) mat.SetColor("_SColor", Color.Lerp(color, Color.black, 0.25f));
+                if (mat.HasProperty("_SpecularColor")) mat.SetColor("_SpecularColor", Color.white);
+                if (mat.HasProperty("_SpecularRoughnessPBR")) mat.SetFloat("_SpecularRoughnessPBR", 0.25f);
+                if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", Color.Lerp(color, Color.white, 0.65f));
+
                 mr.sharedMaterial = mat;
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
 
-            Vector3 randomTorque = new Vector3(
-                Random.Range(-280f, 280f),
-                Random.Range(-280f, 280f),
-                Random.Range(-280f, 280f)
+            // 2. Işıltılı Kuyruk Efekti (Trail Renderer - Kuyruklu Yıldız Görünümü)
+            TrailRenderer tr = flyerObj.AddComponent<TrailRenderer>();
+            tr.time = 0.24f;
+            tr.minVertexDistance = 0.02f;
+            tr.autodestruct = false;
+
+            // Genişlik Eğrisi: Başlangıçta küp kalınlığında, geriye doğru zarifçe incelerek sönen kuyruk
+            AnimationCurve widthCurve = new AnimationCurve();
+            widthCurve.AddKey(0f, baseScale * 0.85f);
+            widthCurve.AddKey(0.4f, baseScale * 0.55f);
+            widthCurve.AddKey(1f, 0f);
+            tr.widthCurve = widthCurve;
+
+            Shader trailShader = Shader.Find("Sprites/Default") ?? Shader.Find("Universal Render Pipeline/Unlit");
+            Material trailMat = new Material(trailShader);
+            tr.material = trailMat;
+
+            // Renk Gradyanı: Beyazımsı parlak çekirdek -> Canlı küp rengi -> Şeffaf altın ışıltı
+            Gradient grad = new Gradient();
+            grad.SetKeys(
+                new GradientColorKey[]
+                {
+                    new GradientColorKey(Color.Lerp(color, Color.white, 0.65f), 0.0f),
+                    new GradientColorKey(color, 0.35f),
+                    new GradientColorKey(Color.Lerp(color, new Color(1f, 0.9f, 0.3f), 0.45f), 1.0f)
+                },
+                new GradientAlphaKey[]
+                {
+                    new GradientAlphaKey(0.95f, 0.0f),
+                    new GradientAlphaKey(0.70f, 0.35f),
+                    new GradientAlphaKey(0.0f, 1.0f)
+                }
             );
+            tr.colorGradient = grad;
+
+            // Rastgele fırıl fırıl dönme torku
+            Vector3 randomTorque = new Vector3(
+                Random.Range(-380f, 380f),
+                Random.Range(-380f, 380f),
+                Random.Range(-380f, 380f)
+            );
+
+            // Başlangıçta enerjik minik fırlama boyutu (Pop Scale)
+            flyerObj.transform.localScale = Vector3.one * (baseScale * 1.35f);
+            flyerObj.transform.DOScale(Vector3.one * baseScale, 0.15f).SetEase(Ease.OutBack);
 
             // ==========================================
             // 1. AŞAMA: Pano -> Ahşap İskele (Pier Hop)
@@ -210,7 +268,7 @@ namespace PixelGame
             float targetShipX = (ship != null) ? ship.transform.position.x : startPos.x;
             Vector3 pierLandingPos = new Vector3(
                 Mathf.Lerp(startPos.x, targetShipX, 0.55f) + Random.Range(-0.12f, 0.12f),
-                pierY + Random.Range(-0.10f, 0.10f),
+                pierY + Random.Range(-0.08f, 0.08f),
                 0.02f
             );
 
@@ -222,8 +280,9 @@ namespace PixelGame
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / stage1Duration);
 
+                // Dinamik parabolik yay ve hız eğrisi
                 Vector3 current = Vector3.Lerp(startPos, pierLandingPos, t);
-                float arc = Mathf.Sin(t * Mathf.PI) * 0.55f;
+                float arc = Mathf.Sin(t * Mathf.PI) * 0.65f;
                 current.y += arc;
 
                 flyerObj.transform.position = current;
@@ -231,11 +290,11 @@ namespace PixelGame
                 yield return null;
             }
 
-            // İskelede minik zıplama / tahta teması efekti
+            // İskelede minik zıplama / tahta teması esnemesi (Squash & Stretch)
             if (flyerObj != null)
             {
                 flyerObj.transform.position = pierLandingPos;
-                flyerObj.transform.DOPunchScale(new Vector3(0.12f, -0.12f, 0.12f) * size, 0.08f, 2, 0.5f);
+                flyerObj.transform.DOPunchScale(new Vector3(0.35f, -0.25f, 0.35f) * baseScale, 0.09f, 3, 0.6f);
             }
 
             yield return new WaitForSeconds(0.04f);
@@ -244,7 +303,7 @@ namespace PixelGame
             // 2. AŞAMA: Ahşap İskele -> Gemi Güvertesi (Ship Hop)
             // ==========================================
             Vector3 shipTargetPos = (ship != null) ? ship.transform.position + new Vector3(0f, 0.22f, 0.02f) : pierLandingPos;
-            float stage2Duration = 0.32f;
+            float stage2Duration = 0.30f;
             elapsed = 0f;
             Vector3 stage2Start = (flyerObj != null) ? flyerObj.transform.position : pierLandingPos;
 
@@ -259,11 +318,11 @@ namespace PixelGame
                 }
 
                 Vector3 current = Vector3.Lerp(stage2Start, shipTargetPos, t);
-                float arc = Mathf.Sin(t * Mathf.PI) * 0.75f;
+                float arc = Mathf.Sin(t * Mathf.PI) * 0.85f;
                 current.y += arc;
 
                 flyerObj.transform.position = current;
-                flyerObj.transform.Rotate(randomTorque * 1.5f * Time.deltaTime, Space.Self);
+                flyerObj.transform.Rotate(randomTorque * 1.8f * Time.deltaTime, Space.Self);
                 yield return null;
             }
 
@@ -277,10 +336,16 @@ namespace PixelGame
                 s_ReservedCubes.Remove(sourceCube);
             }
 
+            // 3. Gemiye Ulaşma & Şık İniş Efekti (Landing Splash & Ship Hull Punch)
             if (ship != null)
             {
                 ship.AddCargo(1);
-                ShipController.SpawnWaterRipple(ship.transform.position + new Vector3(0f, -0.05f, 0.05f), 0.22f, 0.85f, 0.45f);
+
+                // Geminin gövdesine enerjik iniş yaylanması
+                ship.transform.DOPunchScale(new Vector3(0.06f, -0.05f, 0.06f), 0.18f, 3, 0.5f);
+
+                // Canlı su dalgacığı ve parlama efekti
+                ShipController.SpawnWaterRipple(ship.transform.position + new Vector3(0f, -0.05f, 0.05f), 0.24f, 0.95f, 0.45f);
             }
 
             CheckWinCondition();

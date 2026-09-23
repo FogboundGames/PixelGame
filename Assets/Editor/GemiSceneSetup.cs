@@ -11,7 +11,8 @@ namespace PixelGame.Editor
     public static class GemiSceneSetup
     {
         private const string ScenePath = "Assets/Scenes/Gemi.unity";
-        private const string BgImagePath = "Assets/Kenney/ChatGPT Image 22 Eyl 2026 19_23_43.png";
+        private const string BgImagePath = "Assets/Kenney/BeachBackground_Clean.png";
+        private const string FrameImagePath = "Assets/Kenney/ChatGPT Image 22 Eyl 2026 18_04_01.png";
         private const string ShadowShaderName = "Custom/URP_ShadowCatcher";
         private const string ShadowMatPath = "Assets/Materials/Gemi_ShadowCatcher_Mat.mat";
         private const string IndicatorMatPath = "Assets/Materials/Indicator_Slot_Mat.mat";
@@ -21,26 +22,26 @@ namespace PixelGame.Editor
         private const string ShipCargoModelPath = "Assets/Kenney/kenney_watercraft-pack/Models/FBX format/ship-cargo-a.fbx";
         private const string ShipTexturePath = "Assets/Kenney/kenney_watercraft-pack/Models/FBX format/Textures/colormap.png";
         private const string ShipMatPath = "Assets/Materials/Ship_Watercraft_Mat.mat";
+        private const string PierModelPath = "Assets/Kenney/kenney_watercraft-pack/Models/FBX format/ramp-wide.fbx";
+        private const string PierPrefabPath = "Assets/Prefabs/Pier_Dock.prefab";
         private const string ScreenshotPath = "scratch/gemi_gameplay_view.png";
-        private const string AutoRunKey = "GemiSceneSetup_AutoRun_v26";
 
         // Kum alanı taş çerçevesinin tam ortası (World Units):
-        // 9:16 ekranda orthoSize=8 iken Y=3.25f taş çerçevenin tam geometrik merkezidir.
-        private static readonly Vector3 SandFrameCenterWorld = new Vector3(0f, 3.25f, 0f);
-        private const float SandFrameCanvasY = 390.0f;
-        private const float SandFrameCanvasSize = 510f;
+        // 9:16 ekranda orthoSize=8 iken Y=4.17f yeni yapraklı/taş çerçevenin tam geometrik merkezidir.
+        private static readonly Vector3 SandFrameCenterWorld = new Vector3(0f, 4.17f, 0f);
+        private const float SandFrameCanvasY = 500.0f;
+        private const float SandFrameCanvasSize = 480.0f;
 
         static GemiSceneSetup()
         {
-            EditorApplication.delayCall += () =>
-            {
-                if (!SessionState.GetBool(AutoRunKey, false))
-                {
-                    SessionState.SetBool(AutoRunKey, true);
-                    Setup(includePixelArt: true, includeWaterSlots: true);
-                    CaptureScreenshot();
-                }
-            };
+            EditorApplication.delayCall += AutoSetupOnReload;
+        }
+
+        private static void AutoSetupOnReload()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+            Setup(includePixelArt: true, includeWaterSlots: true);
+            CaptureScreenshot();
         }
 
         [MenuItem("Tools/PixelGame/🏝️ Gemi Sahnesini Kur & Tüm Ögeleri Getir", priority = 10)]
@@ -210,7 +211,7 @@ namespace PixelGame.Editor
                 activeRawImg = rawObj.GetComponent<RawImage>();
             }
             activeRawImg.name = "BackgroundImage";
-            if (activeRawImg.texture == null && bgTex != null)
+            if (bgTex != null)
             {
                 activeRawImg.texture = bgTex;
             }
@@ -223,20 +224,53 @@ namespace PixelGame.Editor
             rawRect.offsetMax = Vector2.zero;
             rawRect.localScale = Vector3.one;
 
-            // MainPlane UI Kılavuzu (Taş çerçevenin tam ortasını belirten görünmez UI hedefi)
-            RectTransform targetFrameRect = null;
-            Transform mainPlaneTr = canvasObj.transform.Find("MainPlane");
+            // Sahnede Serbestçe Genişletilebilir & Taşınabilir Çerçeve (OtCerceve / BoardFrame)
+            Sprite frameSprite = AssetDatabase.LoadAssetAtPath<Sprite>(FrameImagePath);
+            Transform otTr = canvasObj.transform.Find("OtCerceve");
+            Transform boardFrameTr = otTr != null ? otTr : canvasObj.transform.Find("BoardFrame");
+            if (boardFrameTr == null)
+            {
+                GameObject frameGo = new GameObject("OtCerceve", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                frameGo.transform.SetParent(canvasObj.transform, false);
+                boardFrameTr = frameGo.transform;
+            }
+            RectTransform boardFrameRect = boardFrameTr.GetComponent<RectTransform>();
+            boardFrameRect.anchorMin = new Vector2(0.5f, 0.5f);
+            boardFrameRect.anchorMax = new Vector2(0.5f, 0.5f);
+            boardFrameRect.pivot = new Vector2(0.5f, 0.5f);
+            boardFrameRect.anchoredPosition = new Vector2(0f, SandFrameCanvasY);
+            boardFrameRect.sizeDelta = new Vector2(540f, 810f); // 2:3 en-boy oranlı esnek çerçeve
+            boardFrameRect.localScale = Vector3.one;
+
+            Image frameImg = boardFrameTr.GetComponent<Image>();
+            if (frameImg != null)
+            {
+                if (frameImg.sprite == null) frameImg.sprite = frameSprite;
+                frameImg.type = Image.Type.Simple;
+                frameImg.raycastTarget = false;
+                frameImg.color = Color.white;
+            }
+
+            // Çerçeve arkasına yumuşak kum sahte gölgesini (Fake Shadow) ekle
+            PixelArtGenerator.EnsureOtCerceveShadow(boardFrameTr.gameObject);
+
+            // MainPlane UI Kılavuzu (BoardFrame içine tam oturan piksel üretim hedefi)
+            RectTransform targetFrameRect = boardFrameRect;
+            Transform mainPlaneTr = boardFrameTr.Find("MainPlane");
             if (mainPlaneTr == null)
             {
-                GameObject planeObj = new GameObject("MainPlane", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-                planeObj.transform.SetParent(canvasObj.transform, false);
-                mainPlaneTr = planeObj.transform;
+                mainPlaneTr = canvasObj.transform.Find("MainPlane");
             }
+            if (mainPlaneTr != null)
+            {
+                mainPlaneTr.SetParent(boardFrameTr, false);
+            }
+
             targetFrameRect = mainPlaneTr.GetComponent<RectTransform>();
             targetFrameRect.anchorMin = new Vector2(0.5f, 0.5f);
             targetFrameRect.anchorMax = new Vector2(0.5f, 0.5f);
             targetFrameRect.pivot = new Vector2(0.5f, 0.5f);
-            targetFrameRect.anchoredPosition = new Vector2(0f, SandFrameCanvasY);
+            targetFrameRect.anchoredPosition = Vector2.zero; // BoardFrame'in tam ortası
             targetFrameRect.sizeDelta = new Vector2(SandFrameCanvasSize, SandFrameCanvasSize);
             targetFrameRect.localScale = Vector3.one;
 
@@ -287,8 +321,11 @@ namespace PixelGame.Editor
             gameplayRoot.transform.localScale = Vector3.one;
 
             Transform zoneSand = EnsureZone(gameplayRoot.transform, "[Zone_Sand_PlayArea]", SandFrameCenterWorld);
-            Transform zoneBridge = EnsureZone(gameplayRoot.transform, "[Zone_Wooden_Bridge]", new Vector3(0f, -0.32f, 0f));
+            Transform zoneBridge = EnsureZone(gameplayRoot.transform, "[Zone_Wooden_Bridge]", new Vector3(0f, -0.58f, 0f));
             Transform zoneWater = EnsureZone(gameplayRoot.transform, "[Zone_Water_LowerArea]", new Vector3(0f, -4.80f, 0f));
+
+            // 7. 3D Ahşap İskele (Kenney Prefab)
+            SetupWoodenPier(zoneBridge);
 
             // Eski Demo_Showcase nesnesini temizle
             Transform oldDemo = gameplayRoot.transform.Find("Demo_Showcase");
@@ -296,13 +333,13 @@ namespace PixelGame.Editor
             Transform strayDemo = GameObject.Find("Demo_Showcase")?.transform;
             if (strayDemo != null) Undo.DestroyObjectImmediate(strayDemo.gameObject);
 
-            // 7. Piksel Görsellerini (PixelArtGenerator & LevelManager) Kum Çerçevesinin Ortasına Yerleştir
+            // 8. Piksel Görsellerini (PixelArtGenerator & LevelManager) Kum Çerçevesinin Ortasına Yerleştir
             if (includePixelArt)
             {
                 SetupPixelArtSystem(zoneSand, targetFrameRect, cam);
             }
 
-            // 8. Su Bölgesine 5 Adet Slot Yerleştir (indicator-square-b)
+            // 9. Su Bölgesine 5 Adet Çapraz Slot Yerleştir (indicator-square-b)
             if (includeWaterSlots)
             {
                 SetupWaterSlots(zoneWater);
@@ -362,7 +399,7 @@ namespace PixelGame.Editor
             so.FindProperty("m_ColorSaturation").floatValue = 1.25f;
             so.FindProperty("m_ColorContrast").floatValue = 1.05f;
             so.FindProperty("m_EmissionIntensity").floatValue = 0.25f;
-            so.FindProperty("m_PreserveSceneEdits").boolValue = false;
+            so.FindProperty("m_PreserveSceneEdits").boolValue = true;
             so.FindProperty("m_EnableCubeShadows").boolValue = false;
             so.ApplyModifiedPropertiesWithoutUndo();
 
@@ -415,6 +452,87 @@ namespace PixelGame.Editor
             }
         }
 
+        private const string PierWoodMatPath = "Assets/Materials/Pier_Wood_Mat.mat";
+        private const string PierBoltMatPath = "Assets/Materials/Pier_Bolt_Mat.mat";
+
+        private static void SetupWoodenPier(Transform bridgeZone)
+        {
+            // Eski iskele nesnesini temizle
+            while (bridgeZone.childCount > 0)
+            {
+                Undo.DestroyObjectImmediate(bridgeZone.GetChild(0).gameObject);
+            }
+
+            GameObject pierModelPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PierModelPath);
+            if (pierModelPrefab == null)
+            {
+                Debug.LogWarning($"[GemiSceneSetup] İskele modeli bulunamadı: {PierModelPath}");
+                return;
+            }
+
+            GameObject pierInstance = (GameObject)PrefabUtility.InstantiatePrefab(pierModelPrefab, bridgeZone);
+            pierInstance.name = "3D_Pier_Dock";
+            // Kıyı çizgisine tam oturan 3D ahşap iskele
+            // Kenney ramp-wide modeli: X ekseninde genişlik (5.14), Y ekseninde yükseklik (1.14), Z ekseninde derinlik (2.81)
+            // Üst tahtaların tam net ve kalın görünmesi için -80 derece X rotasyonu (hafif 10° 3D perspektif)
+            pierInstance.transform.localPosition = new Vector3(0f, 0f, 0.05f);
+            pierInstance.transform.localRotation = Quaternion.Euler(-80f, 0f, 0f);
+            pierInstance.transform.localScale = new Vector3(0.68f, 0.75f, 0.90f);
+
+            Material woodMat = GetOrCreatePierWoodMaterial();
+            var meshRenderers = pierInstance.GetComponentsInChildren<MeshRenderer>(true);
+            foreach (var mr in meshRenderers)
+            {
+                if (woodMat != null)
+                {
+                    mr.sharedMaterial = woodMat;
+                }
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                mr.receiveShadows = true;
+            }
+
+            // Referans görselindeki 4 adet tahtanın sol ve sağ kenarlarındaki gümüş cıvatalar (Rivets/Bolts)
+            Transform boltsParent = pierInstance.transform.Find("Rivets_Bolts");
+            if (boltsParent != null) Undo.DestroyObjectImmediate(boltsParent.gameObject);
+            GameObject boltsGo = new GameObject("Rivets_Bolts");
+            boltsGo.transform.SetParent(pierInstance.transform, false);
+            Material boltMat = GetOrCreatePierBoltMaterial();
+
+            float[] boltZ = new float[] { -0.75f, -0.22f, 0.30f, 0.85f };
+            float boltY = 0.82f; // Tahta üst yüzeyi
+            float boltX = 1.95f; // Tahta sol/sağ kenarları
+
+            for (int b = 0; b < boltZ.Length; b++)
+            {
+                CreatePierBolt(boltsGo.transform, new Vector3(-boltX, boltY, boltZ[b]), boltMat);
+                CreatePierBolt(boltsGo.transform, new Vector3(boltX, boltY, boltZ[b]), boltMat);
+            }
+
+            string prefabDir = Path.GetDirectoryName(PierPrefabPath);
+            if (!Directory.Exists(prefabDir)) Directory.CreateDirectory(prefabDir);
+            PrefabUtility.SaveAsPrefabAsset(pierInstance, PierPrefabPath);
+        }
+
+        private static void CreatePierBolt(Transform parent, Vector3 localPos, Material mat)
+        {
+            GameObject bolt = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            bolt.name = "Bolt";
+            Collider col = bolt.GetComponent<Collider>();
+            if (col != null) Object.DestroyImmediate(col);
+
+            bolt.transform.SetParent(parent, false);
+            bolt.transform.localPosition = localPos;
+            bolt.transform.localRotation = Quaternion.identity;
+            bolt.transform.localScale = new Vector3(0.20f, 0.06f, 0.20f);
+
+            MeshRenderer mr = bolt.GetComponent<MeshRenderer>();
+            if (mr != null)
+            {
+                mr.sharedMaterial = mat;
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            }
+        }
+
         private static void SetupWaterSlots(Transform waterZone)
         {
             // Eski tüm geçici dekorasyonları ve prefab instance'larını temizle
@@ -446,7 +564,7 @@ namespace PixelGame.Editor
                 slotsGroup.SetParent(waterZone, false);
             }
 
-            slotsGroup.localPosition = new Vector3(0f, 0.40f, 0f);
+            slotsGroup.localPosition = new Vector3(0f, 0.45f, 0f);
             slotsGroup.localRotation = Quaternion.identity;
             slotsGroup.localScale = Vector3.one;
 
@@ -457,18 +575,19 @@ namespace PixelGame.Editor
             Material indicatorMat = GetOrCreateIndicatorMaterial();
             Material shipMat = GetOrCreateShipMaterial();
 
-            // 5 adet slot yerleştir
+            // 5 adet slotu ÇAPRAZ marina düzeninde yerleştir
             const int slotCount = 5;
-            const float slotSpacing = 1.48f; // Ekran genişliğine (9.0 birim) tam oturan dengeli aralık
-            float startX = -(slotCount - 1) * slotSpacing * 0.5f; // -2.96f
+            const float slotSpacing = 1.62f;
+            float startX = -(slotCount - 1) * slotSpacing * 0.5f;
+            const float slotAngle = -28f; // Çapraz marina yanaşma açısı
 
             Color[] initialShipColors = new Color[]
             {
-                new Color(0.18f, 0.52f, 0.95f, 1f), // Canlı Mavi (Rakun Gövdesi)
+                new Color(0.18f, 0.52f, 0.95f, 1f), // Canlı Mavi
                 new Color(0.95f, 0.28f, 0.25f, 1f), // Canlı Kırmızı
                 new Color(0.22f, 0.82f, 0.42f, 1f), // Canlı Yeşil
-                new Color(0.98f, 0.78f, 0.15f, 1f), // Canlı Sarı (Zemin)
-                new Color(0.25f, 0.28f, 0.38f, 1f)  // Koyu Gri/Mavi (Rakun Gözleri/Kuyruk)
+                new Color(0.98f, 0.78f, 0.15f, 1f), // Canlı Sarı
+                new Color(0.68f, 0.32f, 0.92f, 1f)  // Canlı Mor
             };
 
             for (int i = 0; i < slotCount; i++)
@@ -484,10 +603,11 @@ namespace PixelGame.Editor
                 }
 
                 float posX = startX + i * slotSpacing;
+                // Kullanıcı isteği: Slotlar aynı yatay hizada (yan yana) dizilirken çapraz açısını (-28°) korur
                 slotTr.localPosition = new Vector3(posX, 0f, 0f);
-                // 3D su perspektif açısıyla uyumlu eğim (Ebeveyn ölçeği tamamen UNIFORM 1.35):
-                slotTr.localRotation = Quaternion.Euler(-68f, 0f, 0f);
-                slotTr.localScale = Vector3.one * 1.35f;
+                // 3D su perspektif açısı (-68° X) üzerine su düzleminde lokal Y ekseninde slotAngle (-28°) açısı verilerek gemiler ve slotlar çapraz marina düzeninde yerleşir:
+                slotTr.localRotation = Quaternion.Euler(-68f, 0f, 0f) * Quaternion.Euler(0f, slotAngle, 0f);
+                slotTr.localScale = Vector3.one * 1.15f;
 
                 ShipSlot shipSlot = slotTr.GetComponent<ShipSlot>();
                 if (shipSlot == null) shipSlot = slotTr.gameObject.AddComponent<ShipSlot>();
@@ -500,7 +620,7 @@ namespace PixelGame.Editor
                     Undo.DestroyObjectImmediate(slotTr.GetChild(0).gameObject);
                 }
 
-                // indicator-square-b taban modelini ekle (Mesh'i dikeyde uzatarak ferah kıldık, ebeveyn ölçeği bozulmadı!)
+                // indicator-square-b taban modelini ekle (Çapraz slot çerçevesi)
                 if (indicatorPrefab != null)
                 {
                     GameObject indicatorInstance = (GameObject)PrefabUtility.InstantiatePrefab(indicatorPrefab, slotTr);
@@ -520,6 +640,22 @@ namespace PixelGame.Editor
                         mr.receiveShadows = true;
                     }
                 }
+
+                // Kullanıcının "gemiler çaprazlama yerleşsinler oraya" isteği gereği:
+                // Edit Mode'da slot 2 ve slot 4'e birer kargo gemisi yanaşmış olarak eklenir
+                if (shipPrefab != null && !Application.isPlaying && (i == 1 || i == 3))
+                {
+                    GameObject dockedShipObj = (GameObject)PrefabUtility.InstantiatePrefab(shipPrefab, slotTr);
+                    dockedShipObj.name = $"Docked_Ship_{i + 1}";
+                    dockedShipObj.transform.localPosition = new Vector3(0f, 0.08f, 0.02f);
+                    dockedShipObj.transform.localRotation = Quaternion.identity;
+                    dockedShipObj.transform.localScale = Vector3.one * ShipController.DefaultShipScale;
+
+                    ShipController sc = dockedShipObj.GetComponent<ShipController>();
+                    if (sc == null) sc = dockedShipObj.AddComponent<ShipController>();
+                    sc.Configure(initialShipColors[i], 16);
+                    shipSlot.DockShip(sc);
+                }
             }
 
             // 3. Su Alanı Bekleme Kuyruğu (Ship Queue Pool - Ferah su kanalı ve aralıklar)
@@ -532,7 +668,7 @@ namespace PixelGame.Editor
                 queueObj.SetParent(waterZone, false);
             }
 
-            queueObj.localPosition = new Vector3(0f, -1.35f, 0f);
+            queueObj.localPosition = new Vector3(0f, -1.45f, 0f);
             queueObj.localRotation = Quaternion.Euler(-68f, 0f, 0f);
             queueObj.localScale = Vector3.one * 1.35f;
 
@@ -694,6 +830,88 @@ namespace PixelGame.Editor
             return mat;
         }
 
+        private static Material GetOrCreatePierWoodMaterial()
+        {
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>(PierWoodMatPath);
+            Shader toonShader = Shader.Find("Toony Colors Pro 2/PixelGame/Cartoon");
+            if (toonShader == null) toonShader = Shader.Find("Universal Render Pipeline/Lit");
+
+            if (mat == null)
+            {
+                mat = new Material(toonShader);
+                mat.name = "Pier_Wood_Mat";
+
+                string dir = Path.GetDirectoryName(PierWoodMatPath);
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                AssetDatabase.CreateAsset(mat, PierWoodMatPath);
+            }
+            else if (mat.shader != toonShader && toonShader != null)
+            {
+                mat.shader = toonShader;
+            }
+
+            Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(ShipTexturePath);
+            if (tex != null)
+            {
+                mat.SetTexture("_BaseMap", tex);
+            }
+            // Sıcak tik/meşe ağacı ahşap tonu
+            mat.SetColor("_BaseColor", new Color(0.78f, 0.48f, 0.22f, 1f));
+
+            if (mat.HasProperty("_HColor")) mat.SetColor("_HColor", new Color(0.96f, 0.82f, 0.62f, 1f));
+            if (mat.HasProperty("_SColor")) mat.SetColor("_SColor", new Color(0.46f, 0.26f, 0.12f, 1f));
+            if (mat.HasProperty("_RampThreshold")) mat.SetFloat("_RampThreshold", 0.50f);
+            if (mat.HasProperty("_RampSmoothing")) mat.SetFloat("_RampSmoothing", 0.22f);
+            if (mat.HasProperty("_SpecularColor")) mat.SetColor("_SpecularColor", new Color(0.85f, 0.70f, 0.55f, 1f));
+            if (mat.HasProperty("_SpecularRoughnessPBR")) mat.SetFloat("_SpecularRoughnessPBR", 0.35f);
+            if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", new Color(0.92f, 0.75f, 0.45f, 0.70f));
+            if (mat.HasProperty("_RimMin")) mat.SetFloat("_RimMin", 0.45f);
+            if (mat.HasProperty("_RimMax")) mat.SetFloat("_RimMax", 0.92f);
+            if (mat.HasProperty("_StylizedPlasticOn")) mat.SetFloat("_StylizedPlasticOn", 0f);
+
+            EditorUtility.SetDirty(mat);
+            AssetDatabase.SaveAssets();
+            return mat;
+        }
+
+        private static Material GetOrCreatePierBoltMaterial()
+        {
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>(PierBoltMatPath);
+            Shader toonShader = Shader.Find("Toony Colors Pro 2/PixelGame/Cartoon");
+            if (toonShader == null) toonShader = Shader.Find("Universal Render Pipeline/Lit");
+
+            if (mat == null)
+            {
+                mat = new Material(toonShader);
+                mat.name = "Pier_Bolt_Mat";
+
+                string dir = Path.GetDirectoryName(PierBoltMatPath);
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                AssetDatabase.CreateAsset(mat, PierBoltMatPath);
+            }
+            else if (mat.shader != toonShader && toonShader != null)
+            {
+                mat.shader = toonShader;
+            }
+
+            // Gümüş / metalik parlak perçin tonu
+            mat.SetColor("_BaseColor", new Color(0.85f, 0.88f, 0.92f, 1f));
+
+            if (mat.HasProperty("_HColor")) mat.SetColor("_HColor", Color.white);
+            if (mat.HasProperty("_SColor")) mat.SetColor("_SColor", new Color(0.40f, 0.44f, 0.50f, 1f));
+            if (mat.HasProperty("_RampThreshold")) mat.SetFloat("_RampThreshold", 0.50f);
+            if (mat.HasProperty("_RampSmoothing")) mat.SetFloat("_RampSmoothing", 0.15f);
+            if (mat.HasProperty("_SpecularColor")) mat.SetColor("_SpecularColor", Color.white);
+            if (mat.HasProperty("_SpecularRoughnessPBR")) mat.SetFloat("_SpecularRoughnessPBR", 0.15f);
+            if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", new Color(1f, 1f, 1f, 0.85f));
+            if (mat.HasProperty("_RimMin")) mat.SetFloat("_RimMin", 0.35f);
+            if (mat.HasProperty("_RimMax")) mat.SetFloat("_RimMax", 0.95f);
+
+            EditorUtility.SetDirty(mat);
+            AssetDatabase.SaveAssets();
+            return mat;
+        }
+
         private static Material GetOrCreateShadowMaterial()
         {
             Material mat = AssetDatabase.LoadAssetAtPath<Material>(ShadowMatPath);
@@ -761,3 +979,5 @@ namespace PixelGame.Editor
         }
     }
 }
+// Build trigger: 2026-09-23 20:00
+
