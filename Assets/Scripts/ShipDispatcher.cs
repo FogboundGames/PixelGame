@@ -504,11 +504,15 @@ namespace PixelGame
             // 1. AŞAMA: Pano -> Ahşap İskele (Pier Hop)
             // ==========================================
             float pierY = -0.32f; // Ahşap iskele bölgesi
+            // Köprünün GERÇEK görünen üst yüzeyi (cıvataların durduğu yer) dünya Z'de ~-0.67'de;
+            // burası eskiden 0.02 idi, yani parça köprünün görünen yüzeyinden çok daha derinde
+            // kalıp altından/arkasından geçiyormuş gibi görünüyordu.
+            const float pierSurfaceZ = -0.65f;
             float targetShipX = (ship != null) ? ship.transform.position.x : startPos.x;
             Vector3 pierLandingPos = new Vector3(
                 Mathf.Lerp(startPos.x, targetShipX, 0.55f) + Random.Range(-0.12f, 0.12f),
                 pierY + Random.Range(-0.08f, 0.08f),
-                0.02f
+                pierSurfaceZ
             );
 
             float stage1Duration = 0.28f;
