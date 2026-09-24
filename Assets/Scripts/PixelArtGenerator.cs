@@ -74,9 +74,13 @@ namespace PixelGame
         [SerializeField] private float m_EmissionIntensity = 0.05f;
 
         [Header("🔲 Izgara & Küp Yerleşimi")]
-        [Tooltip("Küpler arasındaki boşluk oranı (0 = bitişik, 0.04 = %4 boşluk ile ızgara görünümü)")]
-        [Range(0f, 0.5f)]
+        [Tooltip("Küpler arasındaki DİKEY (satırlar/önler, Y ekseni) boşluk oranı (0 = bitişik, negatif = üst üste biner/kaynaşır)")]
+        [Range(-0.3f, 0.5f)]
         [SerializeField] private float m_CubeSpacing = 0.04f;
+
+        [Tooltip("Küpler arasındaki YATAY (aynı satırdaki yanlar, X ekseni) boşluk oranı — Dikey'den (Cube Spacing) BAĞIMSIZ ayarlanır. 0 = bitişik, negatif = üst üste biner/kaynaşır.")]
+        [Range(-0.3f, 0.5f)]
+        [SerializeField] private float m_CubeSpacingX = 0.04f;
 
         [Tooltip("Küplerin Z eksenindeki kalınlığı / derinliği (3D kabartma hissi)")]
         [Range(0.05f, 2f)]
@@ -88,6 +92,13 @@ namespace PixelGame
 
         [Tooltip("Küplerin 3D dünyadaki Z düzlemi mesafesi")]
         [SerializeField] private float m_TargetZ = 0f;
+
+        [Tooltip("Kameraya tam karşıdan (0°) bakıldığında küpün sadece üstü görünür; bu açı küpü öne doğru eğerek hem üst hem ön yüzünü görünür kılar")]
+        [Range(0f, 45f)]
+        [SerializeField] private float m_CubeFrontTiltAngle = 25f;
+
+        [Tooltip("Her satır (GridY arttıkça) küpün konumuna eklenen serbest X/Y/Z kademesi. Örn. Z=0.12 verirsen her üst satır bir öncekinden 0.12 birim daha ileri/geri kayar; X veya Y'ye değer verirsen satırlar yana/yukarı da kayabilir. Sahnede canlı görmek için 'Preserve Scene Edits' kapalı olmalı.")]
+        [SerializeField] private Vector3 m_CubeRowStepOffset = new Vector3(0f, 0f, 0.12f);
 
         [Tooltip("Şeffaf (alpha < 0.1) pikseller için küp oluşturulmasın mı?")]
         [SerializeField] private bool m_SkipTransparent = true;
@@ -487,33 +498,84 @@ namespace PixelGame
             GetEffectiveGridSize(activeTex, out int cols, out int rows);
             if (cols <= 0 || rows <= 0) { cols = 24; rows = 24; }
 
-            float cellSizeX = worldWidth / cols;
-            float cellSizeY = worldHeight / rows;
-            float cellSize = Mathf.Min(cellSizeX, cellSizeY);
+            // Görseldeki şeffaf olmayan (dolu) piksellerin sınırlarını ve merkezini tespit et
+            int minX = cols, maxX = -1, minY = rows, maxY = -1;
+            if (m_SkipTransparent)
+            {
+                for (int y = 0; y < rows; y++)
+                {
+                    for (int x = 0; x < cols; x++)
+                    {
+                        Color c = SampleRawColor(activeTex, x, y, cols, rows);
+                        if (c.a >= 0.1f)
+                        {
+                            if (x < minX) minX = x;
+                            if (x > maxX) maxX = x;
+                            if (y < minY) minY = y;
+                            if (y > maxY) maxY = y;
+                        }
+                    }
+                }
+            }
 
-            float totalWidth = cols * cellSize;
-            float totalHeight = rows * cellSize;
+            float cellSize;
+            Vector3 startPos;
 
-            Vector3 startPos = new Vector3(
-                worldCenter.x - totalWidth * 0.5f + cellSize * 0.5f,
-                worldCenter.y - totalHeight * 0.5f + cellSize * 0.5f,
-                m_TargetZ
-            );
+            float stepXMultiplier = 1f + m_CubeSpacingX;
 
-            float scaleFactor = Mathf.Clamp01(1f - m_CubeSpacing);
+            if (m_SkipTransparent && maxX >= minX && maxY >= minY)
+            {
+                int visW = maxX - minX + 1;
+                int visH = maxY - minY + 1;
+                float visCenterX = (minX + maxX) * 0.5f;
+                float visCenterY = (minY + maxY) * 0.5f;
+
+                float visCellSizeX = (worldWidth * 0.88f) / (visW * Mathf.Max(0.5f, stepXMultiplier));
+                float visCellSizeY = (worldHeight * 0.88f) / visH;
+                cellSize = Mathf.Min(visCellSizeX, visCellSizeY);
+
+                float stepX = cellSize * stepXMultiplier;
+
+                startPos = new Vector3(
+                    worldCenter.x - visCenterX * stepX,
+                    worldCenter.y - visCenterY * cellSize,
+                    m_TargetZ
+                );
+            }
+            else
+            {
+                float cellSizeX = worldWidth / (cols * Mathf.Max(0.5f, stepXMultiplier));
+                float cellSizeY = worldHeight / rows;
+                cellSize = Mathf.Min(cellSizeX, cellSizeY);
+
+                float stepX = cellSize * stepXMultiplier;
+                float totalWidth = (cols - 1) * stepX;
+                float totalHeight = (rows - 1) * cellSize;
+
+                startPos = new Vector3(
+                    worldCenter.x - totalWidth * 0.5f,
+                    worldCenter.y - totalHeight * 0.5f,
+                    m_TargetZ
+                );
+            }
+
+            float scaleFactor = Mathf.Max(0.05f, 1f - m_CubeSpacing);
             Vector3 cubeScale = new Vector3(
                 cellSize * scaleFactor,
                 cellSize * scaleFactor,
                 cellSize * m_CubeDepth
             );
 
+            Quaternion tiltedRot = Quaternion.Euler(m_CubeFrontTiltAngle, 0f, 0f);
+
             for (int i = 0; i < cubes.Length; i++)
             {
                 PixelCube cube = cubes[i];
                 if (cube == null) continue;
 
-                Vector3 pos = startPos + new Vector3(cube.GridX * cellSize, cube.GridY * cellSize, 0f);
+                Vector3 pos = startPos + new Vector3(cube.GridX * (cellSize * stepXMultiplier), cube.GridY * cellSize, 0f) + cube.GridY * m_CubeRowStepOffset;
                 cube.transform.position = pos;
+                cube.transform.rotation = tiltedRot;
                 cube.transform.localScale = cubeScale;
             }
         }
@@ -624,23 +686,79 @@ namespace PixelGame
                 rows = 24;
             }
 
-            // 3. Küp boyutunu ve ızgara yerleşimini hesapla (kare orantıyı korur)
-            float cellSizeX = worldWidth / cols;
-            float cellSizeY = worldHeight / rows;
-            float cellSize = Mathf.Min(cellSizeX, cellSizeY);
+            // Görseldeki şeffaf olmayan (dolu) piksellerin sınırlarını ve merkezini tespit et
+            int minX = cols, maxX = -1, minY = rows, maxY = -1;
+            if (m_SkipTransparent)
+            {
+                for (int y = 0; y < rows; y++)
+                {
+                    for (int x = 0; x < cols; x++)
+                    {
+                        Color c = SampleRawColor(activeTex, x, y, cols, rows);
+                        if (c.a >= 0.1f)
+                        {
+                            if (x < minX) minX = x;
+                            if (x > maxX) maxX = x;
+                            if (y < minY) minY = y;
+                            if (y > maxY) maxY = y;
+                        }
+                    }
+                }
+            }
 
-            float totalWidth = cols * cellSize;
-            float totalHeight = rows * cellSize;
+            float cellSize;
+            Vector3 startPos;
+            float totalWidth;
+            float totalHeight;
 
-            Vector3 startPos = new Vector3(
-                worldCenter.x - totalWidth * 0.5f + cellSize * 0.5f,
-                worldCenter.y - totalHeight * 0.5f + cellSize * 0.5f,
-                m_TargetZ
-            );
+            float stepXMultiplier = 1f + m_CubeSpacingX;
 
+            // Eğer şeffaf arkaplanlı izole bir figür varsa (örn. Kalp), sadece figürün dolu sınırlarını çerçeveye yay ve tam merkeze oturt
+            if (m_SkipTransparent && maxX >= minX && maxY >= minY)
+            {
+                int visW = maxX - minX + 1;
+                int visH = maxY - minY + 1;
+                float visCenterX = (minX + maxX) * 0.5f;
+                float visCenterY = (minY + maxY) * 0.5f;
+
+                // Dolu figürün çerçevenin içini ferahça dolduracağı hücre boyutu (%88 çerçeve oranı)
+                float visCellSizeX = (worldWidth * 0.88f) / (visW * Mathf.Max(0.5f, stepXMultiplier));
+                float visCellSizeY = (worldHeight * 0.88f) / visH;
+                cellSize = Mathf.Min(visCellSizeX, visCellSizeY);
+
+                float stepX = cellSize * stepXMultiplier;
+                totalWidth = visW * stepX;
+                totalHeight = visH * cellSize;
+
+                // Figürün geometrik merkezini hedef çerçevenin tam ortasına (worldCenter) oturt
+                startPos = new Vector3(
+                    worldCenter.x - visCenterX * stepX,
+                    worldCenter.y - visCenterY * cellSize,
+                    m_TargetZ
+                );
+            }
+            else
+            {
+                // Tam dolu kare veya opak görseller için standart matris yerleşimi
+                float cellSizeX = worldWidth / (cols * Mathf.Max(0.5f, stepXMultiplier));
+                float cellSizeY = worldHeight / rows;
+                cellSize = Mathf.Min(cellSizeX, cellSizeY);
+
+                float stepX = cellSize * stepXMultiplier;
+                totalWidth = cols * stepX;
+                totalHeight = rows * cellSize;
+
+                startPos = new Vector3(
+                    worldCenter.x - totalWidth * 0.5f + stepX * 0.5f,
+                    worldCenter.y - totalHeight * 0.5f + cellSize * 0.5f,
+                    m_TargetZ
+                );
+            }
+
+            float scaleFactor = Mathf.Max(0.05f, 1f - m_CubeSpacing);
             Vector3 cubeScale = new Vector3(
-                cellSize * (1f - m_CubeSpacing),
-                cellSize * (1f - m_CubeSpacing),
+                cellSize * scaleFactor,
+                cellSize * scaleFactor,
                 cellSize * m_CubeDepth
             );
 
@@ -667,7 +785,8 @@ namespace PixelGame
 
                     Color adjustedColor = PixelCube.AdjustColor(rawColor, m_ColorBrightness, m_ColorSaturation, m_ColorContrast);
 
-                    Vector3 pos = startPos + new Vector3(x * cellSize, y * cellSize, 0f);
+                    Vector3 pos = startPos + new Vector3(x * (cellSize * stepXMultiplier), y * cellSize, 0f) + y * m_CubeRowStepOffset;
+                    Quaternion rot = Quaternion.Euler(m_CubeFrontTiltAngle, 0f, 0f);
 
                     GameObject cubeObj;
                     #if UNITY_EDITOR
@@ -675,6 +794,7 @@ namespace PixelGame
                     {
                         cubeObj = (GameObject)PrefabUtility.InstantiatePrefab(m_CubePrefab, m_CubesContainer);
                         cubeObj.transform.position = pos;
+                        cubeObj.transform.rotation = rot;
                         cubeObj.transform.localScale = cubeScale;
                         cubeObj.name = $"Pixel_{x}_{y}";
                         Undo.RegisterCreatedObjectUndo(cubeObj, "Generate Pixel Cube");
@@ -682,7 +802,7 @@ namespace PixelGame
                     else
                     #endif
                     {
-                        cubeObj = Instantiate(m_CubePrefab, pos, Quaternion.identity, m_CubesContainer);
+                        cubeObj = Instantiate(m_CubePrefab, pos, rot, m_CubesContainer);
                         cubeObj.transform.localScale = cubeScale;
                         cubeObj.name = $"Pixel_{x}_{y}";
                     }
@@ -1779,11 +1899,17 @@ namespace PixelGame
 
         private void EnsureTargetFrameRect()
         {
-            // 1. Kullanıcının yerleştirdiği OtCerceve'yi doğrudan ve en yüksek öncelikle ara
+            // 1. Kullanıcının yerleştirdiği OtCerceve'yi en yüksek öncelikle ara.
+            // Piksel üretim hedefi OtCerceve'nin KENDİSİ değil, içindeki (dekoratif kenarlıksız,
+            // görsel deliğe tam oturan) "MainPlane" alt nesnesidir — GemiSceneSetup onu bu amaçla oluşturur.
             GameObject otGo = GameObject.Find("OtCerceve");
             if (otGo != null)
             {
-                RectTransform rt = otGo.GetComponent<RectTransform>();
+                Transform mainPlaneInOt = otGo.transform.Find("MainPlane");
+                RectTransform rt = mainPlaneInOt != null
+                    ? mainPlaneInOt.GetComponent<RectTransform>()
+                    : otGo.GetComponent<RectTransform>();
+
                 if (rt != null)
                 {
                     m_TargetFrameRect = rt;

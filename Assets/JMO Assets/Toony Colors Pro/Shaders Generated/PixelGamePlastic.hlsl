@@ -19,13 +19,21 @@ inline float3 ApplyPlasticPillowNormal(float3 objectPos, float3 objectNormal, fl
 
 // Procedural Bevel Normal Smoothing for 90-degree cube faces
 // Uses UV proximity to face edges to smoothly bend normal vectors outward, creating glossy plastic Lego edge highlights
-inline float3 CalculateProceduralBevelNormal(float2 uv, float3 normalWS, float bevelWidth, float bevelIntensity)
+// uvMargin: the mesh's OWN flat-face UV island rarely spans the full [0,1] range - its own rounded bevel
+// geometry usually reserves an outer margin of UV space (e.g. RoundedCube.obj's flat front face only
+// spans UV [0.13, 0.87]). Without remapping, bevelWidth is compared against raw UV distance and can
+// never produce a thin line: any bevelWidth smaller than uvMargin does nothing to the flat face at all,
+// while the visible "glow" actually comes from the mesh's own margin geometry (which is always wide).
+// Remapping into the flat face's own [0,1] local space makes bevelWidth behave as a true, thin edge highlight.
+inline float3 CalculateProceduralBevelNormal(float2 uv, float3 normalWS, float bevelWidth, float bevelIntensity, float uvMargin)
 {
     if (bevelIntensity <= 0.001 || bevelWidth <= 0.001)
         return normalWS;
 
-    // Calculate distance from UV boundaries [0, 1]
-    float2 edgeDist = min(uv, 1.0 - uv);
+    float2 faceUV = saturate((uv - uvMargin) / max(0.0001, 1.0 - 2.0 * uvMargin));
+
+    // Calculate distance from the flat face's own UV boundaries [0, 1]
+    float2 edgeDist = min(faceUV, 1.0 - faceUV);
     float minEdge = min(edgeDist.x, edgeDist.y);
 
     if (minEdge < bevelWidth)

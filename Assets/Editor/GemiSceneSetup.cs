@@ -25,6 +25,7 @@ namespace PixelGame.Editor
         private const string PierModelPath = "Assets/Kenney/kenney_watercraft-pack/Models/FBX format/ramp-wide.fbx";
         private const string PierPrefabPath = "Assets/Prefabs/Pier_Dock.prefab";
         private const string ScreenshotPath = "scratch/gemi_gameplay_view.png";
+        private const string AutoRunKey = "GemiSceneSetup_AutoRun_v27";
 
         // Kum alanı taş çerçevesinin tam ortası (World Units):
         // 9:16 ekranda orthoSize=8 iken Y=4.17f yeni yapraklı/taş çerçevenin tam geometrik merkezidir.
@@ -40,6 +41,8 @@ namespace PixelGame.Editor
         private static void AutoSetupOnReload()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+            if (SessionState.GetBool(AutoRunKey, false)) return;
+            SessionState.SetBool(AutoRunKey, true);
             Setup(includePixelArt: true, includeWaterSlots: true);
             CaptureScreenshot();
         }
@@ -581,15 +584,6 @@ namespace PixelGame.Editor
             float startX = -(slotCount - 1) * slotSpacing * 0.5f;
             const float slotAngle = -28f; // Çapraz marina yanaşma açısı
 
-            Color[] initialShipColors = new Color[]
-            {
-                new Color(0.18f, 0.52f, 0.95f, 1f), // Canlı Mavi
-                new Color(0.95f, 0.28f, 0.25f, 1f), // Canlı Kırmızı
-                new Color(0.22f, 0.82f, 0.42f, 1f), // Canlı Yeşil
-                new Color(0.98f, 0.78f, 0.15f, 1f), // Canlı Sarı
-                new Color(0.68f, 0.32f, 0.92f, 1f)  // Canlı Mor
-            };
-
             for (int i = 0; i < slotCount; i++)
             {
                 string slotName = $"WaterSlot_{i + 1}";
@@ -641,21 +635,6 @@ namespace PixelGame.Editor
                     }
                 }
 
-                // Kullanıcının "gemiler çaprazlama yerleşsinler oraya" isteği gereği:
-                // Edit Mode'da slot 2 ve slot 4'e birer kargo gemisi yanaşmış olarak eklenir
-                if (shipPrefab != null && !Application.isPlaying && (i == 1 || i == 3))
-                {
-                    GameObject dockedShipObj = (GameObject)PrefabUtility.InstantiatePrefab(shipPrefab, slotTr);
-                    dockedShipObj.name = $"Docked_Ship_{i + 1}";
-                    dockedShipObj.transform.localPosition = new Vector3(0f, 0.08f, 0.02f);
-                    dockedShipObj.transform.localRotation = Quaternion.identity;
-                    dockedShipObj.transform.localScale = Vector3.one * ShipController.DefaultShipScale;
-
-                    ShipController sc = dockedShipObj.GetComponent<ShipController>();
-                    if (sc == null) sc = dockedShipObj.AddComponent<ShipController>();
-                    sc.Configure(initialShipColors[i], 16);
-                    shipSlot.DockShip(sc);
-                }
             }
 
             // 3. Su Alanı Bekleme Kuyruğu (Ship Queue Pool - Ferah su kanalı ve aralıklar)

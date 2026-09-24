@@ -143,12 +143,13 @@ Material:
     - _OutlineTextureType: 0
     - _OutlineWidth: 1
     - _PillowRoundness: 0.5
-    - _PlasticAngleX: -0.45
-    - _PlasticBevelAO: 0.45
-    - _PlasticHighlightIntensity: 2.85
+    - _PlasticAngleX: 0.52
+    - _PlasticBevelAO: 0.647
+    - _PlasticHighlightIntensity: 0.972
     - _PlasticHighlightSize: 0.26
     - _PlasticTopLight: 0.25
-    - _ProceduralBevelIntensity: 0.8
+    - _ProceduralBevelIntensity: 1.351
+    - _ProceduralBevelUVMargin: 0.13
     - _ProceduralBevelWidth: 0.05
     - _QueueOffset: 0
     - _RampBands: 4

@@ -126,6 +126,30 @@ namespace PixelGame
                 }
             }
             m_WaitingShips.Clear();
+
+            // m_WaitingShips serileştirmesi Editor <-> Play Mode geçişinde bozulabilir
+            // (örn. GemiSceneSetup'ın Edit Mode önizleme gemileri sahneye kaydedilmişse).
+            // Bu durumda yukarıdaki liste bir spot'taki gemiyi "null" görüp atlayabilir ve
+            // o hayalet gemi silinmeden kalır; InitializeQueue() aynı spota yeni bir gemi
+            // daha eklediğinde iki gemi üst üste biner. Güvenlik için her spot'un altındaki
+            // TÜM ShipController çocuklarını da doğrudan temizle.
+            foreach (var spot in m_QueueSpots)
+            {
+                if (spot == null) continue;
+                for (int i = spot.childCount - 1; i >= 0; i--)
+                {
+                    Transform child = spot.GetChild(i);
+                    if (child.GetComponent<ShipController>() == null) continue;
+#if UNITY_EDITOR
+                    if (!Application.isPlaying)
+                        DestroyImmediate(child.gameObject);
+                    else
+                        Destroy(child.gameObject);
+#else
+                    Destroy(child.gameObject);
+#endif
+                }
+            }
         }
 
         /// <summary>

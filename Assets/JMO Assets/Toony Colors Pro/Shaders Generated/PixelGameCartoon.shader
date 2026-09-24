@@ -50,6 +50,7 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 		_PlasticBevelAO ("Bevel Edge Darkening (AO)", Range(0, 1)) = 0.4
 		_ProceduralBevelWidth ("Procedural Bevel Edge Width", Range(0, 0.2)) = 0.05
 		_ProceduralBevelIntensity ("Procedural Bevel Intensity", Range(0, 2)) = 0.8
+		_ProceduralBevelUVMargin ("Procedural Bevel UV Margin (mesh's own edge/rounding UV allocation)", Range(0, 0.49)) = 0.13
 		[TCP2Separator]
 		
 		[ToggleOff(_RECEIVE_SHADOWS_OFF)] _ReceiveShadowsOff ("Receive Shadows", Float) = 1
@@ -122,6 +123,7 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 			float _PlasticBevelAO;
 			float _ProceduralBevelWidth;
 			float _ProceduralBevelIntensity;
+			float _ProceduralBevelUVMargin;
 		CBUFFER_END
 
 		#include "PixelGamePlastic.hlsl"
@@ -278,7 +280,7 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 
 				float3 positionWS = input.worldPosAndFog.xyz;
 				float3 normalWS = normalize(input.normal);
-				normalWS = CalculateProceduralBevelNormal(input.pack0.xy, normalWS, _ProceduralBevelWidth, _ProceduralBevelIntensity);
+				normalWS = CalculateProceduralBevelNormal(input.pack0.xy, normalWS, _ProceduralBevelWidth, _ProceduralBevelIntensity, _ProceduralBevelUVMargin);
 				half3 viewDirWS = GetWorldSpaceNormalizeViewDir(positionWS);
 
 				// Shader Properties Sampling

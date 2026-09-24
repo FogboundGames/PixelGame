@@ -373,11 +373,15 @@ namespace PixelGame.Editor
                 float pAO = cartoonMat.HasProperty("_PlasticBevelAO") ? cartoonMat.GetFloat("_PlasticBevelAO") : 0.4f;
                 float newPAO = EditorGUILayout.Slider("🌑 Kenar Ayrımı / Gölge (Bevel AO)", pAO, 0f, 1f);
 
+                // Procedural Bevel Intensity (0 = temiz jelibon nokta parlaması, >0 = beyaz kenar çizgisi)
+                float pProcBevel = cartoonMat.HasProperty("_ProceduralBevelIntensity") ? cartoonMat.GetFloat("_ProceduralBevelIntensity") : 0f;
+                float newPProcBevel = EditorGUILayout.Slider("📐 Beyaz Kenar Çizgisi (Bevel)", pProcBevel, 0f, 2f);
+
                 // Highlight Color
                 Color pHlCol = cartoonMat.HasProperty("_PlasticHighlightColor") ? cartoonMat.GetColor("_PlasticHighlightColor") : Color.white;
                 Color newPHlCol = EditorGUILayout.ColorField("✨ Parlama Rengi", pHlCol);
 
-                if (newPRoundness != pRoundness || newPAngleX != pAngleX || newPIntensity != pIntensity || newPRoughness != pRoughness || newPTop != pTop || newPAO != pAO || newPHlCol != pHlCol)
+                if (newPRoundness != pRoundness || newPAngleX != pAngleX || newPIntensity != pIntensity || newPRoughness != pRoughness || newPTop != pTop || newPAO != pAO || newPProcBevel != pProcBevel || newPHlCol != pHlCol)
                 {
                     Undo.RecordObject(cartoonMat, "Modify Plastic Settings");
                     cartoonMat.SetFloat("_PillowRoundness", newPRoundness);
@@ -386,6 +390,7 @@ namespace PixelGame.Editor
                     cartoonMat.SetFloat("_SpecularRoughnessPBR", newPRoughness);
                     cartoonMat.SetFloat("_PlasticTopLight", newPTop);
                     cartoonMat.SetFloat("_PlasticBevelAO", newPAO);
+                    cartoonMat.SetFloat("_ProceduralBevelIntensity", newPProcBevel);
                     cartoonMat.SetColor("_PlasticHighlightColor", newPHlCol);
                     EditorUtility.SetDirty(cartoonMat);
                     SceneView.RepaintAll();

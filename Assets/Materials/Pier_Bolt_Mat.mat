@@ -40,6 +40,7 @@ Material:
     - _PlasticHighlightSize: 0.35
     - _PlasticTopLight: 0.25
     - _ProceduralBevelIntensity: 0.8
+    - _ProceduralBevelUVMargin: 0.13
     - _ProceduralBevelWidth: 0.05
     - _RampSmoothing: 0.15
     - _RampThreshold: 0.5
