@@ -30,7 +30,7 @@ namespace PixelGame.Editor
         private const string k_Jump   = "Jump";
         private const string k_Attack = "Attack";
 
-        [MenuItem("Tools/Toy Truck/Setup Mecha Miner", false, 20)]
+        // [MenuItem("Tools/Toy Truck/Setup Mecha Miner", false, 20)]
         public static void Setup()
         {
             if (AssetDatabase.LoadAssetAtPath<GameObject>(k_Model) == null)

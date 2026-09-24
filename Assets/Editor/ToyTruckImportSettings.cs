@@ -120,31 +120,31 @@ namespace PixelGame.Editor
             if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0f);
         }
 
-        [MenuItem("Tools/Toy Truck/Create Prefab")]
+        // [MenuItem("Tools/Toy Truck/Create Prefab")]
         private static void CreateTruckPrefab()
         {
             CreatePrefab(k_TruckModelPath, k_TruckPrefabPath, "ToyTruck", withTailgate: true, withMover: false);
         }
 
-        [MenuItem("Tools/Toy Truck/Create Mine Cart Prefab")]
+        // [MenuItem("Tools/Toy Truck/Create Mine Cart Prefab")]
         private static void CreateCartPrefab()
         {
             CreatePrefab(k_CartModelPath, k_CartPrefabPath, "MineCart", withTailgate: false, withMover: true);
         }
 
-        [MenuItem("Tools/Toy Truck/Create Track Prefab")]
+        // [MenuItem("Tools/Toy Truck/Create Track Prefab")]
         private static void CreateTrackPrefab()
         {
             CreatePrefab(k_TrackModelPath, k_TrackPrefabPath, "Track", withTailgate: false, withMover: false);
         }
 
-        [MenuItem("Tools/Toy Truck/Create Mine Portal Prefab")]
+        // [MenuItem("Tools/Toy Truck/Create Mine Portal Prefab")]
         private static void CreatePortalPrefab()
         {
             CreatePrefab(k_PortalModelPath, k_PortalPrefabPath, "MinePortal", withTailgate: false, withMover: false);
         }
 
-        [MenuItem("Tools/Toy Truck/Create Mecha Miner Prefab")]
+        // [MenuItem("Tools/Toy Truck/Create Mecha Miner Prefab")]
         private static void CreateMinerPrefab()
         {
             MechaMinerSetup.Setup();

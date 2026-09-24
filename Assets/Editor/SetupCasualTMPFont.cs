@@ -12,7 +12,7 @@ namespace PixelGame.Editor
         public const string SourceFontPath = "Assets/Fonts/LilitaOne-Regular.ttf";
         public const string SDFAssetPath = "Assets/Fonts/LilitaOne-Regular SDF.asset";
 
-        [MenuItem("Tools/PixelGame/🔤 LilitaOne TextMeshPro Font Asset Oluştur")]
+        // [MenuItem("Tools/PixelGame/🔤 LilitaOne TextMeshPro Font Asset Oluştur")]
         public static TMP_FontAsset GetOrCreateFontAsset()
         {
             try

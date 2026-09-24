@@ -13,7 +13,7 @@ namespace PixelGame.Editor
             // EditorApplication.delayCall += ExecutePurge;
         }
 
-        [MenuItem("Tools/PixelGame/🧹 Sahnede Kalan Gizli Önizleme Robotlarını Temizle", priority = 1)]
+        // [MenuItem("Tools/PixelGame/🧹 Sahnede Kalan Gizli Önizleme Robotlarını Temizle", priority = 1)]
         public static void ExecutePurge()
         {
             int purged = 0;

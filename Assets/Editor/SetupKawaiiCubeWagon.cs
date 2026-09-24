@@ -39,7 +39,7 @@ namespace PixelGame.Editor
         private const string BodyMatPath = "Assets/Materials/KawaiiCube_Body_Mat.mat";
         private const string FaceMatPath = "Assets/Materials/KawaiiCube_Face_Mat.mat";
 
-        [MenuItem("Tools/PixelGame/🐱 KawaiiCube Modelini Kur & Aktif Et", priority = 1)]
+        // [MenuItem("Tools/PixelGame/🐱 KawaiiCube Modelini Kur & Aktif Et", priority = 1)]
         public static void SetupManual()
         {
             ExecuteSetup(silent: false);

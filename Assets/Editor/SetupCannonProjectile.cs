@@ -9,7 +9,7 @@ namespace PixelGame.Editor
         public const string ProjectilePrefabPath = "Assets/Prefabs/CannonProjectile.prefab";
         public const string CannonPrefabPath = "Assets/Prefabs/VacuumCannon.prefab";
 
-        [MenuItem("Tools/PixelGame/🚀 Mermi Küresini ve Hedef Göstergesini Kur", priority = 26)]
+        // [MenuItem("Tools/PixelGame/🚀 Mermi Küresini ve Hedef Göstergesini Kur", priority = 26)]
         public static void SetupAll()
         {
             BuildProjectilePrefab();

@@ -11,7 +11,7 @@ namespace PixelGame.Editor
         public const string PortalShadowPath = "Assets/UI/PortalShadow.png";
         private const string SourceSlotPath = "Assets/UI/Slot.png";
 
-        [MenuItem("Tools/PixelGame/🎨 Tüm Gölge Dokularını Yeniden Üret")]
+        // [MenuItem("Tools/PixelGame/🎨 Tüm Gölge Dokularını Yeniden Üret")]
         public static void GenerateAllShadowTextures()
         {
             GenerateSlotShadowTexture();

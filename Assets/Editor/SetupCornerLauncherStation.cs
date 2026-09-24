@@ -26,7 +26,7 @@ namespace PixelGame.Editor
             // EditorApplication.delayCall += ApplyCornerLauncher;
         }
 
-        [MenuItem("Tools/PixelGame/🚀 Köşe Fırlatma İstasyonunu & Canlı Butonu Kur (Corner Launcher Setup)", priority = 3)]
+        // [MenuItem("Tools/PixelGame/🚀 Köşe Fırlatma İstasyonunu & Canlı Butonu Kur (Corner Launcher Setup)", priority = 3)]
         public static void ApplyCornerLauncher()
         {
             if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;

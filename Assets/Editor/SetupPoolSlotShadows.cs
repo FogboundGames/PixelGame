@@ -17,7 +17,7 @@ namespace PixelGame.Editor
             // EditorApplication.delayCall += ApplyPoolShadows;
         }
 
-        [MenuItem("Tools/PixelGame/🌑 Havuz Slot Gölgelerini Uygula (Setup Pool Fake Shadows)", priority = 4)]
+        // [MenuItem("Tools/PixelGame/🌑 Havuz Slot Gölgelerini Uygula (Setup Pool Fake Shadows)", priority = 4)]
         public static void ApplyPoolShadows()
         {
             if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;

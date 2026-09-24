@@ -446,7 +446,7 @@ namespace PixelGame
             EditorUtility.SetDirty(this);
         }
 
-        [MenuItem("Tools/PixelGame/🌑 Mavi Ray Sahte Gölgesini Güncelle (Track Fake Shadow)", priority = 38)]
+        // [MenuItem("Tools/PixelGame/🌑 Mavi Ray Sahte Gölgesini Güncelle (Track Fake Shadow)", priority = 38)]
         public static void CreateOrUpdateShadowMenu()
         {
             TrackFakeShadow shadow = EnsureShadow(null);

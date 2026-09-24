@@ -15,7 +15,7 @@ namespace PixelGame.Editor
             // EditorApplication.delayCall += ApplyHypercasualOverhaul;
         }
 
-        [MenuItem("Tools/PixelGame/🌟 Hypercasual Parlak Işık ve Karakter Renklerini Uygula")]
+        // [MenuItem("Tools/PixelGame/🌟 Hypercasual Parlak Işık ve Karakter Renklerini Uygula")]
         public static void ApplyHypercasualOverhaul()
         {
             Shader cartoonShader = CartoonShader.Get();

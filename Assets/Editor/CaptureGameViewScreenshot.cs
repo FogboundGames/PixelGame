@@ -25,7 +25,7 @@ namespace PixelGame.Editor
             Capture();
         }
 
-        [MenuItem("Tools/PixelGame/📸 9:16 Ekran Görüntüsü Al (Capture Screenshot)")]
+        // [MenuItem("Tools/PixelGame/📸 9:16 Ekran Görüntüsü Al (Capture Screenshot)")]
         public static void Capture()
         {
             if (s_IsCapturing) return;

@@ -26,7 +26,7 @@ namespace PixelGame.Editor
         private const string BlueBotPrefabPath = "Assets/Prefabs/BlueBotWagon.prefab";
         private const string VacuumCannonPrefabPath = "Assets/Prefabs/VacuumCannon.prefab";
 
-        [MenuItem("Tools/PixelGame/✨ 3B Tombul Rozet & Model Gizleme Ayarını Uygula (Tile Badge Overhaul)", priority = 2)]
+        // [MenuItem("Tools/PixelGame/✨ 3B Tombul Rozet & Model Gizleme Ayarını Uygula (Tile Badge Overhaul)", priority = 2)]
         public static void ApplyOverhaul()
         {
             if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;

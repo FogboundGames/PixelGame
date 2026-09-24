@@ -1962,17 +1962,11 @@ namespace PixelGame
 
         private void EnsureTargetFrameRect()
         {
-            // 1. Kullanıcının yerleştirdiği OtCerceve'yi en yüksek öncelikle ara.
-            // Piksel üretim hedefi OtCerceve'nin KENDİSİ değil, içindeki (dekoratif kenarlıksız,
-            // görsel deliğe tam oturan) "MainPlane" alt nesnesidir — GemiSceneSetup onu bu amaçla oluşturur.
+            // 1. Kullanıcının yerleştirdiği OtCerceve çerçevesini doğrudan ve en yüksek öncelikle ara
             GameObject otGo = GameObject.Find("OtCerceve");
             if (otGo != null)
             {
-                Transform mainPlaneInOt = otGo.transform.Find("MainPlane");
-                RectTransform rt = mainPlaneInOt != null
-                    ? mainPlaneInOt.GetComponent<RectTransform>()
-                    : otGo.GetComponent<RectTransform>();
-
+                RectTransform rt = otGo.GetComponent<RectTransform>();
                 if (rt != null)
                 {
                     m_TargetFrameRect = rt;

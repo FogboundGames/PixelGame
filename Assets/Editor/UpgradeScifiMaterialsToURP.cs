@@ -26,7 +26,7 @@ namespace PixelGame.Editor
             UpgradeMaterials(silent: true);
         }
 
-        [MenuItem("Tools/PixelGame/🔧 Mor Kaplamaları Düzelt (Fix Scifi URP Materials)", priority = 30)]
+        // [MenuItem("Tools/PixelGame/🔧 Mor Kaplamaları Düzelt (Fix Scifi URP Materials)", priority = 30)]
         public static void MenuUpgradeMaterials()
         {
             UpgradeMaterials(silent: false);

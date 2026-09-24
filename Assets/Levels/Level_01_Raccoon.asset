@@ -60,7 +60,7 @@ MonoBehaviour:
   m_CubeFrontTiltAngle: 25
   m_TargetZ: 0
   m_CubeRowStepOffset: {x: 0, y: 0, z: 0.12}
-  m_InnerPadding: 0
+  m_InnerPadding: 0.08
   m_SkipTransparent: 1
   m_SlotSprite: {fileID: 21300000, guid: 4b3d2f47130df8dd8af6a709e594aa54, type: 3}
   m_SlotCount: 5

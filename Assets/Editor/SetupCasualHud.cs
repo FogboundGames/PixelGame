@@ -24,7 +24,7 @@ namespace PixelGame.Editor
         private const string k_UIRoot = "Assets/UI/CasualUI/";
         private const string k_FontPath = "Assets/Fonts/LilitaOne-Regular SDF.asset";
 
-        [MenuItem("Tools/PixelGame/🖼️ Casual HUD & Arkaplan Kur", priority = 40)]
+        // [MenuItem("Tools/PixelGame/🖼️ Casual HUD & Arkaplan Kur", priority = 40)]
         public static void Apply()
         {
             Canvas hudCanvas = FindOrCleanupHudCanvas();

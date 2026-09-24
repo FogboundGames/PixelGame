@@ -141,7 +141,7 @@ namespace PixelGame.Editor
         /// <summary>Canvas'ın kameradan uzaklığı.</summary>
         private const float k_CanvasPlaneDistance = 11f;
 
-        [MenuItem("Tools/PixelGame/🛤️ Vagon Döngüsünü Kur (Ray + Havuz)", priority = 20)]
+        // [MenuItem("Tools/PixelGame/🛤️ Vagon Döngüsünü Kur (Ray + Havuz)", priority = 20)]
         public static void Setup()
         {
             Camera cam = Camera.main != null ? Camera.main : Object.FindFirstObjectByType<Camera>();
@@ -225,7 +225,7 @@ namespace PixelGame.Editor
                       "Mavi çerçeve etrafındaki raylar başarıyla dizildi!");
         }
 
-        [MenuItem("Tools/PixelGame/🛤️ Çevresel Rayları Diz (Mavi Çerçeve)", priority = 19)]
+        // [MenuItem("Tools/PixelGame/🛤️ Çevresel Rayları Diz (Mavi Çerçeve)", priority = 19)]
         public static void GeneratePerimeterRailsMenu()
         {
             TruckDispatcher dispatcher = Object.FindFirstObjectByType<TruckDispatcher>();
@@ -246,7 +246,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("Tools/PixelGame/🛤️ Vagon Döngüsünü Kaldır", priority = 21)]
+        // [MenuItem("Tools/PixelGame/🛤️ Vagon Döngüsünü Kaldır", priority = 21)]
         public static void Remove()
         {
             GameObject canvas = GameObject.Find(k_SlotCanvasName);
@@ -269,7 +269,7 @@ namespace PixelGame.Editor
                 UnityEngine.SceneManagement.SceneManager.GetActiveScene());
         }
 
-        [MenuItem("Tools/PixelGame/🌑 Slot Sahte Gölgelerini (Fake Shadow) Kur / Güncelle", priority = 22)]
+        // [MenuItem("Tools/PixelGame/🌑 Slot Sahte Gölgelerini (Fake Shadow) Kur / Güncelle", priority = 22)]
         public static void SelectOrUpdateSlotShadow()
         {
             SelectOrUpdateSlotShadow(showDialog: true);

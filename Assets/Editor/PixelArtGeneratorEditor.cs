@@ -415,13 +415,13 @@ namespace PixelGame.Editor
             SetupPixelArtManager(isAuto: true);
         }
 
-        [MenuItem("Tools/PixelGame/🎨 Piksel Resim Yöneticisini Kur veya Seç")]
+        // [MenuItem("Tools/PixelGame/🎨 Piksel Resim Yöneticisini Kur veya Seç")]
         public static void SetupManual()
         {
             SetupPixelArtManager(isAuto: false);
         }
 
-        [MenuItem("Tools/PixelGame/🔄 Sahnede Küp Renklerini Canlı Güncelle")]
+        // [MenuItem("Tools/PixelGame/🔄 Sahnede Küp Renklerini Canlı Güncelle")]
         public static void UpdateColorsManual()
         {
             PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
@@ -433,7 +433,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("Tools/PixelGame/🌑 Sahnede Küplere Fake Shadow Ekle veya Güncelle")]
+        // [MenuItem("Tools/PixelGame/🌑 Sahnede Küplere Fake Shadow Ekle veya Güncelle")]
         public static void ApplyShadowsManual()
         {
             PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
@@ -445,7 +445,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("Tools/PixelGame/🧹 Sahnede Oluşturulan Küpleri Temizle")]
+        // [MenuItem("Tools/PixelGame/🧹 Sahnede Oluşturulan Küpleri Temizle")]
         public static void ClearManual()
         {
             PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();

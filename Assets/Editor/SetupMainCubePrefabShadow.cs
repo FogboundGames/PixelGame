@@ -34,7 +34,7 @@ namespace PixelGame.Editor
             return obj;
         }
 
-        [MenuItem("Tools/PixelGame/👁️ Sahnede Piksel Resmi ve Gölgeleri Canlı Önizle")]
+        // [MenuItem("Tools/PixelGame/👁️ Sahnede Piksel Resmi ve Gölgeleri Canlı Önizle")]
         public static void PreviewInSceneManual()
         {
             ApplyShadowToPrefab(force: true);
@@ -46,7 +46,7 @@ namespace PixelGame.Editor
                 "- Parçalandığında arkada hiçbir iz kalmıyor.", "Harika!");
         }
 
-        [MenuItem("Tools/PixelGame/🌑 MainCube Prefabına Belirgin Fake Shadow Ayarla")]
+        // [MenuItem("Tools/PixelGame/🌑 MainCube Prefabına Belirgin Fake Shadow Ayarla")]
         public static void ApplyManual()
         {
             ApplyShadowToPrefab(force: true);

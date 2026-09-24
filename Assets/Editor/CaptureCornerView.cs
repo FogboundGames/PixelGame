@@ -6,7 +6,7 @@ namespace PixelGame.Editor
 {
     public static class CaptureCornerView
     {
-        [MenuItem("Tools/PixelGame/📸 Test Köşe Görüntüsü Al (Capture Corner Test)")]
+        // [MenuItem("Tools/PixelGame/📸 Test Köşe Görüntüsü Al (Capture Corner Test)")]
         public static void Capture()
         {
             SetupCornerLauncherStation.ApplyCornerLauncher();

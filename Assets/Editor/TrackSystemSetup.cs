@@ -31,7 +31,7 @@ namespace PixelGame.Editor
             ExecuteSetup(silent: true);
         }
 
-        [MenuItem("Tools/PixelGame/🛤️ Yeni Ray Sistemini Kur (Materyaller & Prefablar)", priority = 36)]
+        // [MenuItem("Tools/PixelGame/🛤️ Yeni Ray Sistemini Kur (Materyaller & Prefablar)", priority = 36)]
         public static void SetupManual()
         {
             ExecuteSetup(silent: false);
@@ -286,7 +286,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("Tools/PixelGame/🛤️ Sahneye Rayları Otomatik Döşe", priority = 37)]
+        // [MenuItem("Tools/PixelGame/🛤️ Sahneye Rayları Otomatik Döşe", priority = 37)]
         public static void BuildSceneRails()
         {
             ExecuteSetup(silent: true);

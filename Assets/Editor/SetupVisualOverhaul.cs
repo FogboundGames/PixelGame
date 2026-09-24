@@ -12,7 +12,7 @@ namespace PixelGame.Editor
         private const string CasualUIDir = "Assets/UI/CasualUI";
         private const string FontPath = "Assets/Fonts/LilitaOne-Regular.ttf";
 
-        [MenuItem("Tools/PixelGame/✨ Komple Görsel Dönüşümü Uygula (Complete Visual Overhaul)", priority = 1)]
+        // [MenuItem("Tools/PixelGame/✨ Komple Görsel Dönüşümü Uygula (Complete Visual Overhaul)", priority = 1)]
         public static void ApplyOverhaul()
         {
             // 1. Sprite ayarlarını ve 9-slice sınırlarını yapılandır

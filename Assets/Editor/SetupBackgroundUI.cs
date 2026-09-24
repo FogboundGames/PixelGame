@@ -26,13 +26,13 @@ namespace PixelGame.Editor
             ExecuteSetup(isAuto: true);
         }
 
-        [MenuItem("Tools/PixelGame/Arka Planı ve Fake Shadow'u Otomatik Kur")]
+        // [MenuItem("Tools/PixelGame/Arka Planı ve Fake Shadow'u Otomatik Kur")]
         public static void SetupManual()
         {
             ExecuteSetup(isAuto: false);
         }
 
-        [MenuItem("Tools/PixelGame/Sadece Fake Shadow Ekle veya Seç")]
+        // [MenuItem("Tools/PixelGame/Sadece Fake Shadow Ekle veya Seç")]
         public static void SetupShadowOnly()
         {
             Canvas canvas = Object.FindFirstObjectByType<Canvas>();

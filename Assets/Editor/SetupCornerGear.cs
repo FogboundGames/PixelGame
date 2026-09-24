@@ -24,7 +24,7 @@ namespace PixelGame.Editor
             */
         }
 
-        [MenuItem("Tools/PixelGame/⚙️ Sol Alt Köşeye Animasyonlu Dişliyi Yerleştir (Corner Gear Setup)", priority = 38)]
+        // [MenuItem("Tools/PixelGame/⚙️ Sol Alt Köşeye Animasyonlu Dişliyi Yerleştir (Corner Gear Setup)", priority = 38)]
         public static void SetupManual()
         {
             EnsureCornerGearInScene(silent: false);

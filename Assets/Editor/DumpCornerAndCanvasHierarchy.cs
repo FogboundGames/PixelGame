@@ -15,7 +15,7 @@ namespace PixelGame.Editor
             // EditorApplication.delayCall += Dump;
         }
 
-        [MenuItem("Tools/PixelGame/Dump Corner & Canvas Hierarchy")]
+        // [MenuItem("Tools/PixelGame/Dump Corner & Canvas Hierarchy")]
         public static void Dump()
         {
             StringBuilder sb = new StringBuilder();

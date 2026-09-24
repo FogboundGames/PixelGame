@@ -44,7 +44,7 @@ MonoBehaviour:
   m_CubeFrontTiltAngle: 25
   m_TargetZ: 0
   m_CubeRowStepOffset: {x: 0, y: 0, z: 0.12}
-  m_InnerPadding: 0
+  m_InnerPadding: 0.08
   m_SkipTransparent: 1
   m_SlotSprite: {fileID: 0}
   m_SlotCount: 5

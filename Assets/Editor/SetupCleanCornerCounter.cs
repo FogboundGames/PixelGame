@@ -20,7 +20,7 @@ namespace PixelGame.Editor
             // EditorApplication.delayCall += ApplyCleanCorner;
         }
 
-        [MenuItem("Tools/PixelGame/🎯 Köşe Sayacını & Üst HUD'ı Düzenle (Clean Corner & Top UI)")]
+        // [MenuItem("Tools/PixelGame/🎯 Köşe Sayacını & Üst HUD'ı Düzenle (Clean Corner & Top UI)")]
         public static void ApplyCleanCorner()
         {
             if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;

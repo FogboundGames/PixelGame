@@ -27,7 +27,7 @@ namespace PixelGame.Editor
             ExecuteSetup(silent: true);
         }
 
-        [MenuItem("Tools/PixelGame/🚀 Vakum Topu Vagonunu Kur (object_005)", priority = 25)]
+        // [MenuItem("Tools/PixelGame/🚀 Vakum Topu Vagonunu Kur (object_005)", priority = 25)]
         public static void SetupManual()
         {
             ExecuteSetup(silent: false);

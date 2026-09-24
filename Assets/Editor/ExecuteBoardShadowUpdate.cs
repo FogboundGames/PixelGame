@@ -15,7 +15,7 @@ namespace PixelGame.Editor
             // EditorApplication.delayCall += RunUpdate;
         }
 
-        [MenuItem("Tools/PixelGame/🖼️ Pano ve Küp Gölgelerini Tamamen Temizle")]
+        // [MenuItem("Tools/PixelGame/🖼️ Pano ve Küp Gölgelerini Tamamen Temizle")]
         public static void ForceUpdate()
         {
             SessionState.SetBool(SessionKey, false);

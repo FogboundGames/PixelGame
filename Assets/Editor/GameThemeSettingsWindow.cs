@@ -14,7 +14,7 @@ namespace PixelGame.Editor
         private Vector2 m_ScrollPos;
         private Color m_TestColor = new Color32(230, 40, 40, 255);
 
-        [MenuItem("Tools/PixelGame/🎨 Genel Tema & Renk Ayarları", priority = 10)]
+        // [MenuItem("Tools/PixelGame/🎨 Genel Tema & Renk Ayarları", priority = 10)]
         [MenuItem("Window/PixelGame/Genel Tema Ayarları")]
         public static void OpenWindow()
         {

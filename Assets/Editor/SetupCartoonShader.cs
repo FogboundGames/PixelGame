@@ -16,7 +16,7 @@ namespace PixelGame.Editor
         private const string k_CubeMaterialPath = "Assets/Materials/PixelCube_Cartoon.mat";
         private const string k_CubePrefabPath = "Assets/Prefabs/MainCube.prefab";
 
-        [MenuItem("Tools/PixelGame/🎨 Cartoon Shader'a Geçir", priority = 30)]
+        // [MenuItem("Tools/PixelGame/🎨 Cartoon Shader'a Geçir", priority = 30)]
         public static void Apply()
         {
             Shader shader = Shader.Find(CartoonShader.ShaderName);

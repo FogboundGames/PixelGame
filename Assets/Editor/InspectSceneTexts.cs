@@ -15,7 +15,7 @@ namespace PixelGame.Editor
             // EditorApplication.delayCall += Inspect;
         }
 
-        [MenuItem("Tools/PixelGame/Inspect All Scene Texts")]
+        // [MenuItem("Tools/PixelGame/Inspect All Scene Texts")]
         public static void Inspect()
         {
             StringBuilder sb = new StringBuilder();

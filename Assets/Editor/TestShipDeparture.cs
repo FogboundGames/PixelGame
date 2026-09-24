@@ -6,7 +6,7 @@ namespace PixelGame.Editor
 {
     public static class TestShipDeparture
     {
-        [MenuItem("Tools/PixelGame/🧪 Test Ship Departure and Badge Hide", priority = 20)]
+        // [MenuItem("Tools/PixelGame/🧪 Test Ship Departure and Badge Hide", priority = 20)]
         public static void RunTest()
         {
             Debug.Log("<color=#00FFAA><b>[TestShipDeparture]</b></color> Starting Ship Departure and Badge Disappearance Verification...");

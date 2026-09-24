@@ -64,7 +64,7 @@ namespace PixelGame.Editor
         private Color m_SpecularColor = Color.white;
         private float m_Roughness = 0.18f;
 
-        [MenuItem("Tools/PixelGame/🎨 Model & Toon Renk Stüdyosu (TCP2 Preview)", priority = 1)]
+        // [MenuItem("Tools/PixelGame/🎨 Model & Toon Renk Stüdyosu (TCP2 Preview)", priority = 1)]
         [MenuItem("Window/PixelGame/Model & Toon Renk Stüdyosu")]
         public static void OpenWindow()
         {

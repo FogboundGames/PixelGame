@@ -25,29 +25,23 @@ namespace PixelGame.Editor
         private const string PierModelPath = "Assets/Kenney/kenney_watercraft-pack/Models/FBX format/ramp-wide.fbx";
         private const string PierPrefabPath = "Assets/Prefabs/Pier_Dock.prefab";
         private const string ScreenshotPath = "scratch/gemi_gameplay_view.png";
-        private const string AutoRunKey = "GemiSceneSetup_AutoRun_v27";
+        private const string AutoRunKey = "GemiSceneSetup_AutoRun_v29";
 
-        // Kum alanı taş çerçevesinin tam ortası (World Units):
-        // 9:16 ekranda orthoSize=8 iken Y=4.17f yeni yapraklı/taş çerçevenin tam geometrik merkezidir.
+        // Kullanıcının sahnede elle ayarladığı referans değerler (Kalıcı / Sabit Referans):
+        public static readonly Vector2 UserOtCercevePosition = new Vector2(3.33f, 558.9f);
+        public static readonly Vector2 UserOtCerceveSize = new Vector2(796.57f, 927.8f);
+        public static readonly Vector3 UserGeneratorPosition = new Vector3(-0.041753f, 0.17511f, 0f);
+        public static readonly Vector3 UserGeneratorScale = new Vector3(1.3072706f, 1.4263f, 1f);
         private static readonly Vector3 SandFrameCenterWorld = new Vector3(0f, 4.17f, 0f);
-        private const float SandFrameCanvasY = 500.0f;
-        private const float SandFrameCanvasSize = 480.0f;
+
+        private const float SandFrameCanvasSize = 530.0f;
 
         static GemiSceneSetup()
         {
-            EditorApplication.delayCall += AutoSetupOnReload;
+            // Kullanıcının sahnede elle yaptığı düzenlemelerin %100 sabit kalması için otomatik yeniden kurulum kapalıdır.
         }
 
-        private static void AutoSetupOnReload()
-        {
-            if (EditorApplication.isPlayingOrWillChangePlaymode) return;
-            if (SessionState.GetBool(AutoRunKey, false)) return;
-            SessionState.SetBool(AutoRunKey, true);
-            Setup(includePixelArt: true, includeWaterSlots: true);
-            CaptureScreenshot();
-        }
-
-        [MenuItem("Tools/PixelGame/🏝️ Gemi Sahnesini Kur & Tüm Ögeleri Getir", priority = 10)]
+        // [MenuItem("Tools/PixelGame/🏝️ Gemi Sahnesini Kur & Tüm Ögeleri Getir", priority = 10)]
         public static void SetupGemiSceneMenu()
         {
             Setup(includePixelArt: true, includeWaterSlots: true);
@@ -60,7 +54,7 @@ namespace PixelGame.Editor
                 "• URP yumuşak gölgeler zemin üzerinde canlı olarak çalışıyor.", "Harika!");
         }
 
-        [MenuItem("Tools/PixelGame/🎨 Kum Alanındaki Piksel Resmi Yenile (Regenerate)", priority = 11)]
+        // [MenuItem("Tools/PixelGame/🎨 Kum Alanındaki Piksel Resmi Yenile (Regenerate)", priority = 11)]
         public static void RegeneratePixelArtMenu()
         {
             PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
@@ -78,7 +72,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("Tools/PixelGame/➡️ Sonraki Seviyeyi Yükle (Next Level)", priority = 12)]
+        // [MenuItem("Tools/PixelGame/➡️ Sonraki Seviyeyi Yükle (Next Level)", priority = 12)]
         public static void NextLevelMenu()
         {
             LevelManager lm = Object.FindFirstObjectByType<LevelManager>();
@@ -91,7 +85,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("Tools/PixelGame/⬅️ Önceki Seviyeyi Yükle (Prev Level)", priority = 13)]
+        // [MenuItem("Tools/PixelGame/⬅️ Önceki Seviyeyi Yükle (Prev Level)", priority = 13)]
         public static void PrevLevelMenu()
         {
             LevelManager lm = Object.FindFirstObjectByType<LevelManager>();
@@ -104,7 +98,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("Tools/PixelGame/📸 Gemi Sahnesi Ekran Görüntüsü Al", priority = 14)]
+        // [MenuItem("Tools/PixelGame/📸 Gemi Sahnesi Ekran Görüntüsü Al", priority = 14)]
         public static void CaptureScreenshotMenu()
         {
             CaptureScreenshot();
@@ -231,19 +225,24 @@ namespace PixelGame.Editor
             Sprite frameSprite = AssetDatabase.LoadAssetAtPath<Sprite>(FrameImagePath);
             Transform otTr = canvasObj.transform.Find("OtCerceve");
             Transform boardFrameTr = otTr != null ? otTr : canvasObj.transform.Find("BoardFrame");
+            bool isNewFrame = false;
             if (boardFrameTr == null)
             {
                 GameObject frameGo = new GameObject("OtCerceve", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
                 frameGo.transform.SetParent(canvasObj.transform, false);
                 boardFrameTr = frameGo.transform;
+                isNewFrame = true;
             }
             RectTransform boardFrameRect = boardFrameTr.GetComponent<RectTransform>();
             boardFrameRect.anchorMin = new Vector2(0.5f, 0.5f);
             boardFrameRect.anchorMax = new Vector2(0.5f, 0.5f);
             boardFrameRect.pivot = new Vector2(0.5f, 0.5f);
-            boardFrameRect.anchoredPosition = new Vector2(0f, SandFrameCanvasY);
-            boardFrameRect.sizeDelta = new Vector2(540f, 810f); // 2:3 en-boy oranlı esnek çerçeve
-            boardFrameRect.localScale = Vector3.one;
+            if (isNewFrame)
+            {
+                boardFrameRect.anchoredPosition = UserOtCercevePosition;
+                boardFrameRect.sizeDelta = UserOtCerceveSize;
+                boardFrameRect.localScale = Vector3.one;
+            }
 
             Image frameImg = boardFrameTr.GetComponent<Image>();
             if (frameImg != null)
@@ -264,7 +263,15 @@ namespace PixelGame.Editor
             {
                 mainPlaneTr = canvasObj.transform.Find("MainPlane");
             }
-            if (mainPlaneTr != null)
+            bool isNewMainPlane = false;
+            if (mainPlaneTr == null)
+            {
+                GameObject planeGo = new GameObject("MainPlane", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                planeGo.transform.SetParent(boardFrameTr, false);
+                mainPlaneTr = planeGo.transform;
+                isNewMainPlane = true;
+            }
+            else if (mainPlaneTr.parent != boardFrameTr)
             {
                 mainPlaneTr.SetParent(boardFrameTr, false);
             }
@@ -273,9 +280,12 @@ namespace PixelGame.Editor
             targetFrameRect.anchorMin = new Vector2(0.5f, 0.5f);
             targetFrameRect.anchorMax = new Vector2(0.5f, 0.5f);
             targetFrameRect.pivot = new Vector2(0.5f, 0.5f);
-            targetFrameRect.anchoredPosition = Vector2.zero; // BoardFrame'in tam ortası
-            targetFrameRect.sizeDelta = new Vector2(SandFrameCanvasSize, SandFrameCanvasSize);
-            targetFrameRect.localScale = Vector3.one;
+            if (isNewMainPlane)
+            {
+                targetFrameRect.anchoredPosition = Vector2.zero; // BoardFrame'in tam ortası
+                targetFrameRect.sizeDelta = new Vector2(SandFrameCanvasSize, SandFrameCanvasSize);
+                targetFrameRect.localScale = Vector3.one;
+            }
 
             Image planeImg = targetFrameRect.GetComponent<Image>();
             if (planeImg != null)
@@ -359,6 +369,7 @@ namespace PixelGame.Editor
         private static void SetupPixelArtSystem(Transform sandZone, RectTransform targetFrameRect, Camera cam)
         {
             GameObject genObj = GameObject.Find("[PixelArtGenerator]");
+            bool isNewGen = false;
             if (genObj == null)
             {
                 Transform inZone = sandZone.Find("[PixelArtGenerator]");
@@ -367,13 +378,20 @@ namespace PixelGame.Editor
                 {
                     genObj = new GameObject("[PixelArtGenerator]");
                     Undo.RegisterCreatedObjectUndo(genObj, "Create PixelArtGenerator");
+                    isNewGen = true;
                 }
             }
 
-            genObj.transform.SetParent(sandZone, false);
-            genObj.transform.localPosition = Vector3.zero;
-            genObj.transform.localRotation = Quaternion.identity;
-            genObj.transform.localScale = Vector3.one;
+            if (genObj.transform.parent != sandZone)
+            {
+                genObj.transform.SetParent(sandZone, true);
+            }
+            if (isNewGen)
+            {
+                genObj.transform.localPosition = UserGeneratorPosition;
+                genObj.transform.localRotation = Quaternion.identity;
+                genObj.transform.localScale = UserGeneratorScale;
+            }
 
             // 1. PixelArtGenerator bileşeni
             PixelArtGenerator generator = genObj.GetComponent<PixelArtGenerator>();
@@ -441,8 +459,11 @@ namespace PixelGame.Editor
             interSo.FindProperty("m_ShowResetButtonOnScreen").boolValue = false;
             interSo.ApplyModifiedPropertiesWithoutUndo();
 
-            // 4. Piksel küplerini doğrudan çerçeve içerisine üret
-            generator.GeneratePixelArt();
+            // 4. Piksel küpleri sahnede mevcut değilse üret; sahnede varsa kullanıcının elle ayarladığı küpleri %100 koru
+            if (generator.CubesContainer == null || generator.CubesContainer.childCount == 0)
+            {
+                generator.GeneratePixelArt();
+            }
 
             if (generator.CubesContainer != null)
             {

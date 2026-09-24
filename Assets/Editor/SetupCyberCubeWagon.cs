@@ -39,7 +39,7 @@ namespace PixelGame.Editor
         private const string NeonMatPath = "Assets/Materials/CyberCube_Neon_Mat.mat";
         private const string BaseMatPath = "Assets/Materials/CyberCube_Base_Mat.mat";
 
-        [MenuItem("Tools/PixelGame/🤖 CyberCube Modelini Kur & Aktif Et", priority = 1)]
+        // [MenuItem("Tools/PixelGame/🤖 CyberCube Modelini Kur & Aktif Et", priority = 1)]
         public static void SetupManual()
         {
             ExecuteSetup(silent: false);

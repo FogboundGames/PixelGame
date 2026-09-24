@@ -24,7 +24,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("Tools/PixelGame/🧊 12 Parçalı Kırılma Verisini Kur & Güncelle", priority = 35)]
+        // [MenuItem("Tools/PixelGame/🧊 12 Parçalı Kırılma Verisini Kur & Güncelle", priority = 35)]
         public static void SetupManual()
         {
             ExecuteSetup(silent: false);
