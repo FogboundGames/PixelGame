@@ -99,11 +99,198 @@ namespace PixelGame
             return false;
         }
 
+        /// <summary>
+        /// Küpün patlatılmasına izin var mı?
+        /// 1) Küp DIŞTA olmalıdır (ortada/içte kalmış küpler patlatılamaz!).
+        /// 2) Slotta bu renge uyan ve henüz dolmamış bir gemi olmalıdır.
+        /// </summary>
+        public bool CanPop(PixelCube cube)
+        {
+            if (cube == null || cube.IsPopped || !cube.gameObject.activeSelf) return false;
+
+            // Ortadaki küpler dıştan açılmadan patlatılamaz
+            if (!IsCubeExposed(cube))
+            {
+                cube.PlayBlockedWobble();
+                return false;
+            }
+
+            return CanPop(cube.CurrentColor);
+        }
+
         private static readonly HashSet<PixelCube> s_ReservedCubes = new HashSet<PixelCube>();
+        private readonly HashSet<ShipController> m_ActiveExtractingShips = new HashSet<ShipController>();
+
+        /// <summary>
+        /// Bir küpün dış havaya temas edip etmediğini kontrol eder.
+        /// Ortada/içte kalmış küpler (4 komşusu da dolu küplerle çevrili olanlar) dış küp değildir.
+        /// </summary>
+        public bool IsCubeExposed(PixelCube targetCube)
+        {
+            if (targetCube == null || targetCube.IsPopped || !targetCube.gameObject.activeSelf)
+                return false;
+
+            if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (m_Generator == null || m_Generator.CubesContainer == null) return true;
+
+            var allCubes = m_Generator.CubesContainer.GetComponentsInChildren<PixelCube>(false);
+            if (allCubes == null || allCubes.Length == 0) return true;
+
+            Dictionary<(int, int), PixelCube> gridMap = new Dictionary<(int, int), PixelCube>(allCubes.Length);
+            int minX = int.MaxValue, maxX = int.MinValue;
+            int minY = int.MaxValue, maxY = int.MinValue;
+
+            for (int i = 0; i < allCubes.Length; i++)
+            {
+                PixelCube c = allCubes[i];
+                if (c != null && !c.IsPopped && c.gameObject.activeSelf)
+                {
+                    gridMap[(c.GridX, c.GridY)] = c;
+                    if (c.GridX < minX) minX = c.GridX;
+                    if (c.GridX > maxX) maxX = c.GridX;
+                    if (c.GridY < minY) minY = c.GridY;
+                    if (c.GridY > maxY) maxY = c.GridY;
+                }
+            }
+
+            if (!gridMap.ContainsKey((targetCube.GridX, targetCube.GridY)))
+                return false;
+
+            HashSet<(int, int)> outsideAir = CalculateOutsideAir(gridMap, minX, maxX, minY, maxY);
+
+            int tx = targetCube.GridX;
+            int ty = targetCube.GridY;
+            return outsideAir.Contains((tx - 1, ty)) ||
+                   outsideAir.Contains((tx + 1, ty)) ||
+                   outsideAir.Contains((tx, ty - 1)) ||
+                   outsideAir.Contains((tx, ty + 1));
+        }
+
+        /// <summary>
+        /// Izgara dışındaki tüm boş alanlardan (dış hava) BFS başlatarak dış havayı bulur.
+        /// </summary>
+        public static HashSet<(int, int)> CalculateOutsideAir(Dictionary<(int, int), PixelCube> gridMap, int minX, int maxX, int minY, int maxY)
+        {
+            HashSet<(int, int)> outsideAir = new HashSet<(int, int)>();
+            if (gridMap == null || gridMap.Count == 0) return outsideAir;
+
+            int boundMinX = minX - 1;
+            int boundMaxX = maxX + 1;
+            int boundMinY = minY - 1;
+            int boundMaxY = maxY + 1;
+
+            Queue<(int, int)> airQueue = new Queue<(int, int)>();
+
+            for (int x = boundMinX; x <= boundMaxX; x++)
+            {
+                airQueue.Enqueue((x, boundMinY));
+                outsideAir.Add((x, boundMinY));
+                airQueue.Enqueue((x, boundMaxY));
+                outsideAir.Add((x, boundMaxY));
+            }
+            for (int y = boundMinY + 1; y < boundMaxY; y++)
+            {
+                airQueue.Enqueue((boundMinX, y));
+                outsideAir.Add((boundMinX, y));
+                airQueue.Enqueue((boundMaxX, y));
+                outsideAir.Add((boundMaxX, y));
+            }
+
+            int[] dx = { -1, 1, 0, 0 };
+            int[] dy = { 0, 0, -1, 1 };
+
+            while (airQueue.Count > 0)
+            {
+                var (cx, cy) = airQueue.Dequeue();
+                for (int i = 0; i < 4; i++)
+                {
+                    int nx = cx + dx[i];
+                    int ny = cy + dy[i];
+
+                    if (nx >= boundMinX && nx <= boundMaxX && ny >= boundMinY && ny <= boundMaxY)
+                    {
+                        if (!outsideAir.Contains((nx, ny)))
+                        {
+                            if (!gridMap.ContainsKey((nx, ny)))
+                            {
+                                outsideAir.Add((nx, ny));
+                                airQueue.Enqueue((nx, ny));
+                            }
+                        }
+                    }
+                }
+            }
+
+            return outsideAir;
+        }
+
+        /// <summary>
+        /// Verilen renkle eşleşen, henüz patlatılmamış/rezerve edilmemiş ve DIŞTA olan (dış havaya temas eden) küpleri döner.
+        /// </summary>
+        public List<PixelCube> GetExposedMatchingCubes(Color shipColor)
+        {
+            List<PixelCube> result = new List<PixelCube>();
+
+            if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (m_Generator == null || m_Generator.CubesContainer == null) return result;
+
+            var allCubes = m_Generator.CubesContainer.GetComponentsInChildren<PixelCube>(false);
+            if (allCubes == null || allCubes.Length == 0) return result;
+
+            Dictionary<(int, int), PixelCube> gridMap = new Dictionary<(int, int), PixelCube>(allCubes.Length);
+            int minX = int.MaxValue, maxX = int.MinValue;
+            int minY = int.MaxValue, maxY = int.MinValue;
+
+            for (int i = 0; i < allCubes.Length; i++)
+            {
+                PixelCube c = allCubes[i];
+                if (c != null && !c.IsPopped && c.gameObject.activeSelf)
+                {
+                    gridMap[(c.GridX, c.GridY)] = c;
+                    if (c.GridX < minX) minX = c.GridX;
+                    if (c.GridX > maxX) maxX = c.GridX;
+                    if (c.GridY < minY) minY = c.GridY;
+                    if (c.GridY > maxY) maxY = c.GridY;
+                }
+            }
+
+            if (gridMap.Count == 0) return result;
+
+            HashSet<(int, int)> outsideAir = CalculateOutsideAir(gridMap, minX, maxX, minY, maxY);
+
+            foreach (var kvp in gridMap)
+            {
+                PixelCube cube = kvp.Value;
+                if (cube == null || s_ReservedCubes.Contains(cube)) continue;
+
+                if (ColorsMatch(cube.CurrentColor, shipColor))
+                {
+                    int x = cube.GridX;
+                    int y = cube.GridY;
+                    bool touchesAir = outsideAir.Contains((x - 1, y)) ||
+                                      outsideAir.Contains((x + 1, y)) ||
+                                      outsideAir.Contains((x, y - 1)) ||
+                                      outsideAir.Contains((x, y + 1));
+
+                    if (touchesAir)
+                    {
+                        result.Add(cube);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        public bool HasExposedMatchingCube(Color shipColor)
+        {
+            var list = GetExposedMatchingCubes(shipColor);
+            return list != null && list.Count > 0;
+        }
 
         /// <summary>
         /// Gemi bir slota yanaştığında çağrılır.
-        /// Çizilen görseldeki eşleşen renkteki küpleri iskeleyi kullanarak gemiye zıplatır.
+        /// Sadece dıştaki küpleri toplar; dışta küp yoksa açılana kadar slotta bekler.
         /// </summary>
         public void OnShipDocked(ShipController ship)
         {
@@ -111,68 +298,120 @@ namespace PixelGame
             StartCoroutine(ExtractMatchingCubesToShipRoutine(ship));
         }
 
-        private IEnumerator ExtractMatchingCubesToShipRoutine(ShipController ship)
+        /// <summary>
+        /// Bir küp patladığında veya gemi yanaştığında, slotlarda bekleyen dolmamış diğer gemilerin
+        /// önüne yeni açılan dış küp gelip gelmediğini kontrol eder ve toplamayı başlatır.
+        /// </summary>
+        public void TriggerWaitingShipsCheck()
         {
-            if (ship == null) yield break;
+            if (m_Slots == null || m_Slots.Count == 0) return;
 
-            // 1. Geminin rengiyle eşleşen, henüz patlatılmamış ve rezerve edilmemiş küpleri bul
-            if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
-            if (m_Generator == null || m_Generator.CubesContainer == null) yield break;
-
-            var allCubes = m_Generator.CubesContainer.GetComponentsInChildren<PixelCube>(false);
-            List<PixelCube> matchingCubes = new List<PixelCube>();
-
-            foreach (var cube in allCubes)
+            foreach (var slot in m_Slots)
             {
-                if (cube != null && !cube.IsPopped && cube.gameObject.activeSelf && !s_ReservedCubes.Contains(cube))
+                if (slot != null && !slot.IsEmpty && slot.DockedShip != null)
                 {
-                    if (ColorsMatch(cube.CurrentColor, ship.ShipColor))
+                    ShipController ship = slot.DockedShip;
+                    if (ship != null && !ship.IsDeparting && !ship.IsFull && !m_ActiveExtractingShips.Contains(ship))
                     {
-                        matchingCubes.Add(cube);
+                        if (HasExposedMatchingCube(ship.ShipColor))
+                        {
+                            StartCoroutine(ExtractMatchingCubesToShipRoutine(ship));
+                        }
                     }
                 }
             }
+        }
 
-            // Aşağıdan yukarıya doğru (iskeleye en yakın olanlardan başlayarak) çekici bir sırayla aksınlar
-            matchingCubes.Sort((a, b) => a.transform.position.y.CompareTo(b.transform.position.y));
+        private IEnumerator ExtractMatchingCubesToShipRoutine(ShipController ship)
+        {
+            if (ship == null || ship.IsDeparting) yield break;
+            if (m_ActiveExtractingShips.Contains(ship)) yield break;
 
-            int cubesToExtract = Mathf.Min(ship.RemainingCapacity, matchingCubes.Count);
-            if (cubesToExtract <= 0)
+            m_ActiveExtractingShips.Add(ship);
+
+            try
             {
-                // Slotta eşleşen küp kalmadıysa kısa bir süre sonra gemi kalkış yapsın
-                if (matchingCubes.Count == 0 && !ship.IsDeparting)
+                while (ship != null && !ship.IsDeparting && !ship.IsFull)
                 {
-                    yield return new WaitForSeconds(0.35f);
-                    if (ship != null && !ship.IsDeparting) ship.DepartAndFreeSlot();
+                    List<PixelCube> exposedCubes = GetExposedMatchingCubes(ship.ShipColor);
+
+                    if (exposedCubes == null || exposedCubes.Count == 0)
+                    {
+                        // Dışta bu renkten küp yok!
+                        // Seviyede bu renkten hala içeride (ortada) kilitli küp var mı kontrol et
+                        int totalRemaining = GetRemainingCountForColor(ship.ShipColor);
+                        if (totalRemaining == 0)
+                        {
+                            // Seviyedeki bu renge ait TÜM küpler zaten toplanmış, gemi daha fazla küp alamaz -> Kalkış yap
+                            yield return new WaitForSeconds(0.35f);
+                            if (ship != null && !ship.IsDeparting)
+                            {
+                                ship.DepartAndFreeSlot();
+                            }
+                        }
+                        else
+                        {
+                            // "yoksa bekleyecek açılmasını"
+                            // İçeride hala bu renkten küpler var ama şu an dışları kapalı!
+                            // Gemi slotta bekleyecek, kalkış yapmayacak.
+                        }
+                        break;
+                    }
+
+                    // Dıştaki küpleri gemiye en yakın olandan uzağa doğru sırala (doğal çekim sırası)
+                    Vector3 shipPos = ship.transform.position;
+                    exposedCubes.Sort((a, b) =>
+                    {
+                        float distA = (a.transform.position - shipPos).sqrMagnitude;
+                        float distB = (b.transform.position - shipPos).sqrMagnitude;
+                        return distA.CompareTo(distB);
+                    });
+
+                    // En uygun dış küpü al
+                    PixelCube targetCube = exposedCubes[0];
+                    s_ReservedCubes.Add(targetCube);
+
+                    Vector3 cubeStartPos = targetCube.transform.position;
+                    Color cubeColor = targetCube.CurrentColor;
+                    Vector3 cubeScale = targetCube.transform.lossyScale;
+
+                    targetCube.SetPoppedVisualState(true);
+
+                    PixelCubeInteraction interaction = PixelCubeInteraction.Instance != null
+                        ? PixelCubeInteraction.Instance
+                        : Object.FindFirstObjectByType<PixelCubeInteraction>();
+                    if (interaction != null) interaction.RegisterPoppedCube(targetCube);
+
+                    // 2 Aşamalı İskele Zıplama Uçuşu Başlat (Pano -> İskele -> Gemi)
+                    StartCoroutine(FlyCubeThroughPierToShip(cubeStartPos, cubeColor, cubeScale.x * 0.45f, ship, targetCube));
+
+                    yield return new WaitForSeconds(0.12f); // Seri ve tatlı zıplama ritmi
+
+                    // Bir küp patlatıldığında içerideki küpler dışarı açılmış olabilir!
+                    // Bekleyen diğer gemileri tetikle
+                    TriggerWaitingShipsCheck();
                 }
-                yield break;
-            }
 
-            for (int i = 0; i < cubesToExtract; i++)
+                // Gemi dolduysa kalkış yap
+                if (ship != null && ship.IsFull && !ship.IsDeparting)
+                {
+                    yield return new WaitForSeconds(0.2f);
+                    if (ship != null && !ship.IsDeparting)
+                    {
+                        ship.DepartAndFreeSlot();
+                    }
+                }
+            }
+            finally
             {
-                PixelCube cube = matchingCubes[i];
-                if (cube == null || cube.IsPopped || s_ReservedCubes.Contains(cube)) continue;
-                if (ship == null || ship.IsDeparting || ship.IsFull) break;
-
-                s_ReservedCubes.Add(cube);
-
-                // Küpü panodan patlatıp gizle
-                Vector3 cubeStartPos = cube.transform.position;
-                Color cubeColor = cube.CurrentColor;
-                Vector3 cubeScale = cube.transform.lossyScale;
-
-                cube.SetPoppedVisualState(true);
-
-                PixelCubeInteraction interaction = PixelCubeInteraction.Instance != null
-                    ? PixelCubeInteraction.Instance
-                    : Object.FindFirstObjectByType<PixelCubeInteraction>();
-                if (interaction != null) interaction.RegisterPoppedCube(cube);
-
-                // 2 Aşamalı İskele Zıplama Uçuşu Başlat (Pano -> İskele -> Gemi)
-                StartCoroutine(FlyCubeThroughPierToShip(cubeStartPos, cubeColor, cubeScale.x * 0.45f, ship, cube));
-
-                yield return new WaitForSeconds(0.12f); // Seri ve tatlı zıplama ritmi
+                if (ship != null)
+                {
+                    m_ActiveExtractingShips.Remove(ship);
+                }
             }
+
+            // Çekim bittikten sonra da genel kontrol yap
+            TriggerWaitingShipsCheck();
         }
 
         private IEnumerator FlyCubeThroughPierToShip(Vector3 startPos, Color color, float size, ShipController ship, PixelCube sourceCube)
@@ -349,6 +588,7 @@ namespace PixelGame
             }
 
             CheckWinCondition();
+            TriggerWaitingShipsCheck();
         }
 
         /// <summary>
@@ -381,15 +621,26 @@ namespace PixelGame
             return null;
         }
 
+        private int m_LastAssignedSlotIndex = -1;
+
         /// <summary>
-        /// İlk boş slotu döndürür.
+        /// Boş bir slot döndürür. Her zaman en soldakini seçmek yerine, bir önceki
+        /// atamadan sonraki slottan başlayarak sırayla (round-robin) tarar — böylece
+        /// slotlar dengeli kullanılır, sol taraf sürekli tekrar dolup sağ taraf
+        /// uzun süre boş kalmaz.
         /// </summary>
         public ShipSlot FindEmptySlot()
         {
-            foreach (var slot in m_Slots)
+            if (m_Slots == null || m_Slots.Count == 0) return null;
+
+            int count = m_Slots.Count;
+            for (int offset = 1; offset <= count; offset++)
             {
+                int index = (m_LastAssignedSlotIndex + offset) % count;
+                var slot = m_Slots[index];
                 if (slot != null && slot.IsEmpty)
                 {
+                    m_LastAssignedSlotIndex = index;
                     return slot;
                 }
             }

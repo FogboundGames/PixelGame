@@ -579,6 +579,25 @@ namespace PixelGame
         }
 
         /// <summary>
+        /// Gemi, ShipController dışından (ör. ShipQueuePool'un arkadan gelme / öne kayma
+        /// kuyruk animasyonları) DOTween ile taşınırken çağrılmalıdır. Su sallanması (bobbing)
+        /// her karede pozisyonu eski "dinlenme" tabanına geri çektiği için, bu susturulmazsa
+        /// dışarıdan yapılan pozisyon animasyonu her karede ezilip gemi hiç ilerlemiyormuş gibi
+        /// görünür. Animasyon bitince `false` ile çağırıp geminin O ANKİ konumunu/rotasyonunu
+        /// yeni dinlenme tabanı olarak kaydet — aksi halde bir sonraki bobbing karesi gemiyi
+        /// eski (animasyon öncesi) konuma geri çeker.
+        /// </summary>
+        public void SetQueueAnimating(bool animating)
+        {
+            m_IsMoving = animating;
+            if (!animating)
+            {
+                m_BaseLocalPosition = transform.localPosition;
+                m_BaseLocalRotation = transform.localRotation;
+            }
+        }
+
+        /// <summary>
         /// Slotlar doluysa veya geçersiz tıklamada gemi iki yana sallanır (Wobble).
         /// </summary>
         public void PlayWobble()

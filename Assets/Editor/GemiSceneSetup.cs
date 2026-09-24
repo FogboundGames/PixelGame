@@ -580,7 +580,10 @@ namespace PixelGame.Editor
 
             // 5 adet slotu ÇAPRAZ marina düzeninde yerleştir
             const int slotCount = 5;
-            const float slotSpacing = 1.62f;
+            // Kamera görüş alanı yarı genişliği (~3.70 birim) ile slot indicator'ının kendi
+            // yarı-genişliğini (~0.85 birim) hesaba katarak en dıştaki slotlar ekran dışına
+            // taşmasın diye 1.62'den 1.40'a düşürüldü (bkz. slotAngle=-28° ile birlikte ölçüldü).
+            const float slotSpacing = 1.40f;
             float startX = -(slotCount - 1) * slotSpacing * 0.5f;
             const float slotAngle = -28f; // Çapraz marina yanaşma açısı
 

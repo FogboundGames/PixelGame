@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -74,12 +75,12 @@ namespace PixelGame
         [SerializeField] private float m_EmissionIntensity = 0.05f;
 
         [Header("🔲 Izgara & Küp Yerleşimi")]
-        [Tooltip("Küpler arasındaki DİKEY (satırlar/önler, Y ekseni) boşluk oranı (0 = bitişik, negatif = üst üste biner/kaynaşır)")]
-        [Range(-0.3f, 0.5f)]
+        [Tooltip("Küpler arasındaki DİKEY (satırlar/önler, Y ekseni) fiziksel boşluk oranı (0 = bitişik, 0.1 = %10 boşluk, negatif = üst üste biner)")]
+        [Range(-0.3f, 1.0f)]
         [SerializeField] private float m_CubeSpacing = 0.04f;
 
-        [Tooltip("Küpler arasındaki YATAY (aynı satırdaki yanlar, X ekseni) boşluk oranı — Dikey'den (Cube Spacing) BAĞIMSIZ ayarlanır. 0 = bitişik, negatif = üst üste biner/kaynaşır.")]
-        [Range(-0.3f, 0.5f)]
+        [Tooltip("Küpler arasındaki YATAY (aynı satırdaki yanlar, X ekseni) fiziksel boşluk oranı (0 = bitişik, 0.1 = %10 boşluk, negatif = üst üste biner). Küplerin şeklini/kareliğini bozmaz, aralarındaki mesafeyi açar.")]
+        [Range(-0.3f, 1.0f)]
         [SerializeField] private float m_CubeSpacingX = 0.04f;
 
         [Tooltip("Küplerin Z eksenindeki kalınlığı / derinliği (3D kabartma hissi)")]
@@ -172,6 +173,7 @@ namespace PixelGame
         public bool UseNativeResolution { get => m_UseNativeResolution; set => m_UseNativeResolution = value; }
         public Vector2Int GridResolution { get => m_GridResolution; set => m_GridResolution = value; }
         public float CubeSpacing { get => m_CubeSpacing; set => m_CubeSpacing = value; }
+        public float CubeSpacingX { get => m_CubeSpacingX; set => m_CubeSpacingX = value; }
         public float CubeDepth { get => m_CubeDepth; set => m_CubeDepth = value; }
         public float InnerPadding { get => m_InnerPadding; set => m_InnerPadding = value; }
         public float ColorBrightness { get => m_ColorBrightness; set { m_ColorBrightness = value; UpdateExistingCubesLive(); } }
@@ -259,6 +261,14 @@ namespace PixelGame
                 // Sahne koruması: Kullanıcının sildiği, taşıdığı veya değiştirdiği hiçbir nesneyi sıfırlama!
                 if (m_PreserveSceneEdits)
                 {
+                    // Yine de mevcut küpleri SİLMEDEN/yeniden RENKLENDİRMEDEN, o anki gerçek
+                    // ekran/Game View çözünürlüğüne göre pozisyon ve boyutlarını tazele.
+                    // Edit Mode önizlemesi farklı bir pencere boyutunda/oranında yapılmış olabilir;
+                    // bu yapılmazsa resim Play Mode'a girince küçük veya kaymış görünür.
+                    if (CubesContainer != null && CubesContainer.childCount > 0)
+                    {
+                        StartCoroutine(RefreshLayoutNextFrame());
+                    }
                     return;
                 }
 
@@ -288,6 +298,21 @@ namespace PixelGame
             }
         }
 
+        /// <summary>
+        /// Play Mode'un ilk karesinde Canvas/CanvasScaler henüz kendi boyutunu netleştirmemiş
+        /// olabilir (script çalışma sırası garanti değildir). Bir kare bekleyip UI düzeni
+        /// oturduktan SONRA gerçek çözünürlüğe göre küp pozisyon/boyutlarını tazeler.
+        /// </summary>
+        private IEnumerator RefreshLayoutNextFrame()
+        {
+            yield return null;
+            if (this == null || !Application.isPlaying) yield break;
+            if (CubesContainer != null && CubesContainer.childCount > 0)
+            {
+                UpdateExistingCubesTransforms();
+            }
+        }
+
         public void EnsureInteractionComponents()
         {
             if (GetComponent<PixelCubeInteraction>() == null)
@@ -300,10 +325,7 @@ namespace PixelGame
         {
             if (m_CubesContainer != null && m_CubesContainer.childCount > 0)
             {
-                if (!m_PreserveSceneEdits)
-                {
-                    UpdateExistingCubesTransforms();
-                }
+                UpdateExistingCubesTransforms();
                 UpdateExistingCubesLive();
                 #if UNITY_EDITOR
                 if (m_EnableCubeShadows)
@@ -377,10 +399,15 @@ namespace PixelGame
             m_UseNativeResolution = levelData.UseNativeResolution;
             m_GridResolution = levelData.CustomResolution;
             m_CubeSpacing = levelData.CubeSpacing;
+            m_CubeSpacingX = levelData.CubeSpacingX;
             m_CubeDepth = levelData.CubeDepth;
+            m_CubeFrontTiltAngle = levelData.CubeFrontTiltAngle;
+            m_TargetZ = levelData.TargetZ;
+            m_CubeRowStepOffset = levelData.CubeRowStepOffset;
             m_InnerPadding = levelData.InnerPadding;
             m_ColorBrightness = levelData.ColorBrightness;
             m_ColorSaturation = levelData.ColorSaturation;
+            m_ColorContrast = levelData.ColorContrast;
             m_EmissionIntensity = levelData.EmissionIntensity;
             m_SkipTransparent = levelData.SkipTransparent;
 
@@ -394,6 +421,39 @@ namespace PixelGame
 
             // Bölüme bağlı sistemler (kamyon kuyruğu gibi) kendilerini yenilesin
             LevelLoaded?.Invoke(levelData);
+        }
+
+        /// <summary>
+        /// Generator'daki güncel düzen ayarlarını (Inspector'da canlı ayarlanmış olanlar dahil)
+        /// o an bağlı olan PixelLevelData asset'ine geri yazar ve diske kaydeder.
+        /// Bu çağrılmadan Inspector'daki değişiklikler sadece sahnedeki canlı objede kalır;
+        /// başka bir seviyeye geçip geri dönüldüğünde LoadLevel() eski (kaydedilmemiş) değerleri
+        /// yeniden yükler ve yapılan ayar kaybolur.
+        /// </summary>
+        public void SaveToActiveLevel()
+        {
+            if (m_ActiveLevelData == null) return;
+
+            m_ActiveLevelData.UseNativeResolution = m_UseNativeResolution;
+            m_ActiveLevelData.CustomResolution = m_GridResolution;
+            m_ActiveLevelData.CubeSpacing = m_CubeSpacing;
+            m_ActiveLevelData.CubeSpacingX = m_CubeSpacingX;
+            m_ActiveLevelData.CubeDepth = m_CubeDepth;
+            m_ActiveLevelData.CubeFrontTiltAngle = m_CubeFrontTiltAngle;
+            m_ActiveLevelData.TargetZ = m_TargetZ;
+            m_ActiveLevelData.CubeRowStepOffset = m_CubeRowStepOffset;
+            m_ActiveLevelData.InnerPadding = m_InnerPadding;
+            m_ActiveLevelData.ColorBrightness = m_ColorBrightness;
+            m_ActiveLevelData.ColorSaturation = m_ColorSaturation;
+            m_ActiveLevelData.ColorContrast = m_ColorContrast;
+            m_ActiveLevelData.EmissionIntensity = m_EmissionIntensity;
+            m_ActiveLevelData.SkipTransparent = m_SkipTransparent;
+
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(m_ActiveLevelData);
+            UnityEditor.AssetDatabase.SaveAssets();
+            Debug.Log($"<color=#00FFAA><b>[PixelArtGenerator]</b></color> Ayarlar '{m_ActiveLevelData.LevelName}' seviyesine kaydedildi.");
+#endif
         }
 
         /// <summary>
@@ -520,8 +580,8 @@ namespace PixelGame
 
             float cellSize;
             Vector3 startPos;
-
-            float stepXMultiplier = 1f + m_CubeSpacingX;
+            float stepX;
+            float stepY;
 
             if (m_SkipTransparent && maxX >= minX && maxY >= minY)
             {
@@ -530,27 +590,29 @@ namespace PixelGame
                 float visCenterX = (minX + maxX) * 0.5f;
                 float visCenterY = (minY + maxY) * 0.5f;
 
-                float visCellSizeX = (worldWidth * 0.88f) / (visW * Mathf.Max(0.5f, stepXMultiplier));
+                float visCellSizeX = (worldWidth * 0.88f) / visW;
                 float visCellSizeY = (worldHeight * 0.88f) / visH;
                 cellSize = Mathf.Min(visCellSizeX, visCellSizeY);
 
-                float stepX = cellSize * stepXMultiplier;
+                stepX = cellSize * (1f + m_CubeSpacingX);
+                stepY = cellSize * (1f + m_CubeSpacing);
 
                 startPos = new Vector3(
                     worldCenter.x - visCenterX * stepX,
-                    worldCenter.y - visCenterY * cellSize,
+                    worldCenter.y - visCenterY * stepY,
                     m_TargetZ
                 );
             }
             else
             {
-                float cellSizeX = worldWidth / (cols * Mathf.Max(0.5f, stepXMultiplier));
+                float cellSizeX = worldWidth / cols;
                 float cellSizeY = worldHeight / rows;
                 cellSize = Mathf.Min(cellSizeX, cellSizeY);
 
-                float stepX = cellSize * stepXMultiplier;
+                stepX = cellSize * (1f + m_CubeSpacingX);
+                stepY = cellSize * (1f + m_CubeSpacing);
                 float totalWidth = (cols - 1) * stepX;
-                float totalHeight = (rows - 1) * cellSize;
+                float totalHeight = (rows - 1) * stepY;
 
                 startPos = new Vector3(
                     worldCenter.x - totalWidth * 0.5f,
@@ -559,10 +621,9 @@ namespace PixelGame
                 );
             }
 
-            float scaleFactor = Mathf.Max(0.05f, 1f - m_CubeSpacing);
             Vector3 cubeScale = new Vector3(
-                cellSize * scaleFactor,
-                cellSize * scaleFactor,
+                cellSize,
+                cellSize,
                 cellSize * m_CubeDepth
             );
 
@@ -573,7 +634,7 @@ namespace PixelGame
                 PixelCube cube = cubes[i];
                 if (cube == null) continue;
 
-                Vector3 pos = startPos + new Vector3(cube.GridX * (cellSize * stepXMultiplier), cube.GridY * cellSize, 0f) + cube.GridY * m_CubeRowStepOffset;
+                Vector3 pos = startPos + new Vector3(cube.GridX * stepX, cube.GridY * stepY, 0f) + cube.GridY * m_CubeRowStepOffset;
                 cube.transform.position = pos;
                 cube.transform.rotation = tiltedRot;
                 cube.transform.localScale = cubeScale;
@@ -711,7 +772,8 @@ namespace PixelGame
             float totalWidth;
             float totalHeight;
 
-            float stepXMultiplier = 1f + m_CubeSpacingX;
+            float stepX;
+            float stepY;
 
             // Eğer şeffaf arkaplanlı izole bir figür varsa (örn. Kalp), sadece figürün dolu sınırlarını çerçeveye yay ve tam merkeze oturt
             if (m_SkipTransparent && maxX >= minX && maxY >= minY)
@@ -722,43 +784,44 @@ namespace PixelGame
                 float visCenterY = (minY + maxY) * 0.5f;
 
                 // Dolu figürün çerçevenin içini ferahça dolduracağı hücre boyutu (%88 çerçeve oranı)
-                float visCellSizeX = (worldWidth * 0.88f) / (visW * Mathf.Max(0.5f, stepXMultiplier));
+                float visCellSizeX = (worldWidth * 0.88f) / visW;
                 float visCellSizeY = (worldHeight * 0.88f) / visH;
                 cellSize = Mathf.Min(visCellSizeX, visCellSizeY);
 
-                float stepX = cellSize * stepXMultiplier;
+                stepX = cellSize * (1f + m_CubeSpacingX);
+                stepY = cellSize * (1f + m_CubeSpacing);
                 totalWidth = visW * stepX;
-                totalHeight = visH * cellSize;
+                totalHeight = visH * stepY;
 
                 // Figürün geometrik merkezini hedef çerçevenin tam ortasına (worldCenter) oturt
                 startPos = new Vector3(
                     worldCenter.x - visCenterX * stepX,
-                    worldCenter.y - visCenterY * cellSize,
+                    worldCenter.y - visCenterY * stepY,
                     m_TargetZ
                 );
             }
             else
             {
                 // Tam dolu kare veya opak görseller için standart matris yerleşimi
-                float cellSizeX = worldWidth / (cols * Mathf.Max(0.5f, stepXMultiplier));
+                float cellSizeX = worldWidth / cols;
                 float cellSizeY = worldHeight / rows;
                 cellSize = Mathf.Min(cellSizeX, cellSizeY);
 
-                float stepX = cellSize * stepXMultiplier;
+                stepX = cellSize * (1f + m_CubeSpacingX);
+                stepY = cellSize * (1f + m_CubeSpacing);
                 totalWidth = cols * stepX;
-                totalHeight = rows * cellSize;
+                totalHeight = rows * stepY;
 
                 startPos = new Vector3(
                     worldCenter.x - totalWidth * 0.5f + stepX * 0.5f,
-                    worldCenter.y - totalHeight * 0.5f + cellSize * 0.5f,
+                    worldCenter.y - totalHeight * 0.5f + stepY * 0.5f,
                     m_TargetZ
                 );
             }
 
-            float scaleFactor = Mathf.Max(0.05f, 1f - m_CubeSpacing);
             Vector3 cubeScale = new Vector3(
-                cellSize * scaleFactor,
-                cellSize * scaleFactor,
+                cellSize,
+                cellSize,
                 cellSize * m_CubeDepth
             );
 
@@ -785,7 +848,7 @@ namespace PixelGame
 
                     Color adjustedColor = PixelCube.AdjustColor(rawColor, m_ColorBrightness, m_ColorSaturation, m_ColorContrast);
 
-                    Vector3 pos = startPos + new Vector3(x * (cellSize * stepXMultiplier), y * cellSize, 0f) + y * m_CubeRowStepOffset;
+                    Vector3 pos = startPos + new Vector3(x * stepX, y * stepY, 0f) + y * m_CubeRowStepOffset;
                     Quaternion rot = Quaternion.Euler(m_CubeFrontTiltAngle, 0f, 0f);
 
                     GameObject cubeObj;

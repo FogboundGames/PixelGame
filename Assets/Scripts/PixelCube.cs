@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using DG.Tweening;
 
 namespace PixelGame
 {
@@ -36,6 +37,17 @@ namespace PixelGame
         {
             if (m_Renderer == null) m_Renderer = GetComponent<MeshRenderer>();
             if (m_CubeCollider == null) m_CubeCollider = GetComponent<Collider>();
+
+            if (m_GridX == 0 && m_GridY == 0 && name.StartsWith("Pixel_"))
+            {
+                string[] parts = name.Split('_');
+                if (parts.Length >= 3 && int.TryParse(parts[1], out int px) && int.TryParse(parts[2], out int py))
+                {
+                    m_GridX = px;
+                    m_GridY = py;
+                }
+            }
+
             EnsureShadowReferences();
 
             PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
@@ -313,6 +325,16 @@ namespace PixelGame
         }
 
         /// <summary>
+        /// Küp ortada/içte kilitliyken tıklandığında hafifçe sallanarak kilitli olduğunu hissettirir.
+        /// </summary>
+        public void PlayBlockedWobble()
+        {
+            if (!Application.isPlaying || m_IsPopped) return;
+            transform.DOKill(true);
+            transform.DOShakeRotation(0.25f, new Vector3(0f, 0f, 12f), 10, 90f, true);
+        }
+
+        /// <summary>
         /// Küpü kendi renginde 3D mini voksel partiküllerine ayırarak patlatır.
         /// Parçalar aşağı doğru dökülür, gölgesi ise panoda sabit kalır.
         /// </summary>
@@ -322,9 +344,9 @@ namespace PixelGame
             if (!Application.isPlaying) return;
             if (m_IsPopped || !gameObject.activeSelf) return;
 
-            // 0. Gemi veya Kamyon kuralı: rengine uyan bir gemi/kamyon slotta yoksa küp patlamaz.
+            // 0. Gemi veya Kamyon kuralı: rengine uyan bir gemi/kamyon slotta yoksa veya küp dışta değilse patlamaz.
             ShipDispatcher shipDispatcher = ShipDispatcher.Instance;
-            if (shipDispatcher != null && !shipDispatcher.CanPop(m_CurrentColor)) return;
+            if (shipDispatcher != null && !shipDispatcher.CanPop(this)) return;
 
             TruckDispatcher truckDispatcher = TruckDispatcher.Instance;
             if (truckDispatcher != null && !truckDispatcher.CanPop(m_CurrentColor)) return;

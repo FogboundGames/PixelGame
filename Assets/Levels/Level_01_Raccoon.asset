@@ -53,10 +53,14 @@ MonoBehaviour:
   m_ColorSaturation: 1.25
   m_ColorContrast: 1.05
   m_EmissionIntensity: 0.35
-  m_CubeSpacing: 0.008
-  m_CubeDepth: 0.4
+  m_CubeSpacing: -0.1
+  m_CubeSpacingX: 0.013
+  m_CubeDepth: 1
   m_BoardTiltAngle: 18
-  m_InnerPadding: 0.08
+  m_CubeFrontTiltAngle: 25
+  m_TargetZ: 0
+  m_CubeRowStepOffset: {x: 0, y: 0, z: 0.12}
+  m_InnerPadding: 0
   m_SkipTransparent: 1
   m_SlotSprite: {fileID: 21300000, guid: 4b3d2f47130df8dd8af6a709e594aa54, type: 3}
   m_SlotCount: 5

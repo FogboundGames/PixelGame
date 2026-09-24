@@ -219,6 +219,10 @@ namespace PixelGame
                 Transform frontSpot = m_QueueSpots[frontIndex];
                 backShip.transform.SetParent(frontSpot, true);
 
+                // Su sallanması (bobbing) animasyon süresince pozisyonu eski tabana geri
+                // çekip DOTween ile çakışmasın diye geçici olarak susturulur.
+                backShip.SetQueueAnimating(true);
+
                 // Su üzerinde öne doğru süzülme animasyonu
                 backShip.transform.DOKill(true);
                 backShip.transform.DOLocalMove(Vector3.zero, 0.48f).SetEase(Ease.OutQuad)
@@ -236,6 +240,7 @@ namespace PixelGame
                             backShip.transform.localPosition = Vector3.zero;
                             backShip.transform.localRotation = Quaternion.identity;
                             backShip.transform.localScale = Vector3.one * m_ShipScale;
+                            backShip.SetQueueAnimating(false);
                         }
                     });
             }
@@ -277,6 +282,11 @@ namespace PixelGame
             }
             m_WaitingShips[spotIndex] = ship;
 
+            // Su sallanması (bobbing) animasyon süresince pozisyonu eski (arkadaki) tabana
+            // geri çekip DOTween ile çakışmasın diye geçici olarak susturulur — aksi halde
+            // gemi görünürde hiç ilerlemez, hep açık deniz başlangıç noktasında kalır.
+            ship.SetQueueAnimating(true);
+
             // Arkadan öne doğru süzülerek yerine yerleşsin
             shipObj.transform.DOLocalMove(Vector3.zero, 0.58f).SetEase(Ease.OutQuad)
                 .OnUpdate(() =>
@@ -293,6 +303,7 @@ namespace PixelGame
                         ship.transform.localPosition = Vector3.zero;
                         ship.transform.localRotation = Quaternion.identity;
                         ship.transform.localScale = Vector3.one * m_ShipScale;
+                        ship.SetQueueAnimating(false);
                     }
                 });
         }

@@ -228,9 +228,13 @@ namespace PixelGame
         [SerializeField] private float m_EmissionIntensity = 0.35f;
 
         [Header("🔲 Izgara & Küp Ayarları")]
-        [Tooltip("Küpler arası ızgara boşluğu (0.04 = %4 boşluk)")]
-        [Range(0f, 0.3f)]
+        [Tooltip("Küpler arasındaki DİKEY (satırlar/önler, Y ekseni) boşluk oranı (0.04 = %4 boşluk, negatif = üst üste biner)")]
+        [Range(-0.3f, 1.0f)]
         [SerializeField] private float m_CubeSpacing = 0.04f;
+
+        [Tooltip("Küpler arasındaki YATAY (aynı satırdaki yanlar, X ekseni) boşluk oranı — Dikey'den bağımsız")]
+        [Range(-0.3f, 1.0f)]
+        [SerializeField] private float m_CubeSpacingX = 0.04f;
 
         [Tooltip("Küplerin 3D kabartma derinliği")]
         [Range(0.05f, 2f)]
@@ -239,6 +243,16 @@ namespace PixelGame
         [Tooltip("Panonun X eksenindeki 3D eğim açısı (derece). Küplerin alt/ön et kalınlığının kameraya görünmesini sağlar.")]
         [Range(-45f, 45f)]
         [SerializeField] private float m_BoardTiltAngle = 18f;
+
+        [Tooltip("Kameraya tam karşıdan bakıldığında küpün sadece üstü görünür; bu açı küpü öne doğru eğerek hem üst hem ön yüzünü görünür kılar")]
+        [Range(0f, 45f)]
+        [SerializeField] private float m_CubeFrontTiltAngle = 25f;
+
+        [Tooltip("Küplerin 3D dünyadaki Z düzlemi mesafesi")]
+        [SerializeField] private float m_TargetZ = 0f;
+
+        [Tooltip("Her satır (GridY arttıkça) küpün konumuna eklenen serbest X/Y/Z kademesi")]
+        [SerializeField] private Vector3 m_CubeRowStepOffset = new Vector3(0f, 0f, 0.12f);
 
         [Tooltip("Mavi çerçevenin iç kenar payı")]
         [Range(0f, 0.3f)]
@@ -325,8 +339,12 @@ namespace PixelGame
         public float ColorContrast { get => m_ColorContrast; set => m_ColorContrast = value; }
         public float EmissionIntensity { get => m_EmissionIntensity; set => m_EmissionIntensity = value; }
         public float CubeSpacing { get => m_CubeSpacing; set => m_CubeSpacing = value; }
+        public float CubeSpacingX { get => m_CubeSpacingX; set => m_CubeSpacingX = value; }
         public float CubeDepth { get => m_CubeDepth; set => m_CubeDepth = value; }
         public float BoardTiltAngle { get => m_BoardTiltAngle; set => m_BoardTiltAngle = value; }
+        public float CubeFrontTiltAngle { get => m_CubeFrontTiltAngle; set => m_CubeFrontTiltAngle = value; }
+        public float TargetZ { get => m_TargetZ; set => m_TargetZ = value; }
+        public Vector3 CubeRowStepOffset { get => m_CubeRowStepOffset; set => m_CubeRowStepOffset = value; }
         public float InnerPadding { get => m_InnerPadding; set => m_InnerPadding = value; }
         public bool SkipTransparent { get => m_SkipTransparent; set => m_SkipTransparent = value; }
 

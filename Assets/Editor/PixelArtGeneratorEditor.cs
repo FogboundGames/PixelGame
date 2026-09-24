@@ -24,8 +24,12 @@ namespace PixelGame.Editor
             // Bölüm Seçici (Hızlı Geçiş)
             DrawLevelSelector();
 
-            // Varsayılan alanlar
+            // Bu Seviyeye Kaydet Butonu (Inspector'daki canlı ayarları kalıcı yapar)
+            DrawSaveToLevelButton();
+
+            EditorGUI.BeginChangeCheck();
             DrawDefaultInspector();
+            bool inspectorChanged = EditorGUI.EndChangeCheck();
 
             // Renk Hazır Ayarları (Presets)
             DrawColorPresets();
@@ -39,7 +43,12 @@ namespace PixelGame.Editor
             // Aksiyon Butonları
             DrawActionButtons();
 
-            serializedObject.ApplyModifiedProperties();
+            if (serializedObject.ApplyModifiedProperties() || inspectorChanged)
+            {
+                m_Target.UpdateExistingCubesTransforms();
+                m_Target.UpdateExistingCubesLive();
+                SceneView.RepaintAll();
+            }
         }
 
         private void DrawCustomHeader()
@@ -175,6 +184,37 @@ namespace PixelGame.Editor
             EditorGUILayout.LabelField("Izgara Boyutu:", res.x > 0 ? $"{res.x} x {res.y} (En fazla ~{estimatedCubes} Küp)" : "Görsel Çözünürlüğü");
             EditorGUILayout.LabelField("Sahnede Aktif Küp:", $"{currentChildCount} adet");
             EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// Inspector'da canlı yapılan düzen ayarlarını (spacing, tilt, padding vb.) o an aktif olan
+        /// PixelLevelData asset'ine kalıcı olarak yazar. Bu basılmadan yapılan ayarlar sadece sahnedeki
+        /// canlı objede kalır ve başka bir seviyeye geçilip geri dönüldüğünde kaybolur.
+        /// </summary>
+        private void DrawSaveToLevelButton()
+        {
+            var activeLevelProp = serializedObject.FindProperty("m_ActiveLevelData");
+            PixelLevelData activeLevel = activeLevelProp != null ? activeLevelProp.objectReferenceValue as PixelLevelData : null;
+
+            EditorGUILayout.Space(4);
+            using (new EditorGUI.DisabledScope(activeLevel == null))
+            {
+                GUI.backgroundColor = new Color(1.0f, 0.75f, 0.15f);
+                string label = activeLevel != null
+                    ? $"💾 Bu Seviyeye Kaydet ({activeLevel.LevelName})"
+                    : "💾 Bu Seviyeye Kaydet (Aktif seviye yok)";
+                if (GUILayout.Button(label, GUILayout.Height(34)))
+                {
+                    m_Target.SaveToActiveLevel();
+                }
+                GUI.backgroundColor = Color.white;
+            }
+            EditorGUILayout.HelpBox(
+                "Yukarıdaki ayarları (boşluk, eğim, derinlik, kayma vb.) denedikten sonra beğendiysen bu " +
+                "seviyeye kalıcı olarak kaydetmek için bas — yoksa başka bir seviyeye geçip geri döndüğünde " +
+                "değişiklikler kaybolur.",
+                MessageType.Info);
+            EditorGUILayout.Space(4);
         }
 
         private void DrawActionButtons()
