@@ -528,6 +528,9 @@ namespace PixelGame
         /// </summary>
         public static void SpawnWaterRipple(Vector3 worldPos, float startScale = 0.2f, float maxScale = 0.75f, float duration = 0.45f)
         {
+            // Arka plandaki su dokusunun canlı dalgalanmasını da tetikle
+            HypercasualWaterController.TriggerWaterRipple(worldPos, 0.55f, Mathf.Clamp(maxScale * 0.22f, 0.08f, 0.28f));
+
             GameObject ripple = GameObject.CreatePrimitive(PrimitiveType.Quad);
             ripple.name = "WaterRipple_FX";
             ripple.transform.position = new Vector3(worldPos.x, worldPos.y, worldPos.z + 0.02f);
@@ -544,18 +547,19 @@ namespace PixelGame
             MeshRenderer mr = ripple.GetComponent<MeshRenderer>();
             if (mr != null)
             {
-                Shader unlitShader = Shader.Find("Universal Render Pipeline/Unlit");
-                if (unlitShader == null) unlitShader = Shader.Find("Unlit/Transparent");
+                Shader rippleShader = Shader.Find("PixelGame/WaterRippleRing");
+                if (rippleShader == null) rippleShader = Shader.Find("Universal Render Pipeline/Unlit");
+                if (rippleShader == null) rippleShader = Shader.Find("Unlit/Transparent");
 
-                Material mat = new Material(unlitShader);
-                mat.SetFloat("_Surface", 1f);
-                mat.SetFloat("_Blend", 0f);
-                mat.SetColor("_BaseColor", new Color(1f, 1f, 1f, 0.65f));
+                Material mat = new Material(rippleShader);
+                Color foamColor = new Color(0.85f, 0.96f, 1f, 0.85f);
+                mat.SetColor("_BaseColor", foamColor);
+                if (mat.HasProperty("_Color")) mat.SetColor("_Color", foamColor);
                 mr.sharedMaterial = mat;
                 mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 mr.receiveShadows = false;
 
-                ripple.transform.DOScale(Vector3.one * maxScale, duration).SetEase(Ease.OutCubic);
+                ripple.transform.DOScale(Vector3.one * maxScale, duration).SetEase(Ease.OutQuad);
                 mat.DOFade(0f, "_BaseColor", duration).SetEase(Ease.InQuad)
                     .OnComplete(() =>
                     {

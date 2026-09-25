@@ -97,15 +97,31 @@ namespace PixelGame
 
         /// <summary>
         /// Seviye başlangıcında kuyruğu renkli gemilerle doldurur.
+        /// Spotlarda önceden oluşturulmuş gemiler varsa bunları doğrudan seviye renkleriyle tazeler.
         /// </summary>
         public void InitializeQueue()
         {
-            ClearQueue();
             EnsureSpots();
 
             for (int i = 0; i < m_QueueSpots.Count; i++)
             {
-                SpawnShipAtSpot(i);
+                Transform spot = m_QueueSpots[i];
+                if (spot == null) continue;
+
+                ShipController existingShip = spot.GetComponentInChildren<ShipController>();
+                if (existingShip != null)
+                {
+                    Color shipColor = GetNextNeededColor();
+                    int capacity = GetRecommendedCapacity(shipColor);
+                    existingShip.Configure(shipColor, capacity);
+
+                    while (m_WaitingShips.Count <= i) m_WaitingShips.Add(null);
+                    m_WaitingShips[i] = existingShip;
+                }
+                else
+                {
+                    SpawnShipAtSpot(i);
+                }
             }
         }
 
@@ -127,12 +143,6 @@ namespace PixelGame
             }
             m_WaitingShips.Clear();
 
-            // m_WaitingShips serileştirmesi Editor <-> Play Mode geçişinde bozulabilir
-            // (örn. GemiSceneSetup'ın Edit Mode önizleme gemileri sahneye kaydedilmişse).
-            // Bu durumda yukarıdaki liste bir spot'taki gemiyi "null" görüp atlayabilir ve
-            // o hayalet gemi silinmeden kalır; InitializeQueue() aynı spota yeni bir gemi
-            // daha eklediğinde iki gemi üst üste biner. Güvenlik için her spot'un altındaki
-            // TÜM ShipController çocuklarını da doğrudan temizle.
             foreach (var spot in m_QueueSpots)
             {
                 if (spot == null) continue;
@@ -316,14 +326,29 @@ namespace PixelGame
                 if (color != Color.clear) return color;
             }
 
+            // Fallback 1: LevelManager veya PixelArtGenerator üzerinden seviye paletine eriş
+            LevelManager lm = LevelManager.Instance != null ? LevelManager.Instance : Object.FindFirstObjectByType<LevelManager>();
+            PixelLevelData level = lm != null ? lm.CurrentLevel : null;
+            if (level == null)
+            {
+                PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
+                if (gen != null) level = gen.ActiveLevelData;
+            }
+
+            if (level != null && level.ColorPalette != null && level.ColorPalette.Count > 0)
+            {
+                var entry = level.ColorPalette[UnityEngine.Random.Range(0, level.ColorPalette.Count)];
+                return entry.targetColor != Color.clear ? entry.targetColor : entry.originalColor;
+            }
+
+            // Fallback 2: Son çare seviye renkleri (Rastgele aykırı renkler yerine seviye tonları)
             Color[] defaults = new Color[]
             {
-                new Color(0.18f, 0.52f, 0.95f, 1f), // Canlı Mavi
-                new Color(0.95f, 0.28f, 0.25f, 1f), // Canlı Kırmızı
-                new Color(0.22f, 0.82f, 0.42f, 1f), // Canlı Yeşil
-                new Color(0.98f, 0.78f, 0.15f, 1f), // Canlı Sarı
-                new Color(0.95f, 0.52f, 0.12f, 1f), // Canlı Turuncu
-                new Color(0.68f, 0.32f, 0.92f, 1f)  // Canlı Mor
+                new Color(0.957f, 0.831f, 0.384f, 1f), // Sarı / Altın
+                new Color(0.141f, 0.596f, 0.980f, 1f), // Mavi
+                new Color(0.078f, 0.082f, 0.102f, 1f), // Siyah / Koyu
+                new Color(0.996f, 0.996f, 0.996f, 1f), // Beyaz
+                new Color(0.584f, 0.498f, 0.380f, 1f)  // Kahve
             };
             return defaults[UnityEngine.Random.Range(0, defaults.Length)];
         }
@@ -339,6 +364,30 @@ namespace PixelGame
                     return UnityEngine.Random.Range(10, Mathf.Min(21, remaining + 1));
                 }
             }
+
+            // Seviye paletinden kalan tahmini piksel sayısı
+            LevelManager lm = LevelManager.Instance != null ? LevelManager.Instance : Object.FindFirstObjectByType<LevelManager>();
+            PixelLevelData level = lm != null ? lm.CurrentLevel : null;
+            if (level == null)
+            {
+                PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
+                if (gen != null) level = gen.ActiveLevelData;
+            }
+
+            if (level != null && level.ColorPalette != null)
+            {
+                foreach (var p in level.ColorPalette)
+                {
+                    if (ShipDispatcher.ColorsMatch(p.targetColor, shipColor) || ShipDispatcher.ColorsMatch(p.originalColor, shipColor))
+                    {
+                        if (p.pixelCount > 0)
+                        {
+                            return p.pixelCount <= 20 ? p.pixelCount : UnityEngine.Random.Range(10, 21);
+                        }
+                    }
+                }
+            }
+
             return UnityEngine.Random.Range(10, 21);
         }
     }

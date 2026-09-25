@@ -214,6 +214,11 @@ namespace PixelGame.Editor
             }
             activeRawImg.raycastTarget = false;
 
+            // Hypercasual canlı su materyali ve kontrolcüsü ekle
+            HypercasualWaterController waterCtrl = activeRawImg.GetComponent<HypercasualWaterController>();
+            if (waterCtrl == null) waterCtrl = activeRawImg.gameObject.AddComponent<HypercasualWaterController>();
+            waterCtrl.EnsureSetup();
+
             RectTransform rawRect = activeRawImg.rectTransform;
             rawRect.anchorMin = Vector2.zero;
             rawRect.anchorMax = Vector2.one;

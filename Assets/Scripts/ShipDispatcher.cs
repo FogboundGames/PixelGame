@@ -42,6 +42,10 @@ namespace PixelGame
         private void Start()
         {
             EnsureReferences();
+            if (m_QueuePool != null)
+            {
+                m_QueuePool.InitializeQueue();
+            }
         }
 
         public void EnsureReferences()
@@ -67,14 +71,14 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Renk karşılaştırması için toleranslı renk eşleşmesi (RGB farkı < 0.18f).
+        /// Renk karşılaştırması için toleranslı renk eşleşmesi (RGB farkı kare toplamı < 0.09f, ~0.30f tolerans).
         /// </summary>
         public static bool ColorsMatch(Color a, Color b)
         {
             float dr = a.r - b.r;
             float dg = a.g - b.g;
             float db = a.b - b.b;
-            return (dr * dr + dg * dg + db * db) < 0.035f;
+            return (dr * dr + dg * dg + db * db) < 0.09f;
         }
 
         /// <summary>
@@ -115,7 +119,7 @@ namespace PixelGame
                 return false;
             }
 
-            return CanPop(cube.CurrentColor);
+            return CanPop(cube.CurrentColor) || CanPop(cube.OriginalColor);
         }
 
         private static readonly HashSet<PixelCube> s_ReservedCubes = new HashSet<PixelCube>();
@@ -263,7 +267,7 @@ namespace PixelGame
                 PixelCube cube = kvp.Value;
                 if (cube == null || s_ReservedCubes.Contains(cube)) continue;
 
-                if (ColorsMatch(cube.CurrentColor, shipColor))
+                if (ColorsMatch(cube.CurrentColor, shipColor) || ColorsMatch(cube.OriginalColor, shipColor))
                 {
                     int x = cube.GridX;
                     int y = cube.GridY;
@@ -589,6 +593,7 @@ namespace PixelGame
 
                 // Canlı su dalgacığı ve parlama efekti
                 ShipController.SpawnWaterRipple(ship.transform.position + new Vector3(0f, -0.05f, 0.05f), 0.24f, 0.95f, 0.45f);
+                HypercasualWaterController.TriggerWaterRipple(ship.transform.position, 0.65f, 0.22f);
             }
 
             CheckWinCondition();
@@ -686,64 +691,182 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Seviyedeki aktif henüz patlatılmamış küplerin renklerinden birini döndürür.
+        /// Dış havaya açık (hemen toplanabilir) küplerin renk listesini döner.
         /// </summary>
-        public Color GetRemainingLevelColor()
+        public List<Color> GetExposedLevelColors()
         {
+            List<Color> exposedColors = new List<Color>();
             if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
-            if (m_Generator == null || m_Generator.CubesContainer == null) return Color.clear;
+            if (m_Generator == null || m_Generator.CubesContainer == null) return exposedColors;
 
-            var cubes = m_Generator.CubesContainer.GetComponentsInChildren<PixelCube>(false);
-            Dictionary<Color, int> colorCounts = new Dictionary<Color, int>();
+            var allCubes = m_Generator.CubesContainer.GetComponentsInChildren<PixelCube>(false);
+            if (allCubes == null || allCubes.Length == 0) return exposedColors;
 
-            foreach (var cube in cubes)
+            Dictionary<(int, int), PixelCube> gridMap = new Dictionary<(int, int), PixelCube>(allCubes.Length);
+            int minX = int.MaxValue, maxX = int.MinValue;
+            int minY = int.MaxValue, maxY = int.MinValue;
+
+            for (int i = 0; i < allCubes.Length; i++)
             {
-                if (cube != null && !cube.IsPopped && cube.gameObject.activeSelf && !s_ReservedCubes.Contains(cube))
+                PixelCube c = allCubes[i];
+                if (c != null && !c.IsPopped && c.gameObject.activeSelf)
                 {
-                    Color c = cube.CurrentColor;
+                    gridMap[(c.GridX, c.GridY)] = c;
+                    if (c.GridX < minX) minX = c.GridX;
+                    if (c.GridX > maxX) maxX = c.GridX;
+                    if (c.GridY < minY) minY = c.GridY;
+                    if (c.GridY > maxY) maxY = c.GridY;
+                }
+            }
+
+            if (gridMap.Count == 0) return exposedColors;
+
+            HashSet<(int, int)> outsideAir = CalculateOutsideAir(gridMap, minX, maxX, minY, maxY);
+
+            Dictionary<Color, int> countMap = new Dictionary<Color, int>();
+            foreach (var kvp in gridMap)
+            {
+                PixelCube cube = kvp.Value;
+                if (cube == null || s_ReservedCubes.Contains(cube)) continue;
+
+                int x = cube.GridX;
+                int y = cube.GridY;
+                bool touchesAir = outsideAir.Contains((x - 1, y)) ||
+                                  outsideAir.Contains((x + 1, y)) ||
+                                  outsideAir.Contains((x, y - 1)) ||
+                                  outsideAir.Contains((x, y + 1));
+
+                if (touchesAir)
+                {
+                    Color c = cube.CurrentColor != Color.clear ? cube.CurrentColor : cube.OriginalColor;
                     bool matched = false;
-                    foreach (var key in colorCounts.Keys)
+                    foreach (var key in countMap.Keys)
                     {
                         if (ColorsMatch(key, c))
                         {
-                            colorCounts[key]++;
+                            countMap[key]++;
                             matched = true;
                             break;
                         }
                     }
                     if (!matched)
                     {
-                        colorCounts[c] = 1;
+                        countMap[c] = 1;
                     }
                 }
             }
 
-            if (colorCounts.Count > 0)
+            return new List<Color>(countMap.Keys);
+        }
+
+        /// <summary>
+        /// Seviyedeki aktif henüz patlatılmamış küplerin renklerinden birini döndürür.
+        /// Seviye panosu o an hazır değilse veya boşsa, aktif bölümün (Level) paletindeki gerçek renklerden birini seçer.
+        /// </summary>
+        public Color GetRemainingLevelColor()
+        {
+            // 1. Önce DIŞTA (hemen toplanabilir) olan renklere öncelik ver!
+            var exposed = GetExposedLevelColors();
+            if (exposed != null && exposed.Count > 0)
             {
-                List<Color> keys = new List<Color>(colorCounts.Keys);
-                return keys[Random.Range(0, keys.Count)];
+                return exposed[Random.Range(0, exposed.Count)];
             }
+
+            if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
+
+            if (m_Generator != null && m_Generator.CubesContainer != null)
+            {
+                var cubes = m_Generator.CubesContainer.GetComponentsInChildren<PixelCube>(false);
+                if (cubes != null && cubes.Length > 0)
+                {
+                    Dictionary<Color, int> colorCounts = new Dictionary<Color, int>();
+
+                    foreach (var cube in cubes)
+                    {
+                        if (cube != null && !cube.IsPopped && cube.gameObject.activeSelf && !s_ReservedCubes.Contains(cube))
+                        {
+                            Color c = cube.CurrentColor != Color.clear ? cube.CurrentColor : cube.OriginalColor;
+                            bool matched = false;
+                            foreach (var key in colorCounts.Keys)
+                            {
+                                if (ColorsMatch(key, c))
+                                {
+                                    colorCounts[key]++;
+                                    matched = true;
+                                    break;
+                                }
+                            }
+                            if (!matched)
+                            {
+                                colorCounts[c] = 1;
+                            }
+                        }
+                    }
+
+                    if (colorCounts.Count > 0)
+                    {
+                        List<Color> keys = new List<Color>(colorCounts.Keys);
+                        return keys[Random.Range(0, keys.Count)];
+                    }
+                }
+            }
+
+            // Fallback: Aktif bölümün paletinden renk çek (Asla alakasız rastgele renk üretmez!)
+            PixelLevelData level = (m_Generator != null) ? m_Generator.ActiveLevelData : null;
+            if (level == null && LevelManager.Instance != null) level = LevelManager.Instance.CurrentLevel;
+            if (level == null)
+            {
+                LevelManager lm = Object.FindFirstObjectByType<LevelManager>();
+                if (lm != null) level = lm.CurrentLevel;
+            }
+
+            if (level != null && level.ColorPalette != null && level.ColorPalette.Count > 0)
+            {
+                var entry = level.ColorPalette[Random.Range(0, level.ColorPalette.Count)];
+                return entry.targetColor != Color.clear ? entry.targetColor : entry.originalColor;
+            }
+
             return Color.clear;
         }
 
         public int GetRemainingCountForColor(Color targetColor)
         {
             if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
-            if (m_Generator == null || m_Generator.CubesContainer == null) return 0;
-
-            var cubes = m_Generator.CubesContainer.GetComponentsInChildren<PixelCube>(false);
-            int count = 0;
-            foreach (var cube in cubes)
+            if (m_Generator != null && m_Generator.CubesContainer != null)
             {
-                if (cube != null && !cube.IsPopped && cube.gameObject.activeSelf && !s_ReservedCubes.Contains(cube))
+                var cubes = m_Generator.CubesContainer.GetComponentsInChildren<PixelCube>(false);
+                if (cubes != null && cubes.Length > 0)
                 {
-                    if (ColorsMatch(cube.CurrentColor, targetColor))
+                    int count = 0;
+                    foreach (var cube in cubes)
                     {
-                        count++;
+                        if (cube != null && !cube.IsPopped && cube.gameObject.activeSelf && !s_ReservedCubes.Contains(cube))
+                        {
+                            if (ColorsMatch(cube.CurrentColor, targetColor) || ColorsMatch(cube.OriginalColor, targetColor))
+                            {
+                                count++;
+                            }
+                        }
+                    }
+                    if (count > 0) return count;
+                }
+            }
+
+            // Fallback: Seviye paletinden piksel sayısını bul
+            PixelLevelData level = (m_Generator != null) ? m_Generator.ActiveLevelData : null;
+            if (level == null && LevelManager.Instance != null) level = LevelManager.Instance.CurrentLevel;
+            if (level != null && level.ColorPalette != null)
+            {
+                foreach (var p in level.ColorPalette)
+                {
+                    if (ColorsMatch(p.targetColor, targetColor) || ColorsMatch(p.originalColor, targetColor))
+                    {
+                        return p.pixelCount;
                     }
                 }
             }
-            return count;
+
+            return 0;
         }
 
         /// <summary>

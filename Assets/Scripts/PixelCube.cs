@@ -38,7 +38,7 @@ namespace PixelGame
             if (m_Renderer == null) m_Renderer = GetComponent<MeshRenderer>();
             if (m_CubeCollider == null) m_CubeCollider = GetComponent<Collider>();
 
-            if (m_GridX == 0 && m_GridY == 0 && name.StartsWith("Pixel_"))
+            if (name.StartsWith("Pixel_"))
             {
                 string[] parts = name.Split('_');
                 if (parts.Length >= 3 && int.TryParse(parts[1], out int px) && int.TryParse(parts[2], out int py))
@@ -46,6 +46,11 @@ namespace PixelGame
                     m_GridX = px;
                     m_GridY = py;
                 }
+            }
+
+            if (m_CurrentColor == Color.white && m_OriginalColor != Color.white)
+            {
+                m_CurrentColor = m_OriginalColor;
             }
 
             EnsureShadowReferences();
