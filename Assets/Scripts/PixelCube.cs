@@ -53,6 +53,11 @@ namespace PixelGame
                 m_CurrentColor = m_OriginalColor;
             }
 
+            if (m_CurrentColor != Color.white || m_OriginalColor != Color.white)
+            {
+                ApplyColor(m_CurrentColor != Color.white ? m_CurrentColor : m_OriginalColor);
+            }
+
             EnsureShadowReferences();
 
             PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
@@ -60,6 +65,22 @@ namespace PixelGame
             {
                 if (m_ShadowObject != null) m_ShadowObject.SetActive(false);
                 if (m_ShadowBottomObject != null) m_ShadowBottomObject.SetActive(false);
+            }
+        }
+
+        private void Start()
+        {
+            if (m_CurrentColor != Color.white || m_OriginalColor != Color.white)
+            {
+                ApplyColor(m_CurrentColor != Color.white ? m_CurrentColor : m_OriginalColor);
+            }
+        }
+
+        private void OnEnable()
+        {
+            if (m_CurrentColor != Color.white || m_OriginalColor != Color.white)
+            {
+                ApplyColor(m_CurrentColor != Color.white ? m_CurrentColor : m_OriginalColor);
             }
         }
 

@@ -59,6 +59,7 @@ namespace PixelGame
         private float m_BobRandomOffset;
         private Vector3 m_BaseLocalPosition;
         private Quaternion m_BaseLocalRotation;
+        private Vector3 m_BaseScale = Vector3.one * DefaultShipScale;
         private static Material s_AlwaysOnTopMaterial;
 
         public Color ShipColor => m_ShipColor;
@@ -95,7 +96,7 @@ namespace PixelGame
         {
             m_PropBlock = new MaterialPropertyBlock();
             m_BobRandomOffset = UnityEngine.Random.Range(0f, 100f);
-            transform.localScale = Vector3.one * DefaultShipScale;
+            if (transform.localScale != Vector3.zero) m_BaseScale = transform.localScale;
 
             EnsureVisualComponents();
             CreateOrFindBadge();
@@ -119,7 +120,7 @@ namespace PixelGame
         {
             m_BaseLocalPosition = transform.localPosition;
             m_BaseLocalRotation = transform.localRotation;
-            transform.localScale = Vector3.one * DefaultShipScale;
+            if (transform.localScale != Vector3.zero) m_BaseScale = transform.localScale;
 
             UpdateBadgeText();
             ApplyColorToShip(m_ShipColor);
@@ -276,8 +277,8 @@ namespace PixelGame
 
             // Kargo alma tatlı zıplama efekti
             transform.DOKill(true);
-            transform.DOPunchScale(new Vector3(0.08f, -0.08f, 0.08f) * DefaultShipScale, 0.18f, 4, 0.5f)
-                .OnComplete(() => transform.localScale = Vector3.one * DefaultShipScale);
+            transform.DOPunchScale(new Vector3(0.08f, -0.08f, 0.08f) * m_BaseScale.x, 0.18f, 4, 0.5f)
+                .OnComplete(() => transform.localScale = m_BaseScale);
 
             if (IsFull && !m_IsDeparting)
             {
@@ -464,7 +465,7 @@ namespace PixelGame
                 }
                 else
                 {
-                    transform.localScale = Vector3.one * DefaultShipScale;
+                    transform.localScale = m_BaseScale;
                 }
 
                 // Dönüş yönüne göre hafif yatma (Banking Roll)
@@ -487,14 +488,14 @@ namespace PixelGame
             transform.SetParent(targetSlot.transform, true);
             transform.localPosition = targetLocalPos;
             transform.localRotation = Quaternion.identity;
-            transform.localScale = Vector3.one * DefaultShipScale;
+            transform.localScale = m_BaseScale;
 
             m_BaseLocalPosition = targetLocalPos;
             m_BaseLocalRotation = Quaternion.identity;
 
             SpawnWaterRipple(transform.position, 0.35f, 1.15f, 0.6f);
-            transform.DOPunchScale(new Vector3(0.08f, -0.08f, 0.08f) * DefaultShipScale, 0.28f, 3, 0.4f)
-                .OnComplete(() => transform.localScale = Vector3.one * DefaultShipScale);
+            transform.DOPunchScale(new Vector3(0.08f, -0.08f, 0.08f) * m_BaseScale.x, 0.28f, 3, 0.4f)
+                .OnComplete(() => transform.localScale = m_BaseScale);
 
             m_IsMoving = false;
             m_IsDocked = true;

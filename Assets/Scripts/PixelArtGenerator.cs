@@ -217,6 +217,10 @@ namespace PixelGame
         private void OnEnable()
         {
             EnsureInteractionComponents();
+            if (CubesContainer != null && CubesContainer.childCount > 0)
+            {
+                UpdateExistingCubesLive();
+            }
 
             #if UNITY_EDITOR
             if (!Application.isPlaying)
@@ -258,17 +262,14 @@ namespace PixelGame
 
             if (Application.isPlaying)
             {
-                // Sahne koruması: Kullanıcının sildiği, taşıdığı veya değiştirdiği hiçbir nesneyi sıfırlama!
-                if (m_PreserveSceneEdits)
+                // Sahne koruması: Sahnede mevcut küpler varsa veya m_PreserveSceneEdits açıksa,
+                // kullanıcının sahnede ayarladığı hiçbir konuma, boyuta ve rotasyona KODLA DOKUNMA!
+                // Sadece küplerin canlı renklerini uygula.
+                if (m_PreserveSceneEdits || (CubesContainer != null && CubesContainer.childCount > 0))
                 {
-                    // Yine de mevcut küpleri SİLMEDEN/yeniden RENKLENDİRMEDEN, o anki gerçek
-                    // ekran/Game View çözünürlüğüne göre pozisyon ve boyutlarını tazele.
-                    // Edit Mode önizlemesi farklı bir pencere boyutunda/oranında yapılmış olabilir;
-                    // bu yapılmazsa resim Play Mode'a girince küçük veya kaymış görünür.
-                    if (CubesContainer != null && CubesContainer.childCount > 0)
-                    {
-                        StartCoroutine(RefreshLayoutNextFrame());
-                    }
+                    if (!m_EnableBoardShadow) EnsureBoardShadowDisabled();
+                    if (!m_EnableFigureContourShadow) EnsureFigureContourShadowDisabled();
+                    UpdateExistingCubesLive();
                     return;
                 }
 
@@ -282,6 +283,7 @@ namespace PixelGame
                 }
                 else
                 {
+                    UpdateExistingCubesLive();
                     if (m_EnableCubeShadows)
                     {
                         ApplyShadowsToAllExistingCubes();
@@ -298,21 +300,6 @@ namespace PixelGame
             }
         }
 
-        /// <summary>
-        /// Play Mode'un ilk karesinde Canvas/CanvasScaler henüz kendi boyutunu netleştirmemiş
-        /// olabilir (script çalışma sırası garanti değildir). Bir kare bekleyip UI düzeni
-        /// oturduktan SONRA gerçek çözünürlüğe göre küp pozisyon/boyutlarını tazeler.
-        /// </summary>
-        private IEnumerator RefreshLayoutNextFrame()
-        {
-            yield return null;
-            if (this == null || !Application.isPlaying) yield break;
-            if (CubesContainer != null && CubesContainer.childCount > 0)
-            {
-                UpdateExistingCubesTransforms();
-            }
-        }
-
         public void EnsureInteractionComponents()
         {
             if (GetComponent<PixelCubeInteraction>() == null)
@@ -323,10 +310,11 @@ namespace PixelGame
 
         private void OnValidate()
         {
+            // Kullanıcı sahnede manuel düzenleme yaparken kodun otomatik transformları ezmesini engelle
+            if (m_PreserveSceneEdits) return;
+
             if (m_CubesContainer != null && m_CubesContainer.childCount > 0)
             {
-                UpdateExistingCubesTransforms();
-                UpdateExistingCubesLive();
                 #if UNITY_EDITOR
                 if (m_EnableCubeShadows)
                 {
@@ -356,6 +344,8 @@ namespace PixelGame
             #if UNITY_EDITOR
             if (!Application.isPlaying)
             {
+                if (m_PreserveSceneEdits) return;
+
                 if (m_ShowSceneFramePreview && (transform.hasChanged || (m_CubesContainer != null && m_CubesContainer.hasChanged)))
                 {
                     transform.hasChanged = false;
@@ -472,6 +462,8 @@ namespace PixelGame
             {
                 levelData.ExtractPaletteFromTexture();
             }
+
+            UpdateExistingCubesLive();
 
             if (m_EnableCubeShadows)
             {

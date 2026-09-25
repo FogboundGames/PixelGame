@@ -45,8 +45,11 @@ namespace PixelGame.Editor
 
             if (serializedObject.ApplyModifiedProperties() || inspectorChanged)
             {
-                m_Target.UpdateExistingCubesTransforms();
-                m_Target.UpdateExistingCubesLive();
+                if (!m_Target.PreserveSceneEdits)
+                {
+                    m_Target.UpdateExistingCubesTransforms();
+                    m_Target.UpdateExistingCubesLive();
+                }
                 SceneView.RepaintAll();
             }
         }
