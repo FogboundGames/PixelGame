@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7946d3c625ce6dcea89056b12ba0480e, type: 3}
+  m_Name: LevelSequence
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.LevelSequence
+  m_Levels:
+  - {fileID: 11400000, guid: 85848949177f4235a3f3ef3e3efb98fc, type: 2}
+  - {fileID: 11400000, guid: ec26301e3251463d94f2c891a979cac9, type: 2}
+  - {fileID: 11400000, guid: e306336b412b46cba91733c61ff05438, type: 2}
+  - {fileID: 11400000, guid: 7124cdb31c4f48daba390840737d67c3, type: 2}
+  - {fileID: 11400000, guid: 11ea177cca7f4cad9ce14693b2bb0cb4, type: 2}
+  - {fileID: 11400000, guid: 4910ab346f5842059ea9a804a0073ef5, type: 2}
+  - {fileID: 11400000, guid: 57a0fff35a166510fae3056278cfb34a, type: 2}
+  - {fileID: 11400000, guid: d624921f186e76992ac7f83888ddc142, type: 2}

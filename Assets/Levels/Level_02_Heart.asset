@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: PixelGame::PixelGame.PixelLevelData
   m_LevelName: Piksel Kalp
   m_LevelIndex: 1
-  m_LevelTexture: {fileID: 2800000, guid: 61c57a81ca8848fb9cd1d75d1cc2953f, type: 3}
+  m_LevelTexture: {fileID: 2800000, guid: 61898abaffe8fb97d8aa9be0efc140ab, type: 3}
   m_LevelSprite: {fileID: 0}
   m_UseNativeResolution: 0
   m_CustomResolution: {x: 24, y: 24}
@@ -38,7 +38,7 @@ MonoBehaviour:
   m_ColorContrast: 1.05
   m_EmissionIntensity: 0.35
   m_CubeSpacing: -0.1
-  m_CubeSpacingX: 0.013
+  m_CubeSpacingX: 0.05
   m_CubeDepth: 1
   m_BoardTiltAngle: 18
   m_CubeFrontTiltAngle: 25

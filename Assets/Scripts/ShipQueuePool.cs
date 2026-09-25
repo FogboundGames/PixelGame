@@ -227,32 +227,14 @@ namespace PixelGame
                 m_WaitingShips[backIndex] = null;
 
                 Transform frontSpot = m_QueueSpots[frontIndex];
-                backShip.transform.SetParent(frontSpot, true);
 
-                // Su sallanması (bobbing) animasyon süresince pozisyonu eski tabana geri
-                // çekip DOTween ile çakışmasın diye geçici olarak susturulur.
-                backShip.SetQueueAnimating(true);
-
-                // Su üzerinde öne doğru süzülme animasyonu
-                backShip.transform.DOKill(true);
-                backShip.transform.DOLocalMove(Vector3.zero, 0.48f).SetEase(Ease.OutQuad)
-                    .OnUpdate(() =>
-                    {
-                        if (UnityEngine.Random.value < 0.20f && backShip != null)
-                        {
-                            ShipController.SpawnWaterRipple(backShip.transform.position + new Vector3(0f, -0.08f, 0.05f), 0.16f, 0.65f, 0.4f);
-                        }
-                    })
-                    .OnComplete(() =>
-                    {
-                        if (backShip != null)
-                        {
-                            backShip.transform.localPosition = Vector3.zero;
-                            backShip.transform.localRotation = Quaternion.identity;
-                            backShip.transform.localScale = Vector3.one * m_ShipScale;
-                            backShip.SetQueueAnimating(false);
-                        }
-                    });
+                // Öndeki (az önce tıklanan) gemi slota doğru yola çıkıp ön spottan gerçekten
+                // uzaklaşana kadar arkadaki gemiyi bekletiyoruz — yoksa ikisi tam aynı anda,
+                // aynı noktada iç içe biniyordu.
+                if (gameObject.activeInHierarchy)
+                {
+                    StartCoroutine(MoveBackShipToFrontSpot(backShip, frontSpot, 0.3f));
+                }
             }
 
             // 2. Boşalan arka yere açık denizden yeni gemi yüzerek gelsin
@@ -260,6 +242,44 @@ namespace PixelGame
             {
                 StartCoroutine(SpawnAndSailInNewShip(backIndex, 0.22f));
             }
+        }
+
+        /// <summary>
+        /// Arka sıradaki gemiyi, öndeki gemi slota doğru yola çıkıp ön spottan uzaklaşması için
+        /// kısa bir gecikmenin ardından ön spota kaydırır. Gecikme olmadan ikisi tam aynı anda
+        /// aynı noktada başlayıp iç içe giriyordu.
+        /// </summary>
+        private IEnumerator MoveBackShipToFrontSpot(ShipController backShip, Transform frontSpot, float delay)
+        {
+            if (delay > 0f) yield return new WaitForSeconds(delay);
+            if (backShip == null || frontSpot == null) yield break;
+
+            backShip.transform.SetParent(frontSpot, true);
+
+            // Su sallanması (bobbing) animasyon süresince pozisyonu eski tabana geri
+            // çekip DOTween ile çakışmasın diye geçici olarak susturulur.
+            backShip.SetQueueAnimating(true);
+
+            // Su üzerinde öne doğru süzülme animasyonu
+            backShip.transform.DOKill(true);
+            backShip.transform.DOLocalMove(Vector3.zero, 0.48f).SetEase(Ease.OutQuad)
+                .OnUpdate(() =>
+                {
+                    if (UnityEngine.Random.value < 0.20f && backShip != null)
+                    {
+                        ShipController.SpawnWaterRipple(backShip.transform.position + new Vector3(0f, -0.08f, 0.05f), 0.16f, 0.65f, 0.4f);
+                    }
+                })
+                .OnComplete(() =>
+                {
+                    if (backShip != null)
+                    {
+                        backShip.transform.localPosition = Vector3.zero;
+                        backShip.transform.localRotation = Quaternion.identity;
+                        backShip.transform.localScale = Vector3.one * m_ShipScale;
+                        backShip.SetQueueAnimating(false);
+                    }
+                });
         }
 
         private IEnumerator SpawnAndSailInNewShip(int spotIndex, float delay)

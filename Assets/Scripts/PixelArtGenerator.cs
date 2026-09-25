@@ -447,6 +447,32 @@ namespace PixelGame
         }
 
         /// <summary>
+        /// Generator'daki canlı düzen ayarlarının (spacing, tilt, depth, renk vb.), o an bağlı
+        /// olan PixelLevelData asset'inde kayıtlı değerlerden farklı olup olmadığını söyler.
+        /// "💾 Bu Seviyeye Kaydet" basılmadan başka bir seviyeye geçilirse bu farklar sessizce
+        /// kaybolur; editör araçları geçiş öncesi bunu kontrol edip kullanıcıyı uyarabilir.
+        /// </summary>
+        public bool HasUnsavedLevelChanges()
+        {
+            if (m_ActiveLevelData == null) return false;
+
+            return m_ActiveLevelData.UseNativeResolution != m_UseNativeResolution
+                || m_ActiveLevelData.CustomResolution != m_GridResolution
+                || !Mathf.Approximately(m_ActiveLevelData.CubeSpacing, m_CubeSpacing)
+                || !Mathf.Approximately(m_ActiveLevelData.CubeSpacingX, m_CubeSpacingX)
+                || !Mathf.Approximately(m_ActiveLevelData.CubeDepth, m_CubeDepth)
+                || !Mathf.Approximately(m_ActiveLevelData.CubeFrontTiltAngle, m_CubeFrontTiltAngle)
+                || !Mathf.Approximately(m_ActiveLevelData.TargetZ, m_TargetZ)
+                || m_ActiveLevelData.CubeRowStepOffset != m_CubeRowStepOffset
+                || !Mathf.Approximately(m_ActiveLevelData.InnerPadding, m_InnerPadding)
+                || !Mathf.Approximately(m_ActiveLevelData.ColorBrightness, m_ColorBrightness)
+                || !Mathf.Approximately(m_ActiveLevelData.ColorSaturation, m_ColorSaturation)
+                || !Mathf.Approximately(m_ActiveLevelData.ColorContrast, m_ColorContrast)
+                || !Mathf.Approximately(m_ActiveLevelData.EmissionIntensity, m_EmissionIntensity)
+                || m_ActiveLevelData.SkipTransparent != m_SkipTransparent;
+        }
+
+        /// <summary>
         /// Sahnede zaten var olan küpleri silmeden seviye verisini bağlar ve dinleyicileri tetikler.
         /// Böylece sahneye önceden yerleştirilen küpler ve sahte gölgeler sıfırlanmaz.
         /// </summary>
@@ -996,11 +1022,9 @@ namespace PixelGame
             if (m_EnableFigureContourShadow)
             {
                 Camera cam = GetActiveCamera();
-                if (cam != null && CalculateTargetWorldBounds(cam, out Vector3 worldCenter, out float worldWidth, out float worldHeight))
+                if (cam != null && CalculateFigureVisualExtent(cam, out Vector3 visCenter, out float visW, out float visH))
                 {
-                    GetEffectiveGridSize(GetActiveTexture(), out int cols, out int rows);
-                    float cellSize = Mathf.Min(worldWidth / Mathf.Max(1, cols), worldHeight / Mathf.Max(1, rows));
-                    EnsureFigureContourShadow(worldCenter, cols * cellSize, rows * cellSize);
+                    EnsureFigureContourShadow(visCenter, visW, visH);
                 }
             }
             else
@@ -1011,11 +1035,9 @@ namespace PixelGame
             if (m_EnableBoardShadow)
             {
                 Camera cam = GetActiveCamera();
-                if (cam != null && CalculateTargetWorldBounds(cam, out Vector3 worldCenter, out float worldWidth, out float worldHeight))
+                if (cam != null && CalculateFigureVisualExtent(cam, out Vector3 visCenter, out float visW, out float visH))
                 {
-                    GetEffectiveGridSize(GetActiveTexture(), out int cols, out int rows);
-                    float cellSize = Mathf.Min(worldWidth / Mathf.Max(1, cols), worldHeight / Mathf.Max(1, rows));
-                    EnsureBoardShadow(worldCenter, cols * cellSize, rows * cellSize);
+                    EnsureBoardShadow(visCenter, visW, visH);
                 }
             }
             else
@@ -1024,6 +1046,75 @@ namespace PixelGame
             }
 
             Debug.Log($"<color=#FFAA00>[PixelGame]</color> {cubes.Length} adet küpün sahte gölgesi (Fake Shadow) güncellendi!");
+        }
+
+        /// <summary>
+        /// Kontur/pano gölgesi gibi yardımcı görsellerin boyut ve merkezini, GERÇEK küp diziliminde
+        /// kullanılan sıkı-kırpma (SkipTransparent) + CubeSpacing/CubeSpacingX örtüşme formülüyle
+        /// (GeneratePixelArt/UpdateExistingCubesTransforms ile birebir aynı) hesaplar. Böylece bu
+        /// yardımcı görseller, küplerin gerçek görsel izdüşümünden asla kopmaz.
+        /// </summary>
+        private bool CalculateFigureVisualExtent(Camera cam, out Vector3 visualCenter, out float totalWidth, out float totalHeight)
+        {
+            visualCenter = Vector3.zero;
+            totalWidth = 0f;
+            totalHeight = 0f;
+
+            if (!CalculateTargetWorldBounds(cam, out Vector3 worldCenter, out float worldWidth, out float worldHeight))
+                return false;
+
+            Texture2D activeTex = GetActiveTexture();
+            GetEffectiveGridSize(activeTex, out int cols, out int rows);
+            if (cols <= 0 || rows <= 0) { cols = 24; rows = 24; }
+
+            int minX = cols, maxX = -1, minY = rows, maxY = -1;
+            if (m_SkipTransparent && activeTex != null)
+            {
+                for (int y = 0; y < rows; y++)
+                {
+                    for (int x = 0; x < cols; x++)
+                    {
+                        Color c = SampleRawColor(activeTex, x, y, cols, rows);
+                        if (c.a >= 0.1f)
+                        {
+                            if (x < minX) minX = x;
+                            if (x > maxX) maxX = x;
+                            if (y < minY) minY = y;
+                            if (y > maxY) maxY = y;
+                        }
+                    }
+                }
+            }
+
+            float cellSize, stepX, stepY;
+
+            if (m_SkipTransparent && maxX >= minX && maxY >= minY)
+            {
+                int visW = maxX - minX + 1;
+                int visH = maxY - minY + 1;
+                float visCellSizeX = (worldWidth * 0.88f) / visW;
+                float visCellSizeY = (worldHeight * 0.88f) / visH;
+                cellSize = Mathf.Min(visCellSizeX, visCellSizeY);
+
+                stepX = cellSize * (1f + m_CubeSpacingX);
+                stepY = cellSize * (1f + m_CubeSpacing);
+                totalWidth = visW * stepX;
+                totalHeight = visH * stepY;
+            }
+            else
+            {
+                float cellSizeX = worldWidth / cols;
+                float cellSizeY = worldHeight / rows;
+                cellSize = Mathf.Min(cellSizeX, cellSizeY);
+
+                stepX = cellSize * (1f + m_CubeSpacingX);
+                stepY = cellSize * (1f + m_CubeSpacing);
+                totalWidth = cols * stepX;
+                totalHeight = rows * stepY;
+            }
+
+            visualCenter = worldCenter;
+            return true;
         }
 
         #region 🌑 Şekil Kontur Gölgesi (Figure Contour Shadow)
@@ -1239,7 +1330,99 @@ namespace PixelGame
                 }
             }
 
-            // 2. Ayrılabilir (Separable) hızlı bulanıklaştırma fonksiyonu
+            Texture2D shadowTex = BuildContourShadowTextureFromMask(mask, targetSize, $"GeneratedShadow_{srcTex.name}");
+
+            #if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                try
+                {
+                    string cleanName = srcTex.name.Replace("PixelArt_", "").Replace("Level_", "");
+                    string savePath = $"Assets/Textures/FigureShadow_{cleanName}.png";
+                    if (!System.IO.File.Exists(savePath))
+                    {
+                        byte[] pngBytes = shadowTex.EncodeToPNG();
+                        System.IO.File.WriteAllBytes(savePath, pngBytes);
+                        AssetDatabase.ImportAsset(savePath, ImportAssetOptions.ForceUpdate);
+
+                        TextureImporter importer = AssetImporter.GetAtPath(savePath) as TextureImporter;
+                        if (importer != null)
+                        {
+                            importer.alphaIsTransparency = true;
+                            importer.wrapMode = TextureWrapMode.Clamp;
+                            importer.SaveAndReimport();
+                        }
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogWarning($"[PixelArtGenerator] Gölge kaydedilirken uyarı: {ex.Message}");
+                }
+            }
+            #endif
+
+            s_DynamicShadowCache[cacheKey] = shadowTex;
+            return shadowTex;
+        }
+
+        /// <summary>
+        /// Oyun sırasında küpler tek tek patlatıldıkça (ya da geri yüklendikçe) kontur gölgesini
+        /// GÜNCEL (o an hâlâ patlamamış) küp durumuna göre yeniden üretir. Böylece gölge, artık var
+        /// olmayan küplerin arkasında "hayalet" gibi kalmaz — gerçek küpler gibi parça parça küçülür.
+        /// Statik bake'ten (256px) daha küçük bir çözünürlük (128px) kullanır ki her patlamada
+        /// yeniden üretmek ucuz kalsın.
+        /// </summary>
+        public void RegenerateContourShadowFromLiveCubeState()
+        {
+            if (!m_EnableFigureContourShadow || m_CubesContainer == null) return;
+
+            Transform shadowTrans = m_CubesContainer.Find("FigureContourShadow");
+            if (shadowTrans == null) return;
+
+            MeshRenderer mr = shadowTrans.GetComponent<MeshRenderer>();
+            if (mr == null || mr.sharedMaterial == null) return;
+
+            GetEffectiveGridSize(GetActiveTexture(), out int cols, out int rows);
+            if (cols <= 0 || rows <= 0) return;
+
+            const int liveTargetSize = 128;
+            float[] liveMask = new float[liveTargetSize * liveTargetSize];
+
+            PixelCube[] liveCubes = m_CubesContainer.GetComponentsInChildren<PixelCube>(true);
+            foreach (var cube in liveCubes)
+            {
+                if (cube == null || cube.IsPopped || !cube.gameObject.activeSelf) continue;
+
+                int gx = cube.GridX;
+                int gy = cube.GridY;
+                if (gx < 0 || gx >= cols || gy < 0 || gy >= rows) continue;
+
+                int px0 = Mathf.FloorToInt((gx / (float)cols) * liveTargetSize);
+                int px1 = Mathf.CeilToInt(((gx + 1) / (float)cols) * liveTargetSize);
+                int py0 = Mathf.FloorToInt((gy / (float)rows) * liveTargetSize);
+                int py1 = Mathf.CeilToInt(((gy + 1) / (float)rows) * liveTargetSize);
+
+                for (int y = Mathf.Max(0, py0); y < py1 && y < liveTargetSize; y++)
+                {
+                    for (int x = Mathf.Max(0, px0); x < px1 && x < liveTargetSize; x++)
+                    {
+                        liveMask[y * liveTargetSize + x] = 1f;
+                    }
+                }
+            }
+
+            Texture2D liveShadowTex = BuildContourShadowTextureFromMask(liveMask, liveTargetSize, "LiveContourShadow");
+            mr.sharedMaterial.mainTexture = liveShadowTex;
+        }
+
+        /// <summary>
+        /// Bir 0/1 doluluk maskesinden (ister kaynak görselden, ister canlı küp durumundan) yumuşak
+        /// silüet kontur gölgesi dokusu üretir. Ambient (her yöne taşan) + drop (aşağı düşen) iki
+        /// katmanı birleştirip içini boşaltır (hollow) — böylece küplerin arkasında leke oluşmaz.
+        /// </summary>
+        private Texture2D BuildContourShadowTextureFromMask(float[] mask, int targetSize, string debugName)
+        {
+            // Ayrılabilir (Separable) hızlı bulanıklaştırma fonksiyonu
             float[] Blur(float[] input, int r)
             {
                 float[] hBlur = new float[targetSize * targetSize];
@@ -1304,7 +1487,7 @@ namespace PixelGame
 
             // 4. Sonuç dokusunu oluştur (İç alan şeffaf kalır, arkada siyah leke oluşmaz!)
             Texture2D shadowTex = new Texture2D(targetSize, targetSize, TextureFormat.RGBA32, false);
-            shadowTex.name = $"GeneratedShadow_{srcTex.name}";
+            shadowTex.name = debugName;
             shadowTex.filterMode = FilterMode.Bilinear;
             shadowTex.wrapMode = TextureWrapMode.Clamp;
 
@@ -1322,37 +1505,6 @@ namespace PixelGame
 
             shadowTex.SetPixels(finalPixels);
             shadowTex.Apply();
-
-            #if UNITY_EDITOR
-            if (!Application.isPlaying)
-            {
-                try
-                {
-                    string cleanName = srcTex.name.Replace("PixelArt_", "").Replace("Level_", "");
-                    string savePath = $"Assets/Textures/FigureShadow_{cleanName}.png";
-                    if (!System.IO.File.Exists(savePath))
-                    {
-                        byte[] pngBytes = shadowTex.EncodeToPNG();
-                        System.IO.File.WriteAllBytes(savePath, pngBytes);
-                        AssetDatabase.ImportAsset(savePath, ImportAssetOptions.ForceUpdate);
-
-                        TextureImporter importer = AssetImporter.GetAtPath(savePath) as TextureImporter;
-                        if (importer != null)
-                        {
-                            importer.alphaIsTransparency = true;
-                            importer.wrapMode = TextureWrapMode.Clamp;
-                            importer.SaveAndReimport();
-                        }
-                    }
-                }
-                catch (System.Exception ex)
-                {
-                    Debug.LogWarning($"[PixelArtGenerator] Gölge kaydedilirken uyarı: {ex.Message}");
-                }
-            }
-            #endif
-
-            s_DynamicShadowCache[cacheKey] = shadowTex;
             return shadowTex;
         }
 
@@ -1414,16 +1566,11 @@ namespace PixelGame
                 }
 
                 Camera cam = GetActiveCamera();
-                if (cam != null && CalculateTargetWorldBounds(cam, out Vector3 worldCenter, out float worldWidth, out float worldHeight))
+                if (cam != null && CalculateFigureVisualExtent(cam, out Vector3 visCenter, out float totalWidth, out float totalHeight))
                 {
-                    GetEffectiveGridSize(GetActiveTexture(), out int cols, out int rows);
-                    float cellSize = Mathf.Min(worldWidth / Mathf.Max(1, cols), worldHeight / Mathf.Max(1, rows));
-                    float totalWidth = cols * cellSize;
-                    float totalHeight = rows * cellSize;
-
                     shadowTrans.position = new Vector3(
-                        worldCenter.x + m_FigureShadowOffset.x,
-                        worldCenter.y + m_FigureShadowOffset.y,
+                        visCenter.x + m_FigureShadowOffset.x,
+                        visCenter.y + m_FigureShadowOffset.y,
                         m_TargetZ + 0.06f
                     );
                     shadowTrans.localScale = new Vector3(
@@ -1436,11 +1583,9 @@ namespace PixelGame
             else if (m_EnableFigureContourShadow)
             {
                 Camera cam = GetActiveCamera();
-                if (cam != null && CalculateTargetWorldBounds(cam, out Vector3 worldCenter, out float worldWidth, out float worldHeight))
+                if (cam != null && CalculateFigureVisualExtent(cam, out Vector3 visCenter, out float visW, out float visH))
                 {
-                    GetEffectiveGridSize(GetActiveTexture(), out int cols, out int rows);
-                    float cellSize = Mathf.Min(worldWidth / Mathf.Max(1, cols), worldHeight / Mathf.Max(1, rows));
-                    EnsureFigureContourShadow(worldCenter, cols * cellSize, rows * cellSize);
+                    EnsureFigureContourShadow(visCenter, visW, visH);
                 }
             }
         }
@@ -1677,11 +1822,9 @@ namespace PixelGame
             }
 
             Camera cam = GetActiveCamera();
-            if (cam != null && CalculateTargetWorldBounds(cam, out Vector3 worldCenter, out float worldWidth, out float worldHeight))
+            if (cam != null && CalculateFigureVisualExtent(cam, out Vector3 visCenter, out float visW, out float visH))
             {
-                GetEffectiveGridSize(GetActiveTexture(), out int cols, out int rows);
-                float cellSize = Mathf.Min(worldWidth / Mathf.Max(1, cols), worldHeight / Mathf.Max(1, rows));
-                EnsureBoardShadow(worldCenter, cols * cellSize, rows * cellSize);
+                EnsureBoardShadow(visCenter, visW, visH);
             }
         }
 

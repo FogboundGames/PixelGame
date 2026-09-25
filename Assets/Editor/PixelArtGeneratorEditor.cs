@@ -88,6 +88,19 @@ namespace PixelGame.Editor
                     GUI.backgroundColor = isCurrent ? new Color(0.2f, 0.9f, 0.5f) : Color.white;
                     if (GUILayout.Button($"{i + 1}. {level.LevelName}", GUILayout.Height(30)))
                     {
+                        if (!isCurrent && m_Target.HasUnsavedLevelChanges())
+                        {
+                            string activeLevelName = m_Target.ActiveLevelData != null ? m_Target.ActiveLevelData.LevelName : "aktif seviye";
+                            bool proceed = EditorUtility.DisplayDialog(
+                                "Kaydedilmemiş Değişiklikler Var",
+                                $"'{activeLevelName}' için Inspector'da yaptığın ayar değişiklikleri (boşluk, eğim, derinlik, renk vb.) henüz " +
+                                "seviyeye kaydedilmedi. '💾 Bu Seviyeye Kaydet' basılmadan başka bir seviyeye geçersen bu değişiklikler kaybolur.\n\n" +
+                                "Yine de geçilsin mi?",
+                                "Evet, Değişiklikleri Kaybet ve Geç",
+                                "Vazgeç");
+                            if (!proceed) continue;
+                        }
+
                         Undo.RecordObject(m_Target, "Switch Level");
                         m_Target.LoadLevel(level);
                         m_Target.ApplyShadowsToAllExistingCubes();

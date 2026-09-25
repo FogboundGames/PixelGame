@@ -336,7 +336,9 @@ namespace PixelGame
 
             // Slottan ayrılış: Geminin pruva (burun) yönünde slottan ileriye doğru zarifçe süzülür
             Vector3 undockOffset = transform.forward * 0.90f;
-            Vector3 undockPos = startPos + undockOffset;
+            // Kalkış rotası, slotun biraz daha üstünden geçsin diye ekstra dikey yükseklik payı
+            const float departExtraLift = 0.18f;
+            Vector3 undockPos = startPos + undockOffset + new Vector3(0f, departExtraLift, 0f);
 
             // Su yüzeyi düzleminde sola bakan hedef rotasyon (Lokal Y ekseninde -90° dönüş):
             Quaternion leftTargetRot = Quaternion.Euler(-68f, 0f, 0f) * Quaternion.Euler(0f, -90f, 0f);
@@ -354,7 +356,6 @@ namespace PixelGame
             float duration = Mathf.Clamp(travelDist * 0.15f + 0.35f, 1.25f, 2.10f);
             float elapsed = 0f;
             float lastRippleTime = 0f;
-            bool slotFreed = false;
 
             // Kalkışta motor çalıştırma küçük su dalgası (Departure Splash)
             SpawnWaterRipple(startPos - transform.forward * 0.30f + new Vector3(0f, -0.06f, 0.02f), 0.28f, 1.05f, 0.50f);
@@ -364,16 +365,11 @@ namespace PixelGame
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / duration);
 
-                // Slottan çıkınca (t >= 0.25f) slotu serbest bırak ki arkadan gelen gemi yanaşabilsin
-                if (!slotFreed && t >= 0.25f)
-                {
-                    slotFreed = true;
-                    if (m_CurrentSlot != null)
-                    {
-                        m_CurrentSlot.ReleaseShip();
-                        m_CurrentSlot = null;
-                    }
-                }
+                // Not: Slot BİLEREK erken (kalkış animasyonu bitmeden) serbest bırakılmıyor —
+                // erken bırakılırsa yeni gemi bu gemi hâlâ oradan uzaklaşırken slota yelken açmaya
+                // başlıyor ve iki gemi iç içe giriyordu. Slot artık sadece kalkış tamamen bitince
+                // (rutinin sonunda) serbest bırakılıyor, böylece yeni gemi ancak öndeki tamamen
+                // sahneyi terk ettikten sonra slota gelmeye başlıyor.
 
                 // Gerçekçi gemi ivmelenmesi (ilk %25'te tatlı hızlanma, sonra sabit seyir sürati)
                 float moveT = (t < 0.25f) ? (2.0f * t * t) : (t - 0.125f) / 0.875f;
@@ -400,7 +396,7 @@ namespace PixelGame
                 yield return null;
             }
 
-            if (!slotFreed && m_CurrentSlot != null)
+            if (m_CurrentSlot != null)
             {
                 m_CurrentSlot.ReleaseShip();
                 m_CurrentSlot = null;

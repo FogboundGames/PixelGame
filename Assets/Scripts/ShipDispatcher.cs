@@ -27,6 +27,10 @@ namespace PixelGame
         [SerializeField] private float m_FlyDuration = 0.55f;
         [SerializeField] private float m_ArcHeight = 1.2f;
 
+        private bool m_LevelEndPending = false;
+        private int m_ShipsAwaitingDeparture = 0;
+        private int m_ActiveCargoFlightCount = 0;
+
         private void Awake()
         {
             s_Instance = this;
@@ -420,6 +424,11 @@ namespace PixelGame
 
         private IEnumerator FlyCubeThroughPierToShip(Vector3 startPos, Color color, float size, ShipController ship, PixelCube sourceCube)
         {
+            // Bu küp henüz gemiye TAM ulaşmadı (uçuş animasyonu sürüyor) — seviye bitiş kontrolü
+            // bu uçuşun bitmesini beklesin ki son küp koparılır kopartılmaz gemiler sahneyi
+            // animasyon yarıda kesilerek terk etmesin.
+            m_ActiveCargoFlightCount++;
+
             // 1. Parlak, Canlı 3D Voksel Küp Nesnesi
             GameObject flyerObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
             flyerObj.name = "RadiantFlying_Voxel";
@@ -595,6 +604,8 @@ namespace PixelGame
                 ShipController.SpawnWaterRipple(ship.transform.position + new Vector3(0f, -0.05f, 0.05f), 0.24f, 0.95f, 0.45f);
                 HypercasualWaterController.TriggerWaterRipple(ship.transform.position, 0.65f, 0.22f);
             }
+
+            m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - 1);
 
             CheckWinCondition();
             TriggerWaitingShipsCheck();
@@ -870,10 +881,13 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Tablodaki tüm küpler patlatıldıysa seviye tamamlanır.
+        /// Tablodaki tüm küpler patlatıldıysa seviye tamamlanma sürecini başlatır. Seviye geçişi
+        /// hemen olmaz: son gemi de sahneyi gerçekten terk edene kadar beklenir (bkz. BeginLevelEndSequence).
         /// </summary>
         public void CheckWinCondition()
         {
+            if (m_LevelEndPending) return;
+
             if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
             if (m_Generator == null || m_Generator.CubesContainer == null) return;
 
@@ -888,13 +902,110 @@ namespace PixelGame
                 }
             }
 
-            if (unpoppedCount == 0)
+            // Hâlâ havada (panodan gemiye uçuş animasyonu sürmekte olan) küp varsa bekle —
+            // yoksa son küp koparılır kopartılmaz, o küp henüz gemiye TAM ulaşmadan gemiler
+            // sahneyi animasyon yarıda kesilerek terk ediyordu.
+            if (unpoppedCount == 0 && m_ActiveCargoFlightCount <= 0)
             {
-                Debug.Log("<color=#00FFAA><b>[ShipDispatcher]</b></color> 🎉 TEBRİKLER! Tüm piksel resmi tamamlandı!");
-                if (LevelManager.Instance != null)
+                Debug.Log("<color=#00FFAA><b>[ShipDispatcher]</b></color> 🎉 Tüm piksel resmi tamamlandı! Son gemilerin sahneyi terk etmesi bekleniyor...");
+                BeginLevelEndSequence();
+            }
+        }
+
+        /// <summary>
+        /// Küpler bitince çağrılır: artık toplanacak kargo kalmadığı için kuyrukta bekleyen (henüz
+        /// yanaşmamış) gemileri hemen kaldırır. Sahnede hâlâ aktif olan gemilerden doğal olarak zaten
+        /// kalkışa geçmiş olan (son kargoyla dolan gemi) kendi başına gider; geri kalanlar HEPSİ AYNI
+        /// ANDA değil, kısa aralıklarla (kademeli) kalkışa zorlanır. Her geminin gerçekten sahneyi
+        /// terk etmesi (OnDeparted) beklenir; son gemi de ayrıldığında bir sonraki seviyeye geçilir ve
+        /// gemi kuyruğu o seviye için yeniden doldurulur.
+        /// </summary>
+        private void BeginLevelEndSequence()
+        {
+            m_LevelEndPending = true;
+
+            ShipController[] allShips = Object.FindObjectsByType<ShipController>(FindObjectsSortMode.None);
+            HashSet<ShipController> queueShips = m_QueuePool != null
+                ? new HashSet<ShipController>(m_QueuePool.WaitingShips)
+                : new HashSet<ShipController>();
+
+            // Henüz yanaşmamış, kuyrukta bekleyen gemilerin artık toplayacağı kargo yok — bunları bekletmeden kaldır.
+            if (m_QueuePool != null)
+            {
+                m_QueuePool.ClearQueue();
+            }
+
+            List<ShipController> shipsToForceDepart = new List<ShipController>();
+
+            m_ShipsAwaitingDeparture = 0;
+            foreach (var ship in allShips)
+            {
+                if (ship == null || queueShips.Contains(ship)) continue;
+
+                m_ShipsAwaitingDeparture++;
+                ship.OnDeparted += HandleShipDepartedDuringLevelEnd;
+
+                // Zaten kalkışta olan (ör. son kargoyla az önce dolup kendi kendine kalkan) gemiye
+                // dokunma — sadece hâlâ yanaşık duran gemileri kademeli kalkışa zorla.
+                if (!ship.IsDeparting)
                 {
-                    LevelManager.Instance.NextLevel();
+                    shipsToForceDepart.Add(ship);
                 }
+            }
+
+            if (shipsToForceDepart.Count > 0)
+            {
+                StartCoroutine(StaggeredForceDeparture(shipsToForceDepart));
+            }
+
+            if (m_ShipsAwaitingDeparture == 0)
+            {
+                CompleteLevelTransition();
+            }
+        }
+
+        /// <summary>
+        /// Kalan gemileri hepsi aynı anda değil, aralarında küçük bir gecikmeyle tek tek kalkışa
+        /// zorlar — böylece "hepsi bir anda sahneyi terk etti" hissi yerine doğal, art arda bir
+        /// kalkış sırası oluşur.
+        /// </summary>
+        private IEnumerator StaggeredForceDeparture(List<ShipController> ships)
+        {
+            const float staggerDelay = 0.25f;
+            foreach (var ship in ships)
+            {
+                if (ship != null && !ship.IsDeparting)
+                {
+                    ship.DepartAndFreeSlot();
+                }
+                yield return new WaitForSeconds(staggerDelay);
+            }
+        }
+
+        private void HandleShipDepartedDuringLevelEnd(ShipController ship)
+        {
+            ship.OnDeparted -= HandleShipDepartedDuringLevelEnd;
+            m_ShipsAwaitingDeparture = Mathf.Max(0, m_ShipsAwaitingDeparture - 1);
+
+            if (m_ShipsAwaitingDeparture == 0)
+            {
+                CompleteLevelTransition();
+            }
+        }
+
+        private void CompleteLevelTransition()
+        {
+            m_LevelEndPending = false;
+            Debug.Log("<color=#00FFAA><b>[ShipDispatcher]</b></color> 🚢 Son gemi de sahneyi terk etti — seviye sıfırlanıyor.");
+
+            if (LevelManager.Instance != null)
+            {
+                LevelManager.Instance.NextLevel();
+            }
+
+            if (m_QueuePool != null)
+            {
+                m_QueuePool.InitializeQueue();
             }
         }
     }

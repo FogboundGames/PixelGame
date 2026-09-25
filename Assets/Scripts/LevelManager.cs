@@ -14,8 +14,16 @@ namespace PixelGame
     {
         public static LevelManager Instance { get; private set; }
 
+        private const string ProgressPrefKey = "PixelGame_CurrentLevelIndex";
+
+        [Header("📋 Bölüm Sırası (Tek Doğruluk Kaynağı)")]
+        [Tooltip("Atanmışsa bölüm sırası için tek doğruluk kaynağıdır: Level Designer bunu günceller, " +
+                 "buradaki liste her yenilemede (Awake/RefreshFromSequence) bu asset'ten yeniden doldurulur.")]
+        [SerializeField] private LevelSequence m_LevelSequence;
+
         [Header("📋 Bölüm Listesi (Levels)")]
-        [Tooltip("Oyundaki tüm bölümler")]
+        [Tooltip("Oyundaki tüm bölümler. 'Bölüm Sırası' atanmışsa bu liste sadece bir önbellektir; " +
+                 "gerçek kaynak yukarıdaki LevelSequence asset'idir.")]
         [SerializeField] private List<PixelLevelData> m_Levels = new List<PixelLevelData>();
 
         [Tooltip("Şu an aktif olan bölüm indeksi (0 tabanlı)")]
@@ -25,12 +33,33 @@ namespace PixelGame
         [SerializeField] private PixelArtGenerator m_Generator;
 
         public List<PixelLevelData> Levels => m_Levels;
+        public LevelSequence Sequence { get => m_LevelSequence; set => m_LevelSequence = value; }
         public int CurrentLevelIndex => m_CurrentLevelIndex;
         public PixelLevelData CurrentLevel => (m_Levels != null && m_CurrentLevelIndex >= 0 && m_CurrentLevelIndex < m_Levels.Count) ? m_Levels[m_CurrentLevelIndex] : null;
+
+        /// <summary>
+        /// LevelSequence asset'i atanmışsa m_Levels'i onunla eşitler. LevelSequence tek doğruluk
+        /// kaynağı olduğu için, m_Levels'te elle (Inspector'da) yapılmış farklı bir sıralama varsa
+        /// burada ezilir.
+        /// </summary>
+        public void RefreshFromSequence()
+        {
+            if (m_LevelSequence == null) return;
+
+            PixelLevelData currentLevel = CurrentLevel;
+            m_Levels = new List<PixelLevelData>(m_LevelSequence.Levels);
+
+            if (currentLevel != null)
+            {
+                int index = m_Levels.IndexOf(currentLevel);
+                if (index >= 0) m_CurrentLevelIndex = index;
+            }
+        }
 
         private void Awake()
         {
             Instance = this;
+            RefreshFromSequence();
             EnsureGenerator();
         }
 
@@ -70,7 +99,12 @@ namespace PixelGame
                     }
                 }
 
-                LoadLevel(m_CurrentLevelIndex);
+                // Oturumlar arası kalınan yerden devam: kayıtlı ilerleme varsa Inspector'daki
+                // m_CurrentLevelIndex yerine onu kullan.
+                int startIndex = PlayerPrefs.HasKey(ProgressPrefKey)
+                    ? PlayerPrefs.GetInt(ProgressPrefKey)
+                    : m_CurrentLevelIndex;
+                LoadLevel(startIndex);
             }
         }
 
@@ -95,7 +129,23 @@ namespace PixelGame
             {
                 m_Generator.LoadLevel(level);
                 Debug.Log($"<color=#00FFAA><b>[LevelManager]</b></color> Level {m_CurrentLevelIndex + 1}: '{level.LevelName}' yüklendi!");
+
+                if (Application.isPlaying)
+                {
+                    PlayerPrefs.SetInt(ProgressPrefKey, m_CurrentLevelIndex);
+                    PlayerPrefs.Save();
+                }
             }
+        }
+
+        /// <summary>
+        /// Kayıtlı oyuncu ilerlemesini (kaldığı bölüm) siler; bir sonraki başlangıçta 0. bölümden
+        /// başlar. "Yeni Oyun" / ilerlemeyi sıfırlama gibi menü aksiyonlarından çağırmak için.
+        /// </summary>
+        [ContextMenu("İlerlemeyi Sıfırla (PlayerPrefs)")]
+        public void ResetProgress()
+        {
+            PlayerPrefs.DeleteKey(ProgressPrefKey);
         }
 
         public void NextLevel()

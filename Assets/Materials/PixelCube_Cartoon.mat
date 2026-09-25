@@ -150,7 +150,7 @@ Material:
     - _PlasticTopLight: 0.25
     - _ProceduralBevelIntensity: 1.351
     - _ProceduralBevelUVMargin: 0.13
-    - _ProceduralBevelWidth: 0.05
+    - _ProceduralBevelWidth: 0
     - _QueueOffset: 0
     - _RampBands: 4
     - _RampBandsSmoothing: 0.1

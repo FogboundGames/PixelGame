@@ -348,6 +348,13 @@ namespace PixelGame
                 if (m_CubeCollider != null) m_CubeCollider.enabled = true;
                 if (m_ShadowObject != null) m_ShadowObject.SetActive(true);
             }
+
+            // Kontur gölgesi de küplerle birlikte parça parça küçülsün/geri büyüsün diye canlı yeniden üret.
+            if (Application.isPlaying)
+            {
+                PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
+                if (gen != null) gen.RegenerateContourShadowFromLiveCubeState();
+            }
         }
 
         /// <summary>

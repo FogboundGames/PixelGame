@@ -1,0 +1,171 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56621c704aae40878464c98bd3ff671a, type: 3}
+  m_Name: Level_08_New
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
+  m_LevelName: Avocado
+  m_LevelIndex: 8
+  m_LevelTexture: {fileID: 2800000, guid: 5ac2ab812bb0a5f45ac1fed8c7bbefc1, type: 3}
+  m_LevelSprite: {fileID: 0}
+  m_UseNativeResolution: 1
+  m_CustomResolution: {x: 24, y: 24}
+  m_ColorPalette:
+  - originalColor: {r: 0.9764706, g: 0.65882355, b: 0.14901961, a: 1}
+    targetColor: {r: 0.9764706, g: 0.65882355, b: 0.14901961, a: 1}
+    pixelCount: 270
+    label: 
+  - originalColor: {r: 0.7764706, g: 1, b: 0, a: 1}
+    targetColor: {r: 0.7764706, g: 1, b: 0, a: 1}
+    pixelCount: 92
+    label: 
+  - originalColor: {r: 0.25882354, g: 0.23529412, b: 0.03137255, a: 1}
+    targetColor: {r: 0.25882354, g: 0.23529412, b: 0.03137255, a: 1}
+    pixelCount: 40
+    label: 
+  - originalColor: {r: 0.22352941, g: 0.1882353, b: 0.09411765, a: 1}
+    targetColor: {r: 0.22352941, g: 0.1882353, b: 0.09411765, a: 1}
+    pixelCount: 37
+    label: 
+  - originalColor: {r: 0.5882353, g: 0.73333335, b: 0.007843138, a: 1}
+    targetColor: {r: 0.5882353, g: 0.73333335, b: 0.007843138, a: 1}
+    pixelCount: 33
+    label: 
+  - originalColor: {r: 0.6901961, g: 0.6392157, b: 0.050980393, a: 1}
+    targetColor: {r: 0.6901961, g: 0.6392157, b: 0.050980393, a: 1}
+    pixelCount: 16
+    label: 
+  - originalColor: {r: 0.7607843, g: 0.5294118, b: 0.09411765, a: 1}
+    targetColor: {r: 0.7607843, g: 0.5294118, b: 0.09411765, a: 1}
+    pixelCount: 15
+    label: 
+  - originalColor: {r: 0.6901961, g: 0.5686275, b: 0.0627451, a: 1}
+    targetColor: {r: 0.6901961, g: 0.5686275, b: 0.0627451, a: 1}
+    pixelCount: 12
+    label: 
+  - originalColor: {r: 0.62352943, g: 0.81960785, b: 0, a: 1}
+    targetColor: {r: 0.62352943, g: 0.81960785, b: 0, a: 1}
+    pixelCount: 10
+    label: 
+  - originalColor: {r: 0.25882354, g: 0.28627452, b: 0, a: 1}
+    targetColor: {r: 0.25882354, g: 0.28627452, b: 0, a: 1}
+    pixelCount: 8
+    label: 
+  - originalColor: {r: 0.90588236, g: 0.84313726, b: 0.0627451, a: 1}
+    targetColor: {r: 0.90588236, g: 0.84313726, b: 0.0627451, a: 1}
+    pixelCount: 8
+    label: 
+  - originalColor: {r: 0.63529414, g: 0.6784314, b: 0.03137255, a: 1}
+    targetColor: {r: 0.63529414, g: 0.6784314, b: 0.03137255, a: 1}
+    pixelCount: 7
+    label: 
+  - originalColor: {r: 0.90588236, g: 0.7137255, b: 0.09411765, a: 1}
+    targetColor: {r: 0.90588236, g: 0.7137255, b: 0.09411765, a: 1}
+    pixelCount: 7
+    label: 
+  - originalColor: {r: 0.87058824, g: 0.5882353, b: 0.12941177, a: 1}
+    targetColor: {r: 0.87058824, g: 0.5882353, b: 0.12941177, a: 1}
+    pixelCount: 6
+    label: 
+  - originalColor: {r: 0.63529414, g: 0.73333335, b: 0.007843138, a: 1}
+    targetColor: {r: 0.63529414, g: 0.73333335, b: 0.007843138, a: 1}
+    pixelCount: 6
+    label: 
+  - originalColor: {r: 0.80784315, g: 0.8901961, b: 0.03137255, a: 1}
+    targetColor: {r: 0.80784315, g: 0.8901961, b: 0.03137255, a: 1}
+    pixelCount: 5
+    label: 
+  - originalColor: {r: 0.32156864, g: 0.25490198, b: 0.03137255, a: 1}
+    targetColor: {r: 0.32156864, g: 0.25490198, b: 0.03137255, a: 1}
+    pixelCount: 2
+    label: 
+  - originalColor: {r: 0.69803923, g: 0.9137255, b: 0, a: 1}
+    targetColor: {r: 0.69803923, g: 0.9137255, b: 0, a: 1}
+    pixelCount: 1
+    label: 
+  - originalColor: {r: 0.80784315, g: 0.5411765, b: 0.12941177, a: 1}
+    targetColor: {r: 0.80784315, g: 0.5411765, b: 0.12941177, a: 1}
+    pixelCount: 1
+    label: 
+  m_TintColor: {r: 1, g: 1, b: 1, a: 1}
+  m_HueShift: 0
+  m_ColorBrightness: 1.25
+  m_ColorSaturation: 1.25
+  m_ColorContrast: 1.05
+  m_EmissionIntensity: 0.35
+  m_CubeSpacing: 0.04
+  m_CubeSpacingX: 0.04
+  m_CubeDepth: 0.4
+  m_BoardTiltAngle: 18
+  m_CubeFrontTiltAngle: 25
+  m_TargetZ: 0
+  m_CubeRowStepOffset: {x: 0, y: 0, z: 0.12}
+  m_InnerPadding: 0.08
+  m_SkipTransparent: 1
+  m_SlotSprite: {fileID: 0}
+  m_SlotCount: 5
+  m_PoolColumns: 5
+  m_PoolRows: 2
+  m_TruckCapacity: 16
+  m_UseCustomWagonSequence: 0
+  m_WagonSequence: []
+  m_FigureShadowTexture: {fileID: 0}
+  m_UseCustomColorTheme: 0
+  m_ColorTheme:
+    m_Parts:
+    - part: 6
+      matchBlockColor: 1
+      customColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+    - part: 7
+      matchBlockColor: 1
+      customColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+    - part: 0
+      matchBlockColor: 0
+      customColor: {r: 0.19607843, g: 0.19607843, b: 0.21568628, a: 1}
+    - part: 1
+      matchBlockColor: 0
+      customColor: {r: 0.7647059, g: 0.77254903, b: 0.7921569, a: 1}
+    - part: 2
+      matchBlockColor: 0
+      customColor: {r: 0.3529412, g: 0.43137255, b: 0.50980395, a: 1}
+    - part: 3
+      matchBlockColor: 0
+      customColor: {r: 0.9882353, g: 0.98039216, b: 0.93333334, a: 1}
+    - part: 4
+      matchBlockColor: 0
+      customColor: {r: 0.5294118, g: 0.09411765, b: 0.11764706, a: 1}
+    - part: 5
+      matchBlockColor: 0
+      customColor: {r: 0.23529412, g: 0.23529412, b: 0.25882354, a: 1}
+    - part: 8
+      matchBlockColor: 0
+      customColor: {r: 0.5019608, g: 0.5176471, b: 0.54901963, a: 1}
+    - part: 11
+      matchBlockColor: 0
+      customColor: {r: 0.3764706, g: 0.3882353, b: 0.42352942, a: 1}
+    - part: 9
+      matchBlockColor: 0
+      customColor: {r: 0.47058824, g: 0.30588236, b: 0.1882353, a: 1}
+    - part: 10
+      matchBlockColor: 0
+      customColor: {r: 0.07058824, g: 0.0627451, b: 0.08627451, a: 1}
+    - part: 12
+      matchBlockColor: 0
+      customColor: {r: 0.92156863, g: 0.39215687, b: 0.078431375, a: 1}
+    - part: 13
+      matchBlockColor: 0
+      customColor: {r: 1, g: 0.78431374, b: 0, a: 1}
+    - part: 14
+      matchBlockColor: 0
+      customColor: {r: 0.15686275, g: 0.17254902, b: 0.20392157, a: 1}
+    - part: 15
+      matchBlockColor: 0
+      customColor: {r: 1, g: 0.972549, b: 0.78431374, a: 1}

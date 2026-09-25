@@ -19,6 +19,7 @@ namespace PixelGame.Editor
         private Vector2 m_SidebarScroll;
         private Vector2 m_DetailScroll;
         private string m_SearchFilter = "";
+        private PixelLevelData m_DraggingLevel;
 
         private bool m_WagonGridViewMode = true;
         private int m_GridColumnsPerRow = 4;
@@ -215,11 +216,27 @@ namespace PixelGame.Editor
                 }
 
                 bool isSelected = (m_SelectedLevel == level);
+                bool isBeingDragged = (m_DraggingLevel == level);
 
-                // Seçili olana şık mavi arkaplan, diğerlerine hafif açık kutu
-                GUI.backgroundColor = isSelected ? new Color(0.18f, 0.55f, 0.95f) : new Color(0.92f, 0.92f, 0.92f);
+                // Seçili olana şık mavi arkaplan, sürüklenene sarı, diğerlerine hafif açık kutu
+                GUI.backgroundColor = isBeingDragged ? new Color(1f, 0.85f, 0.3f) : (isSelected ? new Color(0.18f, 0.55f, 0.95f) : new Color(0.92f, 0.92f, 0.92f));
 
                 EditorGUILayout.BeginHorizontal("box", GUILayout.Height(52));
+
+                // 0. Sürükle-Bırak Tutamacı (satırları fare ile yeniden sıralamak için)
+                Rect dragHandleRect = EditorGUILayout.GetControlRect(false, 46, GUILayout.Width(16));
+                GUIStyle dragHandleStyle = new GUIStyle(EditorStyles.label)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = new Color(0.5f, 0.5f, 0.5f) }
+                };
+                GUI.Label(dragHandleRect, "⠿", dragHandleStyle);
+                EditorGUIUtility.AddCursorRect(dragHandleRect, MouseCursor.Pan);
+                if (Event.current.type == EventType.MouseDown && dragHandleRect.Contains(Event.current.mousePosition))
+                {
+                    m_DraggingLevel = level;
+                    Event.current.Use();
+                }
 
                 // 1. Thumbnail Önizleme
                 Texture2D tex = level.GetActiveTexture();
@@ -279,10 +296,25 @@ namespace PixelGame.Editor
 
                 // Seçim Algılama Alanı
                 Rect rowRect = GUILayoutUtility.GetLastRect();
-                if (Event.current.type == EventType.MouseDown && rowRect.Contains(Event.current.mousePosition))
+                if (m_DraggingLevel == null && Event.current.type == EventType.MouseDown && rowRect.Contains(Event.current.mousePosition))
                 {
                     SelectLevel(level);
                     Event.current.Use();
+                }
+
+                // Sürükle-Bırak Bırakma Algılama: fare bu satırın üzerinde bırakılırsa, sürüklenen
+                // level'i buraya taşı ve otomatik yeniden numaralandır (AutoRenumberLevels MoveLevel içinde çağrılıyor).
+                if (m_DraggingLevel != null && Event.current.type == EventType.MouseUp && rowRect.Contains(Event.current.mousePosition))
+                {
+                    int fromIndex = m_AllLevels.IndexOf(m_DraggingLevel);
+                    int toIndex = i;
+                    m_DraggingLevel = null;
+                    Event.current.Use();
+                    if (fromIndex >= 0 && fromIndex != toIndex)
+                    {
+                        MoveLevel(fromIndex, toIndex);
+                    }
+                    return;
                 }
 
                 // 3. Hızlı Eylem Butonları: Yukarı, Aşağı, Çoğalt, Sil
@@ -330,6 +362,17 @@ namespace PixelGame.Editor
                 GUI.backgroundColor = Color.white;
             }
 
+            // Sürükleme, herhangi bir satırın üzerinde değil de boşlukta bırakılırsa takılı kalmasın.
+            if (m_DraggingLevel != null && Event.current.type == EventType.MouseUp)
+            {
+                m_DraggingLevel = null;
+                Event.current.Use();
+            }
+            if (m_DraggingLevel != null)
+            {
+                Repaint();
+            }
+
             EditorGUILayout.EndScrollView();
 
             EditorGUILayout.Space(6);
@@ -361,6 +404,21 @@ namespace PixelGame.Editor
             }
             GUI.backgroundColor = Color.white;
             EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(2);
+
+            GUI.backgroundColor = new Color(0.95f, 0.9f, 0.7f);
+            if (GUILayout.Button("🎯 Zorluğa Göre Sırala (Az Küp → Çok Küp)", GUILayout.Height(24)))
+            {
+                if (EditorUtility.DisplayDialog(
+                    "Zorluğa Göre Sırala",
+                    "Tüm bölümler, palet içindeki toplam küp sayısına göre (kolay → zor) yeniden sıralanacak ve numaralandırılacak. Devam edilsin mi?",
+                    "Evet, Sırala", "Vazgeç"))
+                {
+                    SortLevelsByDifficulty();
+                }
+            }
+            GUI.backgroundColor = Color.white;
 
             EditorGUILayout.Space(6);
             EditorGUILayout.EndVertical();
@@ -696,6 +754,18 @@ namespace PixelGame.Editor
             if (!m_SelectedLevel.UseNativeResolution)
             {
                 m_SelectedLevel.CustomResolution = EditorGUILayout.Vector2IntField("Özel Çözünürlük (X, Y)", m_SelectedLevel.CustomResolution);
+
+                Texture2D activeTexForRes = m_SelectedLevel.GetActiveTexture();
+                if (activeTexForRes != null &&
+                    (activeTexForRes.width != m_SelectedLevel.CustomResolution.x || activeTexForRes.height != m_SelectedLevel.CustomResolution.y))
+                {
+                    EditorGUILayout.HelpBox(
+                        $"⚠️ Özel çözünürlük ({m_SelectedLevel.CustomResolution.x}x{m_SelectedLevel.CustomResolution.y}) görselin gerçek boyutuyla " +
+                        $"({activeTexForRes.width}x{activeTexForRes.height}) uyuşmuyor. Izgara boyutu doku boyutuna tam eşit olmadığında " +
+                        "piksel örnekleme (resample) devreye girer ve şekil kenarlarında basamaklanma/bozulma oluşabilir. " +
+                        "Düzeltmek için 'Özel Çözünürlük'ü görselle aynı yap ya da '1:1 Doğal Piksel Boyutu'nu aç.",
+                        MessageType.Warning);
+                }
             }
 
             m_SelectedLevel.CubeSpacing = EditorGUILayout.Slider("Küp Boşluğu (Dikey / Y)", m_SelectedLevel.CubeSpacing, -0.1f, 0.25f);
@@ -2510,12 +2580,68 @@ namespace PixelGame.Editor
             Debug.Log("<color=#00FFAA><b>[LevelDesigner]</b></color> Seviye numaraları sıralandı (1.." + m_AllLevels.Count + ").");
         }
 
+        /// <summary>
+        /// Bölümleri paletteki toplam küp sayısına (basit bir zorluk göstergesine) göre kolaydan
+        /// zora sıralar ve numaralandırır. Oyuncunun kolay bölümlerle başlayıp giderek zorlaşan
+        /// bir ilerleme yaşaması için önerilen sırayı otomatik kurar.
+        /// </summary>
+        private void SortLevelsByDifficulty()
+        {
+            m_AllLevels.Sort((a, b) =>
+            {
+                int cubesA = a != null ? a.GetTotalCubeCountInPalette() : 0;
+                int cubesB = b != null ? b.GetTotalCubeCountInPalette() : 0;
+                return cubesA.CompareTo(cubesB);
+            });
+
+            AutoRenumberLevels();
+            Debug.Log("<color=#00FFAA><b>[LevelDesigner]</b></color> Bölümler zorluğa (küp sayısına) göre yeniden sıralandı.");
+        }
+
+        private const string LevelSequenceAssetPath = "Assets/Levels/LevelSequence.asset";
+
+        /// <summary>
+        /// Sıralamanın tek doğruluk kaynağı olan LevelSequence asset'ini bulur, yoksa oluşturur.
+        /// </summary>
+        private LevelSequence GetOrCreateLevelSequenceAsset()
+        {
+            LevelSequence sequence = AssetDatabase.LoadAssetAtPath<LevelSequence>(LevelSequenceAssetPath);
+            if (sequence == null)
+            {
+                if (!AssetDatabase.IsValidFolder("Assets/Levels"))
+                {
+                    AssetDatabase.CreateFolder("Assets", "Levels");
+                }
+                sequence = ScriptableObject.CreateInstance<LevelSequence>();
+                AssetDatabase.CreateAsset(sequence, LevelSequenceAssetPath);
+            }
+            return sequence;
+        }
+
+        /// <summary>
+        /// Level Designer'daki liste sırasını tek doğruluk kaynağı olan LevelSequence asset'ine yazar
+        /// ve sahnedeki LevelManager'ı bu asset'e bağlayıp önbelleğini (m_Levels) hemen tazeler.
+        /// Böylece LevelManager'ın kendi Inspector'ında elle yapılmış bir sıralama varsa bir sonraki
+        /// eşitlemede/Awake'te bu asset tarafından ezilir; ayrı bir "kaynak" belirsizliği kalmaz.
+        /// </summary>
         private void SyncWithSceneLevelManager()
         {
+            LevelSequence sequence = GetOrCreateLevelSequenceAsset();
+            sequence.SetLevels(m_AllLevels);
+            EditorUtility.SetDirty(sequence);
+            AssetDatabase.SaveAssets();
+
             LevelManager lm = Object.FindFirstObjectByType<LevelManager>();
             if (lm != null)
             {
                 SerializedObject so = new SerializedObject(lm);
+
+                SerializedProperty seqProp = so.FindProperty("m_LevelSequence");
+                if (seqProp != null)
+                {
+                    seqProp.objectReferenceValue = sequence;
+                }
+
                 SerializedProperty prop = so.FindProperty("m_Levels");
                 if (prop != null)
                 {
@@ -2525,10 +2651,11 @@ namespace PixelGame.Editor
                         prop.InsertArrayElementAtIndex(i);
                         prop.GetArrayElementAtIndex(i).objectReferenceValue = m_AllLevels[i];
                     }
-                    so.ApplyModifiedProperties();
-                    EditorUtility.SetDirty(lm);
-                    EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
                 }
+
+                so.ApplyModifiedProperties();
+                EditorUtility.SetDirty(lm);
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             }
         }
 
@@ -2580,6 +2707,19 @@ namespace PixelGame.Editor
 
             if (gen != null)
             {
+                if (gen.ActiveLevelData != m_SelectedLevel && gen.HasUnsavedLevelChanges())
+                {
+                    string activeLevelName = gen.ActiveLevelData != null ? gen.ActiveLevelData.LevelName : "aktif seviye";
+                    bool proceed = EditorUtility.DisplayDialog(
+                        "Kaydedilmemiş Değişiklikler Var",
+                        $"Sahnedeki '{activeLevelName}' için henüz seviyeye kaydedilmemiş canlı ayar değişiklikleri var. " +
+                        $"'{m_SelectedLevel.LevelName}' seviyesi sahnede inşa edilirse bu değişiklikler kaybolur.\n\n" +
+                        "Yine de devam edilsin mi?",
+                        "Evet, Değişiklikleri Kaybet ve Devam Et",
+                        "Vazgeç");
+                    if (!proceed) return;
+                }
+
                 gen.LoadLevel(m_SelectedLevel);
                 SceneView.RepaintAll();
                 if (SceneView.lastActiveSceneView != null)
