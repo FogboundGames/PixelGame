@@ -2464,6 +2464,7 @@ namespace PixelGame.Editor
             newLevel.LevelName = $"Bölüm {nextIndex}";
             newLevel.LevelIndex = nextIndex;
             newLevel.UseNativeResolution = true;
+            ApplyReferenceVisualTuning(newLevel);
 
             AssetDatabase.CreateAsset(newLevel, assetPath);
             AssetDatabase.SaveAssets();
@@ -2496,6 +2497,7 @@ namespace PixelGame.Editor
             newLevel.ExtractPaletteFromTexture();
             newLevel.GenerateInterleavedWagonSequenceFromPalette();
             newLevel.UseCustomWagonSequence = true;
+            ApplyReferenceVisualTuning(newLevel);
 
             AssetDatabase.CreateAsset(newLevel, assetPath);
             AssetDatabase.SaveAssets();
@@ -2504,6 +2506,40 @@ namespace PixelGame.Editor
             SelectLevel(newLevel);
 
             Debug.Log($"<color=#00FFAA><b>[LevelDesigner]</b></color> Görselden yeni seviye otomatik üretildi: {assetPath}");
+        }
+
+        /// <summary>
+        /// Yeni oluşturulan bir levelin 3D görsel ayarlarını (derinlik, boşluk/örtüşme, eğim açıları)
+        /// çıplak kod varsayılanları yerine, elle ayarlanmış referans levelden (Rakun) kopyalar.
+        /// Bu olmadan her yeni level düz/ince görünüyordu çünkü CreateInstance sadece kod
+        /// varsayılanlarını (CubeDepth=0.4, CubeSpacing=0.04) veriyordu.
+        /// </summary>
+        private void ApplyReferenceVisualTuning(PixelLevelData target)
+        {
+            if (target == null) return;
+
+            PixelLevelData reference = null;
+            foreach (var lvl in m_AllLevels)
+            {
+                if (lvl != null && lvl.LevelName != null && lvl.LevelName.IndexOf("Rakun", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    reference = lvl;
+                    break;
+                }
+            }
+            if (reference == null && m_AllLevels.Count > 0)
+            {
+                reference = m_AllLevels[0];
+            }
+            if (reference == null) return;
+
+            target.CubeSpacing = reference.CubeSpacing;
+            target.CubeSpacingX = reference.CubeSpacingX;
+            target.CubeDepth = reference.CubeDepth;
+            target.BoardTiltAngle = reference.BoardTiltAngle;
+            target.CubeFrontTiltAngle = reference.CubeFrontTiltAngle;
+            target.CubeRowStepOffset = reference.CubeRowStepOffset;
+            target.InnerPadding = reference.InnerPadding;
         }
 
         public void DuplicateLevel(PixelLevelData source)

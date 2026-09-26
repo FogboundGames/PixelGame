@@ -23,6 +23,41 @@ namespace PixelGame
     [AddComponentMenu("PixelGame/Ship Controller")]
     public class ShipController : MonoBehaviour, IPointerClickHandler
     {
+        /// <summary>
+        /// A/B test anahtarı: true ise kargo gelince eski DOTween Punch Scale efekti çalışır,
+        /// false ise yeni su-salınımı tabanlı "sallanma" efekti. Level Designer'daki butonla
+        /// Play Mode'da bile anında değiştirilebilir (tüm gemiler için ortak).
+        /// Düz bir statik alan OLARAK TUTULMUYOR: Play Mode'a her girişte Unity script'leri
+        /// "domain reload" ile sıfırlar ve düz statikler kod içindeki başlangıç değerine
+        /// (false) geri dönerdi — EditorPrefs bu geçişlerden etkilenmeyen kalıcı bir depo.
+        /// </summary>
+        private const string LegacyCargoPunchPrefKey = "PixelGame_UseLegacyCargoPunch";
+        private static bool s_UseLegacyCargoPunch;
+        private static bool s_LegacyCargoPunchLoaded;
+
+        public static bool UseLegacyCargoPunch
+        {
+            get
+            {
+#if UNITY_EDITOR
+                if (!s_LegacyCargoPunchLoaded)
+                {
+                    s_UseLegacyCargoPunch = EditorPrefs.GetBool(LegacyCargoPunchPrefKey, false);
+                    s_LegacyCargoPunchLoaded = true;
+                }
+#endif
+                return s_UseLegacyCargoPunch;
+            }
+            set
+            {
+                s_UseLegacyCargoPunch = value;
+#if UNITY_EDITOR
+                EditorPrefs.SetBool(LegacyCargoPunchPrefKey, value);
+                s_LegacyCargoPunchLoaded = true;
+#endif
+            }
+        }
+
         [Header("🎨 Renk & Kimlik")]
         [SerializeField] private Color m_ShipColor = Color.red;
         [SerializeField] private string m_ColorName = "Red";
@@ -43,6 +78,15 @@ namespace PixelGame
         [SerializeField] private float m_BobHeight = 0.035f;
         [SerializeField] private float m_RollAngle = 2.0f;
         [SerializeField] private float m_PitchAngle = 1.2f;
+
+        [Header("📦 Kargo Alınca Heyecanlı Sallanma (Cargo Wobble)")]
+        [Tooltip("Kargo her geldiğinde 1'e sıçrar, sonra zamanla yumuşakça 0'a söner. Var olan su " +
+                 "salınımının genliğini geçici olarak büyütür — DOTween tween'i olmadığı için (sadece " +
+                 "sabit bir taban değere göre her karede yeniden hesaplanır) asla birikip 'kayma' yapmaz.")]
+        [SerializeField] private float m_CargoWobbleDecaySpeed = 0.35f;
+        [SerializeField] private float m_CargoWobbleRollMultiplier = 18.0f;
+        [SerializeField] private float m_CargoWobblePitchMultiplier = 12.0f;
+        private float m_CargoWobbleBoost = 0f;
 
         [Header("🏷️ Kapasite Rozeti (World Space UI)")]
         [SerializeField] private GameObject m_BadgeCanvasObj;
@@ -96,7 +140,10 @@ namespace PixelGame
         {
             m_PropBlock = new MaterialPropertyBlock();
             m_BobRandomOffset = UnityEngine.Random.Range(0f, 100f);
-            if (transform.localScale != Vector3.zero) m_BaseScale = transform.localScale;
+            // Dünya uzayı (lossy) ölçeği yakala — böylece gemi daha sonra farklı bir ebeveyne
+            // (ör. slot) geçtiğinde, o ebeveynin kendi (simetrik olmayabilen) ölçeğinden bağımsız
+            // olarak hep aynı GÖRSEL boyutta kalır.
+            if (transform.lossyScale != Vector3.zero) m_BaseScale = transform.lossyScale;
 
             EnsureVisualComponents();
             CreateOrFindBadge();
@@ -120,7 +167,7 @@ namespace PixelGame
         {
             m_BaseLocalPosition = transform.localPosition;
             m_BaseLocalRotation = transform.localRotation;
-            if (transform.localScale != Vector3.zero) m_BaseScale = transform.localScale;
+            if (transform.lossyScale != Vector3.zero) m_BaseScale = transform.lossyScale;
 
             UpdateBadgeText();
             ApplyColorToShip(m_ShipColor);
@@ -132,6 +179,25 @@ namespace PixelGame
             {
                 ApplyWaterBobbing();
             }
+        }
+
+        /// <summary>
+        /// Geminin sabit bir GÖRSEL (dünya uzayı) boyutta kalmasını sağlayacak local scale'i
+        /// hesaplar. m_BaseScale artık dünya ölçeği olarak tutuluyor; ama Transform.localScale'e
+        /// doğrudan atanamaz çünkü o an bulunduğu ebeveynin (kuyruk noktası, slot, vb.) kendi ölçeği
+        /// eklenip binmiş olur — üstelik slotlar simetrik ölçekli bile değil (X/Y/Z farklı). Bu yüzden
+        /// önce mevcut ebeveynin ölçeğini bölerek doğru local scale'e çeviriyoruz.
+        /// </summary>
+        private Vector3 GetLocalScaleForBaseWorldScale()
+        {
+            if (transform.parent == null) return m_BaseScale;
+
+            Vector3 parentLossy = transform.parent.lossyScale;
+            return new Vector3(
+                m_BaseScale.x / Mathf.Max(0.0001f, parentLossy.x),
+                m_BaseScale.y / Mathf.Max(0.0001f, parentLossy.y),
+                m_BaseScale.z / Mathf.Max(0.0001f, parentLossy.z)
+            );
         }
 
         private void LateUpdate()
@@ -175,13 +241,31 @@ namespace PixelGame
 
         private void ApplyWaterBobbing()
         {
+            // Kargo geldikçe tazelenen "heyecan" boost'u zamanla 0'a söner (her karede sabit bir
+            // taban değerden yeniden hesaplandığı için DOTween tween'leri gibi asla birikip kayma yapmaz).
+            if (m_CargoWobbleBoost > 0f)
+            {
+                m_CargoWobbleBoost = Mathf.Max(0f, m_CargoWobbleBoost - Time.deltaTime * m_CargoWobbleDecaySpeed);
+            }
+
             float time = Time.time * m_BobFrequency + m_BobRandomOffset;
             float dy = Mathf.Sin(time) * m_BobHeight;
-            float dRoll = Mathf.Sin(time * 0.85f) * m_RollAngle;
-            float dPitch = Mathf.Cos(time * 0.75f) * m_PitchAngle;
+            float rollAmp = m_RollAngle * (1f + m_CargoWobbleBoost * m_CargoWobbleRollMultiplier);
+            float pitchAmp = m_PitchAngle * (1f + m_CargoWobbleBoost * m_CargoWobblePitchMultiplier);
+            float dRoll = Mathf.Sin(time * 0.85f) * rollAmp;
+            float dPitch = Mathf.Cos(time * 0.75f) * pitchAmp;
 
             transform.localPosition = m_BaseLocalPosition + new Vector3(0f, dy, 0f);
             transform.localRotation = m_BaseLocalRotation * Quaternion.Euler(dPitch, 0f, dRoll);
+        }
+
+        /// <summary>
+        /// Kargo alındığında çağrılır: geminin idle su salınımını kısa süreliğine daha canlı/enerjik
+        /// (daha büyük genlikte) yapar, sonra doğal olarak sönümlenip normal sakin salınıma döner.
+        /// </summary>
+        private void TriggerCargoWobble()
+        {
+            m_CargoWobbleBoost = 1f;
         }
 
         [Header("📦 Dinamik Varil Güvertesi (Cargo Deck)")]
@@ -270,15 +354,29 @@ namespace PixelGame
             UpdateBadgeText();
 
             // Yeni binen her küp için geminin renginde 1 adet 3D varil oluştur
+            // (Varilin kendi OutBack "pop" animasyonu zaten yeterli juice veriyor — gemi gövdesinde
+            // ayrıca zıplama YOK artık: kargolar 0.12sn arayla art arda geldiğinde bu zıplama
+            // (0.18sn) hiç tamamlanmadan DOKill ile kesilip yeniden başlıyordu, gemi sürekli
+            // titriyormuş gibi kötü bir his veriyordu.)
             for (int i = prevCargo; i < m_CurrentCargo; i++)
             {
                 SpawnCargoBarrel(i);
             }
 
-            // Kargo alma tatlı zıplama efekti
-            transform.DOKill(true);
-            transform.DOPunchScale(new Vector3(0.08f, -0.08f, 0.08f) * m_BaseScale.x, 0.18f, 4, 0.5f)
-                .OnComplete(() => transform.localScale = m_BaseScale);
+            // A/B test: Level Designer penceresindeki butonla YENİ (sallanma) / ESKİ (DOTween punch)
+            // arasında Play Mode'da bile anında geçiş yapılabilir.
+            if (UseLegacyCargoPunch)
+            {
+                transform.DOKill(true);
+                transform.DOPunchScale(new Vector3(0.08f, -0.08f, 0.08f) * m_BaseScale.x, 0.18f, 4, 0.5f)
+                    .OnComplete(() => transform.localScale = GetLocalScaleForBaseWorldScale());
+            }
+            else
+            {
+                // Mevcut (drift yapmayan) su salınımını kısa süreliğine canlandırıyoruz —
+                // gemi kargo aldıkça heyecanla sallanıp doğal şekilde sakinleşiyor.
+                TriggerCargoWobble();
+            }
 
             if (IsFull && !m_IsDeparting)
             {
@@ -461,7 +559,7 @@ namespace PixelGame
                 }
                 else
                 {
-                    transform.localScale = m_BaseScale;
+                    transform.localScale = GetLocalScaleForBaseWorldScale();
                 }
 
                 // Dönüş yönüne göre hafif yatma (Banking Roll)
@@ -484,14 +582,18 @@ namespace PixelGame
             transform.SetParent(targetSlot.transform, true);
             transform.localPosition = targetLocalPos;
             transform.localRotation = Quaternion.identity;
-            transform.localScale = m_BaseScale;
+            // Not: SetParent(..., true) dünya boyutunu zaten koruyacak local scale'i hesaplamıştı;
+            // burada ham m_BaseScale'i (dünya ölçeği) doğrudan localScale'e ATAMIYORUZ — slotun kendi
+            // (simetrik olmayan) ölçeği binip gemiyi ezip uzatıyordu. Bunun yerine bu slot altında
+            // aynı dünya boyutunu koruyacak doğru local scale'i hesaplıyoruz.
+            transform.localScale = GetLocalScaleForBaseWorldScale();
 
             m_BaseLocalPosition = targetLocalPos;
             m_BaseLocalRotation = Quaternion.identity;
 
             SpawnWaterRipple(transform.position, 0.35f, 1.15f, 0.6f);
             transform.DOPunchScale(new Vector3(0.08f, -0.08f, 0.08f) * m_BaseScale.x, 0.28f, 3, 0.4f)
-                .OnComplete(() => transform.localScale = m_BaseScale);
+                .OnComplete(() => transform.localScale = GetLocalScaleForBaseWorldScale());
 
             m_IsMoving = false;
             m_IsDocked = true;

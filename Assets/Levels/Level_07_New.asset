@@ -104,14 +104,14 @@ MonoBehaviour:
     pixelCount: 2
     label: 
   m_TintColor: {r: 1, g: 1, b: 1, a: 1}
-  m_HueShift: 0
+  m_HueShift: 0.5
   m_ColorBrightness: 1.25
-  m_ColorSaturation: 1.25
-  m_ColorContrast: 1.05
-  m_EmissionIntensity: 0.35
-  m_CubeSpacing: 0.04
-  m_CubeSpacingX: 0.04
-  m_CubeDepth: 0.4
+  m_ColorSaturation: 1
+  m_ColorContrast: 1.015
+  m_EmissionIntensity: 0.478
+  m_CubeSpacing: -0.1
+  m_CubeSpacingX: 0.013
+  m_CubeDepth: 1
   m_BoardTiltAngle: 18
   m_CubeFrontTiltAngle: 25
   m_TargetZ: 0

@@ -536,10 +536,9 @@ namespace PixelGame
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / stage1Duration);
 
-                // Dinamik parabolik yay ve hız eğrisi
+                // Panodan iskeleye (kıyıya) kadar DÜMDÜZ ilerler — zıplama sadece kıyıda
+                // (iskele inişindeki squash/stretch ve 2. aşamadaki gemiye zıplama ile) oluyor.
                 Vector3 current = Vector3.Lerp(startPos, pierLandingPos, t);
-                float arc = Mathf.Sin(t * Mathf.PI) * 0.65f;
-                current.y += arc;
 
                 flyerObj.transform.position = current;
                 flyerObj.transform.Rotate(randomTorque * Time.deltaTime, Space.Self);
@@ -592,13 +591,16 @@ namespace PixelGame
                 s_ReservedCubes.Remove(sourceCube);
             }
 
-            // 3. Gemiye Ulaşma & Şık İniş Efekti (Landing Splash & Ship Hull Punch)
+            // 3. Gemiye Ulaşma & Şık İniş Efekti (Landing Splash)
             if (ship != null)
             {
                 ship.AddCargo(1);
 
-                // Geminin gövdesine enerjik iniş yaylanması
-                ship.transform.DOPunchScale(new Vector3(0.06f, -0.05f, 0.06f), 0.18f, 3, 0.5f);
+                // Not: Geminin gövdesine ayrıca bir "iniş yaylanması" (DOPunchScale) UYGULANMIYOR.
+                // Kargolar art arda hızlı geldiğinde (DOKill koruması ve bitişte sıfırlama olmadan)
+                // bu zıplamalar üst üste binip birbirini tam bitirmeden yenisi başlıyordu — ölçek
+                // kademeli olarak sürüklenip gemi doldukça "büyüyormuş" gibi görünüyordu. Varilin
+                // kendi OutBack "pop" animasyonu zaten yeterli görsel geri bildirim veriyor.
 
                 // Canlı su dalgacığı ve parlama efekti
                 ShipController.SpawnWaterRipple(ship.transform.position + new Vector3(0f, -0.05f, 0.05f), 0.24f, 0.95f, 0.45f);

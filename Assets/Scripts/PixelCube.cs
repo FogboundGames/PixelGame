@@ -171,7 +171,20 @@ namespace PixelGame
         {
             Color.RGBToHSV(col, out float h, out float s, out float v);
 
-            s = Mathf.Clamp01(s * saturation);
+            // Saf çarpımsal doygunluk artışı, zaten soluk (düşük S) kaynak renkleri kurtaramıyordu
+            // (ör. S=0.18 iken saturation=1.25 ile çarpınca sadece S=0.225 oluyor, hâlâ soluk).
+            // "Vibrance" mantığı: S'yi 1'e doğru kaydır, kayma miktarı ne kadar soluksa o kadar
+            // büyük olsun — zaten canlı renkler (S zaten 1'e yakın) neredeyse hiç değişmez.
+            if (saturation >= 1f)
+            {
+                float boost = saturation - 1f;
+                s = Mathf.Clamp01(s + (1f - s) * boost);
+            }
+            else
+            {
+                s = Mathf.Clamp01(s * saturation);
+            }
+
             v = Mathf.Clamp01(v * brightness);
 
             Color result = Color.HSVToRGB(h, s, v);

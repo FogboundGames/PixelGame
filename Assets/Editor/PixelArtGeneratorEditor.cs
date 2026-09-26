@@ -34,6 +34,9 @@ namespace PixelGame.Editor
             // Renk Hazır Ayarları (Presets)
             DrawColorPresets();
 
+            // Kargo Animasyonu A/B Test Butonu (Yeni Sallanma vs Eski DOTween Punch)
+            DrawCargoAnimationToggle();
+
             // Texture Okunabilirlik Kontrolü
             CheckTextureReadability();
 
@@ -52,6 +55,26 @@ namespace PixelGame.Editor
                 }
                 SceneView.RepaintAll();
             }
+        }
+
+        /// <summary>
+        /// Kargo geldiğinde gemide oynayan efekti canlı olarak (Play Mode dahil) YENİ "sallanma"
+        /// (su salınımı boost'u) ile ESKİ "DOTween Punch Scale" arasında tek tıkla değiştirir —
+        /// ikisini art arda deneyip hangisinin daha iyi hissettirdiğine karar vermek için.
+        /// </summary>
+        private void DrawCargoAnimationToggle()
+        {
+            EditorGUILayout.Space(6);
+            bool useLegacy = PixelGame.ShipController.UseLegacyCargoPunch;
+            GUI.backgroundColor = useLegacy ? new Color(1f, 0.6f, 0.3f) : new Color(0.35f, 0.85f, 0.95f);
+            string label = useLegacy
+                ? "🔁 Kargo Animasyonu: ESKİ (DOTween Punch) — Yeniye Geç"
+                : "🔁 Kargo Animasyonu: YENİ (Sallanma) — Eskiye Geç";
+            if (GUILayout.Button(label, GUILayout.Height(32)))
+            {
+                PixelGame.ShipController.UseLegacyCargoPunch = !useLegacy;
+            }
+            GUI.backgroundColor = Color.white;
         }
 
         private void DrawCustomHeader()
