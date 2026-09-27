@@ -11,8 +11,7 @@ namespace PixelGame.Editor
 
         static CaptureGameViewScreenshot()
         {
-            // Otomatik tetikleme kapatıldı: proje her açıldığında ekran görüntüsü
-            // almaya çalışıp beklenmedik yan etkilere sebep oluyordu. Gerekirse elle çalıştırılır.
+            // Otomatik tetikleme kapatıldı.
             // EditorApplication.delayCall += Capture;
         }
 
@@ -126,9 +125,12 @@ namespace PixelGame.Editor
                 {
                     bool matDirty = false;
                     if (mat.HasProperty("_StylizedPlasticOn") && mat.GetFloat("_StylizedPlasticOn") < 0.5f) { mat.SetFloat("_StylizedPlasticOn", 1.0f); matDirty = true; }
-                    if (mat.HasProperty("_PlasticAngleX")) { mat.SetFloat("_PlasticAngleX", -0.45f); matDirty = true; }
+                    if (mat.HasProperty("_PlasticAngleX")) { mat.SetFloat("_PlasticAngleX", 0.50f); matDirty = true; }
                     if (mat.HasProperty("_PlasticHighlightIntensity")) { mat.SetFloat("_PlasticHighlightIntensity", 2.85f); matDirty = true; }
                     if (mat.HasProperty("_PlasticHighlightSize")) { mat.SetFloat("_PlasticHighlightSize", 0.26f); matDirty = true; }
+                    if (mat.HasProperty("_PlasticHighlightLength")) { mat.SetFloat("_PlasticHighlightLength", 1.85f); matDirty = true; }
+                    if (mat.HasProperty("_PlasticHighlightWidth")) { mat.SetFloat("_PlasticHighlightWidth", 0.65f); matDirty = true; }
+                    if (mat.HasProperty("_PlasticHighlightAngle")) { mat.SetFloat("_PlasticHighlightAngle", 0f); matDirty = true; }
                     if (mat.HasProperty("_PlasticTopLight")) { mat.SetFloat("_PlasticTopLight", 0.25f); matDirty = true; }
                     if (mat.HasProperty("_PlasticBevelAO")) { mat.SetFloat("_PlasticBevelAO", 0.45f); matDirty = true; }
                     if (mat.HasProperty("_SpecularColor")) { mat.SetColor("_SpecularColor", Color.white); matDirty = true; }

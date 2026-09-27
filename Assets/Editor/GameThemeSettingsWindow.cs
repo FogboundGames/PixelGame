@@ -361,6 +361,16 @@ namespace PixelGame.Editor
                 float pIntensity = cartoonMat.HasProperty("_PlasticHighlightIntensity") ? cartoonMat.GetFloat("_PlasticHighlightIntensity") : 1.5f;
                 float newPIntensity = EditorGUILayout.Slider("💡 Parlama Gücü (Intensity)", pIntensity, 0f, 5f);
 
+                // Highlight Line Length, Width, Angle (Çizgi Parlama Ayarları)
+                float pLength = cartoonMat.HasProperty("_PlasticHighlightLength") ? cartoonMat.GetFloat("_PlasticHighlightLength") : 2.6f;
+                float newPLength = EditorGUILayout.Slider("📏 Çizgi Uzunluğu (Line Length)", pLength, 1f, 8f);
+
+                float pWidth = cartoonMat.HasProperty("_PlasticHighlightWidth") ? cartoonMat.GetFloat("_PlasticHighlightWidth") : 0.7f;
+                float newPWidth = EditorGUILayout.Slider("➖ Çizgi Kalınlığı (Line Width)", pWidth, 0.2f, 2f);
+
+                float pLineAngle = cartoonMat.HasProperty("_PlasticHighlightAngle") ? cartoonMat.GetFloat("_PlasticHighlightAngle") : 0f;
+                float newPLineAngle = EditorGUILayout.Slider("📐 Çizgi Açısı / Eğimi (Angle)", pLineAngle, -90f, 90f);
+
                 // Roughness / Pürüzsüzlük
                 float pRoughness = cartoonMat.HasProperty("_SpecularRoughnessPBR") ? cartoonMat.GetFloat("_SpecularRoughnessPBR") : 0.35f;
                 float newPRoughness = EditorGUILayout.Slider("✨ Cila / Parlaklık (Roughness)", pRoughness, 0.05f, 0.95f);
@@ -381,12 +391,15 @@ namespace PixelGame.Editor
                 Color pHlCol = cartoonMat.HasProperty("_PlasticHighlightColor") ? cartoonMat.GetColor("_PlasticHighlightColor") : Color.white;
                 Color newPHlCol = EditorGUILayout.ColorField("✨ Parlama Rengi", pHlCol);
 
-                if (newPRoundness != pRoundness || newPAngleX != pAngleX || newPIntensity != pIntensity || newPRoughness != pRoughness || newPTop != pTop || newPAO != pAO || newPProcBevel != pProcBevel || newPHlCol != pHlCol)
+                if (newPRoundness != pRoundness || newPAngleX != pAngleX || newPIntensity != pIntensity || newPLength != pLength || newPWidth != pWidth || newPLineAngle != pLineAngle || newPRoughness != pRoughness || newPTop != pTop || newPAO != pAO || newPProcBevel != pProcBevel || newPHlCol != pHlCol)
                 {
                     Undo.RecordObject(cartoonMat, "Modify Plastic Settings");
                     cartoonMat.SetFloat("_PillowRoundness", newPRoundness);
                     cartoonMat.SetFloat("_PlasticAngleX", newPAngleX);
                     cartoonMat.SetFloat("_PlasticHighlightIntensity", newPIntensity);
+                    cartoonMat.SetFloat("_PlasticHighlightLength", newPLength);
+                    cartoonMat.SetFloat("_PlasticHighlightWidth", newPWidth);
+                    cartoonMat.SetFloat("_PlasticHighlightAngle", newPLineAngle);
                     cartoonMat.SetFloat("_SpecularRoughnessPBR", newPRoughness);
                     cartoonMat.SetFloat("_PlasticTopLight", newPTop);
                     cartoonMat.SetFloat("_PlasticBevelAO", newPAO);

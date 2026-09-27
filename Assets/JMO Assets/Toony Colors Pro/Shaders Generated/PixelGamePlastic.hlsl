@@ -103,4 +103,50 @@ inline float3 ApplyPlasticSurfaceLighting(
     return color;
 }
 
+// Calculates anisotropic stylized specular reflection for plastic cubes
+// Turns the circular specular ball ("top") into a sleek short line ("kısa bir çizgi")
+inline half CalculatePlasticSpecular(
+    float3 normalWS,
+    float3 halfDir,
+    half roughness,
+    float plasticOn,
+    float lineAngleDeg,
+    float lineLength,
+    float lineWidth)
+{
+    half nh = saturate(dot(normalWS, halfDir));
+    if (plasticOn > 0.5 && lineLength > 1.01)
+    {
+        // 1. Calculate line direction in screen/world plane
+        float rad = radians(lineAngleDeg);
+        float3 D = float3(sin(rad), cos(rad), 0.0);
+
+        // 2. Project onto surface tangent plane
+        float3 T = D - normalWS * dot(normalWS, D);
+        float tLenSq = dot(T, T);
+        T = (tLenSq > 1e-5) ? (T * rsqrt(tLenSq)) : float3(1.0, 0.0, 0.0);
+        float3 B = cross(normalWS, T);
+
+        // 3. Decompose halfDir into tangent frame components
+        float hT = dot(halfDir, T);
+        float hB = dot(halfDir, B);
+        float hN = nh;
+
+        // 4. Anisotropic roughness scales
+        float a = max(0.001, roughness);
+        float aT = max(0.01, a * lineLength);
+        float aB = max(0.01, a * lineWidth);
+
+        // 5. Anisotropic GGX NDF
+        float denom = hN * hN + (hT * hT) / (aT * aT) + (hB * hB) / (aB * aB);
+        return (0.31830988618f / (a * a)) / (denom * denom + 1e-7f);
+    }
+    else
+    {
+        half a2 = roughness * roughness;
+        half d = (nh * a2 - nh) * nh + 1.0f;
+        return 0.31830988618f * a2 / (d * d + 1e-7f);
+    }
+}
+
 #endif // PIXELGAME_PLASTIC_INCLUDED

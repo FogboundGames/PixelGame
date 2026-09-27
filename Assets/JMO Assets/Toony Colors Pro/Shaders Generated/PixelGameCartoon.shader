@@ -46,6 +46,9 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 		[TCP2ColorNoAlpha] _PlasticHighlightColor ("Plastic Highlight Color", Color) = (1,1,1,1)
 		_PlasticHighlightIntensity ("Highlight Intensity", Range(0, 5)) = 1.0
 		_PlasticHighlightSize ("Highlight Size / Softness", Range(0.01, 1)) = 0.35
+		_PlasticHighlightLength ("Highlight Line Length", Range(1, 10)) = 2.6
+		_PlasticHighlightWidth ("Highlight Line Width", Range(0.2, 3)) = 0.7
+		_PlasticHighlightAngle ("Highlight Line Angle", Range(-90, 90)) = 0.0
 		_PlasticTopLight ("Top Light Boost", Range(0, 1)) = 0.25
 		_PlasticBevelAO ("Bevel Edge Darkening (AO)", Range(0, 1)) = 0.4
 		_ProceduralBevelWidth ("Procedural Bevel Edge Width", Range(0, 0.2)) = 0.05
@@ -119,6 +122,9 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 			fixed4 _PlasticHighlightColor;
 			float _PlasticHighlightIntensity;
 			float _PlasticHighlightSize;
+			float _PlasticHighlightLength;
+			float _PlasticHighlightWidth;
+			float _PlasticHighlightAngle;
 			float _PlasticTopLight;
 			float _PlasticBevelAO;
 			float _ProceduralBevelWidth;
@@ -385,10 +391,9 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 				GetPlasticSpecularDirections(lightDir, viewDirWS, _StylizedPlasticOn, _PlasticAngleX, specLight, specView);
 				half3 halfDir = SpecSafeNormalize(float3(specLight) + float3(specView));
 				
-				//Specular: GGX
+				//Specular: GGX (Anisotropic line for plastic cubes)
 				half roughness = __specularRoughnessPbr*__specularRoughnessPbr;
-				half nh = saturate(dot(normalWS, halfDir));
-				half spec = GGX(nh, saturate(roughness));
+				half spec = CalculatePlasticSpecular(normalWS, halfDir, saturate(roughness), _StylizedPlasticOn, _PlasticHighlightAngle, _PlasticHighlightLength, _PlasticHighlightWidth);
 				spec *= TCP2_PI * 0.05;
 				#ifdef UNITY_COLORSPACE_GAMMA
 					spec = max(0, sqrt(max(1e-4h, spec)));
