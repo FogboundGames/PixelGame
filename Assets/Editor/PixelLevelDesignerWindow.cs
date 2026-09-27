@@ -792,7 +792,7 @@ namespace PixelGame.Editor
             m_SelectedLevel.CubeSpacingX = EditorGUILayout.Slider("Küp Boşluğu (Yatay / X)", m_SelectedLevel.CubeSpacingX, -0.1f, 0.25f);
             m_SelectedLevel.CubeDepth = EditorGUILayout.Slider("Küp 3D Derinliği (Thickness)", m_SelectedLevel.CubeDepth, 0.05f, 1.5f);
             m_SelectedLevel.BoardTiltAngle = EditorGUILayout.Slider("Pano Eğim Açısı (Board Tilt)", m_SelectedLevel.BoardTiltAngle, -45f, 45f);
-            m_SelectedLevel.CubeFrontTiltAngle = EditorGUILayout.Slider("Küp Ön Yüz Eğim Açısı", m_SelectedLevel.CubeFrontTiltAngle, 0f, 45f);
+            m_SelectedLevel.CubeFrontTiltAngle = EditorGUILayout.Slider("Küp Ön Yüz Eğim Açısı", m_SelectedLevel.CubeFrontTiltAngle, -180f, 180f);
             m_SelectedLevel.InnerPadding = EditorGUILayout.Slider("Mavi Çerçeve Payı", m_SelectedLevel.InnerPadding, 0f, 0.25f);
             m_SelectedLevel.SkipTransparent = EditorGUILayout.Toggle("Şeffaf Pikselleri Atla", m_SelectedLevel.SkipTransparent);
 

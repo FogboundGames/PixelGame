@@ -140,6 +140,37 @@ namespace PixelGame
         public bool IsDocked => m_IsDocked;
         public bool IsFull => m_CurrentCargo >= m_Capacity;
         public bool IsDeparting => m_IsDeparting;
+
+        // ---------------- Rezerve (yolda olan) kargo ----------------
+        // Küp panodan koparıldığı anda gemiye yazılmıyor; uçuş ~1.5 sn sürüyor ve
+        // AddCargo ancak varışta çağrılıyor. Bu sayaç olmadan kapasite kontrolü
+        // sadece VARMIŞ kargoyu görüyordu: küpler 0.12 sn arayla fırlatıldığı için
+        // 10 kapasiteli bir gemi için panodan ~22 küp çıkıyordu.
+        private int m_PendingCargo = 0;
+
+        /// <summary>Yola çıkmış ama henüz gemiye varmamış kargo sayısı.</summary>
+        public int PendingCargo => m_PendingCargo;
+        public bool HasPendingCargo => m_PendingCargo > 0;
+
+        /// <summary>Yoldakiler DAHİL gemi hâlâ kargo alabilir mi?</summary>
+        public bool CanAcceptMore => !m_IsDeparting && (m_CurrentCargo + m_PendingCargo) < m_Capacity;
+
+        /// <summary>
+        /// Uçuş BAŞLAMADAN önce çağrılır: yer varsa bir kargo yeri ayırıp true döner.
+        /// false dönerse küp panodan koparılmamalıdır.
+        /// </summary>
+        public bool TryReserveCargo()
+        {
+            if (!CanAcceptMore) return false;
+            m_PendingCargo++;
+            return true;
+        }
+
+        /// <summary>Uçuş yarıda kesilirse ayrılan yeri geri verir.</summary>
+        public void ReleaseCargoReservation()
+        {
+            m_PendingCargo = Mathf.Max(0, m_PendingCargo - 1);
+        }
         public bool IsMoving => m_IsMoving;
         public ShipSlot CurrentSlot => m_CurrentSlot;
 
@@ -400,6 +431,7 @@ namespace PixelGame
             m_ShipColor = color;
             m_Capacity = Mathf.Max(1, capacity);
             m_CurrentCargo = 0;
+            m_PendingCargo = 0;
             m_ColorName = string.IsNullOrEmpty(colorName) ? ColorUtility.ToHtmlStringRGB(color) : colorName;
 
             ClearCargoBarrels();
@@ -465,6 +497,10 @@ namespace PixelGame
         /// </summary>
         public void AddCargo(int amount = 1)
         {
+            // Rezervasyon her hâlükârda tüketilir — gemi kalkıyor olsa bile sayaç sızmasın,
+            // yoksa gemi bir daha hiç "dolabilir" duruma gelemez.
+            m_PendingCargo = Mathf.Max(0, m_PendingCargo - amount);
+
             if (m_IsDeparting) return;
 
             int prevCargo = m_CurrentCargo;

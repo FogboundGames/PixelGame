@@ -30,6 +30,14 @@ namespace PixelGame
         [SerializeField] private bool m_KeepShadowPermanent = false;
 
         private MeshRenderer m_Renderer;
+        // Küp gövdesi + (varsa) bacak/ayak gibi alt parçaların renderer'ları.
+        // MainCube_Walk modeliyle birlikte küp artık tek mesh değil; renk ve
+        // patlama görünürlüğü tüm parçalara birlikte uygulanmalı.
+        private MeshRenderer[] m_BodyRenderers;
+        // Önbelleğin kurulduğu andaki çocuk sayısı. Prefab'a sonradan parça eklenirse
+        // (bacaklar) veya gölge quad'ları oluşturulursa önbellek bayatlar; bu sayı
+        // değiştiğinde yeniden toplanır.
+        private int m_BodyRenderersChildCount = -1;
         private Collider m_CubeCollider;
         private bool m_IsPopped = false;
 
@@ -133,6 +141,34 @@ namespace PixelGame
             ApplyColor(newColor, emission);
         }
 
+        /// <summary>
+        /// Küpün gövdesini oluşturan tüm renderer'ları toplar (gölge quad'ları hariç).
+        /// Tek parça küpte sadece kök renderer, MainCube_Walk modelinde kök + bacaklar + ayaklar.
+        /// </summary>
+        private MeshRenderer[] GetBodyRenderers()
+        {
+            if (m_BodyRenderers != null
+                && m_BodyRenderersChildCount == transform.childCount
+                && m_BodyRenderers.Length > 0
+                && m_BodyRenderers[0] != null)
+                return m_BodyRenderers;
+
+            MeshRenderer[] all = GetComponentsInChildren<MeshRenderer>(true);
+            var list = new System.Collections.Generic.List<MeshRenderer>(all.Length);
+            for (int i = 0; i < all.Length; i++)
+            {
+                if (all[i] == null) continue;
+                // Sahte gölge quad'ları gövdeye dahil değil — renkleri ayrı yönetiliyor.
+                if (all[i].gameObject.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    continue;
+                list.Add(all[i]);
+            }
+
+            m_BodyRenderers = list.ToArray();
+            m_BodyRenderersChildCount = transform.childCount;
+            return m_BodyRenderers;
+        }
+
         public void ApplyColor(Color color, float emission = 0f)
         {
             m_CurrentColor = color;
@@ -140,12 +176,13 @@ namespace PixelGame
             if (m_Renderer == null)
                 m_Renderer = GetComponent<MeshRenderer>();
 
-            if (m_Renderer == null) return;
+            MeshRenderer[] body = GetBodyRenderers();
+            if (body.Length == 0) return;
 
             if (s_PropertyBlock == null)
                 s_PropertyBlock = new MaterialPropertyBlock();
 
-            m_Renderer.GetPropertyBlock(s_PropertyBlock);
+            s_PropertyBlock.Clear();
             s_PropertyBlock.SetColor(BaseColorProp, color);
             s_PropertyBlock.SetColor(ColorProp, color);
 
@@ -158,7 +195,10 @@ namespace PixelGame
                 s_PropertyBlock.SetColor(EmissionColorProp, Color.black);
             }
 
-            m_Renderer.SetPropertyBlock(s_PropertyBlock);
+            for (int i = 0; i < body.Length; i++)
+            {
+                if (body[i] != null) body[i].SetPropertyBlock(s_PropertyBlock);
+            }
         }
 
         public void UpdateColorAdjustments(float brightness, float saturation, float contrast, float emission)
@@ -326,6 +366,15 @@ namespace PixelGame
         /// Parçalandığında küp ve gölgeleri tamamen gizlenir (Arkada hiçbir şey kalmaz!).
         /// Parçalanmamış halinde ise hafif gölgeli ve 3D derinlikli görünür.
         /// </summary>
+        private void SetBodyRenderersEnabled(bool enabled)
+        {
+            MeshRenderer[] body = GetBodyRenderers();
+            for (int i = 0; i < body.Length; i++)
+            {
+                if (body[i] != null) body[i].enabled = enabled;
+            }
+        }
+
         public void SetPoppedVisualState(bool popped)
         {
             m_IsPopped = popped;
@@ -336,8 +385,8 @@ namespace PixelGame
 
             if (popped)
             {
-                // Sadece küpün kendisini gizle ve tıklanamaz yap
-                if (m_Renderer != null) m_Renderer.enabled = false;
+                // Sadece küpün kendisini (gövde + bacaklar) gizle ve tıklanamaz yap
+                SetBodyRenderersEnabled(false);
                 if (m_CubeCollider != null) m_CubeCollider.enabled = false;
 
                 // Küp patladığında kendi gölgelerinin tamamı gizlenir (Arkada hiçbir şey kalmaz!)
@@ -357,7 +406,7 @@ namespace PixelGame
             else
             {
                 // Yeniden görünür yap (Reset)
-                if (m_Renderer != null) m_Renderer.enabled = true;
+                SetBodyRenderersEnabled(true);
                 if (m_CubeCollider != null) m_CubeCollider.enabled = true;
                 if (m_ShadowObject != null) m_ShadowObject.SetActive(true);
             }

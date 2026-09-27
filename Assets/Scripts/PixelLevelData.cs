@@ -244,8 +244,9 @@ namespace PixelGame
         [Range(-45f, 45f)]
         [SerializeField] private float m_BoardTiltAngle = 18f;
 
-        [Tooltip("Kameraya tam karşıdan bakıldığında küpün sadece üstü görünür; bu açı küpü öne doğru eğerek hem üst hem ön yüzünü görünür kılar")]
-        [Range(0f, 45f)]
+        [Tooltip("Kameraya tam karşıdan bakıldığında küpün sadece üstü görünür; bu açı küpü eğerek hem üst hem ön yüzünü görünür kılar. " +
+                 "Negatif değer küpü ters yöne eğer; tam tur (-180..180) serbesttir.")]
+        [Range(-180f, 180f)]
         [SerializeField] private float m_CubeFrontTiltAngle = 25f;
 
         [Tooltip("Küplerin 3D dünyadaki Z düzlemi mesafesi")]

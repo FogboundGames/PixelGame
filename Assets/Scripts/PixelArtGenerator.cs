@@ -94,8 +94,10 @@ namespace PixelGame
         [Tooltip("Küplerin 3D dünyadaki Z düzlemi mesafesi")]
         [SerializeField] private float m_TargetZ = 0f;
 
-        [Tooltip("Kameraya tam karşıdan (0°) bakıldığında küpün sadece üstü görünür; bu açı küpü öne doğru eğerek hem üst hem ön yüzünü görünür kılar")]
-        [Range(0f, 45f)]
+        [Tooltip("Kameraya tam karşıdan (0°) bakıldığında küpün sadece üstü görünür; bu açı küpü eğerek hem üst hem ön yüzünü görünür kılar. " +
+                 "Pozitif değer küpün üstünü kameradan uzağa yatırır (alt-arka köşe en alçak nokta olur), " +
+                 "negatif değer ise ters yöne eğer.")]
+        [Range(-180f, 180f)]
         [SerializeField] private float m_CubeFrontTiltAngle = 25f;
 
         [Tooltip("Her satır (GridY arttıkça) küpün konumuna eklenen serbest X/Y/Z kademesi. Örn. Z=0.12 verirsen her üst satır bir öncekinden 0.12 birim daha ileri/geri kayar; X veya Y'ye değer verirsen satırlar yana/yukarı da kayabilir. Sahnede canlı görmek için 'Preserve Scene Edits' kapalı olmalı.")]
@@ -166,6 +168,9 @@ namespace PixelGame
         public Color BoardShadowColor { get => m_BoardShadowColor; set { m_BoardShadowColor = value; UpdateBoardShadowLive(); } }
 
         public GameObject CubePrefab { get => m_CubePrefab; set => m_CubePrefab = value; }
+        /// <summary>Panodaki küplerin X eksenindeki eğim açısı (derece). Uçan kargo
+        /// parçası da aynı açıyı kullanır ki panodan kopan küple aynı yöne baksın.</summary>
+        public float CubeFrontTiltAngle { get => m_CubeFrontTiltAngle; set => m_CubeFrontTiltAngle = value; }
         public Texture2D SourceTexture { get => m_SourceTexture; set => m_SourceTexture = value; }
         public Sprite SourceSprite { get => m_SourceSprite; set => m_SourceSprite = value; }
         public RectTransform TargetFrameRect { get => m_TargetFrameRect; set => m_TargetFrameRect = value; }
