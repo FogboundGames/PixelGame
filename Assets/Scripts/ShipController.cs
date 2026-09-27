@@ -97,6 +97,33 @@ namespace PixelGame
         // Sabit temel ölçek (Her zaman uniform 0.126)
         public const float DefaultShipScale = 0.126f;
 
+        [Header("🌑 Yerel Gölge Yakalayıcı (Per-Ship Shadow Catcher)")]
+        [Tooltip("Sahnedeki tek/büyük Ground_ShadowCatcher düzlemi, gemiyle aynı Z derinliğinde " +
+                 "olmadığı için gemi gölgesini geminin kendisinden UZAK bir noktada gösteriyordu " +
+                 "(ışık açılı geldiği için Z farkı = X/Y kayması). Çözüm: her gemiye, gemiyle TAM " +
+                 "AYNI derinlikte duran kendi küçük yakalayıcısını vermek — böylece gölge her zaman " +
+                 "geminin tam altında kalır.")]
+        [SerializeField] private bool m_EnableLocalShadowCatcher = true;
+        [SerializeField] private Vector2 m_ShadowCatcherWorldSize = new Vector2(0.55f, 1.35f);
+        [Tooltip("Yakalayıcının gemiden, IŞIĞIN KENDİ YÖNÜ boyunca ne kadar öteye kayacağı. " +
+                 "Sıfır olursa yakalayıcı geminin gövdesiyle aynı derinlikte kalır ve Unity'nin " +
+                 "gölge yanlılığı (shadow bias) bunu 'kendi kendine gölge' sayıp gölgeyi hiç " +
+                 "göstermez. Board'daki çalışan küp gölgesiyle aynı büyüklükte bir ayrım kullanıyoruz.")]
+        [SerializeField] private float m_ShadowCatcherOffsetDistance = 0.42f;
+        private GameObject m_ShadowCatcherObj;
+        private static Material s_ShipShadowCatcherMaterial;
+        private static Mesh s_ShadowCatcherQuadMesh;
+        private static Light s_CachedMainLight;
+
+        private static Light GetMainDirectionalLight()
+        {
+            if (s_CachedMainLight == null)
+            {
+                s_CachedMainLight = UnityEngine.Object.FindFirstObjectByType<Light>();
+            }
+            return s_CachedMainLight;
+        }
+
         // Dahili referanslar
         private MeshRenderer[] m_Renderers;
         private MaterialPropertyBlock m_PropBlock;
@@ -136,6 +163,92 @@ namespace PixelGame
             return s_AlwaysOnTopMaterial;
         }
 
+        private static Material GetShipShadowCatcherMaterial()
+        {
+            if (s_ShipShadowCatcherMaterial == null)
+            {
+                Shader shader = Shader.Find("Custom/URP_ShadowCatcher");
+                if (shader != null)
+                {
+                    s_ShipShadowCatcherMaterial = new Material(shader);
+                    s_ShipShadowCatcherMaterial.name = "Ship_Local_ShadowCatcher_Mat";
+                    // Gemi_ShadowCatcher_Mat ile aynı renk/opaklık (bkz. Assets/Materials/Gemi_ShadowCatcher_Mat.mat)
+                    s_ShipShadowCatcherMaterial.SetColor("_ShadowColor", new Color(0.04f, 0.08f, 0.16f, 0.45f));
+                }
+            }
+            return s_ShipShadowCatcherMaterial;
+        }
+
+        private static Mesh GetShadowCatcherQuadMesh()
+        {
+            if (s_ShadowCatcherQuadMesh == null)
+            {
+                s_ShadowCatcherQuadMesh = Resources.GetBuiltinResource<Mesh>("Quad.fbx");
+            }
+            return s_ShadowCatcherQuadMesh;
+        }
+
+        /// <summary>
+        /// Geminin kendi altına, TAM kendi derinliğinde (Z) duran küçük bir gölge yakalayıcı
+        /// (Ground_ShadowCatcher ile aynı shader) oluşturur/günceller. Böylece Directional Light
+        /// gölgesi her zaman geminin tam altında kalır, sahnedeki büyük/tek yakalayıcıdaki gibi
+        /// başka bir yere kaymaz.
+        /// </summary>
+        private void CreateOrFindShadowCatcher()
+        {
+            if (!m_EnableLocalShadowCatcher)
+            {
+                if (m_ShadowCatcherObj != null) m_ShadowCatcherObj.SetActive(false);
+                return;
+            }
+
+            Transform existing = transform.Find("Ship_Shadow_Catcher");
+            GameObject go = existing != null ? existing.gameObject : null;
+
+            if (go == null)
+            {
+                go = new GameObject("Ship_Shadow_Catcher", typeof(MeshFilter), typeof(MeshRenderer));
+                go.transform.SetParent(transform, false);
+                go.transform.localRotation = Quaternion.identity;
+            }
+
+            m_ShadowCatcherObj = go;
+
+            MeshFilter mf = go.GetComponent<MeshFilter>();
+            if (mf.sharedMesh == null) mf.sharedMesh = GetShadowCatcherQuadMesh();
+
+            MeshRenderer mr = go.GetComponent<MeshRenderer>();
+            Material mat = GetShipShadowCatcherMaterial();
+            if (mat != null && mr.sharedMaterial != mat) mr.sharedMaterial = mat;
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = true;
+            mr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+            mr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+
+            go.SetActive(true);
+        }
+
+        private void UpdateShadowCatcherPlacement()
+        {
+            if (m_ShadowCatcherObj == null || !m_ShadowCatcherObj.activeSelf) return;
+
+            // Yakalayıcıyı geminin biraz "arkasına" (ışığın kendi ilerleme yönüne) kaydır —
+            // board'daki küp gölgesini de doğru gösteren aynı mantık: ışık yönünde küçük bir
+            // ayrım olmazsa Unity kendi gölgesi sanıp hiç göstermiyor (shadow bias).
+            Light light = GetMainDirectionalLight();
+            Vector3 offsetDir = light != null ? light.transform.forward : Vector3.forward;
+            m_ShadowCatcherObj.transform.position = transform.position + offsetDir * m_ShadowCatcherOffsetDistance;
+            // Dünya rotasyonu: Ground_ShadowCatcher gibi hep düz/eksene hizalı kalsın — geminin
+            // sallanma/yelken açma rotasyonuna bağlı kalırsa kamera açısından "kaçabilir".
+            m_ShadowCatcherObj.transform.rotation = Quaternion.identity;
+
+            Vector3 parentLossy = transform.lossyScale;
+            m_ShadowCatcherObj.transform.localScale = new Vector3(
+                m_ShadowCatcherWorldSize.x / Mathf.Max(0.0001f, parentLossy.x),
+                m_ShadowCatcherWorldSize.y / Mathf.Max(0.0001f, parentLossy.y),
+                1f);
+        }
+
         private void Awake()
         {
             m_PropBlock = new MaterialPropertyBlock();
@@ -147,12 +260,14 @@ namespace PixelGame
 
             EnsureVisualComponents();
             CreateOrFindBadge();
+            CreateOrFindShadowCatcher();
         }
 
         private void OnEnable()
         {
             EnsureVisualComponents();
             CreateOrFindBadge();
+            CreateOrFindShadowCatcher();
             UpdateBadgeText();
         }
 
@@ -160,6 +275,7 @@ namespace PixelGame
         {
             InvalidateRingSprite();
             CreateOrFindBadge();
+            CreateOrFindShadowCatcher();
             UpdateBadgeText();
         }
 
@@ -203,6 +319,7 @@ namespace PixelGame
         private void LateUpdate()
         {
             UpdateBadgePlacement();
+            UpdateShadowCatcherPlacement();
         }
 
         private void UpdateBadgePlacement()
@@ -288,6 +405,7 @@ namespace PixelGame
             ClearCargoBarrels();
             EnsureVisualComponents();
             CreateOrFindBadge();
+            CreateOrFindShadowCatcher();
             ApplyColorToShip(color);
             UpdateBadgeText();
         }

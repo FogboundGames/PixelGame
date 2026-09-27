@@ -57,10 +57,43 @@ Shader "Custom/URP_ShadowCatcher"
             
             half4 frag(Varyings input) : SV_Target
             {
-                float4 shadowCoord = TransformWorldToShadowCoord(input.positionWS);
+                float3 positionWS = input.positionWS;
+
+                // ------------------------------------------------------------------
+                // KORUMA 1 — Cascade taşması (hayalet gölge kopyaları)
+                // Bu yakalayıcı düzlem (Ground_ShadowCatcher) 14x24 birim; ekranın
+                // tamamını kaplıyor. Cascade kürelerinin DIŞINDA kalan pikseller için
+                // TransformWorldToShadowCoord geçersiz bir atlas koordinatı üretir ve
+                // komşu cascade karesinden okuma yapar -> uzaktaki slot/gemi
+                // gölgelerinin sol üst köşede "hayalet" kopyaları belirir.
+                // Cascade dışındaki pikselleri gölgesiz sayarak bunu kapatıyoruz.
+                // ------------------------------------------------------------------
+                #if defined(_MAIN_LIGHT_SHADOWS_CASCADE)
+                    if (ComputeCascadeIndex(positionWS) >= half(4.0))
+                        return half4(_ShadowColor.rgb, half(0.0));
+                #endif
+
+                float4 shadowCoord = TransformWorldToShadowCoord(positionWS);
+
+                // ------------------------------------------------------------------
+                // KORUMA 2 — Atlas sınırları
+                // Soft-shadow filtresi / bias kenarlarda atlasın dışına taşabiliyor.
+                // UV veya derinlik [0,1] aralığının dışındaysa gölge yok.
+                // ------------------------------------------------------------------
+                if (any(shadowCoord.xy < 0.0) || any(shadowCoord.xy > 1.0) ||
+                    shadowCoord.z < 0.0 || shadowCoord.z > 1.0)
+                    return half4(_ShadowColor.rgb, half(0.0));
+
                 Light mainLight = GetMainLight(shadowCoord);
                 half shadowAtten = mainLight.shadowAttenuation;
-                
+
+                // ------------------------------------------------------------------
+                // KORUMA 3 — Shadow distance sönümlemesi
+                // URP'nin kendi mesafe fade'i; gölge menzilinin bittiği yerde sert
+                // kesik yerine yumuşak geçiş verir (1 = tamamen sönmüş).
+                // ------------------------------------------------------------------
+                shadowAtten = lerp(shadowAtten, half(1.0), GetMainLightShadowFade(positionWS));
+
                 half shadowFactor = saturate(1.0 - shadowAtten);
                 half4 color = _ShadowColor;
                 color.a *= shadowFactor;
