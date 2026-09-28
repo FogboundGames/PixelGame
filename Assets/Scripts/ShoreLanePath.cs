@@ -63,6 +63,97 @@ namespace PixelGame
         }
 
         /// <summary>
+        /// İki nokta arasında hiçbir yere sapmadan, dosdoğru giden doğrudan yürüyüş hattı oluşturur.
+        /// </summary>
+        public static ShoreLanePath BuildDirect(Vector3 start, Vector3 end, int samples = 32)
+        {
+            samples = Mathf.Max(2, samples);
+            var pts = new Vector3[samples + 1];
+            for (int i = 0; i <= samples; i++)
+            {
+                float t = (float)i / samples;
+                pts[i] = Vector3.Lerp(start, end, t);
+            }
+            return new ShoreLanePath(pts);
+        }
+
+        /// <summary>
+        /// Küpün panodaki anlık konumundan hedef iskeleye, görselin içinden geçmeden
+        /// dış konturundan dolaşarak (veya doğrudan) pürüzsüz yürüyüş yolu oluşturur.
+        /// </summary>
+        public static ShoreLanePath BuildAroundObstacle(Vector3 startPos, float shipX, float boardMinX, float boardMaxX, float boardBottomY, float pierY, float pierSurfaceZ)
+        {
+            float centerX = (boardMinX + boardMaxX) * 0.5f;
+            bool isVeryBottom = startPos.y <= (boardBottomY + 0.15f);
+
+            // Hedefe giden düz hat ana görselin merkezinden/içinden geçiyor mu?
+            bool needsContour = !isVeryBottom;
+            if (startPos.x >= centerX && shipX >= (startPos.x - 0.25f))
+            {
+                needsContour = false;
+            }
+            else if (startPos.x < centerX && shipX <= (startPos.x + 0.25f))
+            {
+                needsContour = false;
+            }
+
+            Vector3 pierLandingPos = new Vector3(shipX, pierY, pierSurfaceZ);
+
+            if (!needsContour)
+            {
+                // Görselin içinden geçme riski yok: doğrudan hedef iskeleye yürü
+                return BuildDirect(startPos, pierLandingPos, 32);
+            }
+
+            // Görselin içinden geçmek yerine dış konturundan (etrafından) dolaş
+            bool goRight = (startPos.x >= centerX);
+            const float contourMargin = 0.22f; // Görselin hemen ~1 küp dışı
+            float contourX = goRight ? (boardMaxX + contourMargin) : (boardMinX - contourMargin);
+            float sandY = boardBottomY - 0.25f;
+
+            float elbowDrop = Mathf.Min(0.25f, (startPos.y - sandY) * 0.20f);
+            System.Collections.Generic.List<Vector3> pts = new System.Collections.Generic.List<Vector3>(48);
+
+            // 1. Dirsek: Kendi konumundan dış kontur çizgisine yumuşak geçiş (Y sürekli azalır, asla geriye gitmez)
+            const int elbowSamples = 12;
+            for (int i = 0; i <= elbowSamples; i++)
+            {
+                float t = (float)i / elbowSamples;
+                float st = t * t * (3f - 2f * t); // SmoothStep
+                float x = Mathf.Lerp(startPos.x, contourX, st);
+                float y = Mathf.Lerp(startPos.y, startPos.y - elbowDrop, t);
+                float z = Mathf.Lerp(startPos.z, pierSurfaceZ, st);
+                pts.Add(new Vector3(x, y, z));
+            }
+
+            // 2. Dış Kontur: Görselin dış bordüründen kumsala (sandY) kadar iniş
+            float contourLen = (startPos.y - elbowDrop) - sandY;
+            if (contourLen > 0.05f)
+            {
+                int samplesDown = Mathf.Max(4, Mathf.RoundToInt(contourLen / 0.15f));
+                for (int i = 1; i <= samplesDown; i++)
+                {
+                    float t = (float)i / samplesDown;
+                    float y = Mathf.Lerp(startPos.y - elbowDrop, sandY, t);
+                    pts.Add(new Vector3(contourX, y, pierSurfaceZ));
+                }
+            }
+
+            // 3. Kumsal: Görselin altındaki açık kumsaldan geminin iskelesine yumuşak kavis
+            const int sandSamples = 16;
+            for (int i = 1; i <= sandSamples; i++)
+            {
+                float t = (float)i / sandSamples;
+                float stX = t * t * (3f - 2f * t);
+                float x = Mathf.Lerp(contourX, shipX, stX);
+                float y = Mathf.Lerp(sandY, pierY, t);
+                pts.Add(new Vector3(x, y, pierSurfaceZ));
+            }
+
+            return new ShoreLanePath(pts.ToArray());
+        }
+
+        /// <summary>
         /// Verilen noktalardan GEÇEN yumuşak eğri (Catmull-Rom). Hiçbir parçası düz
         /// çizgi olmaz; köşelerde teğetler komşu noktalardan türetildiği için geçişler
         /// sürekli olur.

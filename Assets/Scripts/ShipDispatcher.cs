@@ -221,9 +221,8 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Küpün panodaki anlık konumundan (startPos) başlayarak kıyıya (shore) kadar
-        /// kesintisiz, ana görselin (piksel resmin) üzerinden geçmeden dış kenarlardan
-        /// dolaşan, pürüzsüz Catmull-Rom yürüyüş rotası oluşturur.
+        /// Küpün panodaki anlık konumundan (startPos) başlayarak hedef geminin ahşap iskele
+        /// hizasına kadar ana görselin içinden geçmeden, etrafından dolaşarak dosdoğru yürüyüş hattı oluşturur.
         /// </summary>
         private ShoreLanePath BuildCubeWalkPath(Vector3 startPos, ShipController ship, bool useLeft)
         {
@@ -232,54 +231,17 @@ namespace PixelGame
             const float pierSurfaceZ = -0.65f;
             const float pierY = -0.32f;
 
-            float boardBottomY = m_BoardBottomY;
-            float boardMinX = m_BoardMinX;
-            float boardMaxX = m_BoardMaxX;
+            float shipX = (ship != null) ? ship.transform.position.x : startPos.x;
 
-            float centerX = (boardMinX + boardMaxX) * 0.5f;
-            float shipX = ship != null ? ship.transform.position.x : centerX;
-
-            // Ana görselin tamamen dışındaki güvenli dış koridor (flank) X koordinatı
-            const float flankMargin = 0.55f;
-            float flankX = useLeft ? (boardMinX - flankMargin) : (boardMaxX + flankMargin);
-            float outwardSign = useLeft ? -1f : 1f;
-
-            // Panonun altındaki güvenli toplanma ve kıyıya geçiş noktaları
-            float clearBelowBoardY = boardBottomY - 0.35f;
-            Vector3 mid = new Vector3(centerX + outwardSign * 0.15f, clearBelowBoardY - 0.50f, pierSurfaceZ);
-            Vector3 shore = new Vector3(Mathf.Lerp(centerX, shipX, 0.55f), pierY, pierSurfaceZ);
-
-            List<Vector3> waypoints = new List<Vector3>();
-            waypoints.Add(startPos);
-
-            // Küp zaten en alt kenarda mı (altında başka küp kalmamış mı)?
-            bool isVeryBottom = startPos.y <= (boardBottomY + 0.15f);
-
-            if (isVeryBottom)
-            {
-                // Alt kenardaki küp: altında görsel olmadığı için doğrudan panonun altındaki boşluğa iner
-                waypoints.Add(new Vector3(startPos.x, clearBelowBoardY, pierSurfaceZ));
-                waypoints.Add(new Vector3(Mathf.Lerp(startPos.x, centerX, 0.45f), clearBelowBoardY - 0.25f, pierSurfaceZ));
-                waypoints.Add(mid);
-                waypoints.Add(shore);
-            }
-            else
-            {
-                // Üst, orta ve yan küpler:
-                // 1. Adım: Kendi Y hizasında DOĞRUDAN DIŞARI (yan flank koridoruna) adım atar.
-                // Y aşağı düşmediği için alttaki küplerin/ana görselin üzerinden ASLA geçmez!
-                waypoints.Add(new Vector3(flankX, startPos.y, pierSurfaceZ));
-
-                // 2. Adım: Tamamen görselin dışındaki yan bordür koridorundan panonun altına kadar iner
-                waypoints.Add(new Vector3(flankX, clearBelowBoardY, pierSurfaceZ));
-
-                // 3. Adım: Panonun altından iskeleye doğru yumuşak kavis
-                waypoints.Add(new Vector3(Mathf.Lerp(flankX, centerX, 0.45f), clearBelowBoardY - 0.25f, pierSurfaceZ));
-                waypoints.Add(mid);
-                waypoints.Add(shore);
-            }
-
-            return ShoreLanePath.BuildThrough(waypoints, 24);
+            return ShoreLanePath.BuildAroundObstacle(
+                startPos,
+                shipX,
+                m_BoardMinX,
+                m_BoardMaxX,
+                m_BoardBottomY,
+                pierY,
+                pierSurfaceZ
+            );
         }
 
         private void Awake()
