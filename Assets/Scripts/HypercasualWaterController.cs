@@ -27,11 +27,19 @@ namespace PixelGame
         [SerializeField] [Range(0.001f, 0.025f)] private float m_WaveAmplitude = 0.0065f;
         [SerializeField] [Range(0.0f, 0.6f)] private float m_ShimmerIntensity = 0.22f;
 
+        [Header("🌊 Su Rengi & Derinlik (Gemilerin Ön Plana Çıkması İçin)")]
+        [SerializeField] [Range(0.0f, 1.0f)] private float m_WaterDarkness = 0.42f;
+        [SerializeField] [Range(0.3f, 1.2f)] private float m_WaterBrightness = 0.70f;
+        [SerializeField] private Color m_WaterDeepTint = new Color(0.04f, 0.38f, 0.75f, 1.0f);
+
         private Material m_WaterMaterial;
         private static readonly int WaveSpeedProp = Shader.PropertyToID("_WaveSpeed");
         private static readonly int WaveFrequencyProp = Shader.PropertyToID("_WaveFrequency");
         private static readonly int WaveAmplitudeProp = Shader.PropertyToID("_WaveAmplitude");
         private static readonly int ShimmerIntensityProp = Shader.PropertyToID("_ShimmerIntensity");
+        private static readonly int WaterDarknessProp = Shader.PropertyToID("_WaterDarkness");
+        private static readonly int WaterBrightnessProp = Shader.PropertyToID("_WaterBrightness");
+        private static readonly int WaterDeepTintProp = Shader.PropertyToID("_WaterDeepTint");
 
         private static readonly int[] RippleProps = new int[]
         {
@@ -170,6 +178,9 @@ namespace PixelGame
             m_WaterMaterial.SetFloat(WaveFrequencyProp, m_WaveFrequency);
             m_WaterMaterial.SetFloat(WaveAmplitudeProp, m_WaveAmplitude);
             m_WaterMaterial.SetFloat(ShimmerIntensityProp, m_ShimmerIntensity);
+            m_WaterMaterial.SetFloat(WaterDarknessProp, m_WaterDarkness);
+            m_WaterMaterial.SetFloat(WaterBrightnessProp, m_WaterBrightness);
+            m_WaterMaterial.SetColor(WaterDeepTintProp, m_WaterDeepTint);
         }
 
         /// <summary>

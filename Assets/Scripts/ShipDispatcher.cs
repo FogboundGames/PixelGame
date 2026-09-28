@@ -1,3 +1,4 @@
+#pragma warning disable 0414
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -60,6 +61,68 @@ namespace PixelGame
 
         private readonly Dictionary<ShipController, ShipLaneState> m_LaneStates = new Dictionary<ShipController, ShipLaneState>();
 
+        // Fermuar (zipper) sıralı toplama için son koparılan küplerin koordinatları ve renk takibi
+        private Vector2Int? m_LastPoppedLeft = null;
+        private Vector2Int? m_LastPoppedRight = null;
+        private Color m_LastExtractedColor = Color.clear;
+
+        // Pano / ana görsel sınırları: oyun boyunca küpler patlasa dahi asla içe küçülmez;
+        // küplerin her zaman ana görselin dışındaki güvenli flank koridorundan inmesini garanti eder.
+        private bool m_BoardBoundsInitialized = false;
+        private float m_BoardMinX = -2.35f;
+        private float m_BoardMaxX = 2.45f;
+        private float m_BoardBottomY = 1.80f;
+        private float m_BoardTopY = 5.85f;
+
+        public void EnsureBoardBounds(bool forceRefresh = false)
+        {
+            if (m_BoardBoundsInitialized && !forceRefresh) return;
+
+            if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
+            PixelCube[] allCubes = null;
+            if (m_Generator != null && m_Generator.CubesContainer != null)
+            {
+                allCubes = m_Generator.CubesContainer.GetComponentsInChildren<PixelCube>(true);
+            }
+            if (allCubes == null || allCubes.Length == 0)
+            {
+                allCubes = Object.FindObjectsByType<PixelCube>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            }
+
+            if (allCubes != null && allCubes.Length > 0)
+            {
+                float mnX = float.MaxValue, mxX = float.MinValue;
+                float mnY = float.MaxValue, mxY = float.MinValue;
+                foreach (var c in allCubes)
+                {
+                    if (c == null) continue;
+                    var p = c.transform.position;
+                    mnX = Mathf.Min(mnX, p.x);
+                    mxX = Mathf.Max(mxX, p.x);
+                    mnY = Mathf.Min(mnY, p.y);
+                    mxY = Mathf.Max(mxY, p.y);
+                }
+                if (mnX < float.MaxValue)
+                {
+                    m_BoardMinX = mnX;
+                    m_BoardMaxX = mxX;
+                    m_BoardBottomY = mnY;
+                    m_BoardTopY = mxY;
+                    m_BoardBoundsInitialized = true;
+                }
+            }
+        }
+
+        private void OnLevelLoaded(PixelLevelData data)
+        {
+            m_BoardBoundsInitialized = false;
+            m_LaneStates.Clear();
+            m_LastPoppedLeft = null;
+            m_LastPoppedRight = null;
+            m_LastExtractedColor = Color.clear;
+            EnsureBoardBounds(forceRefresh: true);
+        }
+
         /// <summary>
         /// Geminin iki şeridini kurar: küpler panonun SOLUNDAN ve SAĞINDAN eşit sayıda
         /// gelir, önce panonun altındaki ORTA toplanma noktasında birleşir, oradan
@@ -70,25 +133,14 @@ namespace PixelGame
             if (ship != null && m_LaneStates.TryGetValue(ship, out var cached) && cached != null)
                 return cached;
 
+            EnsureBoardBounds();
+
             const float pierSurfaceZ = -0.65f;
             const float pierY = -0.32f;
 
-            float boardBottomY = sampleCubePos.y;
-            float boardMinX = sampleCubePos.x, boardMaxX = sampleCubePos.x;
-            var cubes = Object.FindObjectsByType<PixelCube>(FindObjectsSortMode.None);
-            if (cubes.Length > 0)
-            {
-                float minY = float.MaxValue, mnX = float.MaxValue, mxX = float.MinValue;
-                foreach (var c in cubes)
-                {
-                    if (c == null || c.IsPopped) continue;
-                    var p = c.transform.position;
-                    minY = Mathf.Min(minY, p.y);
-                    mnX = Mathf.Min(mnX, p.x);
-                    mxX = Mathf.Max(mxX, p.x);
-                }
-                if (minY < float.MaxValue) { boardBottomY = minY; boardMinX = mnX; boardMaxX = mxX; }
-            }
+            float boardBottomY = m_BoardBottomY;
+            float boardMinX = m_BoardMinX;
+            float boardMaxX = m_BoardMaxX;
 
             float centerX = (boardMinX + boardMaxX) * 0.5f;
             float laneY = boardBottomY - 0.40f;
@@ -130,14 +182,23 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Bir küp için sıradaki tarafı seçer (sol/sağ dönüşümlü) ve o taraftaki şeride
+        /// Bir küp için sıradaki tarafı seçer (sol/sağ dönüşümlü veya küpün konumuna göre) ve o taraftaki şeride
         /// giriş anını ayırır. Kapasite 10 ise 5 soldan 5 sağdan gelir.
         /// </summary>
         private void ReserveSideAndEntry(ShipController ship, Vector3 sampleCubePos, float cubeWorldSize,
-                                         out bool useLeft, out ShoreLanePath lane, out float entryTime)
+                                         out bool useLeft, out ShoreLanePath lane, out float entryTime,
+                                         bool? explicitUseLeft = null)
         {
             var st = GetOrBuildLaneState(ship, sampleCubePos);
-            useLeft = (st.Toggle++ % 2) == 0;
+            if (explicitUseLeft.HasValue)
+            {
+                useLeft = explicitUseLeft.Value;
+                st.Toggle++;
+            }
+            else
+            {
+                useLeft = (st.Toggle++ % 2) == 0;
+            }
             lane = useLeft ? st.Left : st.Right;
 
             float gap = Mathf.Max(0.02f, cubeWorldSize / WalkSpeedUnitsPerSecond);
@@ -159,16 +220,90 @@ namespace PixelGame
             return next;
         }
 
+        /// <summary>
+        /// Küpün panodaki anlık konumundan (startPos) başlayarak kıyıya (shore) kadar
+        /// kesintisiz, ana görselin (piksel resmin) üzerinden geçmeden dış kenarlardan
+        /// dolaşan, pürüzsüz Catmull-Rom yürüyüş rotası oluşturur.
+        /// </summary>
+        private ShoreLanePath BuildCubeWalkPath(Vector3 startPos, ShipController ship, bool useLeft)
+        {
+            EnsureBoardBounds();
+
+            const float pierSurfaceZ = -0.65f;
+            const float pierY = -0.32f;
+
+            float boardBottomY = m_BoardBottomY;
+            float boardMinX = m_BoardMinX;
+            float boardMaxX = m_BoardMaxX;
+
+            float centerX = (boardMinX + boardMaxX) * 0.5f;
+            float shipX = ship != null ? ship.transform.position.x : centerX;
+
+            // Ana görselin tamamen dışındaki güvenli dış koridor (flank) X koordinatı
+            const float flankMargin = 0.55f;
+            float flankX = useLeft ? (boardMinX - flankMargin) : (boardMaxX + flankMargin);
+            float outwardSign = useLeft ? -1f : 1f;
+
+            // Panonun altındaki güvenli toplanma ve kıyıya geçiş noktaları
+            float clearBelowBoardY = boardBottomY - 0.35f;
+            Vector3 mid = new Vector3(centerX + outwardSign * 0.15f, clearBelowBoardY - 0.50f, pierSurfaceZ);
+            Vector3 shore = new Vector3(Mathf.Lerp(centerX, shipX, 0.55f), pierY, pierSurfaceZ);
+
+            List<Vector3> waypoints = new List<Vector3>();
+            waypoints.Add(startPos);
+
+            // Küp zaten en alt kenarda mı (altında başka küp kalmamış mı)?
+            bool isVeryBottom = startPos.y <= (boardBottomY + 0.15f);
+
+            if (isVeryBottom)
+            {
+                // Alt kenardaki küp: altında görsel olmadığı için doğrudan panonun altındaki boşluğa iner
+                waypoints.Add(new Vector3(startPos.x, clearBelowBoardY, pierSurfaceZ));
+                waypoints.Add(new Vector3(Mathf.Lerp(startPos.x, centerX, 0.45f), clearBelowBoardY - 0.25f, pierSurfaceZ));
+                waypoints.Add(mid);
+                waypoints.Add(shore);
+            }
+            else
+            {
+                // Üst, orta ve yan küpler:
+                // 1. Adım: Kendi Y hizasında DOĞRUDAN DIŞARI (yan flank koridoruna) adım atar.
+                // Y aşağı düşmediği için alttaki küplerin/ana görselin üzerinden ASLA geçmez!
+                waypoints.Add(new Vector3(flankX, startPos.y, pierSurfaceZ));
+
+                // 2. Adım: Tamamen görselin dışındaki yan bordür koridorundan panonun altına kadar iner
+                waypoints.Add(new Vector3(flankX, clearBelowBoardY, pierSurfaceZ));
+
+                // 3. Adım: Panonun altından iskeleye doğru yumuşak kavis
+                waypoints.Add(new Vector3(Mathf.Lerp(flankX, centerX, 0.45f), clearBelowBoardY - 0.25f, pierSurfaceZ));
+                waypoints.Add(mid);
+                waypoints.Add(shore);
+            }
+
+            return ShoreLanePath.BuildThrough(waypoints, 24);
+        }
+
         private void Awake()
         {
             s_Instance = this;
+            m_LastPoppedLeft = null;
+            m_LastPoppedRight = null;
+            m_LastExtractedColor = Color.clear;
             EnsureReferences();
+            EnsureBoardBounds(forceRefresh: true);
         }
 
         private void OnEnable()
         {
             s_Instance = this;
             EnsureReferences();
+            EnsureBoardBounds();
+            PixelArtGenerator.LevelLoaded -= OnLevelLoaded;
+            PixelArtGenerator.LevelLoaded += OnLevelLoaded;
+        }
+
+        private void OnDisable()
+        {
+            PixelArtGenerator.LevelLoaded -= OnLevelLoaded;
         }
 
         private void Start()
@@ -210,7 +345,14 @@ namespace PixelGame
             float dr = a.r - b.r;
             float dg = a.g - b.g;
             float db = a.b - b.b;
-            return (dr * dr + dg * dg + db * db) < 0.09f;
+            if ((dr * dr + dg * dg + db * db) < 0.12f) return true;
+
+            // Sarı / Amber tonları için özel tolerans (küp ve gemi her koşulda %100 eşleşir):
+            bool aIsYellow = a.r > 0.75f && a.g > 0.50f && a.b < 0.35f;
+            bool bIsYellow = b.r > 0.75f && b.g > 0.50f && b.b < 0.35f;
+            if (aIsYellow && bIsYellow) return true;
+
+            return false;
         }
 
         /// <summary>
@@ -460,6 +602,107 @@ namespace PixelGame
             }
         }
 
+        /// <summary>
+        /// Küpleri panodan delikli/aralıklı değil, pürüzsüz ve sıralı bir fermuar (zipper) gibi
+        /// sütun sütun ve komşu komşu toplamak için sıradaki küpü seçer.
+        /// </summary>
+        private PixelCube PickNextSequentialCube(List<PixelCube> exposedCubes, ref bool wantLeft, float midX, Color shipColor)
+        {
+            if (exposedCubes == null || exposedCubes.Count == 0) return null;
+
+            // Renk değiştiyse önceki zincir pozisyonlarını sıfırla
+            if (!ColorsMatch(shipColor, m_LastExtractedColor))
+            {
+                m_LastPoppedLeft = null;
+                m_LastPoppedRight = null;
+                m_LastExtractedColor = shipColor;
+            }
+
+            bool currentWantLeft = wantLeft;
+
+            // 1. İstenen taraftaki adayları filtrele
+            List<PixelCube> candidates = exposedCubes.FindAll(c => (c.transform.position.x <= midX) == currentWantLeft);
+            if (candidates.Count == 0)
+            {
+                // O tarafta hiç küp kalmadıysa diğer tarafa geç
+                currentWantLeft = !currentWantLeft;
+                candidates = exposedCubes.FindAll(c => (c.transform.position.x <= midX) == currentWantLeft);
+                if (candidates.Count == 0)
+                {
+                    candidates = exposedCubes;
+                }
+            }
+
+            Vector2Int? lastPos = currentWantLeft ? m_LastPoppedLeft : m_LastPoppedRight;
+            PixelCube chosen = null;
+
+            if (lastPos.HasValue)
+            {
+                Vector2Int prev = lastPos.Value;
+
+                // A. Sütun Zinciri (Zipper):
+                // 1. Aynı sütunda yukarı doğru hemen bir sonraki komşu küp: (prev.x, prev.y + 1)
+                chosen = candidates.Find(c => c.GridX == prev.x && c.GridY == prev.y + 1);
+
+                // 2. Bir üst komşu yoksa (arada küp manuel patlatıldıysa veya boşluk varsa),
+                // aynı sütunda yukarıda kalan EN YAKIN küpü ara
+                if (chosen == null)
+                {
+                    var aboveInSameCol = candidates.FindAll(c => c.GridX == prev.x && c.GridY > prev.y);
+                    if (aboveInSameCol.Count > 0)
+                    {
+                        aboveInSameCol.Sort((a, b) => a.GridY.CompareTo(b.GridY));
+                        chosen = aboveInSameCol[0];
+                    }
+                }
+
+                // 3. Aynı sütunda yukarıda küp kalmadıysa ama aynı sütunda geride/aşağıda küp kaldıysa:
+                if (chosen == null)
+                {
+                    var inSameCol = candidates.FindAll(c => c.GridX == prev.x);
+                    if (inSameCol.Count > 0)
+                    {
+                        inSameCol.Sort((a, b) => a.GridY.CompareTo(b.GridY));
+                        chosen = inSameCol[0];
+                    }
+                }
+            }
+
+            // 4. Zincir yoksa, ilk küpse veya o sütun tamamen bittiyse: en dış sütundan ve en alttan başla
+            if (chosen == null)
+            {
+                candidates.Sort((a, b) =>
+                {
+                    if (currentWantLeft)
+                    {
+                        // Sol taraf: en küçük GridX (en dış sol sütun)
+                        if (a.GridX != b.GridX) return a.GridX.CompareTo(b.GridX);
+                    }
+                    else
+                    {
+                        // Sağ taraf: en büyük GridX (en dış sağ sütun)
+                        if (a.GridX != b.GridX) return b.GridX.CompareTo(a.GridX);
+                    }
+                    // Aynı sütunda: aşağıdan yukarıya (en küçük GridY önce)
+                    return a.GridY.CompareTo(b.GridY);
+                });
+
+                chosen = candidates[0];
+            }
+
+            // Son konumu güncelle
+            if (chosen != null)
+            {
+                if (currentWantLeft)
+                    m_LastPoppedLeft = new Vector2Int(chosen.GridX, chosen.GridY);
+                else
+                    m_LastPoppedRight = new Vector2Int(chosen.GridX, chosen.GridY);
+            }
+
+            wantLeft = currentWantLeft;
+            return chosen;
+        }
+
         private IEnumerator ExtractMatchingCubesToShipRoutine(ShipController ship)
         {
             if (ship == null || ship.IsDeparting) yield break;
@@ -469,6 +712,7 @@ namespace PixelGame
 
             try
             {
+                int extractionStep = 0;
                 while (ship != null && ship.CanAcceptMore)
                 {
                     List<PixelCube> exposedCubes = GetExposedMatchingCubes(ship.ShipColor);
@@ -500,31 +744,18 @@ namespace PixelGame
                         break;
                     }
 
-                    // Dıştaki küpleri gemiye en yakın olandan uzağa doğru sırala (doğal çekim sırası)
-                    Vector3 shipPos = ship.transform.position;
-                    // Sıradaki taraf (sol/sağ dönüşümlü) ve o tarafın şeridi.
-                    // Kapasite 10 ise 5 küp soldan, 5 küp sağdan gelir.
+                    // Sıradaki taraf (sol/sağ dönüşümlü) ve orta nokta
                     var laneStateProbe = GetOrBuildLaneState(ship, exposedCubes[0].transform.position);
-                    bool wantLeft = (laneStateProbe.Toggle % 2) == 0;
                     float midX = laneStateProbe.MidPoint.x;
+                    bool wantLeft = (extractionStep % 2) == 0;
 
-                    // Önce istenen taraftaki küplere bak; o tarafta kalmadıysa diğer tarafı kullan.
-                    exposedCubes.Sort((a, b) =>
-                    {
-                        bool aSide = (a.transform.position.x <= midX) == wantLeft;
-                        bool bSide = (b.transform.position.x <= midX) == wantLeft;
-                        if (aSide != bSide) return aSide ? -1 : 1;   // doğru taraf önce
-                        // Aynı taraftaysa çıkışa (kendi kenarına) en yakın olan önce
-                        float ea = Mathf.Abs(a.transform.position.x - midX);
-                        float eb = Mathf.Abs(b.transform.position.x - midX);
-                        return eb.CompareTo(ea);                      // kenara yakın = midX'ten uzak
-                    });
+                    // Küpleri aralıksız, sırayla (fermuar gibi) seç
+                    PixelCube targetCube = PickNextSequentialCube(exposedCubes, ref wantLeft, midX, ship.ShipColor);
+                    if (targetCube == null) break;
 
-                    PixelCube targetCube = exposedCubes[0];
+                    extractionStep++;
 
-                    // Küpü panodan koparmadan ÖNCE gemide yer ayır. Yer yoksa hiç koparma —
-                    // eskiden kapasite yalnızca varışta kontrol edildiği için fazladan küp
-                    // panodan siliniyor ama gemiye yazılamıyordu (boşa gidiyorlardı).
+                    // Küpü panodan koparmadan ÖNCE gemide yer ayır. Yer yoksa hiç koparma
                     if (!ship.TryReserveCargo()) break;
 
                     s_ReservedCubes.Add(targetCube);
@@ -540,8 +771,9 @@ namespace PixelGame
                         : Object.FindFirstObjectByType<PixelCubeInteraction>();
                     if (interaction != null) interaction.RegisterPoppedCube(targetCube);
 
-                    // Taraf ve şerit giriş sırasını ayır, sonra uçuşu başlat.
-                    ReserveSideAndEntry(ship, cubeStartPos, cubeScale.x, out bool useLeft, out ShoreLanePath lane, out _);
+                    // Taraf ve şerit giriş sırasını ayır (küpün kendi bulunduğu tarafın şeridini kullan)
+                    bool cubeOnLeft = cubeStartPos.x <= midX;
+                    ReserveSideAndEntry(ship, cubeStartPos, cubeScale.x, out bool useLeft, out ShoreLanePath lane, out _, cubeOnLeft);
 
                     StartCoroutine(FlyCubeThroughPierToShip(cubeStartPos, cubeColor, cubeScale.x * 0.45f, ship, targetCube, lane, cubeScale.x, useLeft));
 
@@ -647,88 +879,26 @@ namespace PixelGame
             tr.emitting = false;
 
             // ==========================================
-            // 1. AŞAMA: Pano -> ORTAK ŞERİT -> Kıyı
+            // 1. AŞAMA: Pano -> Kendi Konumundan Yürüyüş -> Kıyı
             // ==========================================
-            // Referans oyundaki gibi bütün küpler TEK bir eğriyi takip eder ve tek sıra
-            // halinde, bir küp boyu aralıkla akar. Eskiden her küp kendi panodaki
-            // yerinden kıyıya kendi düz çizgisiyle gidiyordu (yol 2.35-7.37 birim
-            // arasında değişiyordu), o yüzden yelpaze gibi açılıyor, şerit oluşmuyordu.
-            if (lane == null)
-            {
-                ReserveSideAndEntry(ship, startPos, cubeWorldSize, out useLeft, out lane, out _);
-            }
-            Vector3 pierLandingPos = lane.End;
+            // Kullanıcı isteği: "küpler yürüme hareketine geçtiğinde oldukları yerden yürümeye başlasınlar
+            // geriye gidip değil oldukları konum baz alınarak öyle hareket etsinler"
+            // Küp panodaki kendi özgün konumundan (startPos) doğrudan yürümeye başlar.
+            // Asla geriye gitmez; yumuşak Catmull-Rom eğrisiyle doğrudan iskeleye ve kıyıya doğru akar.
+            ShoreLanePath walkPath = BuildCubeWalkPath(startPos, ship, useLeft);
+            Vector3 pierLandingPos = walkPath.End;
 
-            // --- 1A. ÇIKIŞ YAYI: küp yuvasından şeridin başına KAVİSLE gider ---
-            // Düz çizgi istenmiyor: kontrol noktası panonun dışına doğru itilerek küp
-            // resmin üzerinden kestirme gitmek yerine dışarı doğru bir yay çizer.
-            Vector3 laneEntry = lane.Start;
-            float outward = useLeft ? -1f : 1f;
-            Vector3 exitCtrl = new Vector3(
-                laneEntry.x + outward * 0.45f,
-                Mathf.Lerp(startPos.y, laneEntry.y, 0.35f),
-                laneEntry.z);
-
-            var exitArc = ShoreLanePath.BuildThrough(new List<Vector3> { startPos, exitCtrl, laneEntry }, 20);
-
-            float travelledArc = 0f;
-            Vector3 prevP = startPos;
-            while (travelledArc < exitArc.Length && flyerObj != null)
-            {
-                travelledArc += WalkSpeedUnitsPerSecond * Time.deltaTime;
-                Vector3 p = exitArc.PointAtDistance(travelledArc);
-                Vector3 d = p - prevP;
-                flyerObj.transform.position = p;
-                walker.Walk(Time.deltaTime, WalkSpeedUnitsPerSecond, d.sqrMagnitude > 1e-8f ? d.normalized : Vector3.down);
-                prevP = p;
-                yield return null;
-            }
-
-            // --- 1B. Kuyruk: sırası gelene kadar şeridin gerisinde bekler ---
-            Vector3 laneDir0 = (lane.PointAtDistance(Mathf.Min(0.05f, lane.Length)) - laneEntry).normalized;
-            if (laneDir0.sqrMagnitude < 1e-6f) laneDir0 = Vector3.down;
-
-            float laneGap = Mathf.Max(0.02f, cubeWorldSize / WalkSpeedUnitsPerSecond);
-            float laneEntryTime = ReserveLaneEntry(ship, useLeft, cubeWorldSize);
-
-            while (flyerObj != null)
-            {
-                float remaining = laneEntryTime - Time.time;
-                float cubesAhead = Mathf.Max(0f, remaining / laneGap);
-                Vector3 queueSlot = laneEntry - laneDir0 * (cubesAhead * cubeWorldSize);
-
-                Vector3 cur = flyerObj.transform.position;
-                Vector3 step = Vector3.MoveTowards(cur, queueSlot, WalkSpeedUnitsPerSecond * Time.deltaTime);
-                Vector3 moveDir = step - cur;
-                flyerObj.transform.position = step;
-                walker.Walk(Time.deltaTime, WalkSpeedUnitsPerSecond,
-                            moveDir.sqrMagnitude > 1e-8f ? moveDir.normalized : laneDir0);
-
-                if (remaining <= 0f)
-                {
-                    if (Vector3.Distance(flyerObj.transform.position, laneEntry) <= cubeWorldSize * 0.5f)
-                    {
-                        flyerObj.transform.position = laneEntry;
-                        break;
-                    }
-                    laneEntryTime = ReserveLaneEntry(ship, useLeft, cubeWorldSize);
-                }
-
-                yield return null;
-            }
-
-            // --- 1C. Ortak şerit üzerinde sabit hızla ilerleme ---
-            float laneLength = lane.Length;
+            float pathLength = walkPath.Length;
             float travelled = 0f;
-            Vector3 lastPos = flyerObj != null ? flyerObj.transform.position : laneEntry;
+            Vector3 lastPos = startPos;
 
-            while (travelled < laneLength && flyerObj != null)
+            while (travelled < pathLength && flyerObj != null)
             {
                 travelled += WalkSpeedUnitsPerSecond * Time.deltaTime;
-                Vector3 p = lane.PointAtDistance(travelled);
+                Vector3 p = walkPath.PointAtDistance(travelled);
                 Vector3 dir = (p - lastPos);
                 flyerObj.transform.position = p;
-                walker.Walk(Time.deltaTime, WalkSpeedUnitsPerSecond, dir.sqrMagnitude > 1e-8f ? dir.normalized : laneDir0);
+                walker.Walk(Time.deltaTime, WalkSpeedUnitsPerSecond, dir.sqrMagnitude > 1e-8f ? dir.normalized : Vector3.down);
                 lastPos = p;
                 yield return null;
             }
@@ -838,7 +1008,9 @@ namespace PixelGame
             // Otomatik çıkarmayla aynı kural: uçuş başlamadan gemide yer ayrılır.
             if (!targetShip.TryReserveCargo()) return;
 
-            ReserveSideAndEntry(targetShip, worldStart, cubeScale.x, out bool useLeft, out ShoreLanePath lane, out _);
+            var st = GetOrBuildLaneState(targetShip, worldStart);
+            bool cubeOnLeft = worldStart.x <= st.MidPoint.x;
+            ReserveSideAndEntry(targetShip, worldStart, cubeScale.x, out bool useLeft, out ShoreLanePath lane, out _, cubeOnLeft);
             StartCoroutine(FlyCubeThroughPierToShip(worldStart, shardColor, cubeScale.x * 0.45f, targetShip, null, lane, cubeScale.x, useLeft));
         }
 
@@ -992,15 +1164,28 @@ namespace PixelGame
 
         /// <summary>
         /// Seviyedeki aktif henüz patlatılmamış küplerin renklerinden birini döndürür.
-        /// Seviye panosu o an hazır değilse veya boşsa, aktif bölümün (Level) paletindeki gerçek renklerden birini seçer.
+        /// preferExposed true ise öncelikle dışta (hemen toplanabilir) olan renklere öncelik verir.
+        /// preferExposed false ise seviyede toplanacak TÜM renklerden (ör. yeşil, siyah, kahverengi vb.) seçim yapar.
         /// </summary>
-        public Color GetRemainingLevelColor()
+        public static Color NormalizeShipColor(Color c)
         {
-            // 1. Önce DIŞTA (hemen toplanabilir) olan renklere öncelik ver!
-            var exposed = GetExposedLevelColors();
-            if (exposed != null && exposed.Count > 0)
+            if (c.r > 0.75f && c.g > 0.50f && c.b < 0.35f)
             {
-                return exposed[Random.Range(0, exposed.Count)];
+                return new Color(1.0f, 0.88f, 0.05f, 1f); // Net, saf parlak sarı
+            }
+            return c;
+        }
+
+        public Color GetRemainingLevelColor(bool preferExposed = true)
+        {
+            // 1. İsteniyorsa önce DIŞTA (hemen toplanabilir) olan renklere öncelik ver!
+            if (preferExposed)
+            {
+                var exposed = GetExposedLevelColors();
+                if (exposed != null && exposed.Count > 0)
+                {
+                    return NormalizeShipColor(exposed[Random.Range(0, exposed.Count)]);
+                }
             }
 
             if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
@@ -1037,7 +1222,7 @@ namespace PixelGame
                     if (colorCounts.Count > 0)
                     {
                         List<Color> keys = new List<Color>(colorCounts.Keys);
-                        return keys[Random.Range(0, keys.Count)];
+                        return NormalizeShipColor(keys[Random.Range(0, keys.Count)]);
                     }
                 }
             }
@@ -1054,7 +1239,7 @@ namespace PixelGame
             if (level != null && level.ColorPalette != null && level.ColorPalette.Count > 0)
             {
                 var entry = level.ColorPalette[Random.Range(0, level.ColorPalette.Count)];
-                return entry.targetColor != Color.clear ? entry.targetColor : entry.originalColor;
+                return NormalizeShipColor(entry.targetColor != Color.clear ? entry.targetColor : entry.originalColor);
             }
 
             return Color.clear;
@@ -1216,6 +1401,9 @@ namespace PixelGame
         private void CompleteLevelTransition()
         {
             m_LevelEndPending = false;
+            m_LastPoppedLeft = null;
+            m_LastPoppedRight = null;
+            m_LastExtractedColor = Color.clear;
             Debug.Log("<color=#00FFAA><b>[ShipDispatcher]</b></color> 🚢 Son gemi de sahneyi terk etti — seviye sıfırlanıyor.");
 
             if (LevelManager.Instance != null)

@@ -9,6 +9,13 @@ Shader "PixelGame/HypercasualWaterBackground"
         _WaterThresholdV ("Water Line V (0=Bottom, 1=Top)", Range(0.2, 0.6)) = 0.44
         _WaterTransitionSmooth ("Water Transition Softness", Range(0.01, 0.15)) = 0.04
         _WaterBlueDominance ("Water Blue Detection Factor", Range(0.0, 0.5)) = 0.08
+        _WaterDarkness ("Water Darkness / Deep Tint Blend", Range(0.0, 1.0)) = 0.40
+        _WaterBrightness ("Water Brightness Multiplier", Range(0.3, 1.5)) = 0.70
+        _WaterDeepTint ("Water Deep Ocean Color Tint", Color) = (0.04, 0.38, 0.75, 1.0)
+
+        [Header(Sand Beach Settings)]
+        _SandBrightness ("Sand Brightness", Range(0.8, 1.8)) = 1.0
+        _SandLighten ("Sand Lighten (0=Normal, 1=Extra Light)", Range(0.0, 1.0)) = 0.0
 
         [Header(Gentle Wave Undulation)]
         _WaveSpeed ("Wave Speed", Range(0.2, 4.0)) = 1.25
@@ -95,6 +102,12 @@ Shader "PixelGame/HypercasualWaterBackground"
                 float _WaterThresholdV;
                 float _WaterTransitionSmooth;
                 float _WaterBlueDominance;
+                float _WaterDarkness;
+                float _WaterBrightness;
+                float4 _WaterDeepTint;
+
+                float _SandBrightness;
+                float _SandLighten;
 
                 float _WaveSpeed;
                 float _WaveFrequency;
@@ -190,6 +203,25 @@ Shader "PixelGame/HypercasualWaterBackground"
                 float2 finalUV = baseUV + (waveOffset + rippleUVOffset) * waterMask;
 
                 half4 texCol = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, finalUV);
+
+                // Kum / Beach alanını açma ayarı (Lighter Beach Sand)
+                float sandFactor = (1.0 - waterMask);
+                if (sandFactor > 0.01 && (_SandBrightness != 1.0 || _SandLighten > 0.001))
+                {
+                    half3 lightSand = texCol.rgb * _SandBrightness;
+                    lightSand = lerp(lightSand, half3(1.0, 0.98, 0.95), _SandLighten * 0.35);
+                    texCol.rgb = lerp(texCol.rgb, lightSand, sandFactor);
+                }
+
+                // Su alanını koyulaştırma ve gemileri ön plana çıkarma (Darker & Deeper Tropical Ocean Water)
+                if (waterMask > 0.005)
+                {
+                    // Parlaklığı kıs ve kontrastı artır
+                    half3 darkened = texCol.rgb * _WaterBrightness;
+                    // Canlı ve zengin derin okyanus rengi ile zenginleştir (soluklaşmadan derinleşsin)
+                    half3 deepOcean = lerp(darkened, darkened * _WaterDeepTint.rgb * 1.85, _WaterDarkness);
+                    texCol.rgb = lerp(texCol.rgb, deepOcean, waterMask);
+                }
 
                 // 5. Tropik Güneş Kostik Parıltısı (Sunlight Sparkle / Shimmer)
                 if (waterMask > 0.01)

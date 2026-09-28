@@ -90,7 +90,18 @@ namespace PixelGame
         private static GameObject ResolveCubePrefab()
         {
             PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
-            return gen != null ? gen.CubePrefab : null;
+            if (gen != null && gen.CubePrefab != null) return gen.CubePrefab;
+
+#if UNITY_EDITOR
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("MainCube t:Prefab");
+            if (guids != null && guids.Length > 0)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+                GameObject prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab != null) return prefab;
+            }
+#endif
+            return null;
         }
 
         /// <summary>

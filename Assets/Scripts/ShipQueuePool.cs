@@ -19,7 +19,7 @@ namespace PixelGame
         [SerializeField] private int m_Columns = 4;
         [SerializeField] private int m_Rows = 2;
         [SerializeField] private Vector2 m_Spacing = new Vector2(1.28f, 1.35f);
-        [SerializeField] private float m_ShipScale = 0.126f;
+        [SerializeField] private float m_ShipScale = 0.26f;
 
         [Header("📍 Kuyruk Yerleri")]
         [SerializeField] private List<Transform> m_QueueSpots = new List<Transform>();
@@ -108,11 +108,15 @@ namespace PixelGame
                 Transform spot = m_QueueSpots[i];
                 if (spot == null) continue;
 
+                // Ön sırada (Row 0: i < m_Columns) ilk 2 gemi HEMEN toplanabilir dış renkten gelsin,
+                // diğer gemiler ise seviyede toplanacak diğer renklerden (yeşil, siyah, kahverengi vb.) dağıtılsın
+                bool preferExposed = (i < 2);
+                Color shipColor = GetNextNeededColor(preferExposed);
+                int capacity = GetRecommendedCapacity(shipColor);
+
                 ShipController existingShip = spot.GetComponentInChildren<ShipController>();
                 if (existingShip != null)
                 {
-                    Color shipColor = GetNextNeededColor();
-                    int capacity = GetRecommendedCapacity(shipColor);
                     existingShip.Configure(shipColor, capacity);
 
                     while (m_WaitingShips.Count <= i) m_WaitingShips.Add(null);
@@ -120,7 +124,7 @@ namespace PixelGame
                 }
                 else
                 {
-                    SpawnShipAtSpot(i);
+                    SpawnShipAtSpot(i, preferExposed);
                 }
             }
         }
@@ -165,7 +169,7 @@ namespace PixelGame
         /// <summary>
         /// Belirtilen spot indeksinde yeni bir gemi üretir.
         /// </summary>
-        public ShipController SpawnShipAtSpot(int spotIndex)
+        public ShipController SpawnShipAtSpot(int spotIndex, bool preferExposed = false)
         {
             if (spotIndex < 0 || spotIndex >= m_QueueSpots.Count) return null;
             if (m_ShipPrefab == null) return null;
@@ -181,7 +185,7 @@ namespace PixelGame
             ShipController ship = shipObj.GetComponent<ShipController>();
             if (ship == null) ship = shipObj.AddComponent<ShipController>();
 
-            Color shipColor = GetNextNeededColor();
+            Color shipColor = GetNextNeededColor(preferExposed);
             int capacity = GetRecommendedCapacity(shipColor);
             ship.Configure(shipColor, capacity);
 
@@ -233,14 +237,14 @@ namespace PixelGame
                 // aynı noktada iç içe biniyordu.
                 if (gameObject.activeInHierarchy)
                 {
-                    StartCoroutine(MoveBackShipToFrontSpot(backShip, frontSpot, 0.3f));
+                    StartCoroutine(MoveBackShipToFrontSpot(backShip, frontSpot, 0.15f));
                 }
             }
 
             // 2. Boşalan arka yere açık denizden yeni gemi yüzerek gelsin
             if (gameObject.activeInHierarchy)
             {
-                StartCoroutine(SpawnAndSailInNewShip(backIndex, 0.22f));
+                StartCoroutine(SpawnAndSailInNewShip(backIndex, 0.18f));
             }
         }
 
@@ -302,7 +306,7 @@ namespace PixelGame
             ShipController ship = shipObj.GetComponent<ShipController>();
             if (ship == null) ship = shipObj.AddComponent<ShipController>();
 
-            Color shipColor = GetNextNeededColor();
+            Color shipColor = GetNextNeededColor(false);
             int capacity = GetRecommendedCapacity(shipColor);
             ship.Configure(shipColor, capacity);
 
@@ -338,11 +342,11 @@ namespace PixelGame
                 });
         }
 
-        private Color GetNextNeededColor()
+        private Color GetNextNeededColor(bool preferExposed = false)
         {
             if (ShipDispatcher.Instance != null)
             {
-                Color color = ShipDispatcher.Instance.GetRemainingLevelColor();
+                Color color = ShipDispatcher.Instance.GetRemainingLevelColor(preferExposed);
                 if (color != Color.clear) return color;
             }
 
@@ -358,7 +362,8 @@ namespace PixelGame
             if (level != null && level.ColorPalette != null && level.ColorPalette.Count > 0)
             {
                 var entry = level.ColorPalette[UnityEngine.Random.Range(0, level.ColorPalette.Count)];
-                return entry.targetColor != Color.clear ? entry.targetColor : entry.originalColor;
+                Color chosen = entry.targetColor != Color.clear ? entry.targetColor : entry.originalColor;
+                return ShipDispatcher.NormalizeShipColor(chosen);
             }
 
             // Fallback 2: Son çare seviye renkleri (Rastgele aykırı renkler yerine seviye tonları)

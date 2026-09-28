@@ -1,3 +1,4 @@
+#pragma warning disable 0414
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -94,8 +95,8 @@ namespace PixelGame
         [SerializeField] private Text m_BadgeUIText;
         [SerializeField] private Image m_BadgeImage;
 
-        // Sabit temel ölçek (Her zaman uniform 0.126)
-        public const float DefaultShipScale = 0.126f;
+        // Sabit temel ölçek (Her zaman uniform 0.26f - 2. görseldeki gibi doygun ve büyük)
+        public const float DefaultShipScale = 0.26f;
 
         [Header("🌑 Yerel Gölge Yakalayıcı (Per-Ship Shadow Catcher)")]
         [Tooltip("Sahnedeki tek/büyük Ground_ShadowCatcher düzlemi, gemiyle aynı Z derinliğinde " +
@@ -103,8 +104,8 @@ namespace PixelGame
                  "(ışık açılı geldiği için Z farkı = X/Y kayması). Çözüm: her gemiye, gemiyle TAM " +
                  "AYNI derinlikte duran kendi küçük yakalayıcısını vermek — böylece gölge her zaman " +
                  "geminin tam altında kalır.")]
-        [SerializeField] private bool m_EnableLocalShadowCatcher = true;
-        [SerializeField] private Vector2 m_ShadowCatcherWorldSize = new Vector2(0.55f, 1.35f);
+        [SerializeField] private bool m_EnableLocalShadowCatcher = false;
+        [SerializeField] private Vector2 m_ShadowCatcherWorldSize = new Vector2(0.55f, 0.95f);
         [Tooltip("Yakalayıcının gemiden, IŞIĞIN KENDİ YÖNÜ boyunca ne kadar öteye kayacağı. " +
                  "Sıfır olursa yakalayıcı geminin gövdesiyle aynı derinlikte kalır ve Unity'nin " +
                  "gölge yanlılığı (shadow bias) bunu 'kendi kendine gölge' sayıp gölgeyi hiç " +
@@ -220,64 +221,27 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Geminin kendi altına, TAM kendi derinliğinde (Z) duran küçük bir gölge yakalayıcı
-        /// (Ground_ShadowCatcher ile aynı shader) oluşturur/günceller. Böylece Directional Light
-        /// gölgesi her zaman geminin tam altında kalır, sahnedeki büyük/tek yakalayıcıdaki gibi
-        /// başka bir yere kaymaz.
+        /// Kullanıcı isteği: Gemi gölge yakalayıcıları (shadow catchers) kaldırıldı.
         /// </summary>
         private void CreateOrFindShadowCatcher()
         {
-            if (!m_EnableLocalShadowCatcher)
-            {
-                if (m_ShadowCatcherObj != null) m_ShadowCatcherObj.SetActive(false);
-                return;
-            }
-
             Transform existing = transform.Find("Ship_Shadow_Catcher");
-            GameObject go = existing != null ? existing.gameObject : null;
-
-            if (go == null)
+            if (existing != null)
             {
-                go = new GameObject("Ship_Shadow_Catcher", typeof(MeshFilter), typeof(MeshRenderer));
-                go.transform.SetParent(transform, false);
-                go.transform.localRotation = Quaternion.identity;
+                if (Application.isPlaying) Destroy(existing.gameObject);
+                else DestroyImmediate(existing.gameObject, true);
             }
-
-            m_ShadowCatcherObj = go;
-
-            MeshFilter mf = go.GetComponent<MeshFilter>();
-            if (mf.sharedMesh == null) mf.sharedMesh = GetShadowCatcherQuadMesh();
-
-            MeshRenderer mr = go.GetComponent<MeshRenderer>();
-            Material mat = GetShipShadowCatcherMaterial();
-            if (mat != null && mr.sharedMaterial != mat) mr.sharedMaterial = mat;
-            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            mr.receiveShadows = true;
-            mr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
-            mr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
-
-            go.SetActive(true);
+            if (m_ShadowCatcherObj != null)
+            {
+                if (Application.isPlaying) Destroy(m_ShadowCatcherObj);
+                else DestroyImmediate(m_ShadowCatcherObj, true);
+                m_ShadowCatcherObj = null;
+            }
         }
 
         private void UpdateShadowCatcherPlacement()
         {
-            if (m_ShadowCatcherObj == null || !m_ShadowCatcherObj.activeSelf) return;
-
-            // Yakalayıcıyı geminin biraz "arkasına" (ışığın kendi ilerleme yönüne) kaydır —
-            // board'daki küp gölgesini de doğru gösteren aynı mantık: ışık yönünde küçük bir
-            // ayrım olmazsa Unity kendi gölgesi sanıp hiç göstermiyor (shadow bias).
-            Light light = GetMainDirectionalLight();
-            Vector3 offsetDir = light != null ? light.transform.forward : Vector3.forward;
-            m_ShadowCatcherObj.transform.position = transform.position + offsetDir * m_ShadowCatcherOffsetDistance;
-            // Dünya rotasyonu: Ground_ShadowCatcher gibi hep düz/eksene hizalı kalsın — geminin
-            // sallanma/yelken açma rotasyonuna bağlı kalırsa kamera açısından "kaçabilir".
-            m_ShadowCatcherObj.transform.rotation = Quaternion.identity;
-
-            Vector3 parentLossy = transform.lossyScale;
-            m_ShadowCatcherObj.transform.localScale = new Vector3(
-                m_ShadowCatcherWorldSize.x / Mathf.Max(0.0001f, parentLossy.x),
-                m_ShadowCatcherWorldSize.y / Mathf.Max(0.0001f, parentLossy.y),
-                1f);
+            // Kullanıcı isteği: Gemi gölge yakalayıcıları kaldırıldı.
         }
 
         private void Awake()
@@ -304,10 +268,10 @@ namespace PixelGame
 
         private void OnValidate()
         {
-            InvalidateRingSprite();
-            CreateOrFindBadge();
-            CreateOrFindShadowCatcher();
-            UpdateBadgeText();
+            if (m_BadgeUIText != null)
+            {
+                UpdateBadgeText();
+            }
         }
 
         private void Start()
@@ -355,6 +319,11 @@ namespace PixelGame
 
         private void UpdateBadgePlacement()
         {
+            if (m_BadgeCanvasObj == null)
+            {
+                Transform foundTr = transform.Find("Ship_Capacity_Canvas");
+                if (foundTr != null) m_BadgeCanvasObj = foundTr.gameObject;
+            }
             if (m_BadgeCanvasObj == null) return;
 
             // Kullanıcı isteği: "textteki sayı dolduğunda text yok olsun"
@@ -365,21 +334,62 @@ namespace PixelGame
                 return;
             }
 
-            Camera cam = Camera.main;
-            if (cam == null) cam = UnityEngine.Object.FindFirstObjectByType<Camera>();
-
-            if (cam != null)
+            Transform canvasTr = m_BadgeCanvasObj.transform;
+            if (canvasTr.parent != transform)
             {
-                m_BadgeCanvasObj.transform.rotation = cam.transform.rotation;
-                // Kameraya doğru belirgin şekilde öne çıkar (0.85f Z-ofset ile 3D gövdenin önünde parlar):
-                Vector3 headTopPos = transform.position + cam.transform.up * 0.52f - cam.transform.forward * 0.85f;
-                m_BadgeCanvasObj.transform.position = headTopPos;
+                canvasTr.SetParent(transform, true);
             }
 
-            float lossy = transform.lossyScale.x;
-            if (Mathf.Abs(lossy) < 0.0001f) lossy = 1f;
-            // Metnin ve dairenin kristal netlikte görünmesi için büyük, ferah ölçek
-            m_BadgeCanvasObj.transform.localScale = Vector3.one * (0.011f / lossy);
+            // 1. Kullanıcı isteği: "gemilerdeki textler ortalanacak"
+            // Gemi gövdesinin/kabininin tam ortası: X = 0f, Y = 2.22f, Z = -0.20f
+            Vector3 roofLocalPos = new Vector3(0f, 2.22f, -0.20f);
+            Vector3 targetWorldPos = transform.TransformPoint(roofLocalPos);
+            if ((canvasTr.position - targetWorldPos).sqrMagnitude > 0.00001f)
+            {
+                canvasTr.position = targetWorldPos;
+            }
+
+            // 2. Kullanıcı isteği: "slotlara yerleştiğinde de textler sabit konumda olacak değişim göstermesinler (ilk görselde yer alıyor)"
+            // Slotların X/Y/Z rotasyonu veya su dalgalanması ne olursa olsun,
+            // yazı HER ZAMAN kameraya dik, düzgün ve net bakar; asla yana yatmaz, bozulmaz.
+            Camera cam = Camera.main;
+            Quaternion targetWorldRot = cam != null ? cam.transform.rotation : Quaternion.identity;
+            if (canvasTr.rotation != targetWorldRot)
+            {
+                canvasTr.rotation = targetWorldRot;
+            }
+
+            // 3. Kullanıcı isteği: "2.görseldeki gibi görünsün textler daha kaliteli hale getir"
+            // 2. Görsel referansındaki gibi aracın genişliğinin ~%72-75'ini kaplayan BÜYÜK HERO TEXT.
+            // Ebeveyn slot veya kuyruk ölçeği ne olursa olsun sabit bir dünya boyutunda tut:
+            Vector3 boatLossy = transform.lossyScale;
+            float avgLossy = (Mathf.Abs(boatLossy.x) + Mathf.Abs(boatLossy.y) + Mathf.Abs(boatLossy.z)) / 3f;
+            if (avgLossy < 0.0001f) avgLossy = 0.35f;
+
+            // Hedef dünya metin genişliği: ~0.70 dünya birimi (geminin 0.94 dünya genişliğinin %74.5'i)
+            float targetLocalScaleFactor = 0.0088f / avgLossy;
+            Vector3 targetLocalScale = Vector3.one * targetLocalScaleFactor;
+            if ((canvasTr.localScale - targetLocalScale).sqrMagnitude > 0.000001f)
+            {
+                canvasTr.localScale = targetLocalScale;
+            }
+
+            if (m_BadgeText == null)
+            {
+                m_BadgeText = m_BadgeCanvasObj.GetComponentInChildren<TextMeshProUGUI>(true);
+            }
+            if (m_BadgeText != null)
+            {
+                RectTransform rt = m_BadgeText.rectTransform;
+                if (rt.anchoredPosition != Vector2.zero) rt.anchoredPosition = Vector2.zero;
+                if (Mathf.Abs(rt.localPosition.z - (-11.5f)) > 0.001f) rt.localPosition = new Vector3(0f, 0f, -11.5f);
+                if (rt.sizeDelta != new Vector2(180f, 120f)) rt.sizeDelta = new Vector2(180f, 120f);
+                if (rt.localScale != Vector3.one) rt.localScale = Vector3.one;
+
+                if (m_BadgeText.fontSize != 72f) m_BadgeText.fontSize = 72f;
+                if (m_BadgeText.color != Color.white) m_BadgeText.color = Color.white;
+                if (m_BadgeText.outlineWidth != 0.22f) m_BadgeText.outlineWidth = 0.22f;
+            }
 
             if (!m_BadgeCanvasObj.activeSelf && !m_IsDeparting && !IsFull && RemainingCapacity > 0)
             {
@@ -452,21 +462,112 @@ namespace PixelGame
             return s_WhiteTex;
         }
 
+        private static readonly Dictionary<Color32, Texture2D> s_CachedBoatTextures = new Dictionary<Color32, Texture2D>();
+        private static readonly Dictionary<Color32, Material> s_CachedBoatMaterials = new Dictionary<Color32, Material>();
+
+        public static bool IsYellowSpectrum(Color c)
+        {
+            // Amber/turuncu-sarı (F9A825) ve açık sarılar dahil tüm sarı tonlarını saf canlı sarıya eşle
+            return c.r > 0.70f && c.g > 0.45f && c.b < 0.35f;
+        }
+
+        public static readonly Color PureSunnyYellow = new Color(1.0f, 0.88f, 0.05f, 1f);
+
+        public static Texture2D GetOrCreateBoatTexture(Color color)
+        {
+            if (IsYellowSpectrum(color))
+            {
+                color = PureSunnyYellow;
+            }
+
+            Color32 key = (Color32)color;
+            key.a = 255;
+            if (s_CachedBoatTextures.TryGetValue(key, out Texture2D cached) && cached != null)
+            {
+                return cached;
+            }
+
+            int w = 64;
+            int h = 64;
+            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            tex.name = $"BoatColormap_{ColorUtility.ToHtmlStringRGB(color)}";
+
+            Color32[] pixels = new Color32[w * h];
+            // Kullanıcı isteği: Geminin üst kısmı, çatısı ve her zerresi küpün rengiyle BİREBİR AYNI
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                pixels[i] = key;
+            }
+
+            tex.SetPixels32(pixels);
+            tex.Apply(false, true);
+
+            s_CachedBoatTextures[key] = tex;
+            return tex;
+        }
+
+        public static Material GetOrCreateBoatMaterial(Color color)
+        {
+            bool isYellow = IsYellowSpectrum(color);
+            if (isYellow)
+            {
+                color = PureSunnyYellow;
+            }
+
+            Color32 key = (Color32)color;
+            key.a = 255;
+            if (s_CachedBoatMaterials.TryGetValue(key, out Material cached) && cached != null)
+            {
+                return cached;
+            }
+
+            Material baseMat = null;
+#if UNITY_EDITOR
+            baseMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Ship_Watercraft_Mat.mat");
+#endif
+            Material mat = baseMat != null ? new Material(baseMat) : new Material(Shader.Find("Toony Colors Pro 2/PixelGame/Cartoon") ?? Shader.Find("Universal Render Pipeline/Lit"));
+            mat.name = $"Ship_BoatMat_{ColorUtility.ToHtmlStringRGB(color)}";
+
+            Texture2D tex = GetOrCreateBoatTexture(color);
+            mat.SetTexture("_BaseMap", tex);
+            mat.SetTexture("_MainTex", tex);
+            mat.SetColor("_BaseColor", color);
+            mat.SetColor("_Color", color);
+
+            if (isYellow)
+            {
+                mat.SetColor("_HColor", new Color(1.0f, 0.98f, 0.65f, 1f));
+                mat.SetColor("_SColor", new Color(0.92f, 0.78f, 0.10f, 1f)); // Sıcak altın sarısı gölge, ASLA turuncu/kahve değil!
+            }
+            else
+            {
+                mat.SetColor("_HColor", Color.Lerp(Color.white, color, 0.25f));
+                mat.SetColor("_SColor", color * 0.70f);
+            }
+            mat.SetColor("_RimColor", new Color(1f, 1f, 1f, 0.35f));
+            mat.SetColor("_PlasticHighlightColor", Color.white);
+
+            s_CachedBoatMaterials[key] = mat;
+            return mat;
+        }
+
         /// <summary>
-        /// Geminin HER BİR ZERRESİNİ (%100 tüm parçalarını) küplerle tam aynı renge boyar.
-        /// FBX'in çok renkli dokusunu (colormap) devre dışı bırakır.
+        /// Gemiyi kenney boat-house-a stiline uygun olarak boyar:
+        /// Geminin her zerresi ve çatısı toplayacağı küpün rengini alır.
         /// </summary>
         public void ApplyColorToShip(Color color)
         {
+            if (IsYellowSpectrum(color))
+            {
+                color = PureSunnyYellow;
+            }
             m_ShipColor = color;
             if (m_Renderers == null || m_Renderers.Length == 0)
             {
                 m_Renderers = GetComponentsInChildren<MeshRenderer>(true);
             }
 
-            if (m_PropBlock == null) m_PropBlock = new MaterialPropertyBlock();
-
-            Texture2D whiteTex = GetWhiteTexture();
+            Material boatMat = GetOrCreateBoatMaterial(color);
 
             foreach (var mr in m_Renderers)
             {
@@ -474,18 +575,14 @@ namespace PixelGame
                 // Dinamik varil renderers'ını ana gövde boyamasından ayrı tut
                 if (m_CargoDeckRoot != null && mr.transform.IsChildOf(m_CargoDeckRoot)) continue;
 
-                mr.GetPropertyBlock(m_PropBlock);
-
-                // Çok renkli kaplamayı iptal et ve HER ZERRESİNİ birebir küpün rengi yap!
-                m_PropBlock.SetColor("_BaseColor", color);
-                m_PropBlock.SetColor("_Color", color);
-                m_PropBlock.SetTexture("_BaseMap", whiteTex);
-                m_PropBlock.SetTexture("_MainTex", whiteTex);
-                m_PropBlock.SetColor("_HColor", Color.Lerp(color, Color.white, 0.28f));
-                m_PropBlock.SetColor("_SColor", Color.Lerp(color, Color.black, 0.35f));
-                m_PropBlock.SetColor("_RimColor", Color.Lerp(color, Color.white, 0.45f));
-                m_PropBlock.SetColor("_PlasticHighlightColor", Color.white);
-                mr.SetPropertyBlock(m_PropBlock);
+                if (Application.isPlaying)
+                {
+                    mr.material = boatMat;
+                }
+                else
+                {
+                    mr.sharedMaterial = boatMat;
+                }
             }
 
             // Mevcut oluşturulmuş variller varsa renklerini de güncelle
@@ -503,40 +600,24 @@ namespace PixelGame
 
             if (m_IsDeparting) return;
 
-            int prevCargo = m_CurrentCargo;
             m_CurrentCargo = Mathf.Min(m_Capacity, m_CurrentCargo + amount);
             UpdateBadgeText();
 
-            // Yeni binen her küp için geminin renginde 1 adet 3D varil oluştur
-            // (Varilin kendi OutBack "pop" animasyonu zaten yeterli juice veriyor — gemi gövdesinde
-            // ayrıca zıplama YOK artık: kargolar 0.12sn arayla art arda geldiğinde bu zıplama
-            // (0.18sn) hiç tamamlanmadan DOKill ile kesilip yeniden başlıyordu, gemi sürekli
-            // titriyormuş gibi kötü bir his veriyordu.)
-            for (int i = prevCargo; i < m_CurrentCargo; i++)
-            {
-                SpawnCargoBarrel(i);
-            }
-
-            // A/B test: Level Designer penceresindeki butonla YENİ (sallanma) / ESKİ (DOTween punch)
-            // arasında Play Mode'da bile anında geçiş yapılabilir.
-            if (UseLegacyCargoPunch)
-            {
-                transform.DOKill(true);
-                transform.DOPunchScale(new Vector3(0.08f, -0.08f, 0.08f) * m_BaseScale.x, 0.18f, 4, 0.5f)
-                    .OnComplete(() => transform.localScale = GetLocalScaleForBaseWorldScale());
-            }
-            else
-            {
-                // Mevcut (drift yapmayan) su salınımını kısa süreliğine canlandırıyoruz —
-                // gemi kargo aldıkça heyecanla sallanıp doğal şekilde sakinleşiyor.
-                TriggerCargoWobble();
-            }
+            // Referans videodaki gibi küp geldikçe canlı, enerjik yaylanma / squash tepkisi
+            PlayCargoReceiveJuice();
 
             if (IsFull && !m_IsDeparting)
             {
                 OnCargoFilled?.Invoke(this);
                 DepartAndFreeSlot();
             }
+        }
+
+        public void PlayCargoReceiveJuice()
+        {
+            transform.DOKill(true);
+            transform.DOPunchScale(new Vector3(0.065f, -0.065f, 0.065f) * m_BaseScale.x, 0.12f, 2, 0.45f)
+                .OnComplete(() => transform.localScale = GetLocalScaleForBaseWorldScale());
         }
 
         /// <summary>
@@ -574,10 +655,17 @@ namespace PixelGame
 
         private IEnumerator DepartToLeftRoutine()
         {
-            // 1. Text ve rozet hemen kaybolur (Kullanıcı: "textteki sayı dolduğunda text yok olsun")
+            // 1. Text ve rozet hemen kaybolur
             if (m_BadgeCanvasObj != null) m_BadgeCanvasObj.SetActive(false);
             if (m_BadgeUIText != null) m_BadgeUIText.gameObject.SetActive(false);
             if (m_BadgeImage != null) m_BadgeImage.gameObject.SetActive(false);
+
+            // Slottan ayrılırken slotu hemen boşa çıkar ki oyuncu hemen yeni gemi yerleştirebilsin (videodaki gibi)
+            if (m_CurrentSlot != null)
+            {
+                m_CurrentSlot.ReleaseShip();
+                m_CurrentSlot = null;
+            }
 
             // Slottan dünya koordinatlarına çık
             transform.SetParent(null, true);
@@ -587,9 +675,8 @@ namespace PixelGame
             Quaternion startRot = transform.rotation;
 
             // Slottan ayrılış: Geminin pruva (burun) yönünde slottan ileriye doğru zarifçe süzülür
-            Vector3 undockOffset = transform.forward * 0.90f;
-            // Kalkış rotası, slotun biraz daha üstünden geçsin diye ekstra dikey yükseklik payı
-            const float departExtraLift = 0.18f;
+            Vector3 undockOffset = transform.forward * 0.85f;
+            const float departExtraLift = 0.15f;
             Vector3 undockPos = startPos + undockOffset + new Vector3(0f, departExtraLift, 0f);
 
             // Su yüzeyi düzleminde sola bakan hedef rotasyon (Lokal Y ekseninde -90° dönüş):
@@ -604,26 +691,19 @@ namespace PixelGame
             Vector3 p2 = new Vector3(Mathf.Lerp(p1.x, departTarget.x, 0.38f), undockPos.y, undockPos.z);
             Vector3 p3 = departTarget;
 
-            float travelDist = Mathf.Abs(startPos.x - departTarget.x);
-            float duration = Mathf.Clamp(travelDist * 0.15f + 0.35f, 1.25f, 2.10f);
+            float duration = 1.15f;
             float elapsed = 0f;
-            float lastRippleTime = 0f;
+            float lastSmokeTime = 0f;
 
-            // Kalkışta motor çalıştırma küçük su dalgası (Departure Splash)
-            SpawnWaterRipple(startPos - transform.forward * 0.30f + new Vector3(0f, -0.06f, 0.02f), 0.28f, 1.05f, 0.50f);
+            // Kalkışta motor çalıştırma puf dumanı ve küçük su dalgası
+            SpawnSmokePuff(startPos - transform.forward * 0.25f, 0.16f, 0.40f, 0.42f);
+            SpawnWaterRipple(startPos - transform.forward * 0.25f, 0.24f, 0.85f, 0.45f);
 
             while (elapsed < duration)
             {
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / duration);
 
-                // Not: Slot BİLEREK erken (kalkış animasyonu bitmeden) serbest bırakılmıyor —
-                // erken bırakılırsa yeni gemi bu gemi hâlâ oradan uzaklaşırken slota yelken açmaya
-                // başlıyor ve iki gemi iç içe giriyordu. Slot artık sadece kalkış tamamen bitince
-                // (rutinin sonunda) serbest bırakılıyor, böylece yeni gemi ancak öndeki tamamen
-                // sahneyi terk ettikten sonra slota gelmeye başlıyor.
-
-                // Gerçekçi gemi ivmelenmesi (ilk %25'te tatlı hızlanma, sonra sabit seyir sürati)
                 float moveT = (t < 0.25f) ? (2.0f * t * t) : (t - 0.125f) / 0.875f;
                 moveT = Mathf.Clamp01(moveT);
 
@@ -631,27 +711,21 @@ namespace PixelGame
                 Vector3 currentPos = EvaluateCubicBezier(p0, p1, p2, p3, moveT);
                 transform.position = currentPos;
 
-                // Dönüş yönü: Slottan çıkarken dümen kırma (t: 0.10 -> 0.52 arasında sola dönüş)
-                float turnT = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - 0.10f) / 0.42f));
-                // Dönüş esnasında sola tatlı gemi yatması (Banking Roll)
-                float bankRoll = Mathf.Sin(turnT * Mathf.PI) * 7.5f;
+                // Dönüş yönü: Slottan çıkarken dümen kırma (t: 0.10 -> 0.48 arasında sola dönüş)
+                float turnT = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - 0.08f) / 0.40f));
+                float bankRoll = Mathf.Sin(turnT * Mathf.PI) * 7.0f;
                 transform.rotation = Quaternion.Slerp(startRot, leftTargetRot, turnT) * Quaternion.Euler(0f, 0f, bankRoll);
 
-                // Arkada köpüklü su izi (Water Wake Ripples)
-                if (Time.time - lastRippleTime > 0.065f)
+                // Referans videodaki gibi arkasında beyaz puf duman bulutları ve köpük izi
+                if (Time.time - lastSmokeTime > 0.040f)
                 {
-                    lastRippleTime = Time.time;
-                    Vector3 wakePos = currentPos - transform.forward * 0.38f + new Vector3(0f, -0.06f, 0.02f);
-                    SpawnWaterRipple(wakePos, 0.20f, 0.80f, 0.40f);
+                    lastSmokeTime = Time.time;
+                    Vector3 exhaustPos = currentPos - transform.forward * 0.35f + new Vector3(0f, -0.05f, 0.02f);
+                    SpawnSmokePuff(exhaustPos, 0.12f, 0.36f, 0.38f);
+                    SpawnWaterRipple(exhaustPos, 0.18f, 0.65f, 0.38f);
                 }
 
                 yield return null;
-            }
-
-            if (m_CurrentSlot != null)
-            {
-                m_CurrentSlot.ReleaseShip();
-                m_CurrentSlot = null;
             }
 
             OnDeparted?.Invoke(this);
@@ -688,13 +762,13 @@ namespace PixelGame
 
             // 4 Noktalı Pürüzsüz Bezier Su Rotası
             Vector3 p0 = startWorldPos;
-            Vector3 p1 = startWorldPos + new Vector3(0f, 0.75f, -0.1f);
-            Vector3 p2 = targetWorld + new Vector3(0f, -0.75f, 0.1f);
+            Vector3 p1 = startWorldPos + new Vector3(0f, 0.65f, -0.08f);
+            Vector3 p2 = targetWorld + new Vector3(0f, -0.65f, 0.08f);
             Vector3 p3 = targetWorld;
 
-            float duration = 1.05f;
+            float duration = 0.48f; // Referans videodaki gibi seri, tatmin edici ve atik geçiş süresi
             float elapsed = 0f;
-            float lastRippleTime = 0f;
+            float lastSmokeTime = 0f;
             float lateralDelta = targetWorld.x - startWorldPos.x;
 
             while (elapsed < duration)
@@ -706,7 +780,7 @@ namespace PixelGame
                 Vector3 currentWorldPos = EvaluateCubicBezier(p0, p1, p2, p3, easeT);
                 transform.position = currentWorldPos;
 
-                // Dünya boyutunu yelken boyunca %100 sabit tut (asla büyüme/küçülme yapmaz)
+                // Dünya boyutunu yelken boyunca %100 sabit tut
                 if (transform.parent == null)
                 {
                     transform.localScale = startWorldScale;
@@ -717,17 +791,19 @@ namespace PixelGame
                 }
 
                 // Dönüş yönüne göre hafif yatma (Banking Roll)
-                float bankRoll = Mathf.Sin(easeT * Mathf.PI) * (-Mathf.Sign(lateralDelta) * Mathf.Clamp(Mathf.Abs(lateralDelta) * 5.0f, 2f, 7.5f));
+                float bankRoll = Mathf.Sin(easeT * Mathf.PI) * (-Mathf.Sign(lateralDelta) * Mathf.Clamp(Mathf.Abs(lateralDelta) * 5.0f, 2f, 6.5f));
                 float alignWeight = Mathf.Clamp01((easeT - 0.65f) / 0.35f);
                 float currentRoll = Mathf.Lerp(bankRoll, 0f, alignWeight);
 
                 transform.rotation = Quaternion.Slerp(startRot, targetSlotWorldRot, easeT) * Quaternion.Euler(0f, 0f, currentRoll);
 
-                if (Time.time - lastRippleTime > 0.075f)
+                // Slota ilerlerken motor dumanı ve su izi
+                if (Time.time - lastSmokeTime > 0.045f)
                 {
-                    lastRippleTime = Time.time;
-                    Vector3 wakePos = currentWorldPos + new Vector3(0f, -0.10f, 0.05f);
-                    SpawnWaterRipple(wakePos, 0.18f, 0.75f, 0.45f);
+                    lastSmokeTime = Time.time;
+                    Vector3 exhaustPos = currentWorldPos - transform.forward * 0.32f + new Vector3(0f, -0.05f, 0.02f);
+                    SpawnSmokePuff(exhaustPos, 0.10f, 0.28f, 0.32f);
+                    SpawnWaterRipple(exhaustPos, 0.15f, 0.52f, 0.35f);
                 }
 
                 yield return null;
@@ -736,17 +812,14 @@ namespace PixelGame
             transform.SetParent(targetSlot.transform, true);
             transform.localPosition = targetLocalPos;
             transform.localRotation = Quaternion.identity;
-            // Not: SetParent(..., true) dünya boyutunu zaten koruyacak local scale'i hesaplamıştı;
-            // burada ham m_BaseScale'i (dünya ölçeği) doğrudan localScale'e ATAMIYORUZ — slotun kendi
-            // (simetrik olmayan) ölçeği binip gemiyi ezip uzatıyordu. Bunun yerine bu slot altında
-            // aynı dünya boyutunu koruyacak doğru local scale'i hesaplıyoruz.
             transform.localScale = GetLocalScaleForBaseWorldScale();
 
             m_BaseLocalPosition = targetLocalPos;
             m_BaseLocalRotation = Quaternion.identity;
 
-            SpawnWaterRipple(transform.position, 0.35f, 1.15f, 0.6f);
-            transform.DOPunchScale(new Vector3(0.08f, -0.08f, 0.08f) * m_BaseScale.x, 0.28f, 3, 0.4f)
+            // Slota yanaşma puf dalgası ve hafif yaylanma
+            SpawnWaterRipple(transform.position, 0.28f, 0.95f, 0.45f);
+            transform.DOPunchScale(new Vector3(0.06f, -0.06f, 0.06f) * m_BaseScale.x, 0.20f, 2, 0.45f)
                 .OnComplete(() => transform.localScale = GetLocalScaleForBaseWorldScale());
 
             m_IsMoving = false;
@@ -832,6 +905,72 @@ namespace PixelGame
             {
                 if (Application.isPlaying) Destroy(ripple, duration);
                 else DestroyImmediate(ripple);
+            }
+        }
+
+        private static Material s_SmokePuffSharedMaterial;
+
+        /// <summary>
+        /// Referans videodaki gibi geminin arkasında beliren yumuşak beyaz puf duman bulutu (Cartoon Smoke Puff) oluşturur.
+        /// </summary>
+        public static void SpawnSmokePuff(Vector3 worldPos, float startScale = 0.10f, float maxScale = 0.32f, float duration = 0.38f)
+        {
+            GameObject puff = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            puff.name = "SmokePuff_FX";
+            puff.transform.position = worldPos;
+
+            Camera cam = Camera.main;
+            if (cam != null) puff.transform.rotation = cam.transform.rotation;
+            else puff.transform.rotation = Quaternion.Euler(-68f, 0f, 0f);
+
+            puff.transform.localScale = Vector3.one * startScale;
+
+            Collider col = puff.GetComponent<Collider>();
+            if (col != null)
+            {
+                if (Application.isPlaying) Destroy(col);
+                else DestroyImmediate(col);
+            }
+
+            MeshRenderer mr = puff.GetComponent<MeshRenderer>();
+            if (mr != null)
+            {
+                if (s_SmokePuffSharedMaterial == null)
+                {
+                    Shader smokeShader = Shader.Find("PixelGame/CartoonSmokePuff");
+                    if (smokeShader == null) smokeShader = Shader.Find("Universal Render Pipeline/Unlit");
+                    if (smokeShader == null) smokeShader = Shader.Find("Unlit/Transparent");
+                    s_SmokePuffSharedMaterial = new Material(smokeShader);
+                    s_SmokePuffSharedMaterial.SetColor("_BaseColor", new Color(1f, 1f, 1f, 0.90f));
+                }
+
+                Material instMat = new Material(s_SmokePuffSharedMaterial);
+                mr.sharedMaterial = instMat;
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                mr.receiveShadows = false;
+
+                Vector3 drift = Vector3.up * 0.12f + new Vector3(UnityEngine.Random.Range(-0.04f, 0.04f), UnityEngine.Random.Range(0f, 0.04f), UnityEngine.Random.Range(-0.04f, 0.04f));
+                puff.transform.DOMove(worldPos + drift, duration).SetEase(Ease.OutQuad);
+                puff.transform.DOScale(Vector3.one * maxScale, duration).SetEase(Ease.OutQuad);
+                instMat.DOFade(0f, "_BaseColor", duration).SetEase(Ease.InQuad)
+                    .OnComplete(() =>
+                    {
+                        if (Application.isPlaying)
+                        {
+                            Destroy(instMat);
+                            Destroy(puff);
+                        }
+                        else
+                        {
+                            DestroyImmediate(instMat);
+                            DestroyImmediate(puff);
+                        }
+                    });
+            }
+            else
+            {
+                if (Application.isPlaying) Destroy(puff, duration);
+                else DestroyImmediate(puff);
             }
         }
 
@@ -1127,9 +1266,7 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Geminin üzerine arkaplansız, dairesel BEYAZ çerçeveli yuvarlak rozet + %100 SAF BEYAZ ortalanmış rakam oluşturur.
-        /// Kullanıcının isteği: Text ve dairesel çerçeve dahil TÜM detaylar %100 SAF BEYAZDIR, siyah kontur veya gölge içermez.
-        /// Standart TrueType font (LilitaOne-Regular) ile %100 temiz, keskin rakam görünümü sağlar.
+        /// Geminin kabin çatısı üzerine (2. fotodaki gibi) çerçevesiz, kalın siyah konturlu NET BEYAZ rakam metni oluşturur.
         /// </summary>
         private void CreateOrFindBadge()
         {
@@ -1151,129 +1288,122 @@ namespace PixelGame
             {
                 canvasObj = new GameObject("Ship_Capacity_Canvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
                 canvasObj.transform.SetParent(transform, false);
-                canvasObj.transform.localPosition = new Vector3(0f, 2.7f, 0.25f);
-                canvasObj.transform.localRotation = Quaternion.identity;
-                canvasObj.transform.localScale = Vector3.one * 0.04f;
-
-                Canvas canvas = canvasObj.GetComponent<Canvas>();
-                canvas.renderMode = RenderMode.WorldSpace;
-                canvas.sortingOrder = 3000;
-
-                Camera cam = Camera.main;
-                if (cam == null) cam = UnityEngine.Object.FindFirstObjectByType<Camera>();
-                if (cam != null) canvas.worldCamera = cam;
-
-                CanvasScaler scaler = canvasObj.GetComponent<CanvasScaler>();
-                scaler.dynamicPixelsPerUnit = 10;
             }
+
+            // Standart Canvas transform değerleri (Gemi gövde çatısı tam merkezi: X=0, Y=2.22, Z=-0.20)
+            canvasObj.transform.localPosition = new Vector3(0f, 2.22f, -0.20f);
+            canvasObj.transform.localRotation = Quaternion.identity;
+            canvasObj.transform.localScale = Vector3.one * 0.025f;
+
+            RectTransform canvasRect = canvasObj.GetComponent<RectTransform>();
+            if (canvasRect != null)
+            {
+                canvasRect.sizeDelta = new Vector2(180f, 120f);
+                canvasRect.pivot = new Vector2(0.5f, 0.5f);
+                canvasRect.anchoredPosition = Vector2.zero;
+            }
+
+            Canvas canvas = canvasObj.GetComponent<Canvas>();
+            if (canvas == null) canvas = canvasObj.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+            canvas.sortingOrder = 3000;
+
+            Camera cam = Camera.main;
+            if (cam == null) cam = UnityEngine.Object.FindFirstObjectByType<Camera>();
+            if (cam != null) canvas.worldCamera = cam;
+
+            CanvasScaler scaler = canvasObj.GetComponent<CanvasScaler>();
+            if (scaler == null) scaler = canvasObj.AddComponent<CanvasScaler>();
+            scaler.dynamicPixelsPerUnit = 10;
+            scaler.referencePixelsPerUnit = 100;
 
             m_BadgeCanvasObj = canvasObj;
 
-            // Eski glitched TextMeshPro bileşenlerini TAMAMEN yok et
-            TextMeshProUGUI[] tmps = canvasObj.GetComponentsInChildren<TextMeshProUGUI>(true);
-            for (int i = 0; i < tmps.Length; i++)
-            {
-                if (tmps[i] != null)
-                {
-                    if (Application.isPlaying) Destroy(tmps[i]);
-                    else DestroyImmediate(tmps[i]);
-                }
-            }
-            m_BadgeText = null;
-
-            // Siyah kontur ve gölge bileşenlerini yok et (Kullanıcı: "hep beyaz olsun her detayı çerçevesi dahil")
-            Outline[] outlines = canvasObj.GetComponentsInChildren<Outline>(true);
-            for (int i = 0; i < outlines.Length; i++)
-            {
-                if (outlines[i] != null)
-                {
-                    if (Application.isPlaying) Destroy(outlines[i]);
-                    else DestroyImmediate(outlines[i]);
-                }
-            }
-
-            Shadow[] shadows = canvasObj.GetComponentsInChildren<Shadow>(true);
-            for (int i = 0; i < shadows.Length; i++)
-            {
-                if (shadows[i] != null)
-                {
-                    if (Application.isPlaying) Destroy(shadows[i]);
-                    else DestroyImmediate(shadows[i]);
-                }
-            }
-
+            // Dairesel çerçeve halkasını kaldır (2. fotodaki gibi çerçevesiz düz yazı)
             Transform bgTr = canvasObj.transform.Find("Badge_CircleRing");
-            GameObject bgObj;
-            if (bgTr != null && bgTr.GetComponent<RectTransform>() == null)
-            {
-                if (Application.isPlaying) Destroy(bgTr.gameObject);
-                else DestroyImmediate(bgTr.gameObject);
-                bgTr = null;
-            }
-
             if (bgTr != null)
             {
-                bgObj = bgTr.gameObject;
+                if (Application.isPlaying) Destroy(bgTr.gameObject);
+                else DestroyImmediate(bgTr.gameObject, true);
             }
-            else
-            {
-                bgObj = new GameObject("Badge_CircleRing", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-                bgObj.transform.SetParent(canvasObj.transform, false);
-            }
+            m_BadgeImage = null;
 
-            RectTransform bgRect = bgObj.GetComponent<RectTransform>();
-            bgRect.sizeDelta = new Vector2(100f, 100f);
-            bgRect.anchoredPosition = Vector2.zero;
-
-            m_BadgeImage = bgObj.GetComponent<Image>();
-            m_BadgeImage.enabled = true;
-            m_BadgeImage.sprite = GetCircleRingSprite();
-            m_BadgeImage.color = Color.white; // SAF BEYAZ ÇERÇEVE
-            m_BadgeImage.raycastTarget = false;
-
-            // 3. UI Text Nesnesi (Badge_Text)
-            Transform textTr = bgObj.transform.Find("Badge_Text");
+            // Metin Nesnesi (Badge_Text)
+            Transform textTr = canvasObj.transform.Find("Badge_Text");
             GameObject textObj;
-            if (textTr != null && textTr.GetComponent<RectTransform>() == null)
-            {
-                if (Application.isPlaying) Destroy(textTr.gameObject);
-                else DestroyImmediate(textTr.gameObject);
-                textTr = null;
-            }
-
             if (textTr != null)
             {
                 textObj = textTr.gameObject;
             }
             else
             {
-                textObj = new GameObject("Badge_Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
-                textObj.transform.SetParent(bgObj.transform, false);
+                textObj = new GameObject("Badge_Text", typeof(RectTransform), typeof(CanvasRenderer));
+                textObj.transform.SetParent(canvasObj.transform, false);
             }
 
             RectTransform textRect = textObj.GetComponent<RectTransform>();
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
+            textRect.localPosition = new Vector3(0f, 0f, -11.5f);
+            textRect.localRotation = Quaternion.identity;
+            textRect.localScale = Vector3.one;
+            textRect.sizeDelta = new Vector2(180f, 120f);
+            textRect.anchoredPosition = Vector2.zero;
+            textRect.pivot = new Vector2(0.5f, 0.5f);
 
-            m_BadgeUIText = textObj.GetComponent<Text>();
-            m_BadgeUIText.gameObject.SetActive(true);
+            // Eski pikselli UI.Outline ve Shadow bileşenlerini temizle
+            var oldOutlines = textObj.GetComponents<Outline>();
+            for (int i = 0; i < oldOutlines.Length; i++)
+            {
+                if (Application.isPlaying) Destroy(oldOutlines[i]);
+                else DestroyImmediate(oldOutlines[i]);
+            }
+            var oldShadows = textObj.GetComponents<Shadow>();
+            for (int i = 0; i < oldShadows.Length; i++)
+            {
+                if (Application.isPlaying) Destroy(oldShadows[i]);
+                else DestroyImmediate(oldShadows[i]);
+            }
 
-            Font fontToUse = null;
+            // 3. Kullanıcı isteği: "2.görseldeki gibi görünsün textler daha kaliteli hale getir"
+            // TextMeshPro SDF ile vektör kalitesinde, pürüzsüz yuvarlak siyah konturlu NET BEYAZ rakam:
+            TMP_FontAsset tmpFont = null;
 #if UNITY_EDITOR
-            fontToUse = AssetDatabase.LoadAssetAtPath<Font>(TTFFontPath);
+            tmpFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
 #endif
-            if (fontToUse == null) fontToUse = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+            if (tmpFont == null) tmpFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/LilitaOne-Regular SDF");
+            if (tmpFont == null) tmpFont = Resources.Load<TMP_FontAsset>("Fonts/LilitaOne-Regular SDF");
+            if (tmpFont == null) tmpFont = Resources.Load<TMP_FontAsset>("LilitaOne-Regular SDF");
 
-            m_BadgeUIText.font = fontToUse;
-            m_BadgeUIText.fontSize = 54;
-            m_BadgeUIText.fontStyle = FontStyle.Normal;
-            m_BadgeUIText.alignment = TextAnchor.MiddleCenter;
-            m_BadgeUIText.color = Color.white; // %100 SAF BEYAZ YAZI
-            m_BadgeUIText.horizontalOverflow = HorizontalWrapMode.Overflow;
-            m_BadgeUIText.verticalOverflow = VerticalWrapMode.Overflow;
-            m_BadgeUIText.raycastTarget = false;
+            TextMeshProUGUI tmp = textObj.GetComponent<TextMeshProUGUI>();
+            if (tmp == null) tmp = textObj.AddComponent<TextMeshProUGUI>();
+
+            if (tmpFont != null) tmp.font = tmpFont;
+            tmp.fontSize = 72f;
+            tmp.fontStyle = FontStyles.Bold;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.color = Color.white; // 2. görseldeki gibi NET BEYAZ
+            tmp.textWrappingMode = TextWrappingModes.NoWrap;
+            tmp.overflowMode = TextOverflowModes.Overflow;
+            tmp.raycastTarget = false;
+
+            // 2. Görseldeki gibi pürüzsüz, yuvarlak ve kaliteli siyah kontur (SDF fragment shader ile hesaplanır)
+            tmp.outlineWidth = 0.22f;
+            tmp.outlineColor = new Color32(18, 18, 22, 255);
+            if (tmp.fontMaterial != null)
+            {
+                tmp.fontMaterial.EnableKeyword("OUTLINE_ON");
+                tmp.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.22f);
+                tmp.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, new Color32(18, 18, 22, 255));
+            }
+
+            m_BadgeText = tmp;
+
+            // Eski standart Text varsa devre dışı bırak
+            Text oldUiText = textObj.GetComponent<Text>();
+            if (oldUiText != null)
+            {
+                oldUiText.enabled = false;
+            }
+            m_BadgeUIText = null;
 
             UpdateBadgePlacement();
             UpdateBadgeText();
@@ -1284,15 +1414,15 @@ namespace PixelGame
             int remaining = RemainingCapacity;
 
             // Kullanıcı isteği: "textteki sayı dolduğunda text yok olsun"
-            // Kapasite dolduğunda (kalan <= 0 veya IsFull) text ve dairesel çerçeve HEMEN yok olur!
+            // Kapasite dolduğunda (kalan <= 0 veya IsFull) text HEMEN yok olur!
             if (remaining <= 0 || IsFull || m_IsDeparting)
             {
                 if (m_BadgeCanvasObj != null && m_BadgeCanvasObj.activeSelf)
                     m_BadgeCanvasObj.SetActive(false);
+                if (m_BadgeText != null && m_BadgeText.gameObject.activeSelf)
+                    m_BadgeText.gameObject.SetActive(false);
                 if (m_BadgeUIText != null && m_BadgeUIText.gameObject.activeSelf)
                     m_BadgeUIText.gameObject.SetActive(false);
-                if (m_BadgeImage != null && m_BadgeImage.gameObject.activeSelf)
-                    m_BadgeImage.gameObject.SetActive(false);
                 return;
             }
 
@@ -1300,15 +1430,18 @@ namespace PixelGame
 
             if (m_BadgeCanvasObj != null && !m_BadgeCanvasObj.activeSelf)
                 m_BadgeCanvasObj.SetActive(true);
-            if (m_BadgeUIText != null)
+
+            if (m_BadgeText != null)
+            {
+                if (!m_BadgeText.gameObject.activeSelf) m_BadgeText.gameObject.SetActive(true);
+                m_BadgeText.text = countStr;
+            }
+            if (m_BadgeUIText != null && m_BadgeUIText.enabled)
             {
                 if (!m_BadgeUIText.gameObject.activeSelf) m_BadgeUIText.gameObject.SetActive(true);
                 m_BadgeUIText.text = countStr;
             }
-            if (m_BadgeImage != null && !m_BadgeImage.gameObject.activeSelf)
-                m_BadgeImage.gameObject.SetActive(true);
         }
     }
 }
-// Trigger reload: 2026-09-23 20:27
 
