@@ -66,43 +66,26 @@ namespace PixelGame
 
             if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
 
-            // 1. Toony Colors Pro 2 Cel-Shading (Açık, parlak ve canlı tonlama)
+            // 1. Toony Colors Pro 2 Cel-Shading (Açık, yumuşak ve mat tonlama)
             if (material.HasProperty("_HColor")) material.SetColor("_HColor", Color.white);
             // Yumuşak, açık pastel gölge tonu (asla çamurlu/koyu gri olmaz)
-            if (material.HasProperty("_SColor")) material.SetColor("_SColor", new Color(0.84f, 0.82f, 0.88f, 1f));
-            if (material.HasProperty("_RampThreshold")) material.SetFloat("_RampThreshold", 0.383f);
-            if (material.HasProperty("_RampSmoothing")) material.SetFloat("_RampSmoothing", 0.908f);
+            if (material.HasProperty("_SColor")) material.SetColor("_SColor", new Color(0.58f, 0.56f, 0.65f, 1f));
+            if (material.HasProperty("_RampThreshold")) material.SetFloat("_RampThreshold", 0.42f);
+            if (material.HasProperty("_RampSmoothing")) material.SetFloat("_RampSmoothing", 0.60f);
 
-            // 2. Parlak 3B Plastik Oyuncak Cilası (Stylized Plastic & Specular Gloss)
-            if (material.HasProperty("_StylizedPlasticOn"))
-            {
-                material.SetFloat("_StylizedPlasticOn", 1f);
-                if (material.HasProperty("_PlasticHighlightIntensity")) material.SetFloat("_PlasticHighlightIntensity", 2.85f);
-                if (material.HasProperty("_PlasticHighlightSize")) material.SetFloat("_PlasticHighlightSize", 0.26f);
-                if (material.HasProperty("_PlasticHighlightLength")) material.SetFloat("_PlasticHighlightLength", 1.85f);
-                if (material.HasProperty("_PlasticHighlightWidth")) material.SetFloat("_PlasticHighlightWidth", 0.65f);
-                if (material.HasProperty("_PlasticHighlightAngle")) material.SetFloat("_PlasticHighlightAngle", 0f);
-                if (material.HasProperty("_PlasticHighlightColor")) material.SetColor("_PlasticHighlightColor", Color.white);
-                if (material.HasProperty("_PlasticTopLight")) material.SetFloat("_PlasticTopLight", 0.25f);
-                if (material.HasProperty("_PlasticBevelAO")) material.SetFloat("_PlasticBevelAO", 0.45f);
-                // 0.05 sol/üst kenarda gerçek ışıktan bağımsız, istenmeyen ikinci bir "sahte" highlight
-                // çiziyordu. 0 bunu tamamen kaldırıyor; bedeli satırlar arası ayraç çizgisinin de gitmesi
-                // (üst-alt komşu küpler daha "yapışık" görünür) — kullanıcı bu ödünü bilerek tercih etti.
-                if (material.HasProperty("_ProceduralBevelWidth")) material.SetFloat("_ProceduralBevelWidth", 0f);
-                if (material.HasProperty("_ProceduralBevelIntensity")) material.SetFloat("_ProceduralBevelIntensity", 0.80f);
-                if (material.HasProperty("_PillowRoundness")) material.SetFloat("_PillowRoundness", 0.50f);
-                if (material.HasProperty("_PlasticAngleX")) material.SetFloat("_PlasticAngleX", 0.50f);
-            }
-
-            // 3. PBR Speküler Parlama ve Pürüzsüzlük
-            if (material.HasProperty("_SpecularColor")) material.SetColor("_SpecularColor", Color.white);
-            if (material.HasProperty("_SpecularRoughnessPBR")) material.SetFloat("_SpecularRoughnessPBR", 0.18f);
-            if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.85f);
-
-            // 4. Kenar Işığı (Rim Lighting)
-            if (material.HasProperty("_RimColor")) material.SetColor("_RimColor", new Color(0.18f, 0.18f, 0.18f, 0.5f));
-            if (material.HasProperty("_RimMin")) material.SetFloat("_RimMin", 0.55f);
-            if (material.HasProperty("_RimMax")) material.SetFloat("_RimMax", 0.78f);
+            // 2. Mat Görünüm (Matte Finish - Parlamalar kapalı, gemi renkleri gibi mat)
+            if (material.HasProperty("_StylizedPlasticOn")) material.SetFloat("_StylizedPlasticOn", 0f);
+            if (material.HasProperty("_PlasticHighlightIntensity")) material.SetFloat("_PlasticHighlightIntensity", 0f);
+            if (material.HasProperty("_PlasticTopLight")) material.SetFloat("_PlasticTopLight", 0f);
+            if (material.HasProperty("_SpecularHighlights")) material.SetFloat("_SpecularHighlights", 0f);
+            if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.10f);
+            if (material.HasProperty("_SpecularRoughnessPBR")) material.SetFloat("_SpecularRoughnessPBR", 0.85f);
+            if (material.HasProperty("_SpecularColor")) material.SetColor("_SpecularColor", new Color(0.05f, 0.05f, 0.05f, 1f));
+            if (material.HasProperty("_SpecColor")) material.SetColor("_SpecColor", new Color(0.05f, 0.05f, 0.05f, 1f));
+            if (material.HasProperty("_RimColor")) material.SetColor("_RimColor", Color.clear);
+            if (material.HasProperty("_ProceduralBevelWidth")) material.SetFloat("_ProceduralBevelWidth", 0.045f);
+            if (material.HasProperty("_ProceduralBevelIntensity")) material.SetFloat("_ProceduralBevelIntensity", 0.75f);
+            if (material.HasProperty("_PillowRoundness")) material.SetFloat("_PillowRoundness", 0.20f);
         }
     }
 }

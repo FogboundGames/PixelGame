@@ -72,16 +72,16 @@ namespace PixelGame
 
         [Tooltip("Işıma yoğunluğu")]
         [Range(0f, 2f)]
-        [SerializeField] private float m_EmissionIntensity = 0.05f;
+        [SerializeField] private float m_EmissionIntensity = 0.0f;
 
         [Header("🔲 Izgara & Küp Yerleşimi")]
         [Tooltip("Küpler arasındaki DİKEY (satırlar/önler, Y ekseni) fiziksel boşluk oranı (0 = bitişik, 0.1 = %10 boşluk, negatif = üst üste biner)")]
         [Range(-0.3f, 1.0f)]
-        [SerializeField] private float m_CubeSpacing = 0.04f;
+        [SerializeField] private float m_CubeSpacing = 0.06f;
 
         [Tooltip("Küpler arasındaki YATAY (aynı satırdaki yanlar, X ekseni) fiziksel boşluk oranı (0 = bitişik, 0.1 = %10 boşluk, negatif = üst üste biner). Küplerin şeklini/kareliğini bozmaz, aralarındaki mesafeyi açar.")]
         [Range(-0.3f, 1.0f)]
-        [SerializeField] private float m_CubeSpacingX = 0.04f;
+        [SerializeField] private float m_CubeSpacingX = 0.06f;
 
         [Tooltip("Küplerin Z eksenindeki kalınlığı / derinliği (3D kabartma hissi)")]
         [Range(0.05f, 2f)]
@@ -101,7 +101,7 @@ namespace PixelGame
         [SerializeField] private float m_CubeFrontTiltAngle = 25f;
 
         [Tooltip("Her satır (GridY arttıkça) küpün konumuna eklenen serbest X/Y/Z kademesi. Örn. Z=0.12 verirsen her üst satır bir öncekinden 0.12 birim daha ileri/geri kayar; X veya Y'ye değer verirsen satırlar yana/yukarı da kayabilir. Sahnede canlı görmek için 'Preserve Scene Edits' kapalı olmalı.")]
-        [SerializeField] private Vector3 m_CubeRowStepOffset = new Vector3(0f, 0f, 0.12f);
+        [SerializeField] private Vector3 m_CubeRowStepOffset = Vector3.zero;
 
         [Tooltip("Şeffaf (alpha < 0.1) pikseller için küp oluşturulmasın mı?")]
         [SerializeField] private bool m_SkipTransparent = true;
@@ -488,12 +488,22 @@ namespace PixelGame
             m_ActiveLevelData = levelData;
             m_SourceTexture = levelData.LevelTexture;
             m_SourceSprite = levelData.LevelSprite;
+            m_ColorBrightness = levelData.ColorBrightness;
+            m_ColorSaturation = levelData.ColorSaturation;
+            m_ColorContrast = levelData.ColorContrast;
+            m_CubeSpacing = levelData.CubeSpacing;
+            m_CubeSpacingX = levelData.CubeSpacingX;
+            m_CubeDepth = levelData.CubeDepth;
+            m_CubeFrontTiltAngle = levelData.CubeFrontTiltAngle;
+            m_CubeRowStepOffset = levelData.CubeRowStepOffset;
+            m_TargetZ = levelData.TargetZ;
 
             if (levelData.ColorPalette.Count == 0 && levelData.GetActiveTexture() != null)
             {
                 levelData.ExtractPaletteFromTexture();
             }
 
+            UpdateExistingCubesTransforms();
             UpdateExistingCubesLive();
 
             if (m_EnableCubeShadows)

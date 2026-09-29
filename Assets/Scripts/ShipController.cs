@@ -22,7 +22,13 @@ namespace PixelGame
     [ExecuteAlways]
     [DisallowMultipleComponent]
     [AddComponentMenu("PixelGame/Ship Controller")]
-    public class ShipController : MonoBehaviour, IPointerClickHandler
+    public class ShipController : MonoBehaviour,
+        IPointerClickHandler,
+        IPointerDownHandler,
+        IPointerUpHandler,
+        IBeginDragHandler,
+        IDragHandler,
+        IEndDragHandler
     {
         /// <summary>
         /// A/B test anahtarı: true ise kargo gelince eski DOTween Punch Scale efekti çalışır,
@@ -79,6 +85,89 @@ namespace PixelGame
         [SerializeField] private float m_BobHeight = 0.035f;
         [SerializeField] private float m_RollAngle = 2.0f;
         [SerializeField] private float m_PitchAngle = 1.2f;
+
+        [Header("🚢 Görsel Katman (Visual Decoupling)")]
+        [Tooltip("Görsel mesh ve güverte modellerini barındıran ayrık child transform. " +
+                 "Bobbing, banking roll ve görsel feedback buraya uygulanır; gameplay root transformu ve collider stabil kalır.")]
+        [SerializeField] private Transform m_VisualRoot;
+        public Transform VisualRoot => m_VisualRoot;
+
+        [Header("🖐️ Gerçek Zamanlı Drag & Smooth Follow (Aşama 3 & 4)")]
+        [Tooltip("Drag etkileşimini açar veya kapatır.")]
+        [SerializeField] private bool m_EnableDrag = true;
+        [Tooltip("Pointer hareketinin drag başlatması için aşması gereken piksel eşiği (2-8 px, varsayılan 4 px).")]
+        [SerializeField] private float m_DragThreshold = 4f;
+        [Tooltip("VisualRoot'un DragTarget'a yaklaşırken kullandığı yumuşatma süresi (SmoothTime). Düşük değerler daha atik/tepkiseldir (0.04 - 0.08 s).")]
+        [SerializeField] private float m_DragSmoothTime = 0.06f;
+        [Tooltip("Drag düzlemi yükseklik/derinlik ofseti.")]
+        [SerializeField] private float m_DragPlaneHeight = 0f;
+        [Tooltip("SmoothDamp için maksimum hareket hızı.")]
+        [SerializeField] private float m_DragMaxSpeed = 100f;
+
+        [Header("🚢 Pickup Hissi & Dinamik Rotasyon (Aşama 4)")]
+        [Tooltip("Drag başladığında gemi görselinin su yüzeyinden ne kadar yükseleceği (0.10 - 0.20 world unit, varsayılan 0.12).")]
+        [SerializeField] private float m_PickupLift = 0.12f;
+        [Tooltip("Drag başladığında gemi görselinin ne kadar büyüyeceği (1.03 - 1.06, varsayılan 1.04).")]
+        [SerializeField] private float m_PickupScaleMultiplier = 1.04f;
+        [Tooltip("Pickup yükselme ve büyüme animasyon süresi (saniye, varsayılan 0.08).")]
+        [SerializeField] private float m_PickupDuration = 0.08f;
+        [Tooltip("Yana hareket ederken maksimum yatma (banking/roll) açısı (8° - 12°, varsayılan 10°).")]
+        [SerializeField] private float m_MaxBankingAngle = 10f;
+        [Tooltip("Yanal hızın banking açısına dönüşüm katsayısı.")]
+        [SerializeField] private float m_BankingStrength = 2.5f;
+        [Tooltip("İleri/geri hareket ederken maksimum pitch açısı (3° - 5°, varsayılan 4°).")]
+        [SerializeField] private float m_MaxPitchAngle = 4f;
+        [Tooltip("İleri/geri hızın pitch açısına dönüşüm katsayısı.")]
+        [SerializeField] private float m_PitchStrength = 1.0f;
+        [Tooltip("Hareket yönüne doğru maksimum yaw dönüş açısı (20° - 35°, varsayılan 25°).")]
+        [SerializeField] private float m_MaxYawAngle = 25f;
+        [Tooltip("Dinamik rotasyonun yumuşatma süresi (saniye, varsayılan 0.08s).")]
+        [SerializeField] private float m_RotationSmoothTime = 0.08f;
+
+        // Drag & Pickup çalışma zamanı değişkenleri
+        private bool m_IsPointerDown = false;
+        private bool m_IsDragging = false;
+        private bool m_IsPickedUp = false;
+        private bool m_DragThresholdPassed = false;
+        private Vector2 m_PointerDownScreenPos;
+        private Vector3 m_GrabOffset = Vector3.zero;
+        private Vector3 m_DragTargetWorldPosition;
+        private Vector3 m_VisualWorldPosition;
+        private Vector3 m_DragSmoothVelocity = Vector3.zero;
+        private Plane m_DragPlane;
+        private Camera m_DragCamera;
+
+        // Velocity & Dynamic Rotation çalışma zamanı
+        private Vector3 m_PreviousDragPosition;
+        private Vector3 m_SmoothedVelocity = Vector3.zero;
+        private Vector3 m_VelocitySmoothDeriv = Vector3.zero;
+        private float m_CurrentPickupLift = 0f;
+        private float m_PickupLiftVelocity = 0f;
+        private float m_CurrentPickupScale = 1f;
+        private float m_PickupScaleVelocity = 0f;
+        private float m_CurrentBankingRoll = 0f;
+        private float m_RollSmoothVelocity = 0f;
+        private float m_CurrentDragPitch = 0f;
+        private float m_PitchSmoothVelocity = 0f;
+        private float m_CurrentDragYaw = 0f;
+        private float m_YawSmoothVelocity = 0f;
+
+        public bool IsDragging => m_IsDragging;
+        public bool IsPickedUp => m_IsPickedUp;
+        public float DragSmoothTime { get => m_DragSmoothTime; set => m_DragSmoothTime = value; }
+        public float DragThreshold { get => m_DragThreshold; set => m_DragThreshold = value; }
+        public bool EnableDrag { get => m_EnableDrag; set => m_EnableDrag = value; }
+        public float DragPlaneHeight { get => m_DragPlaneHeight; set => m_DragPlaneHeight = value; }
+        public float PickupLift { get => m_PickupLift; set => m_PickupLift = value; }
+        public float PickupScaleMultiplier { get => m_PickupScaleMultiplier; set => m_PickupScaleMultiplier = value; }
+        public float PickupDuration { get => m_PickupDuration; set => m_PickupDuration = value; }
+        public float MaxBankingAngle { get => m_MaxBankingAngle; set => m_MaxBankingAngle = value; }
+        public float MaxPitchAngle { get => m_MaxPitchAngle; set => m_MaxPitchAngle = value; }
+        public float MaxYawAngle { get => m_MaxYawAngle; set => m_MaxYawAngle = value; }
+        public float RotationSmoothTime { get => m_RotationSmoothTime; set => m_RotationSmoothTime = value; }
+        public Vector3 DragTargetWorldPosition => m_DragTargetWorldPosition;
+        public Vector3 VisualWorldPosition => m_VisualWorldPosition;
+        public Vector3 SmoothedVelocity => m_SmoothedVelocity;
 
         [Header("📦 Kargo Alınca Heyecanlı Sallanma (Cargo Wobble)")]
         [Tooltip("Kargo her geldiğinde 1'e sıçrar, sonra zamanla yumuşakça 0'a söner. Var olan su " +
@@ -248,22 +337,40 @@ namespace PixelGame
         {
             m_PropBlock = new MaterialPropertyBlock();
             m_BobRandomOffset = UnityEngine.Random.Range(0f, 100f);
-            // Dünya uzayı (lossy) ölçeği yakala — böylece gemi daha sonra farklı bir ebeveyne
-            // (ör. slot) geçtiğinde, o ebeveynin kendi (simetrik olmayabilen) ölçeğinden bağımsız
-            // olarak hep aynı GÖRSEL boyutta kalır.
             if (transform.lossyScale != Vector3.zero) m_BaseScale = transform.lossyScale;
 
-            EnsureVisualComponents();
-            CreateOrFindBadge();
-            CreateOrFindShadowCatcher();
+            if (Application.isPlaying)
+            {
+                EnsureDecoupledHierarchy();
+                CreateOrFindBadge();
+                CreateOrFindShadowCatcher();
+            }
         }
 
         private void OnEnable()
         {
-            EnsureVisualComponents();
-            CreateOrFindBadge();
-            CreateOrFindShadowCatcher();
-            UpdateBadgeText();
+            if (Application.isPlaying)
+            {
+                EnsureDecoupledHierarchy();
+                CreateOrFindBadge();
+                CreateOrFindShadowCatcher();
+                UpdateBadgeText();
+            }
+        }
+
+        private void OnDisable()
+        {
+            m_IsPointerDown = false;
+            m_IsDragging = false;
+            m_IsPickedUp = false;
+            m_DragThresholdPassed = false;
+            m_DragSmoothVelocity = Vector3.zero;
+            m_SmoothedVelocity = Vector3.zero;
+            m_CurrentPickupLift = 0f;
+            m_CurrentPickupScale = 1f;
+            m_CurrentBankingRoll = 0f;
+            m_CurrentDragPitch = 0f;
+            m_CurrentDragYaw = 0f;
         }
 
         private void OnValidate()
@@ -272,6 +379,7 @@ namespace PixelGame
             {
                 UpdateBadgeText();
             }
+            ApplyColorToShip(m_ShipColor);
         }
 
         private void Start()
@@ -280,35 +388,65 @@ namespace PixelGame
             m_BaseLocalRotation = transform.localRotation;
             if (transform.lossyScale != Vector3.zero) m_BaseScale = transform.lossyScale;
 
+            m_VisualWorldPosition = transform.position;
+            m_DragTargetWorldPosition = transform.position;
+            m_PreviousDragPosition = transform.position;
+
+            EnsureDecoupledHierarchy();
             UpdateBadgeText();
             ApplyColorToShip(m_ShipColor);
         }
 
         private void Update()
         {
+            UpdateDragFollow();
+
             if (m_EnableWaterBobbing && !m_IsMoving && !m_IsDeparting && Application.isPlaying)
             {
                 ApplyWaterBobbing();
             }
+            else if (m_VisualRoot != null && !m_IsMoving && !m_IsDeparting && Application.isPlaying)
+            {
+                Vector3 dragVisualWorldOffset = m_VisualWorldPosition - transform.position;
+                Vector3 dragLocalOffset = transform.InverseTransformVector(dragVisualWorldOffset);
+                Vector3 pickupOffset = new Vector3(0f, m_CurrentPickupLift, 0f);
+                m_VisualRoot.localPosition = dragLocalOffset + pickupOffset;
+
+                Quaternion dragRot = Quaternion.Euler(m_CurrentDragPitch, m_CurrentDragYaw, m_CurrentBankingRoll);
+                m_VisualRoot.localRotation = dragRot;
+            }
         }
 
         /// <summary>
-        /// Geminin sabit bir GÖRSEL (dünya uzayı) boyutta kalmasını sağlayacak local scale'i
-        /// hesaplar. m_BaseScale artık dünya ölçeği olarak tutuluyor; ama Transform.localScale'e
-        /// doğrudan atanamaz çünkü o an bulunduğu ebeveynin (kuyruk noktası, slot, vb.) kendi ölçeği
-        /// eklenip binmiş olur — üstelik slotlar simetrik ölçekli bile değil (X/Y/Z farklı). Bu yüzden
-        /// önce mevcut ebeveynin ölçeğini bölerek doğru local scale'e çeviriyoruz.
+        /// Geminin mevcut GÖRSEL (dünya uzayı) boyutunu koruyacak local scale'i
+        /// hesaplar. m_BaseScale ilk dünya ölçeği olarak tutulur; gemi başka bir ebeveyne
+        /// (ör. slot) geçtiğinde ebeveynin lossyScale'ine bölünerek aynı dünya boyutunu korur.
+        /// Asla 0.26f gibi sabit bir dünya boyutuyla ezilmez.
         /// </summary>
-        private Vector3 GetLocalScaleForBaseWorldScale()
+        public Vector3 GetLocalScaleForBaseWorldScale()
         {
-            if (transform.parent == null) return m_BaseScale;
+            Vector3 baseScale = (m_BaseScale != Vector3.zero) ? m_BaseScale : transform.lossyScale;
+            if (transform.parent == null) return baseScale;
 
             Vector3 parentLossy = transform.parent.lossyScale;
             return new Vector3(
-                m_BaseScale.x / Mathf.Max(0.0001f, parentLossy.x),
-                m_BaseScale.y / Mathf.Max(0.0001f, parentLossy.y),
-                m_BaseScale.z / Mathf.Max(0.0001f, parentLossy.z)
+                baseScale.x / Mathf.Max(0.0001f, parentLossy.x),
+                baseScale.y / Mathf.Max(0.0001f, parentLossy.y),
+                baseScale.z / Mathf.Max(0.0001f, parentLossy.z)
             );
+        }
+
+        public void ApplyBaseScale()
+        {
+            // Orijinal ölçeği koru — asla 0.26f gibi sabit bir dünya boyutu ile ezme!
+            if (m_BaseScale == Vector3.zero && transform.lossyScale != Vector3.zero)
+            {
+                m_BaseScale = transform.lossyScale;
+            }
+            if (m_VisualRoot != null && m_VisualRoot.localScale != Vector3.one)
+            {
+                m_VisualRoot.localScale = Vector3.one;
+            }
         }
 
         private void LateUpdate()
@@ -343,7 +481,8 @@ namespace PixelGame
             // 1. Kullanıcı isteği: "gemilerdeki textler ortalanacak"
             // Gemi gövdesinin/kabininin tam ortası: X = 0f, Y = 2.22f, Z = -0.20f
             Vector3 roofLocalPos = new Vector3(0f, 2.22f, -0.20f);
-            Vector3 targetWorldPos = transform.TransformPoint(roofLocalPos);
+            Transform sourceTr = m_VisualRoot != null ? m_VisualRoot : transform;
+            Vector3 targetWorldPos = sourceTr.TransformPoint(roofLocalPos);
             if ((canvasTr.position - targetWorldPos).sqrMagnitude > 0.00001f)
             {
                 canvasTr.position = targetWorldPos;
@@ -413,8 +552,58 @@ namespace PixelGame
             float dRoll = Mathf.Sin(time * 0.85f) * rollAmp;
             float dPitch = Mathf.Cos(time * 0.75f) * pitchAmp;
 
-            transform.localPosition = m_BaseLocalPosition + new Vector3(0f, dy, 0f);
-            transform.localRotation = m_BaseLocalRotation * Quaternion.Euler(dPitch, 0f, dRoll);
+            if (m_VisualRoot != null)
+            {
+                // Aşama 4 Final Visual Position Mimarisi:
+                // FinalVisualPosition = BaseVisualPosition (0) + DragOffset + PickupOffset + BobbingOffset
+                Vector3 dragVisualWorldOffset = m_VisualWorldPosition - transform.position;
+                Vector3 dragLocalOffset = transform.InverseTransformVector(dragVisualWorldOffset);
+                Vector3 pickupOffset = new Vector3(0f, m_CurrentPickupLift, 0f);
+                Vector3 bobbingOffset = new Vector3(0f, dy, 0f);
+
+                m_VisualRoot.localPosition = dragLocalOffset + pickupOffset + bobbingOffset;
+
+                // Aşama 4 Rotation Composition:
+                // FinalRotation = BobbingRotation * DynamicDragRotation (Pitch + Yaw + Banking Roll)
+                Quaternion bobbingRot = Quaternion.Euler(dPitch, 0f, dRoll);
+                Quaternion dragRot = Quaternion.Euler(m_CurrentDragPitch, m_CurrentDragYaw, m_CurrentBankingRoll);
+                m_VisualRoot.localRotation = bobbingRot * dragRot;
+            }
+            else
+            {
+                transform.localPosition = m_BaseLocalPosition + new Vector3(0f, dy, 0f);
+                transform.localRotation = m_BaseLocalRotation * Quaternion.Euler(dPitch, 0f, dRoll);
+            }
+        }
+
+        /// <summary>
+        /// Görsel katmanın (VisualRoot) yerel offset ve rotasyonunu sıfırlar (0,0,0).
+        /// Hareket, yanaşma veya animasyon geçişlerinde çağrılır.
+        /// </summary>
+        public void ResetVisualOffset()
+        {
+            m_VisualWorldPosition = transform.position;
+            m_PreviousDragPosition = transform.position;
+            m_DragSmoothVelocity = Vector3.zero;
+            m_SmoothedVelocity = Vector3.zero;
+            m_VelocitySmoothDeriv = Vector3.zero;
+            m_CurrentPickupLift = 0f;
+            m_PickupLiftVelocity = 0f;
+            m_CurrentPickupScale = 1f;
+            m_PickupScaleVelocity = 0f;
+            m_CurrentBankingRoll = 0f;
+            m_RollSmoothVelocity = 0f;
+            m_CurrentDragPitch = 0f;
+            m_PitchSmoothVelocity = 0f;
+            m_CurrentDragYaw = 0f;
+            m_YawSmoothVelocity = 0f;
+
+            if (m_VisualRoot != null)
+            {
+                m_VisualRoot.localPosition = Vector3.zero;
+                m_VisualRoot.localRotation = Quaternion.identity;
+                m_VisualRoot.localScale = Vector3.one;
+            }
         }
 
         /// <summary>
@@ -465,19 +654,26 @@ namespace PixelGame
         private static readonly Dictionary<Color32, Texture2D> s_CachedBoatTextures = new Dictionary<Color32, Texture2D>();
         private static readonly Dictionary<Color32, Material> s_CachedBoatMaterials = new Dictionary<Color32, Material>();
 
+        public static void ClearMaterialCache()
+        {
+            s_CachedBoatTextures.Clear();
+            s_CachedBoatMaterials.Clear();
+        }
+
         public static bool IsYellowSpectrum(Color c)
         {
-            // Amber/turuncu-sarı (F9A825) ve açık sarılar dahil tüm sarı tonlarını saf canlı sarıya eşle
+            // Amber ve aşırı parlak sarıları 1. fotodaki gibi göz yormayan mat, yumuşak pastel sarıya eşle
             return c.r > 0.70f && c.g > 0.45f && c.b < 0.35f;
         }
 
-        public static readonly Color PureSunnyYellow = new Color(1.0f, 0.88f, 0.05f, 1f);
+        // 1. Fotodaki pastel krem/altın sarısı (#F4D462 - aşırı göz alan neon sarı değil)
+        public static readonly Color SoftPastelYellow = new Color(0.957f, 0.831f, 0.384f, 1f);
 
         public static Texture2D GetOrCreateBoatTexture(Color color)
         {
             if (IsYellowSpectrum(color))
             {
-                color = PureSunnyYellow;
+                color = SoftPastelYellow;
             }
 
             Color32 key = (Color32)color;
@@ -493,7 +689,6 @@ namespace PixelGame
             tex.name = $"BoatColormap_{ColorUtility.ToHtmlStringRGB(color)}";
 
             Color32[] pixels = new Color32[w * h];
-            // Kullanıcı isteği: Geminin üst kısmı, çatısı ve her zerresi küpün rengiyle BİREBİR AYNI
             for (int i = 0; i < pixels.Length; i++)
             {
                 pixels[i] = key;
@@ -508,10 +703,9 @@ namespace PixelGame
 
         public static Material GetOrCreateBoatMaterial(Color color)
         {
-            bool isYellow = IsYellowSpectrum(color);
-            if (isYellow)
+            if (IsYellowSpectrum(color))
             {
-                color = PureSunnyYellow;
+                color = SoftPastelYellow;
             }
 
             Color32 key = (Color32)color;
@@ -534,18 +728,32 @@ namespace PixelGame
             mat.SetColor("_BaseColor", color);
             mat.SetColor("_Color", color);
 
-            if (isYellow)
-            {
-                mat.SetColor("_HColor", new Color(1.0f, 0.98f, 0.65f, 1f));
-                mat.SetColor("_SColor", new Color(0.92f, 0.78f, 0.10f, 1f)); // Sıcak altın sarısı gölge, ASLA turuncu/kahve değil!
-            }
-            else
-            {
-                mat.SetColor("_HColor", Color.Lerp(Color.white, color, 0.25f));
-                mat.SetColor("_SColor", color * 0.70f);
-            }
-            mat.SetColor("_RimColor", new Color(1f, 1f, 1f, 0.35f));
-            mat.SetColor("_PlasticHighlightColor", Color.white);
+            // 1. fotodaki gibi mat, yumuşak, göz almayan cel-shading görünümü:
+            // Kenardaki beyaz sahte çizgileri ve şeritleri tamamen kaldır:
+            if (mat.HasProperty("_ProceduralBevelWidth")) mat.SetFloat("_ProceduralBevelWidth", 0f);
+            if (mat.HasProperty("_ProceduralBevelIntensity")) mat.SetFloat("_ProceduralBevelIntensity", 0f);
+
+            // Göz alıcı aşırı parlak plastik cila ve tepe ışığını kaldır:
+            if (mat.HasProperty("_PlasticHighlightIntensity")) mat.SetFloat("_PlasticHighlightIntensity", 0f);
+            if (mat.HasProperty("_PlasticTopLight")) mat.SetFloat("_PlasticTopLight", 0f);
+            if (mat.HasProperty("_StylizedPlasticOn")) mat.SetFloat("_StylizedPlasticOn", 0f);
+
+            // Beyaz parlayan kenar halesini (rim) kaldır:
+            if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", new Color(0f, 0f, 0f, 0f));
+            if (mat.HasProperty("_PlasticHighlightColor")) mat.SetColor("_PlasticHighlightColor", color);
+
+            // 1. fotodaki gibi mat/satin pürüzsüzlük (parlamayan temiz gövde):
+            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.22f);
+            if (mat.HasProperty("_SpecularRoughnessPBR")) mat.SetFloat("_SpecularRoughnessPBR", 0.60f);
+            if (mat.HasProperty("_SpecularColor")) mat.SetColor("_SpecularColor", new Color(0.15f, 0.15f, 0.15f, 1f));
+            if (mat.HasProperty("_SpecularHighlights")) mat.SetFloat("_SpecularHighlights", 0f);
+
+            // Dengeli aydınlık (rengi beyazlatıp ağartmayan) ve yumuşak gölge tonu:
+            mat.SetColor("_HColor", Color.Lerp(Color.white, color, 0.45f));
+            mat.SetColor("_SColor", color * 0.70f);
+
+            if (mat.HasProperty("_RampThreshold")) mat.SetFloat("_RampThreshold", 0.42f);
+            if (mat.HasProperty("_RampSmoothing")) mat.SetFloat("_RampSmoothing", 0.65f);
 
             s_CachedBoatMaterials[key] = mat;
             return mat;
@@ -553,13 +761,13 @@ namespace PixelGame
 
         /// <summary>
         /// Gemiyi kenney boat-house-a stiline uygun olarak boyar:
-        /// Geminin her zerresi ve çatısı toplayacağı küpün rengini alır.
+        /// 1. fotodaki gibi göz almayan, yumuşak mat cartoon renk tonu verir.
         /// </summary>
         public void ApplyColorToShip(Color color)
         {
             if (IsYellowSpectrum(color))
             {
-                color = PureSunnyYellow;
+                color = SoftPastelYellow;
             }
             m_ShipColor = color;
             if (m_Renderers == null || m_Renderers.Length == 0)
@@ -670,6 +878,7 @@ namespace PixelGame
             // Slottan dünya koordinatlarına çık
             transform.SetParent(null, true);
             transform.DOKill(true);
+            ResetVisualOffset();
 
             Vector3 startPos = transform.position;
             Quaternion startRot = transform.rotation;
@@ -714,7 +923,15 @@ namespace PixelGame
                 // Dönüş yönü: Slottan çıkarken dümen kırma (t: 0.10 -> 0.48 arasında sola dönüş)
                 float turnT = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - 0.08f) / 0.40f));
                 float bankRoll = Mathf.Sin(turnT * Mathf.PI) * 7.0f;
-                transform.rotation = Quaternion.Slerp(startRot, leftTargetRot, turnT) * Quaternion.Euler(0f, 0f, bankRoll);
+                transform.rotation = Quaternion.Slerp(startRot, leftTargetRot, turnT);
+                if (m_VisualRoot != null)
+                {
+                    m_VisualRoot.localRotation = Quaternion.Euler(0f, 0f, bankRoll);
+                }
+                else
+                {
+                    transform.rotation = transform.rotation * Quaternion.Euler(0f, 0f, bankRoll);
+                }
 
                 // Referans videodaki gibi arkasında beyaz puf duman bulutları ve köpük izi
                 if (Time.time - lastSmokeTime > 0.040f)
@@ -746,6 +963,7 @@ namespace PixelGame
         {
             m_IsMoving = true;
             m_EnableWaterBobbing = false;
+            ResetVisualOffset();
             transform.DOKill(true);
 
             // Slota bağla
@@ -795,7 +1013,15 @@ namespace PixelGame
                 float alignWeight = Mathf.Clamp01((easeT - 0.65f) / 0.35f);
                 float currentRoll = Mathf.Lerp(bankRoll, 0f, alignWeight);
 
-                transform.rotation = Quaternion.Slerp(startRot, targetSlotWorldRot, easeT) * Quaternion.Euler(0f, 0f, currentRoll);
+                transform.rotation = Quaternion.Slerp(startRot, targetSlotWorldRot, easeT);
+                if (m_VisualRoot != null)
+                {
+                    m_VisualRoot.localRotation = Quaternion.Euler(0f, 0f, currentRoll);
+                }
+                else
+                {
+                    transform.rotation = transform.rotation * Quaternion.Euler(0f, 0f, currentRoll);
+                }
 
                 // Slota ilerlerken motor dumanı ve su izi
                 if (Time.time - lastSmokeTime > 0.045f)
@@ -816,11 +1042,20 @@ namespace PixelGame
 
             m_BaseLocalPosition = targetLocalPos;
             m_BaseLocalRotation = Quaternion.identity;
+            ResetVisualOffset();
 
-            // Slota yanaşma puf dalgası ve hafif yaylanma
+            // Slota yanaşma puf dalgası ve görsel yaylanma (VisualRoot üzerinde bağımsız punch)
             SpawnWaterRipple(transform.position, 0.28f, 0.95f, 0.45f);
-            transform.DOPunchScale(new Vector3(0.06f, -0.06f, 0.06f) * m_BaseScale.x, 0.20f, 2, 0.45f)
-                .OnComplete(() => transform.localScale = GetLocalScaleForBaseWorldScale());
+            if (m_VisualRoot != null)
+            {
+                m_VisualRoot.DOPunchScale(new Vector3(0.06f, -0.06f, 0.06f), 0.20f, 2, 0.45f)
+                    .OnComplete(() => m_VisualRoot.localScale = Vector3.one);
+            }
+            else
+            {
+                transform.DOPunchScale(new Vector3(0.06f, -0.06f, 0.06f) * m_BaseScale.x, 0.20f, 2, 0.45f)
+                    .OnComplete(() => transform.localScale = GetLocalScaleForBaseWorldScale());
+            }
 
             m_IsMoving = false;
             m_IsDocked = true;
@@ -986,7 +1221,11 @@ namespace PixelGame
         public void SetQueueAnimating(bool animating)
         {
             m_IsMoving = animating;
-            if (!animating)
+            if (animating)
+            {
+                ResetVisualOffset();
+            }
+            else
             {
                 m_BaseLocalPosition = transform.localPosition;
                 m_BaseLocalRotation = transform.localRotation;
@@ -995,39 +1234,325 @@ namespace PixelGame
 
         /// <summary>
         /// Slotlar doluysa veya geçersiz tıklamada gemi iki yana sallanır (Wobble).
+        /// Görsel sarsıntı VisualRoot'a uygulanır, root collider stabil kalır.
         /// </summary>
         public void PlayWobble()
         {
             if (m_IsMoving || m_IsDeparting) return;
-            transform.DOKill(true);
-            transform.DOShakeRotation(0.35f, new Vector3(0f, 0f, 15f), 12, 90f, true)
-                .OnComplete(() => transform.localRotation = m_BaseLocalRotation);
+            Transform targetTr = m_VisualRoot != null ? m_VisualRoot : transform;
+            targetTr.DOKill(true);
+            targetTr.DOShakeRotation(0.35f, new Vector3(0f, 0f, 15f), 12, 90f, true)
+                .OnComplete(() => targetTr.localRotation = Quaternion.identity);
+        }
+
+        #region 🖐️ Gerçek Zamanlı Drag & Smooth Follow (Aşama 3)
+
+        public bool CanInitiateDrag()
+        {
+            if (!m_EnableDrag) return false;
+            if (m_IsDocked || m_IsMoving || m_IsDeparting) return false;
+            return true;
+        }
+
+        private Plane GetDragPlane(Camera cam)
+        {
+            Vector3 planePoint = transform.position;
+            if (m_DragPlaneHeight != 0f)
+            {
+                planePoint += cam.transform.forward * m_DragPlaneHeight;
+            }
+            return new Plane(-cam.transform.forward, planePoint);
+        }
+
+        public void OnPointerDown(PointerEventData eventData)
+        {
+            if (!CanInitiateDrag()) return;
+
+            // EventSystem'in dahili piksel drag eşiğini Inspector'dan tanımlanan DragThreshold ile senkronize et
+            if (EventSystem.current != null && m_DragThreshold > 0f)
+            {
+                EventSystem.current.pixelDragThreshold = Mathf.RoundToInt(m_DragThreshold);
+            }
+
+            m_IsPointerDown = true;
+            m_DragThresholdPassed = false;
+            m_IsDragging = false;
+            m_IsPickedUp = false;
+            m_PointerDownScreenPos = eventData.position;
+
+            Camera cam = eventData.pressEventCamera ?? Camera.main;
+            m_DragCamera = cam;
+            if (cam == null) return;
+
+            m_DragPlane = GetDragPlane(cam);
+            Ray ray = cam.ScreenPointToRay(eventData.position);
+
+            // 1. Raycast ile drag plane kesişimini bul
+            if (m_DragPlane.Raycast(ray, out float enter))
+            {
+                Vector3 hitPoint = ray.GetPoint(enter);
+                // 2. Hit point ile gemi gameplay position arasındaki Grab Offset'i hesapla
+                m_GrabOffset = transform.position - hitPoint;
+            }
+            else
+            {
+                m_GrabOffset = Vector3.zero;
+            }
+
+            m_DragTargetWorldPosition = transform.position;
+            m_VisualWorldPosition = transform.position;
+            m_PreviousDragPosition = transform.position;
+        }
+
+        public void OnBeginDrag(PointerEventData eventData)
+        {
+            if (!CanInitiateDrag()) return;
+            if (!m_DragThresholdPassed)
+            {
+                m_DragThresholdPassed = true;
+                m_IsDragging = true;
+                m_IsPickedUp = true;
+            }
+        }
+
+        public void OnDrag(PointerEventData eventData)
+        {
+            if (!m_IsPointerDown) return;
+            if (!CanInitiateDrag()) return;
+
+            // Threshold kontrolü: 2-8 piksel arasındaki eşiği geçmeden drag başlamaz
+            if (!m_DragThresholdPassed)
+            {
+                float distSq = (eventData.position - m_PointerDownScreenPos).sqrMagnitude;
+                if (distSq >= m_DragThreshold * m_DragThreshold)
+                {
+                    m_DragThresholdPassed = true;
+                    m_IsDragging = true;
+                    m_IsPickedUp = true;
+                }
+            }
+
+            if (m_IsDragging)
+            {
+                Camera cam = m_DragCamera != null ? m_DragCamera : (eventData.pressEventCamera ?? Camera.main);
+                if (cam != null)
+                {
+                    Ray ray = cam.ScreenPointToRay(eventData.position);
+                    if (m_DragPlane.Raycast(ray, out float enter))
+                    {
+                        Vector3 pointerWorld = ray.GetPoint(enter);
+                        m_DragTargetWorldPosition = pointerWorld + m_GrabOffset;
+                    }
+                }
+            }
+        }
+
+        public void OnEndDrag(PointerEventData eventData)
+        {
+            if (m_IsDragging)
+            {
+                m_IsDragging = false;
+                m_IsPickedUp = false;
+            }
+        }
+
+        public void OnPointerUp(PointerEventData eventData)
+        {
+            m_IsPointerDown = false;
+            if (m_IsDragging)
+            {
+                m_IsDragging = false;
+                m_IsPickedUp = false;
+            }
         }
 
         public void OnPointerClick(PointerEventData eventData)
         {
+            // Eğer drag eşiği aşıldıysa normal click tetiklenmez (tıklama ile drag birbirinden ayrılır)
+            if (m_DragThresholdPassed || m_IsDragging) return;
+
             if (m_IsDocked || m_IsMoving || m_IsDeparting) return;
 
+            // Mevcut click-to-send mantığı %100 aynen çalışır
             if (ShipDispatcher.Instance != null)
             {
                 ShipDispatcher.Instance.TrySendShipFromQueue(this);
             }
         }
 
-        private void EnsureVisualComponents()
+        private void UpdateDragFollow()
         {
-            // FBX içindeki statik çok renkli kargo bloklarını (cargo-b, cargo-c) tamamen gizle (güverte boş başlar)
-            foreach (Transform child in transform)
+            if (!Application.isPlaying) return;
+
+            // 1. Velocity Hesaplama & Yumuşatma (Önceki kare ile şu anki görsel pozisyon farkından)
+            Vector3 currentVisualPos = m_VisualWorldPosition;
+            if (m_IsDragging && Time.deltaTime > 0.0001f)
             {
-                string cName = child.name.ToLowerInvariant();
-                if (cName.Contains("cargo-b") || cName.Contains("cargo-c") || cName.Contains("cargo_b") || cName.Contains("cargo_c"))
+                Vector3 rawVelocity = (currentVisualPos - m_PreviousDragPosition) / Time.deltaTime;
+                m_SmoothedVelocity = Vector3.SmoothDamp(m_SmoothedVelocity, rawVelocity, ref m_VelocitySmoothDeriv, 0.04f);
+            }
+            else
+            {
+                m_SmoothedVelocity = Vector3.SmoothDamp(m_SmoothedVelocity, Vector3.zero, ref m_VelocitySmoothDeriv, m_RotationSmoothTime);
+            }
+            m_PreviousDragPosition = currentVisualPos;
+
+            // 2. Pickup Lift & Scale Yumuşatma (0.08 s responsive & smooth geçiş)
+            float targetLift = m_IsPickedUp ? m_PickupLift : 0f;
+            m_CurrentPickupLift = Mathf.SmoothDamp(m_CurrentPickupLift, targetLift, ref m_PickupLiftVelocity, m_PickupDuration);
+
+            float targetScale = m_IsPickedUp ? m_PickupScaleMultiplier : 1f;
+            m_CurrentPickupScale = Mathf.SmoothDamp(m_CurrentPickupScale, targetScale, ref m_PickupScaleVelocity, m_PickupDuration);
+
+            if (m_VisualRoot != null)
+            {
+                // Sadece VisualRoot'un ölçeği hafif büyütülür (1.04), Ship_Boat root ölçeği (0.26 / 0.351) asla değişmez
+                m_VisualRoot.localScale = Vector3.one * m_CurrentPickupScale;
+            }
+
+            // 3. Dinamik Rotasyon Hesaplama (Gemi yerel hareket yönü tabanlı)
+            Vector3 localVelocity = transform.InverseTransformDirection(m_SmoothedVelocity);
+            float speed = m_SmoothedVelocity.magnitude;
+
+            float targetRoll = 0f;
+            float targetPitch = 0f;
+            float targetYaw = 0f;
+
+            if (m_IsDragging && speed > 0.04f)
+            {
+                // Banking: Sağa doğru çekildiğinde hafifçe yana yatış (maksimum 10°)
+                targetRoll = Mathf.Clamp(-localVelocity.x * m_BankingStrength, -m_MaxBankingAngle, m_MaxBankingAngle);
+                // Pitch: İleri/geri hareket hafif eğimi (maksimum 4°)
+                targetPitch = Mathf.Clamp(localVelocity.z * m_PitchStrength, -m_MaxPitchAngle, m_MaxPitchAngle);
+                // Yaw: Hareket yönüne doğru sınırlı pruva yönelimi (maksimum 25°, asla 180° dönmez)
+                targetYaw = Mathf.Clamp(Mathf.Atan2(localVelocity.x, Mathf.Max(0.5f, localVelocity.z)) * Mathf.Rad2Deg, -m_MaxYawAngle, m_MaxYawAngle);
+            }
+
+            m_CurrentBankingRoll = Mathf.SmoothDamp(m_CurrentBankingRoll, targetRoll, ref m_RollSmoothVelocity, m_RotationSmoothTime);
+            m_CurrentDragPitch = Mathf.SmoothDamp(m_CurrentDragPitch, targetPitch, ref m_PitchSmoothVelocity, m_RotationSmoothTime);
+            m_CurrentDragYaw = Mathf.SmoothDampAngle(m_CurrentDragYaw, targetYaw, ref m_YawSmoothVelocity, m_RotationSmoothTime);
+
+            // 4. Smooth Follow & Root Position
+            if (m_IsDragging)
+            {
+                // Visual takip yumuşatması (Vector3.SmoothDamp ile kritik sönümlü pürüzsüz takip)
+                m_VisualWorldPosition = Vector3.SmoothDamp(
+                    m_VisualWorldPosition,
+                    m_DragTargetWorldPosition,
+                    ref m_DragSmoothVelocity,
+                    m_DragSmoothTime,
+                    m_DragMaxSpeed,
+                    Time.deltaTime
+                );
+
+                // Gameplay root pozisyonu Drag Target'ı anlık takip eder
+                transform.position = m_DragTargetWorldPosition;
+
+#if UNITY_EDITOR
+                // Debug: Drag hedefi ile yumuşatılmış görsel takip çizgisi
+                Debug.DrawLine(transform.position, m_VisualWorldPosition, Color.yellow);
+                Debug.DrawLine(m_VisualWorldPosition, m_DragTargetWorldPosition, Color.green);
+#endif
+            }
+            else
+            {
+                // Sürükleme bittiğinde visual nesne yumuşakça gameplay root pozisyonuna oturur
+                if ((m_VisualWorldPosition - transform.position).sqrMagnitude > 0.00001f)
                 {
-                    child.gameObject.SetActive(false);
+                    m_VisualWorldPosition = Vector3.SmoothDamp(
+                        m_VisualWorldPosition,
+                        transform.position,
+                        ref m_DragSmoothVelocity,
+                        m_DragSmoothTime,
+                        m_DragMaxSpeed,
+                        Time.deltaTime
+                    );
+                }
+                else
+                {
+                    m_VisualWorldPosition = transform.position;
+                    m_DragSmoothVelocity = Vector3.zero;
+                }
+            }
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Aşama 2 Transform Decoupling:
+        /// Root (Ship_Boat) -> Gameplay Root + BoxCollider (Interaction) + Badge
+        /// [VisualRoot]     -> MeshFilter + MeshRenderer + [CargoDeck] (Görsel öğeler)
+        /// </summary>
+        public void EnsureDecoupledHierarchy()
+        {
+#if UNITY_EDITOR
+            if (UnityEditor.PrefabUtility.IsPartOfPrefabAsset(gameObject)) return;
+#endif
+            // 1. VisualRoot transformunu bul veya oluştur
+            if (m_VisualRoot == null)
+            {
+                Transform found = transform.Find("[VisualRoot]");
+                if (found == null) found = transform.Find("VisualRoot");
+                if (found != null)
+                {
+                    m_VisualRoot = found;
+                }
+                else
+                {
+                    GameObject visGo = new GameObject("[VisualRoot]");
+                    visGo.transform.SetParent(transform, false);
+                    visGo.transform.localPosition = Vector3.zero;
+                    visGo.transform.localRotation = Quaternion.identity;
+                    visGo.transform.localScale = Vector3.one;
+                    m_VisualRoot = visGo.transform;
                 }
             }
 
-            m_Renderers = GetComponentsInChildren<MeshRenderer>(true);
+            if (m_VisualRoot != null && !m_IsMoving)
+            {
+                if (m_VisualRoot.localScale != Vector3.one) m_VisualRoot.localScale = Vector3.one;
+            }
 
+            // 2. Eğer root GameObject'te MeshFilter veya MeshRenderer varsa VisualRoot'a taşı
+            MeshFilter rootMf = GetComponent<MeshFilter>();
+            MeshRenderer rootMr = GetComponent<MeshRenderer>();
+
+            if (rootMf != null || rootMr != null)
+            {
+                MeshFilter visMf = m_VisualRoot.GetComponent<MeshFilter>();
+                if (visMf == null) visMf = m_VisualRoot.gameObject.AddComponent<MeshFilter>();
+                if (rootMf != null && rootMf.sharedMesh != null)
+                {
+                    visMf.sharedMesh = rootMf.sharedMesh;
+                }
+
+                MeshRenderer visMr = m_VisualRoot.GetComponent<MeshRenderer>();
+                if (visMr == null) visMr = m_VisualRoot.gameObject.AddComponent<MeshRenderer>();
+                if (rootMr != null)
+                {
+                    visMr.sharedMaterials = rootMr.sharedMaterials;
+                    visMr.shadowCastingMode = rootMr.shadowCastingMode;
+                    visMr.receiveShadows = rootMr.receiveShadows;
+                }
+
+                if (Application.isPlaying)
+                {
+                    if (rootMf != null) Destroy(rootMf);
+                    if (rootMr != null) Destroy(rootMr);
+                }
+                else
+                {
+#if UNITY_EDITOR
+                    if (rootMf != null) Undo.DestroyObjectImmediate(rootMf);
+                    if (rootMr != null) Undo.DestroyObjectImmediate(rootMr);
+#endif
+                }
+            }
+
+            // 3. CargoDeck'i VisualRoot altına yerleştir
+            EnsureCargoDeck();
+
+            // 4. BoxCollider root üzerinde kalır (InteractionRoot) — VisualRoot'tan tamamen bağımsızdır
             BoxCollider col = GetComponent<BoxCollider>();
             if (col == null)
             {
@@ -1037,22 +1562,73 @@ namespace PixelGame
             col.center = new Vector3(0f, 1.0f, 0f);
             col.isTrigger = true;
 
-            EnsureCargoDeck();
+            // 5. FBX içindeki gereksiz parçaları gizle
+            foreach (Transform child in transform)
+            {
+                if (child == m_VisualRoot) continue;
+                string cName = child.name.ToLowerInvariant();
+                if (cName.Contains("cargo-b") || cName.Contains("cargo-c") || cName.Contains("cargo_b") || cName.Contains("cargo_c"))
+                {
+                    child.gameObject.SetActive(false);
+                }
+            }
+            if (m_VisualRoot != null)
+            {
+                foreach (Transform child in m_VisualRoot)
+                {
+                    string cName = child.name.ToLowerInvariant();
+                    if (cName.Contains("cargo-b") || cName.Contains("cargo-c") || cName.Contains("cargo_b") || cName.Contains("cargo_c"))
+                    {
+                        child.gameObject.SetActive(false);
+                    }
+                }
+            }
+
+            m_Renderers = GetComponentsInChildren<MeshRenderer>(true);
+        }
+
+        private void EnsureVisualComponents()
+        {
+            EnsureDecoupledHierarchy();
         }
 
         private void EnsureCargoDeck()
         {
-            if (m_CargoDeckRoot != null) return;
+#if UNITY_EDITOR
+            if (UnityEditor.PrefabUtility.IsPartOfPrefabAsset(gameObject)) return;
+#endif
+            Transform parentTarget = m_VisualRoot != null ? m_VisualRoot : transform;
 
-            Transform deck = transform.Find("[CargoDeck]");
+            if (m_CargoDeckRoot != null)
+            {
+                if (m_CargoDeckRoot.parent != parentTarget)
+                {
+                    m_CargoDeckRoot.SetParent(parentTarget, false);
+                    m_CargoDeckRoot.localPosition = Vector3.zero;
+                    m_CargoDeckRoot.localRotation = Quaternion.identity;
+                    m_CargoDeckRoot.localScale = Vector3.one;
+                }
+                return;
+            }
+
+            Transform deck = parentTarget.Find("[CargoDeck]");
+            if (deck == null && parentTarget != transform) deck = transform.Find("[CargoDeck]");
+
             if (deck != null)
             {
                 m_CargoDeckRoot = deck;
+                if (m_CargoDeckRoot.parent != parentTarget)
+                {
+                    m_CargoDeckRoot.SetParent(parentTarget, false);
+                    m_CargoDeckRoot.localPosition = Vector3.zero;
+                    m_CargoDeckRoot.localRotation = Quaternion.identity;
+                    m_CargoDeckRoot.localScale = Vector3.one;
+                }
             }
             else
             {
                 GameObject deckObj = new GameObject("[CargoDeck]");
-                deckObj.transform.SetParent(transform, false);
+                deckObj.transform.SetParent(parentTarget, false);
                 deckObj.transform.localPosition = Vector3.zero;
                 deckObj.transform.localRotation = Quaternion.identity;
                 deckObj.transform.localScale = Vector3.one;
@@ -1270,6 +1846,9 @@ namespace PixelGame
         /// </summary>
         private void CreateOrFindBadge()
         {
+#if UNITY_EDITOR
+            if (UnityEditor.PrefabUtility.IsPartOfPrefabAsset(gameObject)) return;
+#endif
             Transform existingCanvas = transform.Find("Ship_Capacity_Canvas");
             GameObject canvasObj;
 

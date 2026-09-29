@@ -111,42 +111,42 @@ Material:
     - _PillowRoundness: 0
     - _PlasticAngleX: 0.42
     - _PlasticBevelAO: 0.4
-    - _PlasticHighlightIntensity: 1.2
+    - _PlasticHighlightIntensity: 0
     - _PlasticHighlightSize: 0.35
-    - _PlasticTopLight: 0.25
-    - _ProceduralBevelIntensity: 0.8
+    - _PlasticTopLight: 0
+    - _ProceduralBevelIntensity: 0
     - _ProceduralBevelUVMargin: 0.13
-    - _ProceduralBevelWidth: 0.05
+    - _ProceduralBevelWidth: 0
     - _QueueOffset: 0
-    - _RampSmoothing: 0.18
-    - _RampThreshold: 0.5
+    - _RampSmoothing: 0.65
+    - _RampThreshold: 0.42
     - _ReceiveShadows: 1
     - _ReceiveShadowsOff: 1
     - _RimMax: 0.95
     - _RimMin: 0.45
-    - _Smoothness: 0.35
+    - _Smoothness: 0.22
     - _SmoothnessTextureChannel: 0
-    - _SpecularHighlights: 1
-    - _SpecularRoughnessPBR: 0.35
+    - _SpecularHighlights: 0
+    - _SpecularRoughnessPBR: 0.6
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
-    - _StylizedPlasticOn: 1
+    - _StylizedPlasticOn: 0
     - _Surface: 0
     - _WorkflowMode: 1
     - _XRMotionVectorsPass: 1
     - _ZWrite: 1
     - __dummy__: 0
     m_Colors:
-    - _BaseColor: {r: 0.776, g: 1.0, b: 0.0, a: 1}
-    - _Color: {r: 0.776, g: 1.0, b: 0.0, a: 1}
+    - _BaseColor: {r: 0.420, g: 0.680, b: 0.300, a: 1}
+    - _Color: {r: 0.420, g: 0.680, b: 0.300, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _HColor: {r: 0.992, g: 1.000, b: 0.100, a: 1}
+    - _HColor: {r: 0.68, g: 0.85, b: 0.60, a: 1}
     - _MatCapColor: {r: 0, g: 0, b: 0, a: 1}
     - _PlasticHighlightColor: {r: 1, g: 1, b: 1, a: 1}
-    - _RimColor: {r: 0.35, g: 0.8, b: 1, a: 0.65}
-    - _SColor: {r: 0.582, g: 0.750, b: 0.000, a: 1}
-    - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
-    - _SpecularColor: {r: 0.9, g: 0.9, b: 0.9, a: 1}
+    - _RimColor: {r: 0, g: 0, b: 0, a: 0}
+    - _SColor: {r: 0.28, g: 0.48, b: 0.20, a: 1}
+    - _SpecColor: {r: 0.15, g: 0.15, b: 0.15, a: 1}
+    - _SpecularColor: {r: 0.15, g: 0.15, b: 0.15, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &9147845886288523064

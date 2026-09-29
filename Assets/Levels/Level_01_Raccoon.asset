@@ -24,7 +24,7 @@ MonoBehaviour:
     pixelCount: 196
     label: Renk #1
   - originalColor: {r: 0.078431375, g: 0.08235294, b: 0.10196079, a: 1}
-    targetColor: {r: 0.078431375, g: 0.08235294, b: 0.10196079, a: 1}
+    targetColor: {r: 0.18, g: 0.19, b: 0.22, a: 1}
     pixelCount: 142
     label: Renk #2
   - originalColor: {r: 0.14117648, g: 0.59607846, b: 0.98039216, a: 1}
@@ -49,17 +49,17 @@ MonoBehaviour:
     label: Renk #7
   m_TintColor: {r: 1, g: 1, b: 1, a: 1}
   m_HueShift: 0
-  m_ColorBrightness: 1.25
-  m_ColorSaturation: 1.25
-  m_ColorContrast: 1.05
-  m_EmissionIntensity: 0.35
-  m_CubeSpacing: -0.1
-  m_CubeSpacingX: 0.013
+  m_ColorBrightness: 1
+  m_ColorSaturation: 1
+  m_ColorContrast: 1
+  m_EmissionIntensity: 0
+  m_CubeSpacing: 0.06
+  m_CubeSpacingX: 0.06
   m_CubeDepth: 1
   m_BoardTiltAngle: 18
   m_CubeFrontTiltAngle: -6
   m_TargetZ: 0
-  m_CubeRowStepOffset: {x: 0, y: 0, z: 0.12}
+  m_CubeRowStepOffset: {x: 0, y: 0, z: 0}
   m_InnerPadding: 0.08
   m_SkipTransparent: 1
   m_SlotSprite: {fileID: 21300000, guid: 4b3d2f47130df8dd8af6a709e594aa54, type: 3}

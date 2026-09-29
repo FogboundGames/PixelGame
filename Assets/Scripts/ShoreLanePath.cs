@@ -86,13 +86,17 @@ namespace PixelGame
             float centerX = (boardMinX + boardMaxX) * 0.5f;
             bool isVeryBottom = startPos.y <= (boardBottomY + 0.15f);
 
+            // Ana görselin üzerinde duran küpler için asla doğrudan merkez çizgisine izin verilmez.
+            // Bu safha, küpün tam üzerindeki resim alanını delerek geçmesini engeller.
+            bool isAboveBoardVisual = startPos.y > (boardBottomY + 0.15f);
+
             // Hedefe giden düz hat ana görselin merkezinden/içinden geçiyor mu?
-            bool needsContour = !isVeryBottom;
-            if (startPos.x >= centerX && shipX >= (startPos.x - 0.25f))
+            bool needsContour = !isVeryBottom || isAboveBoardVisual;
+            if (startPos.x >= centerX && shipX >= (startPos.x - 0.25f) && !isAboveBoardVisual)
             {
                 needsContour = false;
             }
-            else if (startPos.x < centerX && shipX <= (startPos.x + 0.25f))
+            else if (startPos.x < centerX && shipX <= (startPos.x + 0.25f) && !isAboveBoardVisual)
             {
                 needsContour = false;
             }

@@ -213,28 +213,28 @@ namespace PixelGame
         [Header("☀️ Canlılık & Işıma")]
         [Tooltip("Renk parlaklığı")]
         [Range(0.5f, 2.5f)]
-        [SerializeField] private float m_ColorBrightness = 1.25f;
+        [SerializeField] private float m_ColorBrightness = 1.0f;
 
         [Tooltip("Renk doygunluğu")]
         [Range(0f, 2.5f)]
-        [SerializeField] private float m_ColorSaturation = 1.25f;
+        [SerializeField] private float m_ColorSaturation = 1.0f;
 
         [Tooltip("Renk kontrastı")]
         [Range(0.5f, 2f)]
-        [SerializeField] private float m_ColorContrast = 1.05f;
+        [SerializeField] private float m_ColorContrast = 1.0f;
 
         [Tooltip("Işıma yoğunluğu (Arkadan aydınlatma canlılığı)")]
         [Range(0f, 2f)]
-        [SerializeField] private float m_EmissionIntensity = 0.35f;
+        [SerializeField] private float m_EmissionIntensity = 0.0f;
 
         [Header("🔲 Izgara & Küp Ayarları")]
         [Tooltip("Küpler arasındaki DİKEY (satırlar/önler, Y ekseni) boşluk oranı (0.04 = %4 boşluk, negatif = üst üste biner)")]
         [Range(-0.3f, 1.0f)]
-        [SerializeField] private float m_CubeSpacing = 0.04f;
+        [SerializeField] private float m_CubeSpacing = 0.06f;
 
         [Tooltip("Küpler arasındaki YATAY (aynı satırdaki yanlar, X ekseni) boşluk oranı — Dikey'den bağımsız")]
         [Range(-0.3f, 1.0f)]
-        [SerializeField] private float m_CubeSpacingX = 0.04f;
+        [SerializeField] private float m_CubeSpacingX = 0.06f;
 
         [Tooltip("Küplerin 3D kabartma derinliği")]
         [Range(0.05f, 2f)]
@@ -253,7 +253,7 @@ namespace PixelGame
         [SerializeField] private float m_TargetZ = 0f;
 
         [Tooltip("Her satır (GridY arttıkça) küpün konumuna eklenen serbest X/Y/Z kademesi")]
-        [SerializeField] private Vector3 m_CubeRowStepOffset = new Vector3(0f, 0f, 0.12f);
+        [SerializeField] private Vector3 m_CubeRowStepOffset = Vector3.zero;
 
         [Tooltip("Mavi çerçevenin iç kenar payı")]
         [Range(0f, 0.3f)]
@@ -671,10 +671,10 @@ namespace PixelGame
             }
             m_TintColor = Color.white;
             m_HueShift = 0f;
-            m_ColorBrightness = 1.25f;
-            m_ColorSaturation = 1.25f;
-            m_ColorContrast = 1.05f;
-            m_EmissionIntensity = 0.35f;
+            m_ColorBrightness = 1.0f;
+            m_ColorSaturation = 1.0f;
+            m_ColorContrast = 1.0f;
+            m_EmissionIntensity = 0.0f;
         }
     }
 }

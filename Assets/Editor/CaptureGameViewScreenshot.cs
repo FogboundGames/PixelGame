@@ -124,18 +124,16 @@ namespace PixelGame.Editor
                 if (mat != null)
                 {
                     bool matDirty = false;
-                    if (mat.HasProperty("_StylizedPlasticOn") && mat.GetFloat("_StylizedPlasticOn") < 0.5f) { mat.SetFloat("_StylizedPlasticOn", 1.0f); matDirty = true; }
-                    if (mat.HasProperty("_PlasticAngleX")) { mat.SetFloat("_PlasticAngleX", 0.50f); matDirty = true; }
-                    if (mat.HasProperty("_PlasticHighlightIntensity")) { mat.SetFloat("_PlasticHighlightIntensity", 2.85f); matDirty = true; }
-                    if (mat.HasProperty("_PlasticHighlightSize")) { mat.SetFloat("_PlasticHighlightSize", 0.26f); matDirty = true; }
-                    if (mat.HasProperty("_PlasticHighlightLength")) { mat.SetFloat("_PlasticHighlightLength", 1.85f); matDirty = true; }
-                    if (mat.HasProperty("_PlasticHighlightWidth")) { mat.SetFloat("_PlasticHighlightWidth", 0.65f); matDirty = true; }
-                    if (mat.HasProperty("_PlasticHighlightAngle")) { mat.SetFloat("_PlasticHighlightAngle", 0f); matDirty = true; }
-                    if (mat.HasProperty("_PlasticTopLight")) { mat.SetFloat("_PlasticTopLight", 0.25f); matDirty = true; }
-                    if (mat.HasProperty("_PlasticBevelAO")) { mat.SetFloat("_PlasticBevelAO", 0.45f); matDirty = true; }
-                    if (mat.HasProperty("_SpecularColor")) { mat.SetColor("_SpecularColor", Color.white); matDirty = true; }
-                    if (mat.HasProperty("_SpecularRoughnessPBR")) { mat.SetFloat("_SpecularRoughnessPBR", 0.18f); matDirty = true; }
-                    if (mat.HasProperty("_Smoothness")) { mat.SetFloat("_Smoothness", 0.92f); matDirty = true; }
+                    if (mat.HasProperty("_StylizedPlasticOn") && mat.GetFloat("_StylizedPlasticOn") > 0.5f) { mat.SetFloat("_StylizedPlasticOn", 0.0f); matDirty = true; }
+                    if (mat.HasProperty("_PlasticHighlightIntensity")) { mat.SetFloat("_PlasticHighlightIntensity", 0f); matDirty = true; }
+                    if (mat.HasProperty("_PlasticTopLight")) { mat.SetFloat("_PlasticTopLight", 0f); matDirty = true; }
+                    if (mat.HasProperty("_SpecularHighlights")) { mat.SetFloat("_SpecularHighlights", 0f); matDirty = true; }
+                    if (mat.HasProperty("_SpecularColor")) { mat.SetColor("_SpecularColor", new Color(0.05f, 0.05f, 0.05f, 1f)); matDirty = true; }
+                    if (mat.HasProperty("_SpecularRoughnessPBR")) { mat.SetFloat("_SpecularRoughnessPBR", 0.85f); matDirty = true; }
+                    if (mat.HasProperty("_Smoothness")) { mat.SetFloat("_Smoothness", 0.10f); matDirty = true; }
+                    if (mat.HasProperty("_RampSmoothing")) { mat.SetFloat("_RampSmoothing", 0.60f); matDirty = true; }
+                    if (mat.HasProperty("_ProceduralBevelWidth")) { mat.SetFloat("_ProceduralBevelWidth", 0.045f); matDirty = true; }
+                    if (mat.HasProperty("_ProceduralBevelIntensity")) { mat.SetFloat("_ProceduralBevelIntensity", 0.75f); matDirty = true; }
 
                     if (matDirty)
                     {
@@ -150,10 +148,12 @@ namespace PixelGame.Editor
                 {
                     SerializedObject sGen = new SerializedObject(gen);
                     SerializedProperty spSpacing = sGen.FindProperty("m_CubeSpacing");
+                    SerializedProperty spSpacingX = sGen.FindProperty("m_CubeSpacingX");
                     SerializedProperty spDepth = sGen.FindProperty("m_CubeDepth");
 
                     bool genDirty = false;
-                    if (spSpacing != null && spSpacing.floatValue > 0.005f) { spSpacing.floatValue = 0.002f; genDirty = true; }
+                    if (spSpacing != null && (spSpacing.floatValue < 0.04f || spSpacing.floatValue > 0.09f)) { spSpacing.floatValue = 0.06f; genDirty = true; }
+                    if (spSpacingX != null && (spSpacingX.floatValue < 0.04f || spSpacingX.floatValue > 0.09f)) { spSpacingX.floatValue = 0.06f; genDirty = true; }
                     if (spDepth != null && spDepth.floatValue < 0.65f) { spDepth.floatValue = 0.78f; genDirty = true; }
 
                     if (genDirty)

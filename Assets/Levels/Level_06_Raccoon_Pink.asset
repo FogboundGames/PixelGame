@@ -24,7 +24,7 @@ MonoBehaviour:
     pixelCount: 196
     label: 
   - originalColor: {r: 0.078431375, g: 0.08235294, b: 0.10196079, a: 1}
-    targetColor: {r: 0.078431375, g: 0.08235294, b: 0.10196079, a: 1}
+    targetColor: {r: 0.18, g: 0.19, b: 0.22, a: 1}
     pixelCount: 142
     label: 
   - originalColor: {r: 0.9921569, g: 0.3803922, b: 0.7843138, a: 1}
@@ -53,13 +53,13 @@ MonoBehaviour:
   m_ColorSaturation: 1
   m_ColorContrast: 1
   m_EmissionIntensity: 0.05
-  m_CubeSpacing: -0.1
-  m_CubeSpacingX: 0.013
+  m_CubeSpacing: 0.06
+  m_CubeSpacingX: 0.06
   m_CubeDepth: 1
   m_BoardTiltAngle: 18
   m_CubeFrontTiltAngle: 25
   m_TargetZ: 0
-  m_CubeRowStepOffset: {x: 0, y: 0, z: 0.12}
+  m_CubeRowStepOffset: {x: 0, y: 0, z: 0}
   m_InnerPadding: 0.08
   m_SkipTransparent: 1
   m_SlotSprite: {fileID: 0}

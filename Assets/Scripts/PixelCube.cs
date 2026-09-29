@@ -110,6 +110,16 @@ namespace PixelGame
         private static readonly int BaseColorProp = Shader.PropertyToID("_BaseColor");
         private static readonly int ColorProp = Shader.PropertyToID("_Color");
         private static readonly int EmissionColorProp = Shader.PropertyToID("_EmissionColor");
+        private static readonly int HColorProp = Shader.PropertyToID("_HColor");
+        private static readonly int SColorProp = Shader.PropertyToID("_SColor");
+        private static readonly int SpecularHighlightsProp = Shader.PropertyToID("_SpecularHighlights");
+        private static readonly int SmoothnessProp = Shader.PropertyToID("_Smoothness");
+        private static readonly int SpecularRoughnessPBRProp = Shader.PropertyToID("_SpecularRoughnessPBR");
+        private static readonly int RampSmoothingProp = Shader.PropertyToID("_RampSmoothing");
+        private static readonly int RampThresholdProp = Shader.PropertyToID("_RampThreshold");
+        private static readonly int StylizedPlasticOnProp = Shader.PropertyToID("_StylizedPlasticOn");
+        private static readonly int PlasticTopLightProp = Shader.PropertyToID("_PlasticTopLight");
+        private static readonly int PlasticHighlightIntensityProp = Shader.PropertyToID("_PlasticHighlightIntensity");
 
         public int GridX => m_GridX;
         public int GridY => m_GridY;
@@ -185,6 +195,20 @@ namespace PixelGame
             s_PropertyBlock.Clear();
             s_PropertyBlock.SetColor(BaseColorProp, color);
             s_PropertyBlock.SetColor(ColorProp, color);
+
+            // Gemilerin mat cel-shading aydınlatması ile %100 birebir aynı aydınlatma:
+            Color hColor = Color.Lerp(Color.white, color, 0.45f);
+            Color sColor = color * 0.70f;
+            s_PropertyBlock.SetColor(HColorProp, hColor);
+            s_PropertyBlock.SetColor(SColorProp, sColor);
+            s_PropertyBlock.SetFloat(SpecularHighlightsProp, 0f);
+            s_PropertyBlock.SetFloat(SmoothnessProp, 0.22f);
+            s_PropertyBlock.SetFloat(SpecularRoughnessPBRProp, 0.60f);
+            s_PropertyBlock.SetFloat(RampSmoothingProp, 0.65f);
+            s_PropertyBlock.SetFloat(RampThresholdProp, 0.42f);
+            s_PropertyBlock.SetFloat(StylizedPlasticOnProp, 0f);
+            s_PropertyBlock.SetFloat(PlasticTopLightProp, 0f);
+            s_PropertyBlock.SetFloat(PlasticHighlightIntensityProp, 0f);
 
             if (emission > 0f)
             {
@@ -455,7 +479,7 @@ namespace PixelGame
             // 2. Küpü rengine uyan gemiye veya kamyona yükle
             if (shipDispatcher != null)
             {
-                shipDispatcher.NotifyCubePopped(m_CurrentColor, transform.position, m_CurrentColor, transform.lossyScale, transform.rotation);
+                shipDispatcher.NotifyCubePopped(m_CurrentColor, transform.position, m_CurrentColor, transform.lossyScale, transform.rotation, this);
             }
             else if (truckDispatcher != null)
             {

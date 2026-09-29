@@ -29,16 +29,27 @@ namespace PixelGame
         private float m_BaseScale = 1f;
         private float m_AirborneBlend;
 
-        // ---- Yürüyüş ayarları ----
+        // ---- Paytak Yürüyüş Ayarları (Waddle Kinematics) ----
         /// <summary>Bacağın ileri/geri salınım genliği (derece).</summary>
-        private const float SwingDegrees = 34f;
+        private const float SwingDegrees = 36f;
+        /// <summary>Bacağın paytak (dışa doğru) açılma/yaylanma genliği (derece).</summary>
+        private const float LegFlareDegrees = 14f;
+        /// <summary>Gövdenin sağa/sola paytak yalpalama genliği (derece).</summary>
+        private const float WaddleRollDegrees = 8.5f;
+        /// <summary>Gövdenin kalça dönüş genliği (derece).</summary>
+        private const float HipYawDegrees = 5.5f;
+        /// <summary>Her adımda yukarı yaylanma/zıplama yüksekliği (ölçek çarpanı).</summary>
+        private const float StepHopHeight = 0.055f;
+        /// <summary>Öne doğru hafif hevesli eğim açısı (derece).</summary>
+        private const float ForwardLeanDegrees = 3.5f;
         /// <summary>
         /// İlerleme hızının adım frekansına çarpanı (adım/sn = hız * bu).
-        /// Yürüyüş hızı ~1.9 birim/sn olduğu için bu değer ~3 adım/sn veriyor.
         /// </summary>
-        private const float StepsPerUnitSpeed = 1.6f;
+        private const float StepsPerUnitSpeed = 1.65f;
         /// <summary>Adım frekansının alt sınırı (adım/sn) — çok yavaşta bacak donmasın.</summary>
-        private const float MinStepsPerSecond = 2.0f;
+        private const float MinStepsPerSecond = 2.2f;
+
+        private float m_CurrentHeadingYaw = 0f;
 
         public Transform Visual => m_Visual;
         public bool HasLegs => m_LegL != null || m_LegR != null;
@@ -163,6 +174,16 @@ namespace PixelGame
         private static readonly int BaseColorProp = Shader.PropertyToID("_BaseColor");
         private static readonly int ColorProp = Shader.PropertyToID("_Color");
         private static readonly int EmissionColorProp = Shader.PropertyToID("_EmissionColor");
+        private static readonly int HColorProp = Shader.PropertyToID("_HColor");
+        private static readonly int SColorProp = Shader.PropertyToID("_SColor");
+        private static readonly int SpecularHighlightsProp = Shader.PropertyToID("_SpecularHighlights");
+        private static readonly int SmoothnessProp = Shader.PropertyToID("_Smoothness");
+        private static readonly int SpecularRoughnessPBRProp = Shader.PropertyToID("_SpecularRoughnessPBR");
+        private static readonly int RampSmoothingProp = Shader.PropertyToID("_RampSmoothing");
+        private static readonly int RampThresholdProp = Shader.PropertyToID("_RampThreshold");
+        private static readonly int StylizedPlasticOnProp = Shader.PropertyToID("_StylizedPlasticOn");
+        private static readonly int PlasticTopLightProp = Shader.PropertyToID("_PlasticTopLight");
+        private static readonly int PlasticHighlightIntensityProp = Shader.PropertyToID("_PlasticHighlightIntensity");
 
         /// <summary>
         /// Görseldeki tüm renderer'lara rengi MaterialPropertyBlock ile uygular.
@@ -182,6 +203,19 @@ namespace PixelGame
             s_CargoPropertyBlock.SetColor(BaseColorProp, color);
             s_CargoPropertyBlock.SetColor(ColorProp, color);
             s_CargoPropertyBlock.SetColor(EmissionColorProp, Color.black);
+
+            Color hColor = Color.Lerp(Color.white, color, 0.45f);
+            Color sColor = color * 0.70f;
+            s_CargoPropertyBlock.SetColor(HColorProp, hColor);
+            s_CargoPropertyBlock.SetColor(SColorProp, sColor);
+            s_CargoPropertyBlock.SetFloat(SpecularHighlightsProp, 0f);
+            s_CargoPropertyBlock.SetFloat(SmoothnessProp, 0.22f);
+            s_CargoPropertyBlock.SetFloat(SpecularRoughnessPBRProp, 0.60f);
+            s_CargoPropertyBlock.SetFloat(RampSmoothingProp, 0.65f);
+            s_CargoPropertyBlock.SetFloat(RampThresholdProp, 0.42f);
+            s_CargoPropertyBlock.SetFloat(StylizedPlasticOnProp, 0f);
+            s_CargoPropertyBlock.SetFloat(PlasticTopLightProp, 0f);
+            s_CargoPropertyBlock.SetFloat(PlasticHighlightIntensityProp, 0f);
 
             for (int i = 0; i < all.Length; i++)
             {
@@ -209,8 +243,9 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Bir karelik yürüyüş adımı. <paramref name="speed"/> parçanın o andaki
-        /// dünya hızı (birim/sn); adım frekansı buna bağlanır.
+        /// Bir karelik paytak yürüyüş adımı.
+        /// Gövde ağırlık basan ayağa doğru sevimli bir şekilde yalpalar (waddle roll & hip yaw),
+        /// her adımda yaylanır ve bacaklar hafif dışa açılarak paytak paytak yürür.
         /// </summary>
         public void Walk(float deltaTime, float speed, Vector3 moveDirection)
         {
@@ -221,53 +256,93 @@ namespace PixelGame
             float stepsPerSecond = Mathf.Max(MinStepsPerSecond, speed * StepsPerUnitSpeed);
             m_StepPhase += deltaTime * stepsPerSecond * Mathf.PI * 2f;
 
-            // SADECE bacaklar hareket eder. Gövdenin konumu, rotasyonu ve yüksekliği
-            // panodaki haliyle birebir aynı kalır — küp yerinden ayrılıp yürür, başka
-            // hiçbir şey değişmez. (Gövde sekmesi/yaslanması/yalpalaması bilerek yok.)
-            ApplyLegSwing(Mathf.Sin(m_StepPhase) * SwingDegrees);
-            m_Visual.localPosition = Vector3.zero;
-            m_Visual.localRotation = m_VisualRest;
+            float stepSin = Mathf.Sin(m_StepPhase);
+
+            // 1. Paytak Bacak Hareketi (Swing + Dışa Açılma / Flare)
+            // Sol bacak öne giderken hafif sola dışa açılır; sağ bacak öne giderken hafif sağa dışa açılır.
+            float swingL = stepSin * SwingDegrees;
+            float swingR = -stepSin * SwingDegrees;
+            float flareL = Mathf.Max(0f, stepSin) * LegFlareDegrees;
+            float flareR = Mathf.Max(0f, -stepSin) * LegFlareDegrees;
+
+            if (m_LegL != null)
+                m_LegL.localRotation = Quaternion.Euler(swingL, flareL * 0.4f, -flareL) * m_LegLRest;
+            if (m_LegR != null)
+                m_LegR.localRotation = Quaternion.Euler(swingR, -flareR * 0.4f, flareR) * m_LegRRest;
+
+            // 2. Paytak Gövde Yalpalaması (Waddle Roll & Hip Sway)
+            // Ağırlık basan tarafa doğru tatlı bir eğilme (roll) ve kalça dönüşü (yaw)
+            float roll = -stepSin * WaddleRollDegrees;
+            float hipYaw = stepSin * HipYawDegrees;
+
+            // Hareket yönüne yumuşak yönelme (Heading Yaw)
+            float targetHeadingYaw = 0f;
+            if (moveDirection.sqrMagnitude > 1e-4f)
+            {
+                // Yatay hareket varsa o yöne hafif yönelir (maksimum 20 derece)
+                targetHeadingYaw = Mathf.Clamp(moveDirection.x * 26f, -20f, 20f);
+            }
+            m_CurrentHeadingYaw = Mathf.Lerp(m_CurrentHeadingYaw, targetHeadingYaw, deltaTime * 8f);
+
+            Quaternion waddleTilt = Quaternion.Euler(ForwardLeanDegrees, m_CurrentHeadingYaw + hipYaw, roll);
+            m_Visual.localRotation = m_VisualRest * waddleTilt;
+
+            // 3. Adım Başına Yukarı Zıplama/Yaylanma (Step Hop & Bounce)
+            // Adım frekansı her iki ayakta da bir tepe noktası oluşturur (çift frekanslı zıplama)
+            float hopFactor = stepSin * stepSin; // 0 (ayak yerde) -> 1 (havada)
+            float hopY = hopFactor * StepHopHeight * m_BaseScale;
+            m_Visual.localPosition = new Vector3(0f, hopY, 0f);
+
+            // 4. Organik Squash & Stretch (Yumuşak Esneme)
+            // Yere basma anında hafif yaylanma (squash), zıplama anında hafif uzama (stretch)
+            float squash = (1f - hopFactor) * 0.07f;
+            float stretch = hopFactor * 0.05f;
+            m_Visual.localScale = new Vector3(
+                m_BaseScale * (1f + squash * 0.8f - stretch * 0.4f),
+                m_BaseScale * (1f - squash + stretch),
+                m_BaseScale * (1f + squash * 0.8f - stretch * 0.4f)
+            );
         }
 
-        /// <summary>Havadayken bacaklar toplanır, sekme durur.</summary>
+        /// <summary>Havadayken bacaklar toplanır, havada sevimli esneme uygulanır.</summary>
         public void SetAirborne(float deltaTime)
         {
             if (m_Visual == null) return;
 
             m_AirborneBlend = Mathf.MoveTowards(m_AirborneBlend, 1f, deltaTime * 8f);
 
-            // Zıplarken bacaklar öne toplanır (tuck).
+            // Zıplarken bacaklar tatlıca öne toplanır (tuck)
             if (m_LegL != null)
                 m_LegL.localRotation = Quaternion.Slerp(m_LegL.localRotation,
-                    Quaternion.Euler(-38f, 0f, 0f) * m_LegLRest, m_AirborneBlend);
+                    Quaternion.Euler(-38f, 8f, -10f) * m_LegLRest, m_AirborneBlend);
             if (m_LegR != null)
                 m_LegR.localRotation = Quaternion.Slerp(m_LegR.localRotation,
-                    Quaternion.Euler(-24f, 0f, 0f) * m_LegRRest, m_AirborneBlend);
+                    Quaternion.Euler(-38f, -8f, 10f) * m_LegRRest, m_AirborneBlend);
 
+            m_Visual.localPosition = Vector3.zero;
+            m_Visual.localScale = Vector3.Lerp(m_Visual.localScale, new Vector3(
+                m_BaseScale * 0.95f,
+                m_BaseScale * 1.08f,
+                m_BaseScale * 0.95f), m_AirborneBlend);
         }
 
-        /// <summary>Kıyıya varışta minik çömelme (zıplamaya hazırlık).</summary>
+        /// <summary>Kıyıya varışta minik çömelme ve yaylanma (zıplamaya hazırlık).</summary>
         public void Crouch(float amount01)
         {
             if (m_Visual == null) return;
             float a = Mathf.Clamp01(amount01);
+            m_Visual.localPosition = new Vector3(0f, -0.06f * a * m_BaseScale, 0f);
             m_Visual.localRotation = m_VisualRest;
             m_Visual.localScale = new Vector3(
-                m_BaseScale * (1f + 0.18f * a),
+                m_BaseScale * (1f + 0.20f * a),
                 m_BaseScale * (1f - 0.22f * a),
-                m_BaseScale * (1f + 0.18f * a));
-            ApplyLegSwing(Mathf.Lerp(0f, 14f, a));
-        }
+                m_BaseScale * (1f + 0.20f * a));
 
-        private void ApplyLegSwing(float degrees)
-        {
-            // Ebeveyn (küp) X ekseni etrafında ön-çarpım: iki bacak da aynı eksende,
-            // ters işaretle salınır. Bacakların kendi rest rotasyonları aynalı olduğu
-            // için yerel eksende çarpmak ikisini de aynı yöne sallardı.
+            // Çömelirken bacaklar hafif dışa bükülür
             if (m_LegL != null)
-                m_LegL.localRotation = Quaternion.Euler(degrees, 0f, 0f) * m_LegLRest;
+                m_LegL.localRotation = Quaternion.Euler(14f * a, 8f * a, -12f * a) * m_LegLRest;
             if (m_LegR != null)
-                m_LegR.localRotation = Quaternion.Euler(-degrees, 0f, 0f) * m_LegRRest;
+                m_LegR.localRotation = Quaternion.Euler(14f * a, -8f * a, 12f * a) * m_LegRRest;
         }
     }
 }

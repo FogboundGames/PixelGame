@@ -369,11 +369,11 @@ namespace PixelGame
             // Fallback 2: Son çare seviye renkleri (Rastgele aykırı renkler yerine seviye tonları)
             Color[] defaults = new Color[]
             {
-                new Color(0.957f, 0.831f, 0.384f, 1f), // Sarı / Altın
-                new Color(0.141f, 0.596f, 0.980f, 1f), // Mavi
-                new Color(0.078f, 0.082f, 0.102f, 1f), // Siyah / Koyu
-                new Color(0.996f, 0.996f, 0.996f, 1f), // Beyaz
-                new Color(0.584f, 0.498f, 0.380f, 1f)  // Kahve
+                new Color(0.957f, 0.831f, 0.384f, 1f), // Sarı / Altın (Photo 1)
+                new Color(0.475f, 0.200f, 0.780f, 1f), // Mor / Asil Lavanta (Photo 1)
+                new Color(0.180f, 0.190f, 0.220f, 1f), // Siyah / Koyu Kömür (Photo 1)
+                new Color(0.920f, 0.930f, 0.950f, 1f), // Beyaz / Açık Gümüş (Photo 1)
+                new Color(0.584f, 0.498f, 0.380f, 1f)  // Kahve / Sıcak Karamel (Photo 1)
             };
             return defaults[UnityEngine.Random.Range(0, defaults.Length)];
         }
