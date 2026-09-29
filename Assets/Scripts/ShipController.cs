@@ -886,11 +886,16 @@ namespace PixelGame
             if (m_BadgeUIText != null) m_BadgeUIText.gameObject.SetActive(false);
             if (m_BadgeImage != null) m_BadgeImage.gameObject.SetActive(false);
 
-            // Slottan ayrılırken slotu hemen boşa çıkar ki oyuncu hemen yeni gemi yerleştirebilsin (videodaki gibi)
+            // Slottan ayrılırken slotu hemen boşa çıkar ve sağdaki gemileri sola kaydır
             if (m_CurrentSlot != null)
             {
                 m_CurrentSlot.ReleaseShip();
                 m_CurrentSlot = null;
+            }
+
+            if (ShipDispatcher.Instance != null)
+            {
+                ShipDispatcher.Instance.CompactSlots(0.15f);
             }
 
             // Slottan dünya koordinatlarına çık
@@ -901,9 +906,9 @@ namespace PixelGame
             Vector3 startPos = transform.position;
             Quaternion startRot = transform.rotation;
 
-            // Slottan ayrılış: Geminin pruva (burun) yönünde slottan ileriye doğru zarifçe süzülür
+            // Slottan ayrılış: Geminin pruva (burun) yönünde su yüzeyinde ileriye doğru zarifçe süzülür
             Vector3 undockOffset = transform.forward * 0.85f;
-            const float departExtraLift = 0.15f;
+            const float departExtraLift = 0f; // Tamamen su yüzeyinde
             Vector3 undockPos = startPos + undockOffset + new Vector3(0f, departExtraLift, 0f);
 
             // Su yüzeyi düzleminde sola bakan hedef rotasyon (Lokal Y ekseninde -90° dönüş):
@@ -1073,6 +1078,12 @@ namespace PixelGame
             ResetVisualOffset();
             transform.DOKill(true);
 
+            // Eski slottan ayrıl (eğer başka bir slottan kayıyorsa)
+            if (m_CurrentSlot != null && m_CurrentSlot != targetSlot)
+            {
+                m_CurrentSlot.ReleaseShip();
+            }
+
             // Slota bağla
             targetSlot.DockShip(this);
             m_CurrentSlot = targetSlot;
@@ -1085,10 +1096,25 @@ namespace PixelGame
             Quaternion targetSlotWorldRot = targetSlot.transform.rotation;
             Vector3 targetWorld = targetSlot.transform.TransformPoint(targetLocalPos);
 
-            // 4 Noktalı Pürüzsüz Bezier Su Rotası
+            // 4 Noktalı Pürüzsüz Bezier Su Rotası (Tamamen su yüzeyinde - havaya zıplama/uçma yok)
             Vector3 p0 = startWorldPos;
-            Vector3 p1 = startWorldPos + new Vector3(0f, 0.65f, -0.08f);
-            Vector3 p2 = targetWorld + new Vector3(0f, -0.65f, 0.08f);
+            Vector3 delta = targetWorld - startWorldPos;
+            float dist = delta.magnitude;
+
+            Vector3 p1, p2;
+            if (dist > 1.8f)
+            {
+                // Kuyruktan slota gelirken su yüzeyi üzerinde tatlı bir dümen kırma S-rotası (su seviyesinde)
+                float lateralOffset = Mathf.Clamp((targetWorld.x - startWorldPos.x) * 0.22f, -0.35f, 0.35f);
+                p1 = startWorldPos + delta * 0.35f + new Vector3(lateralOffset, 0f, 0f);
+                p2 = startWorldPos + delta * 0.70f - new Vector3(lateralOffset * 0.4f, 0f, 0f);
+            }
+            else
+            {
+                // Slotlar arası yatay kaymada veya yakın snap'te doğrudan su üzerinde pürüzsüz hat
+                p1 = startWorldPos + delta * 0.333f;
+                p2 = startWorldPos + delta * 0.667f;
+            }
             Vector3 p3 = targetWorld;
 
             // Snap durumunda m_SnapDuration (0.16s), normal click durumunda varsayılan 0.48s
@@ -1172,6 +1198,7 @@ namespace PixelGame
             if (ShipDispatcher.Instance != null)
             {
                 ShipDispatcher.Instance.OnShipDocked(this);
+                ShipDispatcher.Instance.CompactSlots(0.05f);
             }
 
             onComplete?.Invoke();

@@ -37,8 +37,8 @@ MonoBehaviour:
   m_ColorSaturation: 1
   m_ColorContrast: 1
   m_EmissionIntensity: 0
-  m_CubeSpacing: 0.06
-  m_CubeSpacingX: 0.06
+  m_CubeSpacing: 0
+  m_CubeSpacingX: 0
   m_CubeDepth: 1
   m_BoardTiltAngle: 18
   m_CubeFrontTiltAngle: 25

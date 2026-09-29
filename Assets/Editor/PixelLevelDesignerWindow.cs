@@ -2760,6 +2760,7 @@ namespace PixelGame.Editor
             // 1. 🏝️ GEMİ SAHNESİ & RAY YÖNETİMİ
             DrawSceneToolCard("🏝️ Gemi Sahnesi & Ray Yönetimi", new (string, string, System.Action)[]
             {
+                ("⚓ Konsept 2: Yüzen Şamandıra & Su Üstü Zincir Izgarasını Kur", "Slotlara kırmızı-beyaz yüzen şamandıraları, deniz zincirlerini ve ahşap numara tabelalarını kurar.", () => SetupMarinaDockSlots.SetupMarinaSlots()),
                 ("🏝️ Gemi Sahnesini Sıfırdan Kur & Tüm Öğeleri Getir", "Gemi sahnesini, slotları, kum çerçevesini ve piksel sanatını kurar.", () => GemiSceneSetup.SetupGemiSceneMenu()),
                 ("🎨 Kum Alanındaki Piksel Resmi Yenile (Regenerate)", "Kum alanındaki mevcut piksel sanatını ve gölgeleri anında yeniden üretir.", () => GemiSceneSetup.RegeneratePixelArtMenu()),
                 ("🛤️ Vagon Döngüsünü Kur (Ray + Havuz)", "Slot şeridi, alt havuz ve ray vagon döngüsünü sahneye kurar.", () => SetupTruckSlots.Setup()),
@@ -2800,6 +2801,7 @@ namespace PixelGame.Editor
             // 4. 🎯 HUD, ARAYÜZ & TESTLER
             DrawSceneToolCard("🎯 HUD, Arayüz & Testler", new (string, string, System.Action)[]
             {
+                ("📱 Gemi Sahnesi Üst HUD'ını Kur (Image 1)", "Gemi sahnesine ayarlar düğmesi, LEVEL 1, can ve altın şeridini kurar.", () => SetupGemiTopHUD.BuildTopHUD()),
                 ("🎯 Köşe Sayacını & Üst HUD'ı Düzenle", "LilitaOne fontu ve şık sayaç ile üst arayüzü yapılandırır.", () => SetupCleanCornerCounter.ApplyCleanCorner()),
                 ("🖼️ Casual HUD & Arkaplan Kur", "Casual HUD panellerini ve renkli arka planı yapılandırır.", () => SetupCasualHud.Apply()),
                 ("🧪 Gemi Kalkış Testi (Ship Departure Test)", "Bölüm tamamlandığında geminin kalkış animasyonunu canlı test eder.", () => TestShipDeparture.RunTest()),

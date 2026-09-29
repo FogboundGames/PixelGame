@@ -666,6 +666,12 @@ namespace PixelGame.Editor
 
             }
 
+            // 2.5 ⚓ Konsept 2: Yüzen Şamandıra & Su Üstü Zincir Izgarası (Low-Profile Buoy Berths)
+            SetupMarinaDockSlots.SetupMarinaSlots();
+
+            // 2.6 📱 Üst HUD Şeridi (Ayarlar + LEVEL 1 + Can + Altın)
+            SetupGemiTopHUD.BuildTopHUD();
+
             // 3. Su Alanı Bekleme Kuyruğu (Ship Queue Pool - Ferah su kanalı ve aralıklar)
             Transform queueObj = waterZone.Find("[ShipQueuePool]");
             if (queueObj == null)

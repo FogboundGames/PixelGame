@@ -1353,30 +1353,83 @@ namespace PixelGame
             return null;
         }
 
-        private int m_LastAssignedSlotIndex = -1;
-
         /// <summary>
-        /// Boş bir slot döndürür. Her zaman en soldakini seçmek yerine, bir önceki
-        /// atamadan sonraki slottan başlayarak sırayla (round-robin) tarar — böylece
-        /// slotlar dengeli kullanılır, sol taraf sürekli tekrar dolup sağ taraf
-        /// uzun süre boş kalmaz.
+        /// Boş olan en küçük indeksli (en soldaki: 1-2-3-4-5) slotu döner.
+        /// Böylece her zaman 1 boşsa 1'e, 2 boşsa 2'ye dolar; arada boşluk kalmaz.
         /// </summary>
         public ShipSlot FindEmptySlot()
         {
             if (m_Slots == null || m_Slots.Count == 0) return null;
 
-            int count = m_Slots.Count;
-            for (int offset = 1; offset <= count; offset++)
+            for (int i = 0; i < m_Slots.Count; i++)
             {
-                int index = (m_LastAssignedSlotIndex + offset) % count;
-                var slot = m_Slots[index];
+                var slot = m_Slots[i];
                 if (slot != null && slot.IsEmpty)
                 {
-                    m_LastAssignedSlotIndex = index;
                     return slot;
                 }
             }
             return null;
+        }
+
+        /// <summary>
+        /// Slotlardaki gemileri 1-2-3-4-5 sırasına göre sol hizalı (boşluksuz) kaydırır.
+        /// Örneğin 2 boşsa 3'teki gemi 2'ye, 4'teki 3'e su üzerinden pürüzsüzce kayar;
+        /// slotlar arasında asla boşluk kalmaz.
+        /// </summary>
+        public void CompactSlots(float delay = 0.12f)
+        {
+            if (gameObject.activeInHierarchy)
+            {
+                StartCoroutine(CompactSlotsRoutine(delay));
+            }
+        }
+
+        private IEnumerator CompactSlotsRoutine(float delay)
+        {
+            if (delay > 0f)
+            {
+                yield return new WaitForSeconds(delay);
+            }
+
+            if (m_Slots == null || m_Slots.Count == 0) yield break;
+
+            bool movedAny = false;
+
+            // 1'den 5'e kadar (0'dan 4'e kadar indeksler) tara
+            for (int targetIdx = 0; targetIdx < m_Slots.Count; targetIdx++)
+            {
+                var targetSlot = m_Slots[targetIdx];
+                if (targetSlot == null) continue;
+
+                // Hedef slot boşsa, kendisinden sonraki ilk uygun gemiyi bulup bu slota kaydır
+                if (targetSlot.IsEmpty)
+                {
+                    for (int fromIdx = targetIdx + 1; fromIdx < m_Slots.Count; fromIdx++)
+                    {
+                        var fromSlot = m_Slots[fromIdx];
+                        if (fromSlot != null && !fromSlot.IsEmpty && fromSlot.DockedShip != null)
+                        {
+                            ShipController ship = fromSlot.DockedShip;
+                            if (!ship.IsDeparting && !ship.IsMoving)
+                            {
+                                fromSlot.ReleaseShip();
+                                m_LaneStates.Remove(ship);
+                                // Su üzerinden tatlı bir hızla hedef slota kaydır (0.28s)
+                                ship.SailToSlot(targetSlot, 0.28f);
+                                movedAny = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (movedAny)
+            {
+                yield return new WaitForSeconds(0.30f);
+                TriggerWaitingShipsCheck();
+            }
         }
 
         /// <summary>
