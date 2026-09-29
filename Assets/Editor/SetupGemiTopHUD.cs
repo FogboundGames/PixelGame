@@ -16,7 +16,7 @@ namespace PixelGame.Editor
         private const string ScenePath = "Assets/Scenes/Gemi.unity";
         private const string UIRoot = "Assets/UI/CasualUI/";
         private const string FontPath = "Assets/Fonts/LilitaOne-Regular SDF.asset";
-        private const string AutoRunKey = "GemiTopHUD_Installed_v2";
+        private const string AutoRunKey = "GemiTopHUD_Installed_v3";
 
         static SetupGemiTopHUD()
         {
@@ -183,7 +183,7 @@ namespace PixelGame.Editor
                 Undo.DestroyObjectImmediate(oldSub.gameObject);
             }
 
-            // 9. SubHeader container (Seviye Aksiyon Barı: Restart + HARD + Level 35 + Sound + Haptic)
+            // 9. SubHeader container (Seviye Aksiyon Barı: Restart + HARD + Level 35 + Sound + Music)
             GameObject subHeaderGo = new GameObject("SubHeader", typeof(RectTransform));
             Undo.RegisterCreatedObjectUndo(subHeaderGo, "Create SubHeader");
             subHeaderGo.transform.SetParent(canvasGo.transform, false);
@@ -195,7 +195,7 @@ namespace PixelGame.Editor
             subRt.anchoredPosition = new Vector2(0f, -188f);
             subRt.sizeDelta = new Vector2(0f, 120f);
 
-            // 9a. Restart Button (Kırmızı kare, altın çerçeveli yenileme düğmesi)
+            // 9a. Restart Button (Kırmızı squircle, beyaz dairesel yenileme oku, altın alt çerçeve)
             GameObject restartGo = new GameObject("RestartButton", typeof(RectTransform), typeof(Image), typeof(Button));
             Undo.RegisterCreatedObjectUndo(restartGo, "Create RestartButton");
             restartGo.transform.SetParent(subHeaderGo.transform, false);
@@ -205,7 +205,7 @@ namespace PixelGame.Editor
             restartRt.anchorMax = new Vector2(0f, 0.5f);
             restartRt.pivot = new Vector2(0.5f, 0.5f);
             restartRt.anchoredPosition = new Vector2(75f, 0f);
-            restartRt.sizeDelta = new Vector2(96f, 96f);
+            restartRt.sizeDelta = new Vector2(100f, 100f);
 
             Image restartImg = restartGo.GetComponent<Image>();
             Sprite restartSprite = LoadSprite("btn_restart");
@@ -215,7 +215,7 @@ namespace PixelGame.Editor
             Button restartBtn = restartGo.GetComponent<Button>();
             UnityEditor.Events.UnityEventTools.AddPersistentListener(restartBtn.onClick, ctrl.RestartLevel);
 
-            // 9b. HARD Rozeti (Alevli kafatası + 3D HARD yazısı)
+            // 9b. HARD Rozeti (Sevimli beyaz tavşan maskot başı + pembe parlak HARD hapı)
             GameObject hardGo = new GameObject("HardBadge", typeof(RectTransform), typeof(Image));
             Undo.RegisterCreatedObjectUndo(hardGo, "Create HardBadge");
             hardGo.transform.SetParent(subHeaderGo.transform, false);
@@ -224,8 +224,8 @@ namespace PixelGame.Editor
             hardRt.anchorMin = new Vector2(0f, 0.5f);
             hardRt.anchorMax = new Vector2(0f, 0.5f);
             hardRt.pivot = new Vector2(0f, 0.5f);
-            hardRt.anchoredPosition = new Vector2(140f, 0f);
-            hardRt.sizeDelta = new Vector2(190f, 76f);
+            hardRt.anchoredPosition = new Vector2(138f, 0f);
+            hardRt.sizeDelta = new Vector2(214f, 80f);
 
             Image hardImg = hardGo.GetComponent<Image>();
             Sprite hardSprite = LoadSprite("badge_hard");
@@ -233,8 +233,8 @@ namespace PixelGame.Editor
             hardImg.preserveAspect = true;
             hardImg.raycastTarget = false;
 
-            // 9c. Seviye Başlığı (Ortalanmış "Level 35")
-            GameObject subLevelGo = new GameObject("LevelTitle", typeof(RectTransform));
+            // 9c. Seviye Başlığı (Yarı saydam sıcak bej kapsül arka planı + mavi konturlu "Level 35")
+            GameObject subLevelGo = new GameObject("LevelTitle", typeof(RectTransform), typeof(Image));
             Undo.RegisterCreatedObjectUndo(subLevelGo, "Create LevelTitle");
             subLevelGo.transform.SetParent(subHeaderGo.transform, false);
 
@@ -243,20 +243,37 @@ namespace PixelGame.Editor
             subLevelRt.anchorMax = new Vector2(0.5f, 0.5f);
             subLevelRt.pivot = new Vector2(0.5f, 0.5f);
             subLevelRt.anchoredPosition = new Vector2(0f, 0f);
-            subLevelRt.sizeDelta = new Vector2(340f, 80f);
+            subLevelRt.sizeDelta = new Vector2(280f, 76f);
 
-            TextMeshProUGUI subLevelTmp = subLevelGo.AddComponent<TextMeshProUGUI>();
+            Image capImg = subLevelGo.GetComponent<Image>();
+            Sprite capSprite = LoadSprite("bg_level_capsule");
+            if (capSprite != null) capImg.sprite = capSprite;
+            capImg.color = Color.white;
+            capImg.raycastTarget = false;
+
+            // Kapsül içindeki dinamik Seviye Metni
+            GameObject textGo = new GameObject("Text", typeof(RectTransform));
+            Undo.RegisterCreatedObjectUndo(textGo, "Create Text");
+            textGo.transform.SetParent(subLevelGo.transform, false);
+
+            RectTransform textRt = textGo.GetComponent<RectTransform>();
+            textRt.anchorMin = Vector2.zero;
+            textRt.anchorMax = Vector2.one;
+            textRt.offsetMin = Vector2.zero;
+            textRt.offsetMax = Vector2.zero;
+
+            TextMeshProUGUI subLevelTmp = textGo.AddComponent<TextMeshProUGUI>();
             subLevelTmp.text = "Level 35";
             if (font != null) subLevelTmp.font = font;
-            subLevelTmp.fontSize = 58f;
+            subLevelTmp.fontSize = 54f;
             subLevelTmp.fontStyle = FontStyles.Bold;
             subLevelTmp.alignment = TextAlignmentOptions.Center;
             subLevelTmp.color = Color.white;
-            subLevelTmp.outlineWidth = 0.22f;
-            subLevelTmp.outlineColor = new Color32(20, 15, 30, 255);
+            subLevelTmp.outlineWidth = 0.30f;
+            subLevelTmp.outlineColor = new Color32(48, 120, 200, 255);
             subLevelTmp.textWrappingMode = TextWrappingModes.NoWrap;
 
-            // 9d. Sound Button (Yeşil kare, altın çerçeveli hoparlör düğmesi)
+            // 9d. Sound Button (Yeşil squircle, beyaz hoparlör ve ses dalgaları, altın alt çerçeve)
             GameObject soundGo = new GameObject("SoundButton", typeof(RectTransform), typeof(Image), typeof(Button));
             Undo.RegisterCreatedObjectUndo(soundGo, "Create SoundButton");
             soundGo.transform.SetParent(subHeaderGo.transform, false);
@@ -266,7 +283,7 @@ namespace PixelGame.Editor
             soundRt.anchorMax = new Vector2(1f, 0.5f);
             soundRt.pivot = new Vector2(0.5f, 0.5f);
             soundRt.anchoredPosition = new Vector2(-185f, 0f);
-            soundRt.sizeDelta = new Vector2(96f, 96f);
+            soundRt.sizeDelta = new Vector2(100f, 100f);
 
             Image soundImg = soundGo.GetComponent<Image>();
             Sprite soundSprite = LoadSprite("btn_sound");
@@ -276,25 +293,25 @@ namespace PixelGame.Editor
             Button soundBtn = soundGo.GetComponent<Button>();
             UnityEditor.Events.UnityEventTools.AddPersistentListener(soundBtn.onClick, ctrl.ToggleSound);
 
-            // 9e. Haptic Button (Yeşil kare, altın çerçeveli titreşim düğmesi)
-            GameObject hapticGo = new GameObject("HapticButton", typeof(RectTransform), typeof(Image), typeof(Button));
-            Undo.RegisterCreatedObjectUndo(hapticGo, "Create HapticButton");
-            hapticGo.transform.SetParent(subHeaderGo.transform, false);
+            // 9e. Music Button (Yeşil squircle, beyaz çift nota, altın alt çerçeve)
+            GameObject musicGo = new GameObject("MusicButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            Undo.RegisterCreatedObjectUndo(musicGo, "Create MusicButton");
+            musicGo.transform.SetParent(subHeaderGo.transform, false);
 
-            RectTransform hapticRt = hapticGo.GetComponent<RectTransform>();
-            hapticRt.anchorMin = new Vector2(1f, 0.5f);
-            hapticRt.anchorMax = new Vector2(1f, 0.5f);
-            hapticRt.pivot = new Vector2(0.5f, 0.5f);
-            hapticRt.anchoredPosition = new Vector2(-75f, 0f);
-            hapticRt.sizeDelta = new Vector2(96f, 96f);
+            RectTransform musicRt = musicGo.GetComponent<RectTransform>();
+            musicRt.anchorMin = new Vector2(1f, 0.5f);
+            musicRt.anchorMax = new Vector2(1f, 0.5f);
+            musicRt.pivot = new Vector2(0.5f, 0.5f);
+            musicRt.anchoredPosition = new Vector2(-75f, 0f);
+            musicRt.sizeDelta = new Vector2(100f, 100f);
 
-            Image hapticImg = hapticGo.GetComponent<Image>();
-            Sprite hapticSprite = LoadSprite("btn_haptic");
-            if (hapticSprite != null) hapticImg.sprite = hapticSprite;
-            hapticImg.preserveAspect = true;
-            hapticGo.AddComponent<CasualUIButtonJuice>();
-            Button hapticBtn = hapticGo.GetComponent<Button>();
-            UnityEditor.Events.UnityEventTools.AddPersistentListener(hapticBtn.onClick, ctrl.ToggleHaptics);
+            Image musicImg = musicGo.GetComponent<Image>();
+            Sprite musicSprite = LoadSprite("btn_music");
+            if (musicSprite != null) musicImg.sprite = musicSprite;
+            musicImg.preserveAspect = true;
+            musicGo.AddComponent<CasualUIButtonJuice>();
+            Button musicBtn = musicGo.GetComponent<Button>();
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(musicBtn.onClick, ctrl.ToggleMusic);
 
             // Controller bağla
             ctrl.SubHeaderLevelText = subLevelTmp;
@@ -304,7 +321,7 @@ namespace PixelGame.Editor
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
             AssetDatabase.SaveAssets();
 
-            Debug.Log("<color=#00FFAA><b>[SetupGemiTopHUD]</b></color> 📱 Gemi sahnesi üst HUD ve Seviye Aksiyon Barı (Restart + HARD + Level 35 + Sound + Haptic) başarıyla kuruldu!");
+            Debug.Log("<color=#00FFAA><b>[SetupGemiTopHUD]</b></color> 📱 Gemi sahnesi üst HUD ve Seviye Aksiyon Barı (Restart + HARD + Level 35 + Sound + Music) başarıyla kuruldu!");
         }
 
         private static GameObject BuildPill(Transform parent, string name, string iconName, string countVal, TMP_FontAsset font, float width)

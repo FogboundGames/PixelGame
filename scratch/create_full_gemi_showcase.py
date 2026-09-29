@@ -32,35 +32,29 @@ def build_full_gemi_showcase():
     w_draw.line([0, 0, W, 0], fill=(190, 135, 90, 255), width=4)
     w_draw.line([0, bridge_h, W, bridge_h], fill=(70, 40, 20, 255), width=5)
     
-    # Marina Berths (5 slots with floating buoy circles & chains)
-    slot_w = 175
-    slot_gap = 22
-    total_slots_w = 5 * slot_w + 4 * slot_gap
+    # Marina Berths (5 slots with the new Lifebuoy UI asset)
+    lifebuoy_path = "Assets/Textures/Marina/slot_lifebuoy.png"
+    lifebuoy_img = None
+    if os.path.exists(lifebuoy_path):
+        lifebuoy_img = Image.open(lifebuoy_path).convert("RGBA")
+
+    slot_size = 195
+    slot_gap = 14
+    total_slots_w = 5 * slot_size + 4 * slot_gap
     start_slot_x = (W - total_slots_w) // 2
     
     for i in range(5):
-        sx = start_slot_x + i * (slot_w + slot_gap)
-        sy = 70
-        # Water slot berth outline (dashed/chain feel)
-        w_draw.rounded_rectangle([sx, sy, sx + slot_w, sy + 250], radius=16, outline=(255, 255, 255, 110), width=3)
-        # 4 Red-white corner buoys
-        for bx, by in [(sx, sy), (sx + slot_w, sy), (sx, sy + 250), (sx + slot_w, sy + 250)]:
-            w_draw.ellipse([bx - 12, by - 12, bx + 12, by + 12], fill=(240, 45, 45, 255), outline=(255, 255, 255, 255), width=3)
-        # Slot number badge at top of berth
-        w_draw.rounded_rectangle([sx + slot_w//2 - 22, sy - 14, sx + slot_w//2 + 22, sy + 14], radius=6, fill=(110, 65, 35, 255), outline=(230, 190, 120, 255), width=2)
+        sx = start_slot_x + i * (slot_size + slot_gap)
+        sy = 90
+        if lifebuoy_img:
+            buoy_resized = lifebuoy_img.resize((slot_size, slot_size), Image.Resampling.LANCZOS)
+            water_img.paste(buoy_resized, (sx, sy), buoy_resized)
+        else:
+            w_draw.rounded_rectangle([sx, sy, sx + slot_size, sy + slot_size], radius=24, outline=(255, 60, 60, 255), width=6)
         
     img.paste(water_img, (0, water_y), water_img)
 
-    # 3. Paste Calibrated Heart Pixel Art in Center (Transparent backing)
-    heart_sim_path = r"C:\Users\ezgid\.gemini\antigravity-ide\brain\6c76da88-bba0-4dd5-8054-826797c4d077\heart_snug_spacing_calibrated.png"
-    if os.path.exists(heart_sim_path):
-        heart_sim = Image.open(heart_sim_path)
-        hw, hh = int(heart_sim.width * 1.32), int(heart_sim.height * 1.32)
-        heart_sim_resized = heart_sim.resize((hw, hh), Image.Resampling.LANCZOS)
-        hx = (W - hw) // 2
-        hy = 480
-        img.paste(heart_sim_resized, (hx, hy), heart_sim_resized)
-
+    # 3. Center Pixel Art or Beach Elements if present
     # 4. Top Banner (Row 1 - Dark Navy Notch Banner)
     banner_path = "Assets/UI/CasualUI/hud_top_banner.png"
     if os.path.exists(banner_path):
@@ -81,10 +75,8 @@ def build_full_gemi_showcase():
     try: font_banner = ImageFont.truetype(font_path, 44)
     except: font_banner = ImageFont.load_default()
 
-    # Draw "LEVEL 1" in banner
     draw.text((435, 68), "LEVEL 1", font=font_banner, fill=(255, 255, 255, 255))
 
-    # Heart Pill & Coin Pill
     pill_path = "Assets/UI/CasualUI/ui_pill.png"
     icon_heart_path = "Assets/UI/CasualUI/icon_heart.png"
     icon_coin_path = "Assets/UI/CasualUI/icon_coin.png"
@@ -113,59 +105,77 @@ def build_full_gemi_showcase():
         if os.path.exists(plus_path):
             img.paste(pp, (990, 69), pp)
 
-    # 5. SUBHEADER (Row 2 - Level Action Bar from media_1790718328948.png)
+    # 5. SUBHEADER (Row 2 - Level Action Bar matching user image)
     sub_y = 230
     
-    # 5a. Restart Button (Left: x=45, y=sub_y)
+    # 5a. Restart Button (Left: x=40, y=sub_y)
     restart_path = "Assets/UI/CasualUI/btn_restart.png"
     if os.path.exists(restart_path):
-        r_img = Image.open(restart_path).convert("RGBA").resize((106, 106), Image.Resampling.LANCZOS)
-        img.paste(r_img, (45, sub_y), r_img)
+        r_img = Image.open(restart_path).convert("RGBA").resize((104, 104), Image.Resampling.LANCZOS)
+        img.paste(r_img, (40, sub_y), r_img)
 
-    # 5b. HARD Badge (Left: x=175, y=sub_y+14)
+    # 5b. HARD Badge (Bunny mascot + pink HARD capsule: x=165, y=sub_y+12)
     hard_path = "Assets/UI/CasualUI/badge_hard.png"
     if os.path.exists(hard_path):
-        h_img = Image.open(hard_path).convert("RGBA").resize((220, 88), Image.Resampling.LANCZOS)
-        img.paste(h_img, (175, sub_y + 10), h_img)
+        h_img = Image.open(hard_path).convert("RGBA").resize((214, 80), Image.Resampling.LANCZOS)
+        img.paste(h_img, (165, sub_y + 12), h_img)
 
-    # 5c. LevelTitle ("Level 35" in Center)
-    try: font_sublevel = ImageFont.truetype(font_path, 66)
+    # 5c. Level Capsule Background & "Level 35" in Center
+    cap_path = "Assets/UI/CasualUI/bg_level_capsule.png"
+    cap_w, cap_h = 280, 76
+    cap_x = (W - cap_w) // 2
+    cap_y = sub_y + 14
+    if os.path.exists(cap_path):
+        c_img = Image.open(cap_path).convert("RGBA").resize((cap_w, cap_h), Image.Resampling.LANCZOS)
+        img.paste(c_img, (cap_x, cap_y), c_img)
+
+    try: font_sublevel = ImageFont.truetype(font_path, 60)
     except: font_sublevel = font_banner
     
     lvl_text = "Level 35"
-    text_x = 445
-    text_y = sub_y + 16
+    bbox = font_sublevel.getbbox(lvl_text)
+    tw = bbox[2] - bbox[0]
+    th = bbox[3] - bbox[1]
+    text_x = cap_x + (cap_w - tw) // 2 - bbox[0]
+    text_y = cap_y + (cap_h - th) // 2 - bbox[1]
     
-    # Deep dark shadow / outline for Level 35 (exact look from screenshot)
+    # Blue outline + drop shadow for Level 35
     outline_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     ol_draw = ImageDraw.Draw(outline_layer)
-    # Drop shadow
-    ol_draw.text((text_x + 3, text_y + 6), lvl_text, font=font_sublevel, fill=(0, 0, 0, 180))
-    # Outline
-    for dx in range(-5, 6):
-        for dy in range(-5, 6):
-            if dx*dx + dy*dy <= 25:
-                ol_draw.text((text_x + dx, text_y + dy + 2), lvl_text, font=font_sublevel, fill=(30, 20, 45, 255))
+    # Dark blue drop shadow
+    ol_draw.text((text_x + 2, text_y + 6), lvl_text, font=font_sublevel, fill=(30, 80, 145, 200))
+    # Sky blue outline
+    blue_outline = (48, 120, 200, 255)
+    for dx in range(-4, 5):
+        for dy in range(-4, 5):
+            if dx*dx + dy*dy <= 16:
+                ol_draw.text((text_x + dx, text_y + dy + 1), lvl_text, font=font_sublevel, fill=blue_outline)
     
     # White fill
     ol_draw.text((text_x, text_y), lvl_text, font=font_sublevel, fill=(255, 255, 255, 255))
     img = Image.alpha_composite(img, outline_layer)
 
-    # 5d. Sound Button (Right: x=805, y=sub_y)
+    # 5d. Sound Button (Right: x=815, y=sub_y)
     sound_path = "Assets/UI/CasualUI/btn_sound.png"
     if os.path.exists(sound_path):
-        s_img = Image.open(sound_path).convert("RGBA").resize((106, 106), Image.Resampling.LANCZOS)
-        img.paste(s_img, (805, sub_y), s_img)
+        s_img = Image.open(sound_path).convert("RGBA").resize((104, 104), Image.Resampling.LANCZOS)
+        img.paste(s_img, (815, sub_y), s_img)
 
-    # 5e. Haptic Button (Right: x=930, y=sub_y)
-    haptic_path = "Assets/UI/CasualUI/btn_haptic.png"
-    if os.path.exists(haptic_path):
-        vib_img = Image.open(haptic_path).convert("RGBA").resize((106, 106), Image.Resampling.LANCZOS)
-        img.paste(vib_img, (930, sub_y), vib_img)
+    # 5e. Music Button (Right: x=935, y=sub_y)
+    music_path = "Assets/UI/CasualUI/btn_music.png"
+    if os.path.exists(music_path):
+        m_img = Image.open(music_path).convert("RGBA").resize((104, 104), Image.Resampling.LANCZOS)
+        img.paste(m_img, (935, sub_y), m_img)
 
-    out_showcase = r"C:\Users\ezgid\.gemini\antigravity-ide\brain\6c76da88-bba0-4dd5-8054-826797c4d077\gemi_full_canvas_showcase.png"
+    os.makedirs("scratch", exist_ok=True)
+    out_showcase = "scratch/gemi_full_canvas_showcase.png"
     img.save(out_showcase)
+    
+    # Also save top banner crop
+    sub_crop = img.crop((0, sub_y - 20, W, sub_y + 130))
+    sub_crop.save("scratch/subhead_ingame_crop.png")
     print(f"Full UI canvas showcase successfully saved to {out_showcase}")
+    print("Subheader crop saved to scratch/subhead_ingame_crop.png")
 
 if __name__ == "__main__":
     build_full_gemi_showcase()

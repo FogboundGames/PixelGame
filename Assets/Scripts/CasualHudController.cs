@@ -31,6 +31,7 @@ namespace PixelGame
         private int m_CurrentLives;
         private int m_CurrentCoins;
         private bool m_SoundEnabled = true;
+        private bool m_MusicEnabled = true;
         private bool m_HapticsEnabled = true;
 
         public TextMeshProUGUI LevelText { get => m_LevelText; set => m_LevelText = value; }
@@ -42,6 +43,7 @@ namespace PixelGame
         public int CurrentLives => m_CurrentLives;
         public int CurrentCoins => m_CurrentCoins;
         public bool SoundEnabled => m_SoundEnabled;
+        public bool MusicEnabled => m_MusicEnabled;
         public bool HapticsEnabled => m_HapticsEnabled;
 
         private void OnEnable()
@@ -99,6 +101,12 @@ namespace PixelGame
             m_SoundEnabled = !m_SoundEnabled;
             AudioListener.pause = !m_SoundEnabled;
             Debug.Log($"<color=#44FF44><b>[CasualHUD]</b></color> Ses: {(m_SoundEnabled ? "Açık" : "Kapalı")}");
+        }
+
+        public void ToggleMusic()
+        {
+            m_MusicEnabled = !m_MusicEnabled;
+            Debug.Log($"<color=#44FF44><b>[CasualHUD]</b></color> Müzik: {(m_MusicEnabled ? "Açık" : "Kapalı")}");
         }
 
         public void ToggleHaptics()

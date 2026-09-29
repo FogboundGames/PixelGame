@@ -1,7 +1,7 @@
 $source = @"
 using System;
 using System.Runtime.InteropServices;
-public class FocusUnity2 {
+public class DynamicFocusUnity {
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
     [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);
@@ -22,5 +22,11 @@ public class FocusUnity2 {
 }
 "@
 Add-Type -TypeDefinition $source
-[FocusUnity2]::BringToFront(22776)
-Write-Output "Brought to front"
+$unityProc = Get-Process -Name Unity | Sort-Object WorkingSet64 -Descending | Select-Object -First 1
+if ($unityProc) {
+    Write-Output "Focusing Unity PID: $($unityProc.Id)"
+    [DynamicFocusUnity]::BringToFront($unityProc.Id)
+    Write-Output "Brought Unity to front."
+} else {
+    Write-Output "Unity process not found."
+}
