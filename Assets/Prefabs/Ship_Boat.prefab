@@ -95,6 +95,10 @@ MonoBehaviour:
   m_PitchStrength: 1
   m_MaxYawAngle: 25
   m_RotationSmoothTime: 0.08
+  m_DetectionRadius: 0.55
+  m_MagneticStrength: 0.4
+  m_SnapDuration: 0.16
+  m_CandidateSlot: {fileID: 0}
   m_CargoWobbleDecaySpeed: 0.35
   m_CargoWobbleRollMultiplier: 18
   m_CargoWobblePitchMultiplier: 12

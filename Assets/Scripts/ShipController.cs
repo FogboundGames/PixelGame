@@ -124,21 +124,33 @@ namespace PixelGame
         [Tooltip("Dinamik rotasyonun yumuşatma süresi (saniye, varsayılan 0.08s).")]
         [SerializeField] private float m_RotationSmoothTime = 0.08f;
 
+        [Header("🧲 Manyetik Slot Algılama & Snap (Aşama 5)")]
+        [Tooltip("Geminin gameplay pozisyonuna göre bir slotu aday kabul edeceği algılama yarıçapı (0.45 - 0.65, varsayılan 0.55).")]
+        [SerializeField] private float m_DetectionRadius = 0.55f;
+        [Tooltip("Slot etki alanına girildiğinde uygulanacak manyetik çekim kuvveti (0.20 - 0.60, varsayılan 0.40).")]
+        [SerializeField] private float m_MagneticStrength = 0.40f;
+        [Tooltip("Slota snap olma Bezier geçiş süresi (saniye, 0.12 - 0.20s, varsayılan 0.16s).")]
+        [SerializeField] private float m_SnapDuration = 0.16f;
+        [Tooltip("Şu anda algılanan en yakın aday slot (sadece bilgi amaçlı).")]
+        [SerializeField] private ShipSlot m_CandidateSlot;
+
         // Drag & Pickup çalışma zamanı değişkenleri
         private bool m_IsPointerDown = false;
         private bool m_IsDragging = false;
         private bool m_IsPickedUp = false;
         private bool m_DragThresholdPassed = false;
+        private bool m_WasDragged = false;
         private Vector2 m_PointerDownScreenPos;
         private Vector3 m_GrabOffset = Vector3.zero;
         private Vector3 m_DragTargetWorldPosition;
+        private Vector3 m_SmoothedWorldPosition;
         private Vector3 m_VisualWorldPosition;
         private Vector3 m_DragSmoothVelocity = Vector3.zero;
         private Plane m_DragPlane;
         private Camera m_DragCamera;
 
         // Velocity & Dynamic Rotation çalışma zamanı
-        private Vector3 m_PreviousDragPosition;
+        private Vector3 m_PreviousWorldPosition;
         private Vector3 m_SmoothedVelocity = Vector3.zero;
         private Vector3 m_VelocitySmoothDeriv = Vector3.zero;
         private float m_CurrentPickupLift = 0f;
@@ -165,8 +177,13 @@ namespace PixelGame
         public float MaxPitchAngle { get => m_MaxPitchAngle; set => m_MaxPitchAngle = value; }
         public float MaxYawAngle { get => m_MaxYawAngle; set => m_MaxYawAngle = value; }
         public float RotationSmoothTime { get => m_RotationSmoothTime; set => m_RotationSmoothTime = value; }
+        public float DetectionRadius { get => m_DetectionRadius; set => m_DetectionRadius = value; }
+        public float MagneticStrength { get => m_MagneticStrength; set => m_MagneticStrength = value; }
+        public float SnapDuration { get => m_SnapDuration; set => m_SnapDuration = value; }
+        public ShipSlot CandidateSlot => m_CandidateSlot;
         public Vector3 DragTargetWorldPosition => m_DragTargetWorldPosition;
-        public Vector3 VisualWorldPosition => m_VisualWorldPosition;
+        public Vector3 SmoothedWorldPosition => m_SmoothedWorldPosition;
+        public Vector3 VisualWorldPosition => m_SmoothedWorldPosition;
         public Vector3 SmoothedVelocity => m_SmoothedVelocity;
 
         [Header("📦 Kargo Alınca Heyecanlı Sallanma (Cargo Wobble)")]
@@ -364,6 +381,8 @@ namespace PixelGame
             m_IsDragging = false;
             m_IsPickedUp = false;
             m_DragThresholdPassed = false;
+            m_WasDragged = false;
+            m_CandidateSlot = null;
             m_DragSmoothVelocity = Vector3.zero;
             m_SmoothedVelocity = Vector3.zero;
             m_CurrentPickupLift = 0f;
@@ -388,9 +407,10 @@ namespace PixelGame
             m_BaseLocalRotation = transform.localRotation;
             if (transform.lossyScale != Vector3.zero) m_BaseScale = transform.lossyScale;
 
+            m_SmoothedWorldPosition = transform.position;
             m_VisualWorldPosition = transform.position;
             m_DragTargetWorldPosition = transform.position;
-            m_PreviousDragPosition = transform.position;
+            m_PreviousWorldPosition = transform.position;
 
             EnsureDecoupledHierarchy();
             UpdateBadgeText();
@@ -407,10 +427,8 @@ namespace PixelGame
             }
             else if (m_VisualRoot != null && !m_IsMoving && !m_IsDeparting && Application.isPlaying)
             {
-                Vector3 dragVisualWorldOffset = m_VisualWorldPosition - transform.position;
-                Vector3 dragLocalOffset = transform.InverseTransformVector(dragVisualWorldOffset);
                 Vector3 pickupOffset = new Vector3(0f, m_CurrentPickupLift, 0f);
-                m_VisualRoot.localPosition = dragLocalOffset + pickupOffset;
+                m_VisualRoot.localPosition = pickupOffset;
 
                 Quaternion dragRot = Quaternion.Euler(m_CurrentDragPitch, m_CurrentDragYaw, m_CurrentBankingRoll);
                 m_VisualRoot.localRotation = dragRot;
@@ -554,14 +572,13 @@ namespace PixelGame
 
             if (m_VisualRoot != null)
             {
-                // Aşama 4 Final Visual Position Mimarisi:
-                // FinalVisualPosition = BaseVisualPosition (0) + DragOffset + PickupOffset + BobbingOffset
-                Vector3 dragVisualWorldOffset = m_VisualWorldPosition - transform.position;
-                Vector3 dragLocalOffset = transform.InverseTransformVector(dragVisualWorldOffset);
+                // Aşama 4.6 Senkronize Mimari:
+                // transform.position zaten smooth gameplay pozisyonudur (Ship_Boat + BoxCollider).
+                // VisualRoot yalnızca yerel dikey ofsetleri taşır (Pickup Lift + Water Bobbing).
                 Vector3 pickupOffset = new Vector3(0f, m_CurrentPickupLift, 0f);
                 Vector3 bobbingOffset = new Vector3(0f, dy, 0f);
 
-                m_VisualRoot.localPosition = dragLocalOffset + pickupOffset + bobbingOffset;
+                m_VisualRoot.localPosition = pickupOffset + bobbingOffset;
 
                 // Aşama 4 Rotation Composition:
                 // FinalRotation = BobbingRotation * DynamicDragRotation (Pitch + Yaw + Banking Roll)
@@ -582,8 +599,9 @@ namespace PixelGame
         /// </summary>
         public void ResetVisualOffset()
         {
+            m_SmoothedWorldPosition = transform.position;
             m_VisualWorldPosition = transform.position;
-            m_PreviousDragPosition = transform.position;
+            m_PreviousWorldPosition = transform.position;
             m_DragSmoothVelocity = Vector3.zero;
             m_SmoothedVelocity = Vector3.zero;
             m_VelocitySmoothDeriv = Vector3.zero;
@@ -951,17 +969,106 @@ namespace PixelGame
         }
 
         /// <summary>
+        /// Slotun gemi yanaşma merkezinin dünya koordinatını döner.
+        /// </summary>
+        public static Vector3 GetSlotDockPosition(ShipSlot slot)
+        {
+            if (slot == null) return Vector3.zero;
+            return slot.transform.TransformPoint(new Vector3(0f, 0.08f, 0.02f));
+        }
+
+        private static ShipSlot[] s_CachedSlots;
+
+        /// <summary>
+        /// Sahnede yer alan mevcut slotları döner. Yeni GameObject veya trigger oluşturulmaz.
+        /// </summary>
+        public static ShipSlot[] GetAllSlots()
+        {
+            if (s_CachedSlots == null || s_CachedSlots.Length == 0 || s_CachedSlots[0] == null)
+            {
+                s_CachedSlots = UnityEngine.Object.FindObjectsByType<ShipSlot>(FindObjectsSortMode.None);
+            }
+            return s_CachedSlots;
+        }
+
+        /// <summary>
+        /// Geminin belirtilen slota yanaşmaya uygun olup olmadığını doğrular.
+        /// </summary>
+        public bool CanDockInSlot(ShipSlot slot)
+        {
+            if (slot == null || !slot.IsEmpty) return false;
+            if (m_IsDocked || m_IsMoving || m_IsDeparting) return false;
+
+            // Kuyruktaki gemiler için sıra kontrolü (yalnızca ön sıradaki gemiler slota yanaşabilir)
+            ShipQueuePool queuePool = UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
+            if (queuePool != null && queuePool.WaitingShips != null && queuePool.WaitingShips.Contains(this))
+            {
+                if (!queuePool.IsFrontRow(this))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Verilen detection dünya pozisyonuna en yakın geçerli ve boş slotu bulur.
+        /// Slot detection için Ship_Boat root'unun anlık gameplay pozisyonu referans alınır.
+        /// VisualRoot'un pickup lift, bobbing, pitch, roll, banking offsetleri dahil edilmez.
+        /// </summary>
+        public ShipSlot FindCandidateSlot(Vector3 detectionPos, out float closestDist)
+        {
+            closestDist = float.MaxValue;
+            ShipSlot closestSlot = null;
+
+            ShipSlot[] allSlots = GetAllSlots();
+            if (allSlots == null || allSlots.Length == 0) return null;
+
+            for (int i = 0; i < allSlots.Length; i++)
+            {
+                ShipSlot slot = allSlots[i];
+                if (slot == null) continue;
+
+                // Yalnızca boş ve bu geminin yanaşabileceği slotlar aday olabilir
+                if (!slot.IsEmpty || !CanDockInSlot(slot)) continue;
+
+                Vector3 dockPos = GetSlotDockPosition(slot);
+                float dist = Vector3.Distance(detectionPos, dockPos);
+
+                if (dist <= m_DetectionRadius && dist < closestDist)
+                {
+                    closestDist = dist;
+                    closestSlot = slot;
+                }
+            }
+
+            return closestSlot;
+        }
+
+        /// <summary>
         /// Gemiyi bekleme sırasından hedef slota doğru gerçek bir gemi gibi kavisli Bezier su rotasıyla yüzdürür.
         /// </summary>
         public void SailToSlot(ShipSlot targetSlot, Action onComplete = null)
         {
-            if (targetSlot == null) return;
-            StartCoroutine(SailToSlotRoutine(targetSlot, onComplete));
+            SailToSlot(targetSlot, -1f, onComplete);
         }
 
-        private IEnumerator SailToSlotRoutine(ShipSlot targetSlot, Action onComplete)
+        /// <summary>
+        /// Gemiyi hedef slota belirtilen geçiş süresiyle kavisli Bezier su rotasıyla yüzdürür (Aşama 5 Snap).
+        /// </summary>
+        public void SailToSlot(ShipSlot targetSlot, float customDuration, Action onComplete = null)
+        {
+            if (targetSlot == null) return;
+            StartCoroutine(SailToSlotRoutine(targetSlot, customDuration, onComplete));
+        }
+
+        private IEnumerator SailToSlotRoutine(ShipSlot targetSlot, float customDuration = -1f, Action onComplete = null)
         {
             m_IsMoving = true;
+            m_IsDragging = false;
+            m_IsPickedUp = false;
+            m_CandidateSlot = null;
             m_EnableWaterBobbing = false;
             ResetVisualOffset();
             transform.DOKill(true);
@@ -984,7 +1091,8 @@ namespace PixelGame
             Vector3 p2 = targetWorld + new Vector3(0f, -0.65f, 0.08f);
             Vector3 p3 = targetWorld;
 
-            float duration = 0.48f; // Referans videodaki gibi seri, tatmin edici ve atik geçiş süresi
+            // Snap durumunda m_SnapDuration (0.16s), normal click durumunda varsayılan 0.48s
+            float duration = (customDuration > 0f) ? customDuration : 0.48f;
             float elapsed = 0f;
             float lastSmokeTime = 0f;
             float lateralDelta = targetWorld.x - startWorldPos.x;
@@ -1276,6 +1384,7 @@ namespace PixelGame
 
             m_IsPointerDown = true;
             m_DragThresholdPassed = false;
+            m_WasDragged = false;
             m_IsDragging = false;
             m_IsPickedUp = false;
             m_PointerDownScreenPos = eventData.position;
@@ -1300,8 +1409,9 @@ namespace PixelGame
             }
 
             m_DragTargetWorldPosition = transform.position;
+            m_SmoothedWorldPosition = transform.position;
             m_VisualWorldPosition = transform.position;
-            m_PreviousDragPosition = transform.position;
+            m_PreviousWorldPosition = transform.position;
         }
 
         public void OnBeginDrag(PointerEventData eventData)
@@ -1349,27 +1459,30 @@ namespace PixelGame
 
         public void OnEndDrag(PointerEventData eventData)
         {
-            if (m_IsDragging)
+            if (m_IsDragging || m_DragThresholdPassed)
             {
-                m_IsDragging = false;
-                m_IsPickedUp = false;
+                HandleDropValidation();
             }
         }
 
         public void OnPointerUp(PointerEventData eventData)
         {
             m_IsPointerDown = false;
-            if (m_IsDragging)
+            if (m_IsDragging || m_DragThresholdPassed)
             {
-                m_IsDragging = false;
-                m_IsPickedUp = false;
+                HandleDropValidation();
             }
         }
 
         public void OnPointerClick(PointerEventData eventData)
         {
             // Eğer drag eşiği aşıldıysa normal click tetiklenmez (tıklama ile drag birbirinden ayrılır)
-            if (m_DragThresholdPassed || m_IsDragging) return;
+            if (m_DragThresholdPassed || m_IsDragging || m_WasDragged || eventData.dragging)
+            {
+                m_WasDragged = false;
+                m_DragThresholdPassed = false;
+                return;
+            }
 
             if (m_IsDocked || m_IsMoving || m_IsDeparting) return;
 
@@ -1380,24 +1493,129 @@ namespace PixelGame
             }
         }
 
+        /// <summary>
+        /// Sürükleme bırakıldığında (PointerUp / EndDrag) drop validation ve magnetic snap mantığını işletir.
+        /// </summary>
+        private void HandleDropValidation()
+        {
+            if (!m_IsDragging && !m_DragThresholdPassed) return;
+
+            m_WasDragged = true;
+            m_IsDragging = false;
+            m_IsPickedUp = false;
+            m_DragSmoothVelocity = Vector3.zero;
+
+            // Slot detection için Ship_Boat gameplay root'unun anlık gameplay pozisyonu referans alınır.
+            // VisualRoot'un pickup lift, bobbing, pitch, roll, banking offsetleri dahil edilmez.
+            Vector3 detectionPos = transform.position;
+            ShipSlot candidate = FindCandidateSlot(detectionPos, out float closestDist);
+
+            bool isValidDrop = (candidate != null && candidate.IsEmpty && CanDockInSlot(candidate));
+
+            if (isValidDrop)
+            {
+                m_CandidateSlot = null;
+
+                // Kuyruk kontrolü: Ön sıradan slota gönderiliyorsa kuyruk yöneticisini bilgilendir
+                ShipQueuePool queuePool = UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
+                if (queuePool != null && queuePool.WaitingShips != null && queuePool.WaitingShips.Contains(this))
+                {
+                    if (queuePool.IsFrontRow(this))
+                    {
+                        queuePool.OnFrontShipDispatched(this);
+                    }
+                }
+
+                // Kuyruk hiyerarşisinden dünya uzayına çıkar
+                transform.SetParent(null, true);
+
+                // Mevcut Bezier SailToSlotRoutine ile hızlı, tatmin edici snap (m_SnapDuration: 0.16s)
+                SailToSlot(candidate, m_SnapDuration);
+            }
+            else
+            {
+                // GEÇERSİZ DROP:
+                // Gemi bırakıldığı pozisyonda kalır.
+                // - Başlangıç pozisyonuna dönmez / teleport olmaz
+                // - Mevcut bir slota gönderilmez
+                // - ShipDispatcher çağrılmaz
+                // - Click davranışı tetiklenmez
+                m_CandidateSlot = null;
+                m_BaseLocalPosition = transform.localPosition;
+                m_BaseLocalRotation = transform.localRotation;
+                m_SmoothedWorldPosition = transform.position;
+                m_VisualWorldPosition = transform.position;
+                m_PreviousWorldPosition = transform.position;
+            }
+        }
+
         private void UpdateDragFollow()
         {
             if (!Application.isPlaying) return;
 
-            // 1. Velocity Hesaplama & Yumuşatma (Önceki kare ile şu anki görsel pozisyon farkından)
-            Vector3 currentVisualPos = m_VisualWorldPosition;
+            // 1. Smooth Follow & Gameplay Root Position (Aşama 4.6 Senkronize Hareket + Aşama 5 Magnetic Attraction)
+            if (m_IsDragging)
+            {
+                // Slot detection için Ship_Boat gameplay root'unun anlık gameplay pozisyonunu referans al
+                // VisualRoot'un pickup lift, bobbing, pitch, roll, banking offsetleri dahil edilmez
+                Vector3 detectionPos = transform.position;
+                m_CandidateSlot = FindCandidateSlot(detectionPos, out float candidateDist);
+
+                Vector3 targetFollowPos = m_DragTargetWorldPosition;
+
+                // Eğer geçerli aday slot menzildeyse hafif manyetik çekim uygula (ani teleport yok)
+                if (m_CandidateSlot != null && candidateDist <= m_DetectionRadius)
+                {
+                    Vector3 slotDockPos = GetSlotDockPosition(m_CandidateSlot);
+                    float pullFactor = 1f - Mathf.Clamp01(candidateDist / m_DetectionRadius);
+                    float smoothPull = Mathf.SmoothStep(0f, 1f, pullFactor) * m_MagneticStrength;
+                    targetFollowPos = Vector3.Lerp(m_DragTargetWorldPosition, slotDockPos, smoothPull);
+                }
+
+                m_SmoothedWorldPosition = Vector3.SmoothDamp(
+                    m_SmoothedWorldPosition,
+                    targetFollowPos,
+                    ref m_DragSmoothVelocity,
+                    m_DragSmoothTime,
+                    m_DragMaxSpeed,
+                    Time.deltaTime
+                );
+
+                // Gameplay root ve BoxCollider artık Smooth Follow pozisyonunu doğrudan takip eder
+                transform.position = m_SmoothedWorldPosition;
+                m_VisualWorldPosition = m_SmoothedWorldPosition;
+
+#if UNITY_EDITOR
+                // Hedef ile smooth takip edilen gerçek gameplay pozisyonu arasındaki çizgi
+                Debug.DrawLine(transform.position, targetFollowPos, Color.green);
+                if (m_CandidateSlot != null)
+                {
+                    Debug.DrawLine(transform.position, GetSlotDockPosition(m_CandidateSlot), Color.cyan);
+                }
+#endif
+            }
+            else
+            {
+                m_CandidateSlot = null;
+                m_DragSmoothVelocity = Vector3.zero;
+                m_SmoothedWorldPosition = transform.position;
+                m_VisualWorldPosition = transform.position;
+            }
+
+            // 2. Velocity Hesaplama & Yumuşatma (Gerçek smooth gameplay hareketinden türetilir)
+            Vector3 currentWorldPos = transform.position;
             if (m_IsDragging && Time.deltaTime > 0.0001f)
             {
-                Vector3 rawVelocity = (currentVisualPos - m_PreviousDragPosition) / Time.deltaTime;
+                Vector3 rawVelocity = (currentWorldPos - m_PreviousWorldPosition) / Time.deltaTime;
                 m_SmoothedVelocity = Vector3.SmoothDamp(m_SmoothedVelocity, rawVelocity, ref m_VelocitySmoothDeriv, 0.04f);
             }
             else
             {
                 m_SmoothedVelocity = Vector3.SmoothDamp(m_SmoothedVelocity, Vector3.zero, ref m_VelocitySmoothDeriv, m_RotationSmoothTime);
             }
-            m_PreviousDragPosition = currentVisualPos;
+            m_PreviousWorldPosition = currentWorldPos;
 
-            // 2. Pickup Lift & Scale Yumuşatma (0.08 s responsive & smooth geçiş)
+            // 3. Pickup Lift & Scale Yumuşatma (0.08 s responsive & smooth geçiş)
             float targetLift = m_IsPickedUp ? m_PickupLift : 0f;
             m_CurrentPickupLift = Mathf.SmoothDamp(m_CurrentPickupLift, targetLift, ref m_PickupLiftVelocity, m_PickupDuration);
 
@@ -1410,7 +1628,7 @@ namespace PixelGame
                 m_VisualRoot.localScale = Vector3.one * m_CurrentPickupScale;
             }
 
-            // 3. Dinamik Rotasyon Hesaplama (Gemi yerel hareket yönü tabanlı)
+            // 4. Dinamik Rotasyon Hesaplama (Gemi yerel hareket yönü tabanlı)
             Vector3 localVelocity = transform.InverseTransformDirection(m_SmoothedVelocity);
             float speed = m_SmoothedVelocity.magnitude;
 
@@ -1431,49 +1649,6 @@ namespace PixelGame
             m_CurrentBankingRoll = Mathf.SmoothDamp(m_CurrentBankingRoll, targetRoll, ref m_RollSmoothVelocity, m_RotationSmoothTime);
             m_CurrentDragPitch = Mathf.SmoothDamp(m_CurrentDragPitch, targetPitch, ref m_PitchSmoothVelocity, m_RotationSmoothTime);
             m_CurrentDragYaw = Mathf.SmoothDampAngle(m_CurrentDragYaw, targetYaw, ref m_YawSmoothVelocity, m_RotationSmoothTime);
-
-            // 4. Smooth Follow & Root Position
-            if (m_IsDragging)
-            {
-                // Visual takip yumuşatması (Vector3.SmoothDamp ile kritik sönümlü pürüzsüz takip)
-                m_VisualWorldPosition = Vector3.SmoothDamp(
-                    m_VisualWorldPosition,
-                    m_DragTargetWorldPosition,
-                    ref m_DragSmoothVelocity,
-                    m_DragSmoothTime,
-                    m_DragMaxSpeed,
-                    Time.deltaTime
-                );
-
-                // Gameplay root pozisyonu Drag Target'ı anlık takip eder
-                transform.position = m_DragTargetWorldPosition;
-
-#if UNITY_EDITOR
-                // Debug: Drag hedefi ile yumuşatılmış görsel takip çizgisi
-                Debug.DrawLine(transform.position, m_VisualWorldPosition, Color.yellow);
-                Debug.DrawLine(m_VisualWorldPosition, m_DragTargetWorldPosition, Color.green);
-#endif
-            }
-            else
-            {
-                // Sürükleme bittiğinde visual nesne yumuşakça gameplay root pozisyonuna oturur
-                if ((m_VisualWorldPosition - transform.position).sqrMagnitude > 0.00001f)
-                {
-                    m_VisualWorldPosition = Vector3.SmoothDamp(
-                        m_VisualWorldPosition,
-                        transform.position,
-                        ref m_DragSmoothVelocity,
-                        m_DragSmoothTime,
-                        m_DragMaxSpeed,
-                        Time.deltaTime
-                    );
-                }
-                else
-                {
-                    m_VisualWorldPosition = transform.position;
-                    m_DragSmoothVelocity = Vector3.zero;
-                }
-            }
         }
 
         #endregion
