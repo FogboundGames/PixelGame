@@ -20,9 +20,16 @@ namespace PixelGame.Editor
 
         static SetupGemiTopHUD()
         {
-            EditorApplication.delayCall += AutoRunIfNeeded;
+            // Otomatik tetikleme KAPATILDI. Bu blok her domain reload'da (proje açılışı,
+            // script derlemesi, git pull sonrası recompile) bir kez çalışıp BuildTopHUD()
+            // ile sahneye ikinci bir HUD enjekte ediyor ve sonunda SaveScene() ile diske
+            // sormadan yazıyordu. Sonuç: pull ile gelen HUD'ın üstüne eskisi biniyor ve
+            // git'te sahne "yerel olarak değişmiş" görünüyordu.
+            // Gerekirse PixelGame menüsünden elle çalıştırılır.
+            // EditorApplication.delayCall += AutoRunIfNeeded;
         }
 
+        /// <summary>Artık otomatik çağrılmıyor; bkz. statik kurucu.</summary>
         private static void AutoRunIfNeeded()
         {
             if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;
