@@ -44,6 +44,13 @@ namespace PixelGame.Editor
             var slots = Object.FindObjectsByType<ShipSlot>(FindObjectsSortMode.None);
             System.Array.Sort(slots, (a, b) => a.SlotIndex.CompareTo(b.SlotIndex));
 
+            if (slots.Length > 0 && slots[0].transform.parent != null)
+            {
+                Transform parent = slots[0].transform.parent;
+                MarinaSlotLayout layout = parent.GetComponent<MarinaSlotLayout>();
+                if (layout == null) layout = parent.gameObject.AddComponent<MarinaSlotLayout>();
+            }
+
             Debug.Log($"[MarinaDock] {slots.Length} adet ShipSlot bulundu. Yeni can simidi (Lifebuoy UI) görselleri uygulanıyor...");
 
             for (int i = 0; i < slots.Length; i++)

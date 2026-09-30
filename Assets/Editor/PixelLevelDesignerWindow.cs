@@ -3188,6 +3188,11 @@ namespace PixelGame.Editor
 
             EditorGUILayout.Space(6);
 
+            // ⚓ MARİNA SU SLOTLARI BOYUT & DÜZEN CANLI AYARLAYICI
+            DrawMarinaSlotLiveControllerCard();
+
+            EditorGUILayout.Space(6);
+
             // 1. 🏝️ GEMİ SAHNESİ & RAY YÖNETİMİ
             DrawSceneToolCard("🏝️ Gemi Sahnesi & Ray Yönetimi", new (string, string, System.Action)[]
             {
@@ -3241,6 +3246,126 @@ namespace PixelGame.Editor
 
             EditorGUILayout.Space(16);
             EditorGUILayout.EndScrollView();
+        }
+
+        private void DrawMarinaSlotLiveControllerCard()
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            Rect titleRect = EditorGUILayout.GetControlRect(false, 22);
+            EditorGUI.DrawRect(titleRect, new Color(0.12f, 0.22f, 0.32f, 1f));
+            GUIStyle cardHeaderStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                normal = { textColor = new Color(0.4f, 0.95f, 0.85f) },
+                alignment = TextAnchor.MiddleLeft
+            };
+            GUI.Label(new Rect(titleRect.x + 8, titleRect.y + 1, titleRect.width - 16, titleRect.height), "⚓ Marina Su Slotları Canlı Boyut & Düzen Ayarlayıcı", cardHeaderStyle);
+
+            EditorGUILayout.Space(4);
+
+            MarinaSlotLayout layout = Object.FindFirstObjectByType<MarinaSlotLayout>();
+            if (layout == null)
+            {
+                var anySlot = Object.FindFirstObjectByType<ShipSlot>();
+                if (anySlot != null && anySlot.transform.parent != null)
+                {
+                    EditorGUILayout.HelpBox("Sahnede ShipSlot bulundu ancak [WaterSlotsRow] üzerinde MarinaSlotLayout bileşeni yok.", MessageType.Warning);
+                    if (GUILayout.Button("➕ [WaterSlotsRow] Üzerine Marina Düzenleyici Ekle", GUILayout.Height(26)))
+                    {
+                        var parentGo = anySlot.transform.parent.gameObject;
+                        layout = parentGo.AddComponent<MarinaSlotLayout>();
+                        layout.ApplyLayout();
+                        EditorUtility.SetDirty(parentGo);
+                        UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(parentGo.scene);
+                    }
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox("Sahnede aktif bir Marina Slotu veya Gemi sahnesi açık görünmüyor. 'Gemi Sahnesini Sıfırdan Kur' butonuna basarak sahneyi oluşturabilirsiniz.", MessageType.Info);
+                }
+            }
+
+            if (layout != null)
+            {
+                EditorGUILayout.HelpBox("Tüm su slotlarının (WaterSlot_1..5) boyutunu, aralarındaki mesafeyi ve açısını tek seferde buradan canlı ayarlayabilirsiniz.", MessageType.None);
+                EditorGUILayout.Space(2);
+
+                EditorGUI.BeginChangeCheck();
+
+                float width = EditorGUILayout.Slider(new GUIContent("↔️ Slot Genişliği (Width)", "Slotların X eksenindeki yatay genişliği (en)."), layout.SlotWidth, 0.3f, 3.5f);
+                float length = EditorGUILayout.Slider(new GUIContent("↕️ Slot Uzunluğu (Length / Height)", "Slotların Z eksenindeki boyu / uzunluğu."), layout.SlotLength, 0.3f, 3.5f);
+
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Space(EditorGUIUtility.labelWidth);
+                if (GUILayout.Button("🔗 1:1 (Genişliğe Eşitle)", EditorStyles.miniButton, GUILayout.Height(18)))
+                {
+                    Undo.RecordObject(layout, "Sync Slot Aspect Ratio");
+                    layout.SlotLength = layout.SlotWidth;
+                    EditorUtility.SetDirty(layout);
+                    UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(layout.gameObject.scene);
+                }
+                if (GUILayout.Button("🔗 1:1 (Uzunluğa Eşitle)", EditorStyles.miniButton, GUILayout.Height(18)))
+                {
+                    Undo.RecordObject(layout, "Sync Slot Aspect Ratio");
+                    layout.SlotWidth = layout.SlotLength;
+                    EditorUtility.SetDirty(layout);
+                    UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(layout.gameObject.scene);
+                }
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.Space(4);
+                float spacing = EditorGUILayout.Slider(new GUIContent("↔️ Slot Aralığı (Spacing)", "Slotların birbirine olan yatay mesafesi."), layout.SlotSpacing, 0.6f, 2.5f);
+                float angle = EditorGUILayout.Slider(new GUIContent("📐 Yanaşma Açısı (Angle)", "Slotların ve gemilerin yanaşma açısı."), layout.SlotAngle, -60f, 60f);
+                float tilt = EditorGUILayout.Slider(new GUIContent("🌊 Su Düzlemi Eğim Açısı", "Kamera perspektifine göre su yüzeyi eğimi."), layout.WaterTiltX, -90f, 0f);
+                float offsetY = EditorGUILayout.Slider(new GUIContent("↕️ Yükseklik Ofseti (Y)", "Slot şeridinin Y eksenindeki yüksekliği."), layout.OffsetY, -2f, 4f);
+                float offsetZ = EditorGUILayout.Slider(new GUIContent("↕️ Derinlik Ofseti (Z)", "Slot şeridinin Z eksenindeki derinliği."), layout.OffsetZ, -3f, 3f);
+
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Undo.RecordObject(layout, "Change Marina Slot Layout");
+                    layout.SlotWidth = width;
+                    layout.SlotLength = length;
+                    layout.SlotSpacing = spacing;
+                    layout.SlotAngle = angle;
+                    layout.WaterTiltX = tilt;
+                    layout.OffsetY = offsetY;
+                    layout.OffsetZ = offsetZ;
+                    layout.ApplyLayout();
+                    EditorUtility.SetDirty(layout);
+                    UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(layout.gameObject.scene);
+                }
+
+                EditorGUILayout.Space(4);
+                EditorGUILayout.BeginHorizontal();
+
+                GUI.backgroundColor = new Color(0.35f, 0.75f, 1f);
+                if (GUILayout.Button("🎯 Sahnede [WaterSlotsRow]'u Seç", GUILayout.Height(24)))
+                {
+                    Selection.activeGameObject = layout.gameObject;
+                    EditorGUIUtility.PingObject(layout.gameObject);
+                }
+
+                GUI.backgroundColor = new Color(0.85f, 0.85f, 0.9f);
+                if (GUILayout.Button("🔁 Varsayılanlara Dön", GUILayout.Height(24)))
+                {
+                    Undo.RecordObject(layout, "Reset Marina Slot Layout");
+                    layout.SlotWidth = 1.15f;
+                    layout.SlotLength = 1.15f;
+                    layout.SlotSpacing = 1.40f;
+                    layout.SlotAngle = -28f;
+                    layout.WaterTiltX = -68f;
+                    layout.OffsetY = 0.45f;
+                    layout.OffsetZ = 0.0f;
+                    layout.ApplyLayout();
+                    EditorUtility.SetDirty(layout);
+                    UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(layout.gameObject.scene);
+                }
+                GUI.backgroundColor = Color.white;
+
+                EditorGUILayout.EndHorizontal();
+            }
+
+            EditorGUILayout.EndVertical();
         }
 
         private void DrawSceneToolCard(string cardTitle, (string title, string desc, System.Action action)[] items)

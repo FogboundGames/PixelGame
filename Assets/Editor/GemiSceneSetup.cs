@@ -597,6 +597,9 @@ namespace PixelGame.Editor
             slotsGroup.localRotation = Quaternion.identity;
             slotsGroup.localScale = Vector3.one;
 
+            MarinaSlotLayout slotLayout = slotsGroup.GetComponent<MarinaSlotLayout>();
+            if (slotLayout == null) slotLayout = slotsGroup.gameObject.AddComponent<MarinaSlotLayout>();
+
             // Indicator ve Gemi Modellerini yükle
             GameObject indicatorPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(IndicatorModelPath);
             GameObject shipPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(ShipCargoModelPath);
