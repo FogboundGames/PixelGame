@@ -206,6 +206,15 @@ namespace PixelGame.Editor
             // 📥 Görsel Sürükleyip Bırakarak Anında Seviye Üretme Kutusu (Drag & Drop Zone)
             DrawImageDropZone();
 
+            EditorGUILayout.Space(2);
+
+            GUI.backgroundColor = new Color(0.2f, 0.75f, 1f);
+            if (GUILayout.Button("📁 Toplu Seviye Üreticisi (Batch Generator)", GUILayout.Height(24)))
+            {
+                BatchLevelGeneratorWindow.OpenWindow();
+            }
+            GUI.backgroundColor = Color.white;
+
             EditorGUILayout.Space(4);
 
             m_SidebarScroll = EditorGUILayout.BeginScrollView(m_SidebarScroll, GUILayout.ExpandHeight(true));
@@ -483,7 +492,12 @@ namespace PixelGame.Editor
                         DragAndDrop.AcceptDrag();
                         foreach (Object draggedObject in DragAndDrop.objectReferences)
                         {
-                            if (draggedObject is Texture2D tex)
+                            if (draggedObject is DefaultAsset folderAsset)
+                            {
+                                BatchLevelGeneratorWindow.OpenWithFolder(folderAsset);
+                                break;
+                            }
+                            else if (draggedObject is Texture2D tex)
                             {
                                 CreateLevelFromTexture(tex);
                             }
@@ -3349,7 +3363,7 @@ namespace PixelGame.Editor
             SceneView.RepaintAll();
         }
 
-        private void RefreshLevelList()
+        public void RefreshLevelList()
         {
             m_AllLevels.Clear();
             string[] guids = AssetDatabase.FindAssets("t:PixelLevelData");

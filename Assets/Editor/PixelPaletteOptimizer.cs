@@ -389,7 +389,7 @@ namespace PixelGame.Editor
                    Mathf.Abs(a.b - b.b) < threshold;
         }
 
-        private static void EnsureReadable(Texture2D tex)
+        public static void EnsureReadable(Texture2D tex)
         {
             if (tex == null || tex.isReadable) return;
             string path = AssetDatabase.GetAssetPath(tex);
