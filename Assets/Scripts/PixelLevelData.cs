@@ -189,6 +189,9 @@ namespace PixelGame
         [Tooltip("Bölümde küplerle çizilecek piksel resmi")]
         [SerializeField] private Texture2D m_LevelTexture;
 
+        [Tooltip("Optimizasyondan önceki orijinal görsel (renk sayısını tekrar 5 veya 6 yapabilmek için korunur)")]
+        [SerializeField] private Texture2D m_OriginalSourceTexture;
+
         [Tooltip("Alternatif olarak Sprite seçilebilir")]
         [SerializeField] private Sprite m_LevelSprite;
 
@@ -304,6 +307,7 @@ namespace PixelGame
         public string LevelName { get => m_LevelName; set => m_LevelName = value; }
         public int LevelIndex { get => m_LevelIndex; set => m_LevelIndex = value; }
         public Texture2D LevelTexture { get => m_LevelTexture; set => m_LevelTexture = value; }
+        public Texture2D OriginalSourceTexture { get => m_OriginalSourceTexture; set => m_OriginalSourceTexture = value; }
         public Sprite LevelSprite { get => m_LevelSprite; set => m_LevelSprite = value; }
         public Texture2D FigureShadowTexture { get => m_FigureShadowTexture; set => m_FigureShadowTexture = value; }
         public bool UseCustomColorTheme { get => m_UseCustomColorTheme; set => m_UseCustomColorTheme = value; }
@@ -536,6 +540,30 @@ namespace PixelGame
             if (m_LevelTexture != null) return m_LevelTexture;
             if (m_LevelSprite != null && m_LevelSprite.texture != null) return m_LevelSprite.texture;
             return null;
+        }
+
+        /// <summary>
+        /// Orijinal (indirgenmemiş) kaynak dokuyu verir.
+        /// </summary>
+        public Texture2D GetOriginalTexture()
+        {
+            if (m_OriginalSourceTexture != null) return m_OriginalSourceTexture;
+            return GetActiveTexture();
+        }
+
+        /// <summary>
+        /// İndirgenmiş görsel yerine orijinal görsele geri döner.
+        /// </summary>
+        public bool RevertToOriginalTexture()
+        {
+            if (m_OriginalSourceTexture != null && m_OriginalSourceTexture != m_LevelTexture)
+            {
+                m_LevelTexture = m_OriginalSourceTexture;
+                ExtractPaletteFromTexture();
+                GenerateInterleavedWagonSequenceFromPalette();
+                return true;
+            }
+            return false;
         }
 
         public Vector2Int GetGridResolution()

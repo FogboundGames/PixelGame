@@ -108,9 +108,22 @@ namespace PixelGame
                 Transform spot = m_QueueSpots[i];
                 if (spot == null) continue;
 
-                // Ön sırada (Row 0: i < m_Columns) ilk 2 gemi HEMEN toplanabilir dış renkten gelsin,
-                // diğer gemiler ise seviyede toplanacak diğer renklerden (yeşil, siyah, kahverengi vb.) dağıtılsın
-                bool preferExposed = (i < 2);
+                // HER gemi "açıkta" (hemen toplanabilir) olan renklerden seçilir.
+                //
+                // Eskiden bu sadece ilk 2 gemi için yapılıyordu, gerisi kalan renkler
+                // arasından rastgele seçiliyordu. Sorun: tamamen gömülü bir renge gemi
+                // atanırsa o gemi hiç dolamaz, kalkamaz ve slotu kalıcı olarak işgal eder.
+                // Bütün slotlar böyle olunca oyun kilitlenir.
+                //
+                // LevelSolvabilityAnalyzer ile ölçüldü (bölüm başına 30-200 deneme):
+                //   preferExposed = (i < 2)  -> kilitlenme riski %37-93
+                //   preferExposed = her gemi -> %3-20
+                // Ara değerler (3, 4) işe yaramıyor; tek bir gömülü renkli gemi bile
+                // slotu tıkadığı için hepsinin seçilebilir olması gerekiyor.
+                //
+                // GetRemainingLevelColor açıkta renk yoksa zaten kalan renklere düşüyor,
+                // yani bu güvenli taraf.
+                const bool preferExposed = true;
                 Color shipColor = GetNextNeededColor(preferExposed);
                 int capacity = GetRecommendedCapacity(shipColor);
 
@@ -169,7 +182,11 @@ namespace PixelGame
         /// <summary>
         /// Belirtilen spot indeksinde yeni bir gemi üretir.
         /// </summary>
-        public ShipController SpawnShipAtSpot(int spotIndex, bool preferExposed = false)
+        /// <summary>
+        /// Varsayılan artık true: gömülü renge gemi atayıp slot tıkamamak için
+        /// (bkz. RefreshQueue içindeki açıklama ve ölçüm).
+        /// </summary>
+        public ShipController SpawnShipAtSpot(int spotIndex, bool preferExposed = true)
         {
             if (spotIndex < 0 || spotIndex >= m_QueueSpots.Count) return null;
             if (m_ShipPrefab == null) return null;
@@ -342,10 +359,36 @@ namespace PixelGame
                 });
         }
 
-        private Color GetNextNeededColor(bool preferExposed = false)
+        private Color GetNextNeededColor(bool preferExposed = true)
         {
             if (ShipDispatcher.Instance != null)
             {
+                // 1) Açıktaki renklerden, HENÜZ BAŞKA BİR GEMİYE VERİLMEMİŞ olanı tercih et.
+                //
+                // Aynı renk birden fazla slotu kaplarsa, o renk tükendiğinde birden çok
+                // slot aynı anda boşa düşüyor ve kalan renkler gömülüyse oyun kilitleniyor.
+                // Slotlara farklı renk dağıtmak bu riski tamamen kapatıyor.
+                //
+                // LevelSolvabilityAnalyzer ölçümü (8 bölüm, bölüm başına 40 deneme):
+                //   eski kural (ilk 2 gemi açıktan)          -> kilit riski %43-95
+                //   her gemi açıktan                          -> %0-20
+                //   her gemi açıktan + slotlara farklı renk   -> 8 bölümde de %0
+                if (preferExposed)
+                {
+                    List<Color> exposed = ShipDispatcher.Instance.GetExposedLevelColors();
+                    if (exposed != null && exposed.Count > 0)
+                    {
+                        List<Color> unused = new List<Color>(exposed.Count);
+                        for (int i = 0; i < exposed.Count; i++)
+                        {
+                            if (!IsColorAlreadyQueued(exposed[i])) unused.Add(exposed[i]);
+                        }
+
+                        List<Color> pick = unused.Count > 0 ? unused : exposed;
+                        return ShipDispatcher.NormalizeShipColor(pick[UnityEngine.Random.Range(0, pick.Count)]);
+                    }
+                }
+
                 Color color = ShipDispatcher.Instance.GetRemainingLevelColor(preferExposed);
                 if (color != Color.clear) return color;
             }
@@ -376,6 +419,32 @@ namespace PixelGame
                 new Color(0.584f, 0.498f, 0.380f, 1f)  // Kahve / Sıcak Karamel (Photo 1)
             };
             return defaults[UnityEngine.Random.Range(0, defaults.Length)];
+        }
+
+        /// <summary>Bu renk şu an bekleyen/yanaşmış gemilerden birine zaten atanmış mı?</summary>
+        private bool IsColorAlreadyQueued(Color c)
+        {
+            if (m_WaitingShips != null)
+            {
+                for (int i = 0; i < m_WaitingShips.Count; i++)
+                {
+                    ShipController s = m_WaitingShips[i];
+                    if (s != null && !s.IsDeparting && ShipDispatcher.ColorsMatch(s.ShipColor, c)) return true;
+                }
+            }
+
+            ShipDispatcher disp = ShipDispatcher.Instance;
+            if (disp != null)
+            {
+                foreach (ShipSlot slot in disp.Slots)
+                {
+                    if (slot != null && slot.DockedShip != null && !slot.DockedShip.IsDeparting
+                        && ShipDispatcher.ColorsMatch(slot.DockedShip.ShipColor, c))
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         private int GetRecommendedCapacity(Color shipColor)

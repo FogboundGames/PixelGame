@@ -19,6 +19,9 @@ namespace PixelGame
 
         [Header("⚓ Slotlar & Kuyruk")]
         [SerializeField] private List<ShipSlot> m_Slots = new List<ShipSlot>();
+
+        /// <summary>Yanaşma slotları (salt okunur). Gemi rengi dağıtımında kullanılır.</summary>
+        public IReadOnlyList<ShipSlot> Slots => m_Slots;
         [SerializeField] private ShipQueuePool m_QueuePool;
 
         [Header("🎨 Piksel Sanatı Bağlantısı")]

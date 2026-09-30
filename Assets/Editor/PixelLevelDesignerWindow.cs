@@ -34,16 +34,18 @@ namespace PixelGame.Editor
             Hard = 2     // 🔴 Zor (Taktiksel katman kilitleri, yüksek slot baskısı)
         }
         private WagonDifficultyMode m_WagonDifficulty = WagonDifficultyMode.Medium;
+        private int m_TargetColorCount = 5;
 
         public enum DetailTab
         {
-            LevelSetup = 0,    // 📋 Bölüm & Izgara
-            ColorStudio = 1,   // 🎨 Piksel Renkleri & TCP2 Toon
-            TruckLayout = 2,   // 🚚 Vagon & Ray Düzeni
-            SceneTools = 3     // 🛠️ Sahne & Görsel Araçları
+            SimpleMode = 0,    // ⚡ Kolay Mod (Gemi & Hızlı)
+            LevelSetup = 1,    // 📋 Bölüm & Izgara
+            ColorStudio = 2,   // 🎨 Piksel Renkleri & TCP2 Toon
+            TruckLayout = 3,   // 🚚 Vagon & Ray Düzeni
+            SceneTools = 4     // 🛠️ Sahne & Görsel Araçları
         }
 
-        private DetailTab m_CurrentTab = DetailTab.LevelSetup;
+        private DetailTab m_CurrentTab = DetailTab.SimpleMode;
         private Color m_PreviewBlockColor = new Color32(230, 40, 40, 255);
 
         // Menüde sadece Level Designer kalacak şekilde tek MenuItem bırakıldı
@@ -58,6 +60,7 @@ namespace PixelGame.Editor
 
         private void OnEnable()
         {
+            m_CurrentTab = (DetailTab)EditorPrefs.GetInt("PixelGame_SelectedDetailTab", (int)DetailTab.SimpleMode);
             RefreshLevelList();
         }
 
@@ -337,38 +340,47 @@ namespace PixelGame.Editor
                     return;
                 }
 
-                // 3. Hızlı Eylem Butonları: Yukarı, Aşağı, Çoğalt, Sil
-                EditorGUILayout.BeginVertical(GUILayout.Width(48));
-                EditorGUILayout.BeginHorizontal();
+                // 3. Kolay Mod & Hızlı Eylem Butonları
+                EditorGUILayout.BeginVertical(GUILayout.Width(76));
 
+                GUI.backgroundColor = new Color(0.25f, 0.85f, 0.5f);
+                if (GUILayout.Button(new GUIContent("🎨 Kolay", "Bu bölümü doğrudan Kolay Modda (Tuvalde Çizim) aç"), EditorStyles.miniButton, GUILayout.Width(74), GUILayout.Height(20)))
+                {
+                    SelectLevel(level);
+                    m_CurrentTab = DetailTab.SimpleMode;
+                    EditorPrefs.SetInt("PixelGame_SelectedDetailTab", (int)m_CurrentTab);
+                    LevelBuilderWindow.OpenForLevel(level);
+                    return;
+                }
+                GUI.backgroundColor = Color.white;
+
+                EditorGUILayout.BeginHorizontal();
                 // Yukarı Taşı
                 GUI.enabled = (i > 0);
-                if (GUILayout.Button("▲", EditorStyles.miniButtonLeft, GUILayout.Width(23), GUILayout.Height(18)))
+                if (GUILayout.Button("▲", EditorStyles.miniButtonLeft, GUILayout.Width(18), GUILayout.Height(18)))
                 {
                     MoveLevel(i, i - 1);
                     return;
                 }
                 // Aşağı Taşı
                 GUI.enabled = (i < m_AllLevels.Count - 1);
-                if (GUILayout.Button("▼", EditorStyles.miniButtonRight, GUILayout.Width(23), GUILayout.Height(18)))
+                if (GUILayout.Button("▼", EditorStyles.miniButtonMid, GUILayout.Width(18), GUILayout.Height(18)))
                 {
                     MoveLevel(i, i + 1);
                     return;
                 }
                 GUI.enabled = true;
-                EditorGUILayout.EndHorizontal();
 
-                EditorGUILayout.BeginHorizontal();
                 // Çoğalt (Duplicate)
                 GUI.backgroundColor = new Color(0.7f, 0.9f, 1f);
-                if (GUILayout.Button("📋", EditorStyles.miniButtonLeft, GUILayout.Width(23), GUILayout.Height(18)))
+                if (GUILayout.Button("📋", EditorStyles.miniButtonMid, GUILayout.Width(18), GUILayout.Height(18)))
                 {
                     DuplicateLevel(level);
                     return;
                 }
                 // Sil (Delete)
                 GUI.backgroundColor = new Color(1f, 0.6f, 0.6f);
-                if (GUILayout.Button("🗑️", EditorStyles.miniButtonRight, GUILayout.Width(23), GUILayout.Height(18)))
+                if (GUILayout.Button("🗑️", EditorStyles.miniButtonRight, GUILayout.Width(18), GUILayout.Height(18)))
                 {
                     DeleteLevel(level);
                     return;
@@ -490,9 +502,30 @@ namespace PixelGame.Editor
         {
             EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
 
-            // Eğer Sahne Araçları sekmesi seçiliyse seviye seçilmemiş olsa bile gösterilebilir
+            // Eğer Sahne Araçları sekmesi seçiliyse: Navbar'ı daima üstte göster, asla kaybolmasın!
             if (m_CurrentTab == DetailTab.SceneTools)
             {
+                EditorGUILayout.Space(6);
+                if (m_SelectedLevel != null)
+                {
+                    EditorGUILayout.BeginHorizontal();
+                    GUI.backgroundColor = new Color(0.25f, 0.75f, 1f);
+                    if (GUILayout.Button($"◀ {m_SelectedLevel.LevelName} Düzenleyicisine Geri Dön", GUILayout.Height(26)))
+                    {
+                        m_CurrentTab = DetailTab.LevelSetup;
+                        GUI.backgroundColor = Color.white;
+                        EditorGUILayout.EndHorizontal();
+                        EditorGUILayout.EndVertical();
+                        return;
+                    }
+                    GUI.backgroundColor = Color.white;
+                    GUILayout.FlexibleSpace();
+                    EditorGUILayout.EndHorizontal();
+                    EditorGUILayout.Space(4);
+                }
+
+                DrawTabsToolbar();
+                EditorGUILayout.Space(6);
                 DrawSceneToolsTab();
                 EditorGUILayout.EndVertical();
                 return;
@@ -500,7 +533,9 @@ namespace PixelGame.Editor
 
             if (m_SelectedLevel == null)
             {
-                EditorGUILayout.Space(40);
+                EditorGUILayout.Space(6);
+                DrawTabsToolbar();
+                EditorGUILayout.Space(30);
                 GUIStyle emptyStyle = new GUIStyle(EditorStyles.boldLabel)
                 {
                     fontSize = 14,
@@ -530,6 +565,14 @@ namespace PixelGame.Editor
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField($"✏️ Düzenlenen: Level {m_SelectedLevel.LevelIndex} - {m_SelectedLevel.LevelName}", EditorStyles.boldLabel);
 
+            GUI.backgroundColor = new Color(0.25f, 0.85f, 0.5f);
+            if (GUILayout.Button("🎨 Kolay Mod (Tuval)", GUILayout.Width(135), GUILayout.Height(24)))
+            {
+                m_CurrentTab = DetailTab.SimpleMode;
+                EditorPrefs.SetInt("PixelGame_SelectedDetailTab", (int)m_CurrentTab);
+                LevelBuilderWindow.OpenForLevel(m_SelectedLevel);
+            }
+
             GUI.backgroundColor = new Color(0.7f, 0.9f, 1f);
             if (GUILayout.Button("📋 Bölümü Çoğalt", GUILayout.Width(115), GUILayout.Height(24)))
             {
@@ -557,26 +600,18 @@ namespace PixelGame.Editor
 
             EditorGUILayout.Space(6);
 
-            // 3. Sekme Seçimi (Tabs)
-            EditorGUILayout.BeginHorizontal();
-            GUIStyle tabStyle = new GUIStyle(EditorStyles.toolbarButton)
-            {
-                fontSize = 12,
-                fontStyle = FontStyle.Bold,
-                fixedHeight = 32
-            };
-
-            DrawTabButton(DetailTab.LevelSetup, "📋 Bölüm & Izgara", tabStyle);
-            DrawTabButton(DetailTab.ColorStudio, "🎨 Piksel Renkleri & TCP2", tabStyle);
-            DrawTabButton(DetailTab.TruckLayout, "🚚 Vagon & Ray Düzeni", tabStyle);
-            DrawTabButton(DetailTab.SceneTools, "🛠️ Sahne & Görsel Araçları", tabStyle);
-            EditorGUILayout.EndHorizontal();
+            // 3. Sekme Seçimi (Tüm sekmeler daima görünür)
+            DrawTabsToolbar();
 
             EditorGUILayout.Space(8);
 
             EditorGUI.BeginChangeCheck();
 
-            if (m_CurrentTab == DetailTab.LevelSetup)
+            if (m_CurrentTab == DetailTab.SimpleMode)
+            {
+                DrawSimpleModeCard();
+            }
+            else if (m_CurrentTab == DetailTab.LevelSetup)
             {
                 DrawLevelSetupTab();
             }
@@ -587,6 +622,10 @@ namespace PixelGame.Editor
             else if (m_CurrentTab == DetailTab.TruckLayout)
             {
                 DrawTruckLayoutTab();
+            }
+            else if (m_CurrentTab == DetailTab.SceneTools)
+            {
+                DrawSceneToolsTab();
             }
 
             if (EditorGUI.EndChangeCheck())
@@ -605,13 +644,42 @@ namespace PixelGame.Editor
             EditorGUILayout.EndVertical();
         }
 
+        private void DrawTabsToolbar()
+        {
+            EditorGUILayout.BeginHorizontal();
+            GUIStyle tabStyle = new GUIStyle(EditorStyles.toolbarButton)
+            {
+                fontSize = 11,
+                fontStyle = FontStyle.Bold,
+                fixedHeight = 30
+            };
+
+            DrawTabButton(DetailTab.SimpleMode, "⚡ Kolay Mod (Gemi)", tabStyle);
+            DrawTabButton(DetailTab.LevelSetup, "📋 Bölüm & Izgara", tabStyle);
+            DrawTabButton(DetailTab.ColorStudio, "🎨 Piksel Renkleri & TCP2", tabStyle);
+            DrawTabButton(DetailTab.TruckLayout, "🚚 Vagon & Ray Düzeni", tabStyle);
+            DrawTabButton(DetailTab.SceneTools, "🛠️ Sahne Araçları", tabStyle);
+            EditorGUILayout.EndHorizontal();
+        }
+
         private void DrawTabButton(DetailTab tab, string label, GUIStyle style)
         {
             bool isSelected = m_CurrentTab == tab;
-            GUI.backgroundColor = isSelected ? new Color(0.25f, 0.75f, 1f) : new Color(0.85f, 0.85f, 0.9f);
+            if (isSelected)
+            {
+                GUI.backgroundColor = (tab == DetailTab.SimpleMode)
+                    ? new Color(0.25f, 0.85f, 0.5f)
+                    : new Color(0.25f, 0.75f, 1f);
+            }
+            else
+            {
+                GUI.backgroundColor = new Color(0.85f, 0.85f, 0.9f);
+            }
+
             if (GUILayout.Button(label, style))
             {
                 m_CurrentTab = tab;
+                EditorPrefs.SetInt("PixelGame_SelectedDetailTab", (int)m_CurrentTab);
             }
             GUI.backgroundColor = Color.white;
         }
@@ -664,6 +732,7 @@ namespace PixelGame.Editor
                             if (dragged is Texture2D newT)
                             {
                                 m_SelectedLevel.LevelTexture = newT;
+                                m_SelectedLevel.OriginalSourceTexture = newT;
                                 EnsureTextureReadable(newT);
                                 m_SelectedLevel.ExtractPaletteFromTexture();
                                 EditorUtility.SetDirty(m_SelectedLevel);
@@ -690,9 +759,14 @@ namespace PixelGame.Editor
 
             // Hızlı Sahnede İnşa Butonu
             GUI.backgroundColor = new Color(0.25f, 0.85f, 0.45f);
-            if (GUILayout.Button("▶️ Sahnede Yükle", GUILayout.Width(125), GUILayout.Height(22)))
+            if (GUILayout.Button("▶️ Sahnede Yükle", GUILayout.Width(115), GUILayout.Height(22)))
             {
                 BuildSelectedLevelInScene();
+            }
+            GUI.backgroundColor = new Color(0.25f, 0.75f, 1f);
+            if (GUILayout.Button("✏️ Tuvalde Düzenle", GUILayout.Width(130), GUILayout.Height(22)))
+            {
+                LevelBuilderWindow.OpenForLevel(m_SelectedLevel);
             }
             GUI.backgroundColor = Color.white;
             EditorGUILayout.EndHorizontal();
@@ -745,6 +819,188 @@ namespace PixelGame.Editor
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.EndVertical();
+        }
+
+        #endregion
+
+        #region SIMPLE MODE (FAST SHIP WORKFLOW)
+
+        private void DrawSimpleModeCard()
+        {
+            if (m_SelectedLevel == null) return;
+
+            // 0. Tuval Çizim & Düzenleme Aksiyonu (Kolay Mod)
+            EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+            EditorGUILayout.LabelField("🎨 Piksel Çizimi & Düzenleme:", EditorStyles.boldLabel);
+            GUI.backgroundColor = new Color(0.25f, 0.85f, 0.5f);
+            if (GUILayout.Button("✏️ Bu Bölümü Tuvalde Çiz / Düzenle", GUILayout.Width(250), GUILayout.Height(28)))
+            {
+                LevelBuilderWindow.OpenForLevel(m_SelectedLevel);
+            }
+            GUI.backgroundColor = Color.white;
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(4);
+
+            // 1. Akıllı Palet & Renk Sayısı Kutusu
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            Texture2D activeTex = m_SelectedLevel.GetActiveTexture();
+            int colorCount = activeTex != null ? PixelPaletteOptimizer.CountUniqueColors(activeTex) : m_SelectedLevel.ColorPalette.Count;
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField($"🎨 Renk Durumu: {colorCount} Renk", EditorStyles.boldLabel);
+            GUILayout.FlexibleSpace();
+            if (colorCount > 5)
+            {
+                GUI.contentColor = new Color(1f, 0.65f, 0.2f);
+                EditorGUILayout.LabelField("⚠ Çok renkli (Gemi için 4-5 renk önerilir)", EditorStyles.miniBoldLabel);
+                GUI.contentColor = Color.white;
+            }
+            else
+            {
+                GUI.contentColor = new Color(0.35f, 0.85f, 0.4f);
+                EditorGUILayout.LabelField("✓ İdeal Renk Sayısı (Kilitlenme Riski Düşük)", EditorStyles.miniBoldLabel);
+                GUI.contentColor = Color.white;
+            }
+            EditorGUILayout.EndHorizontal();
+
+            // Renk Şeridi
+            if (m_SelectedLevel.ColorPalette.Count > 0)
+            {
+                EditorGUILayout.BeginHorizontal();
+                foreach (var p in m_SelectedLevel.ColorPalette)
+                {
+                    Rect sw = GUILayoutUtility.GetRect(28f, 18f, GUILayout.Width(28f));
+                    EditorGUI.DrawRect(sw, p.targetColor);
+                }
+                GUILayout.FlexibleSpace();
+                EditorGUILayout.EndHorizontal();
+            }
+
+            EditorGUILayout.Space(6);
+            EditorGUILayout.LabelField("🎨 Renk İndirgeme ve Temizleme:", EditorStyles.boldLabel);
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Hedef Renk:", GUILayout.Width(80));
+            m_TargetColorCount = EditorGUILayout.IntSlider(m_TargetColorCount, 2, 16, GUILayout.Width(170));
+            
+            GUI.backgroundColor = new Color(0.25f, 0.85f, 0.45f);
+            if (GUILayout.Button($"🎨 {m_TargetColorCount} Renge İndirge", GUILayout.Height(22)))
+            {
+                if (PixelPaletteOptimizer.OptimizeLevelAsset(m_SelectedLevel, m_TargetColorCount))
+                {
+                    m_SolvReport = null;
+                    NotifyLiveSceneUpdate();
+                }
+            }
+            GUI.backgroundColor = Color.white;
+
+            if (GUILayout.Button("🧹 Gürültü Temizle", GUILayout.Width(110), GUILayout.Height(22)))
+            {
+                Texture2D baseTex = m_SelectedLevel.GetOriginalTexture();
+                if (baseTex != null)
+                {
+                    Texture2D cleaned = PixelPaletteOptimizer.CleanIsolatedPixels(baseTex);
+                    if (cleaned != null)
+                    {
+                        Texture2D saved = PixelPaletteOptimizer.SaveAsOptimizedAsset(baseTex, cleaned, "_denoise");
+                        DestroyImmediate(cleaned);
+                        if (saved != null)
+                        {
+                            Undo.RecordObject(m_SelectedLevel, "Denoise Level");
+                            m_SelectedLevel.LevelTexture = saved;
+                            m_SelectedLevel.ExtractPaletteFromTexture();
+                            m_SelectedLevel.GenerateInterleavedWagonSequenceFromPalette();
+                            m_SolvReport = null;
+                            NotifyLiveSceneUpdate();
+                        }
+                    }
+                }
+            }
+            if (m_SelectedLevel.OriginalSourceTexture != null && m_SelectedLevel.OriginalSourceTexture != activeTex)
+            {
+                GUI.backgroundColor = new Color(0.9f, 0.9f, 0.95f);
+                if (GUILayout.Button("↩ Orijinale Dön", GUILayout.Width(110), GUILayout.Height(22)))
+                {
+                    Undo.RecordObject(m_SelectedLevel, "Revert to Original");
+                    m_SelectedLevel.RevertToOriginalTexture();
+                    m_SolvReport = null;
+                    NotifyLiveSceneUpdate();
+                }
+                GUI.backgroundColor = Color.white;
+            }
+            EditorGUILayout.EndHorizontal();
+
+            // Hızlı butonlar (3, 4, 5, 6, 7, 8)
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Hızlı Butonlar:", EditorStyles.miniLabel, GUILayout.Width(80));
+            int[] quickPresets = { 3, 4, 5, 6, 7, 8 };
+            foreach (int q in quickPresets)
+            {
+                if (GUILayout.Button(q.ToString(), EditorStyles.miniButton, GUILayout.Width(30)))
+                {
+                    m_TargetColorCount = q;
+                    if (PixelPaletteOptimizer.OptimizeLevelAsset(m_SelectedLevel, q))
+                    {
+                        m_SolvReport = null;
+                        NotifyLiveSceneUpdate();
+                    }
+                }
+            }
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.Space(6);
+
+            // 2. Zorluk ve Yanaşma Yeri (Slot) Seçimi
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.LabelField("⚓ Zorluk & İskele Slot Sayısı", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Aynı anda yanaşan gemi sayısıdır. Az slot planlama gerektirir, çok slot rahat oynatır.", EditorStyles.miniLabel);
+
+            EditorGUILayout.BeginHorizontal();
+            int currentSlots = m_SelectedLevel.SlotCount;
+            DrawSlotPresetButton(5, "🟢 Kolay (5 İskele)", currentSlots == 5, new Color(0.35f, 0.85f, 0.45f));
+            DrawSlotPresetButton(4, "🟡 Orta (4 İskele)", currentSlots == 4, new Color(0.95f, 0.85f, 0.35f));
+            DrawSlotPresetButton(3, "🔴 Zor (3 İskele)", currentSlots == 3, new Color(1f, 0.45f, 0.4f));
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.Space(6);
+
+            // 3. Çözülebilirlik Analiz Kartı (Canlı simülasyon)
+            DrawSolvabilityCard();
+
+            EditorGUILayout.Space(6);
+            EditorGUILayout.BeginHorizontal();
+            GUI.backgroundColor = new Color(0.25f, 0.75f, 1f);
+            if (GUILayout.Button("✏️ Pikselleri Tuvalde Çiz / Düzelt (Bölüm Stüdyosu)", GUILayout.Height(28)))
+            {
+                LevelBuilderWindow.OpenForLevel(m_SelectedLevel);
+            }
+            GUI.backgroundColor = Color.white;
+            if (GUILayout.Button("🛠️ Sahne & Ray Araçları", GUILayout.Width(180), GUILayout.Height(28)))
+            {
+                m_CurrentTab = DetailTab.SceneTools;
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(4);
+            EditorGUILayout.LabelField("💡 İpucu: Shader, boşluk ve derinlik gibi görsel ayarlar için yukarıdan 'Gelişmiş Mod'u açabilirsiniz.", EditorStyles.centeredGreyMiniLabel);
+        }
+
+        private void DrawSlotPresetButton(int slots, string label, bool isSelected, Color activeColor)
+        {
+            Color prev = GUI.backgroundColor;
+            if (isSelected) GUI.backgroundColor = activeColor;
+            if (GUILayout.Button(label, GUILayout.Height(30)))
+            {
+                Undo.RecordObject(m_SelectedLevel, "Change Slot Count");
+                m_SelectedLevel.SlotCount = slots;
+                m_SolvReport = null;
+                EditorUtility.SetDirty(m_SelectedLevel);
+            }
+            GUI.backgroundColor = prev;
         }
 
         #endregion
@@ -802,6 +1058,147 @@ namespace PixelGame.Editor
 
             // 3. Bölüm İstatistik & Zorluk Değerlendirmesi
             DrawLevelDifficultyStatsCard();
+            DrawSolvabilityCard();
+        }
+
+        // ---------------------------------------------------------------
+        // Çözülebilirlik kartı (LevelSolvabilityAnalyzer)
+        // ---------------------------------------------------------------
+        // Rapor ÖNBELLEĞE alınır: simülasyon bölüm başına yüzlerce ms sürüyor,
+        // her OnGUI repaint'inde çalıştırılamaz. Seçili bölüm değişince veya
+        // "Yeniden Analiz Et" ile tazelenir.
+        private LevelSolvabilityAnalyzer.Report m_SolvReport;
+        private PixelLevelData m_SolvReportLevel;
+        private bool m_SolvFoldout = true;
+
+        private void DrawSolvabilityCard()
+        {
+            if (m_SelectedLevel == null) return;
+
+            EditorGUILayout.BeginVertical("box");
+
+            EditorGUILayout.BeginHorizontal();
+            m_SolvFoldout = EditorGUILayout.Foldout(m_SolvFoldout, "🧪 Çözülebilirlik & Kilitlenme Analizi", true, EditorStyles.foldoutHeader);
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button(m_SolvReport == null ? "Analiz Et" : "Yeniden Analiz Et", GUILayout.Width(120)))
+            {
+                m_SolvReport = LevelSolvabilityAnalyzer.Analyze(m_SelectedLevel, true, 40);
+                m_SolvReportLevel = m_SelectedLevel;
+            }
+            EditorGUILayout.EndHorizontal();
+
+            if (!m_SolvFoldout) { EditorGUILayout.EndVertical(); return; }
+
+            // Seçili bölüm değiştiyse eski rapor geçersiz
+            if (m_SolvReport != null && m_SolvReportLevel != m_SelectedLevel) m_SolvReport = null;
+
+            if (m_SolvReport == null)
+            {
+                EditorGUILayout.HelpBox(
+                    "Bu bölüm gerçekten bitirilebilir mi? Analiz, oyunun kendi kurallarını " +
+                    "(dış hava erişimi, gemi renk seçimi, slot sayısı) sahneye küp üretmeden oynatır.\n" +
+                    "Simülasyon birkaç saniye sürebilir, o yüzden elle tetikleniyor.",
+                    MessageType.Info);
+                EditorGUILayout.EndVertical();
+                return;
+            }
+
+            var r = m_SolvReport;
+
+            if (!r.valid)
+            {
+                EditorGUILayout.HelpBox(r.invalidReason, MessageType.Warning);
+                EditorGUILayout.EndVertical();
+                return;
+            }
+
+            // --- Kilitlenme riski rozeti ---
+            float risk = r.DeadlockRisk;
+            Color riskColor = risk <= 0.001f ? new Color(0.35f, 0.85f, 0.4f)
+                            : risk < 0.10f ? new Color(0.95f, 0.85f, 0.3f)
+                            : new Color(1f, 0.45f, 0.4f);
+            string riskBadge = risk <= 0.001f ? "✓ TEMİZ" : risk < 0.10f ? "⚠ RİSKLİ" : "✖ KİLİTLENİYOR";
+
+            EditorGUILayout.BeginHorizontal();
+            GUI.contentColor = riskColor;
+            EditorGUILayout.LabelField($"{riskBadge}  —  kilitlenme riski %{risk * 100f:F0}", EditorStyles.boldLabel, GUILayout.Width(280));
+            GUI.contentColor = Color.white;
+            EditorGUILayout.LabelField($"{r.trials} deneme · {r.totalCubes} küp", EditorStyles.miniLabel);
+            EditorGUILayout.EndHorizontal();
+
+            if (risk > 0.001f)
+            {
+                EditorGUILayout.HelpBox(r.blockReason, MessageType.Error);
+                if (r.blockedColors.Count > 0)
+                {
+                    EditorGUILayout.LabelField("En sık tıkayan renkler:", EditorStyles.miniBoldLabel);
+                    EditorGUILayout.BeginHorizontal();
+                    foreach (var c in r.blockedColors)
+                    {
+                        Rect sw = GUILayoutUtility.GetRect(26f, 16f, GUILayout.Width(26f));
+                        EditorGUI.DrawRect(sw, c);
+                    }
+                    GUILayout.FlexibleSpace();
+                    EditorGUILayout.EndHorizontal();
+                }
+                EditorGUILayout.LabelField($"En kötü denemede sadece {r.collectedWorst}/{r.totalCubes} küp toplanabildi.", EditorStyles.miniLabel);
+            }
+
+            EditorGUILayout.Space(4);
+
+            // --- Renk tablosu ---
+            EditorGUILayout.LabelField("Renk Dengesi", EditorStyles.boldLabel);
+
+            EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+            EditorGUILayout.LabelField("", GUILayout.Width(24));
+            EditorGUILayout.LabelField("Renk", EditorStyles.miniBoldLabel, GUILayout.Width(120));
+            EditorGUILayout.LabelField("Küp", EditorStyles.miniBoldLabel, GUILayout.Width(50));
+            EditorGUILayout.LabelField("Vagon Kap.", EditorStyles.miniBoldLabel, GUILayout.Width(75));
+            EditorGUILayout.LabelField("Fark", EditorStyles.miniBoldLabel, GUILayout.Width(50));
+            EditorGUILayout.LabelField("Not", EditorStyles.miniBoldLabel);
+            EditorGUILayout.EndHorizontal();
+
+            foreach (var b in r.budgets)
+            {
+                EditorGUILayout.BeginHorizontal();
+
+                Rect swatch = GUILayoutUtility.GetRect(20f, 16f, GUILayout.Width(20f));
+                EditorGUI.DrawRect(swatch, b.color);
+                GUILayout.Space(4);
+
+                EditorGUILayout.LabelField(b.label, GUILayout.Width(120));
+                EditorGUILayout.LabelField(b.cubeCount.ToString(), GUILayout.Width(50));
+                EditorGUILayout.LabelField(b.wagonCapacity.ToString(), GUILayout.Width(75));
+
+                GUI.contentColor = b.IsShort ? new Color(1f, 0.45f, 0.4f) : Color.white;
+                EditorGUILayout.LabelField((b.Diff >= 0 ? "+" : "") + b.Diff, GUILayout.Width(50));
+                GUI.contentColor = Color.white;
+
+                string note = "";
+                if (b.IsStale) note = $"palet bayat (kayıtlı {b.storedPixelCount})";
+                if (b.IsShort) note = (note.Length > 0 ? note + " · " : "") + "kapasite eksik";
+                GUI.contentColor = b.IsStale ? new Color(0.95f, 0.8f, 0.35f) : Color.white;
+                EditorGUILayout.LabelField(note, EditorStyles.miniLabel);
+                GUI.contentColor = Color.white;
+
+                EditorGUILayout.EndHorizontal();
+            }
+
+            EditorGUILayout.Space(2);
+            EditorGUILayout.LabelField(
+                $"Toplam: {r.totalCubes} küp · {r.totalWagonCapacity} vagon kapasitesi",
+                EditorStyles.miniLabel);
+
+            EditorGUILayout.HelpBox(
+                "Not: 'Vagon Kap.' sütunu WagonSequence'ten gelir ve yalnızca KAMYON sahnesini " +
+                "(TruckDispatcher/TruckPool) bağlar. Gemi sahnesi renkleri ve kapasiteyi tahtada " +
+                "kalan küplerden dinamik seçer, orada kapasite eksiği oluşmaz — oradaki risk " +
+                "yukarıdaki kilitlenme oranıdır.", MessageType.None);
+
+            foreach (var w in r.warnings)
+                EditorGUILayout.HelpBox(w, MessageType.Warning);
+
+            EditorGUILayout.EndVertical();
         }
 
         private void DrawLevelDifficultyStatsCard()
@@ -1390,6 +1787,11 @@ namespace PixelGame.Editor
             if (m_TargetGridRows <= 0) m_TargetGridRows = Mathf.Max(1, m_SelectedLevel.PoolRows);
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            EditorGUILayout.HelpBox(
+                "🚚 Bu sekme KAMYON sahnesi (SampleScene.unity) içindir.\n" +
+                "Eğer GEMİ sahnesi (Gemi.unity) ile çalışıyorsanız vagon ve ray dizilimi yapmanıza gerek yoktur; " +
+                "gemiler ve kapasiteler tahtadan otomatik seçilir.", MessageType.Info);
 
             // 1. Üst Kontrol & Denge Şeridi
             DrawSmartGridTopBar();
@@ -2755,6 +3157,21 @@ namespace PixelGame.Editor
                 "Sahne kurulumu, raylar, vagon modelleri, URP materyalleri ve gölgeleri buradan tek tıkla yönetebilirsiniz.",
                 MessageType.Info
             );
+
+            if (m_SelectedLevel != null)
+            {
+                EditorGUILayout.Space(4);
+                EditorGUILayout.BeginHorizontal();
+                GUI.backgroundColor = new Color(0.25f, 0.85f, 0.45f);
+                if (GUILayout.Button($"◀ Seviye Düzenleyiciye Geri Dön ({m_SelectedLevel.LevelName})", GUILayout.Height(28)))
+                {
+                    m_CurrentTab = DetailTab.LevelSetup;
+                }
+                GUI.backgroundColor = Color.white;
+                EditorGUILayout.EndHorizontal();
+                EditorGUILayout.Space(4);
+            }
+
             EditorGUILayout.Space(6);
 
             // 1. 🏝️ GEMİ SAHNESİ & RAY YÖNETİMİ
@@ -3017,6 +3434,7 @@ namespace PixelGame.Editor
             newLevel.LevelName = tex.name;
             newLevel.LevelIndex = nextIndex;
             newLevel.LevelTexture = tex;
+            newLevel.OriginalSourceTexture = tex;
             newLevel.UseNativeResolution = true;
             newLevel.ExtractPaletteFromTexture();
             newLevel.GenerateInterleavedWagonSequenceFromPalette();
