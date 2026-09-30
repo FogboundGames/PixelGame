@@ -70,6 +70,57 @@ namespace PixelGame
             return total;
         }
 
+        /// <summary>
+        /// Kuyrukta şu anda hazır bekleyen (henüz slota gitmemiş, ayrılmamış) aktif gemileri döner.
+        /// </summary>
+        public List<ShipController> GetActiveWaitingShips()
+        {
+            List<ShipController> list = new List<ShipController>();
+            if (m_WaitingShips != null)
+            {
+                for (int i = 0; i < m_WaitingShips.Count; i++)
+                {
+                    ShipController s = m_WaitingShips[i];
+                    if (s != null && !s.IsDocked && !s.IsDeparting && s.gameObject.activeInHierarchy)
+                    {
+                        list.Add(s);
+                    }
+                }
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// Seviyede açık denizde veya sırada bekleyen başka yeni gemi gelip gelmeyeceğini döner.
+        /// Eğer sırada başka gemi kalmadıysa ve tüm küpler mevcut gemilere yetiyorsa true döner.
+        /// </summary>
+        public bool HasNoMoreFutureShips()
+        {
+            if (m_UsingLevelSequence)
+            {
+                return m_LevelSequenceQueue == null || m_LevelSequenceQueue.Count == 0;
+            }
+            else
+            {
+                int remainingCubes = ShipDispatcher.Instance != null ? ShipDispatcher.Instance.GetTotalRemainingCubes() : 0;
+                int currentShipCapacity = GetTotalCapacityOfActiveShips();
+                return remainingCubes <= currentShipCapacity;
+            }
+        }
+
+        /// <summary>
+        /// Gemiyi kuyruktan tamamen çıkarır ve referansını temizler.
+        /// </summary>
+        public void RemoveShipFromQueue(ShipController ship)
+        {
+            if (ship == null || m_WaitingShips == null) return;
+            int idx = m_WaitingShips.IndexOf(ship);
+            if (idx >= 0)
+            {
+                m_WaitingShips[idx] = null;
+            }
+        }
+
         private bool TryGetNextSequenceShip(out Color shipColor, out int capacity)
         {
             if (m_UsingLevelSequence && m_LevelSequenceQueue != null && m_LevelSequenceQueue.Count > 0)

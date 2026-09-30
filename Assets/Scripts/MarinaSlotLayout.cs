@@ -4,8 +4,9 @@ using UnityEngine;
 namespace PixelGame
 {
     /// <summary>
-    /// Gemi sahnesindeki su slotlarının (WaterSlot_1..5) boyutunu, aralarındaki mesafeyi
-    /// ve marina yanaşma açısını Inspector üzerinden canlı (live) olarak ayarlamayı sağlar.
+    /// Gemi sahnesindeki su slotlarının (WaterSlot_1..5) boyutunu, aralarındaki mesafeyi,
+    /// sahil kavisini (arc curve) ve marina yanaşma açısını canlı (live) olarak ayarlamayı sağlar.
+    /// 2. görseldeki geniş, orantılı ve sahil koyuna uyumlu kavisli can simidi düzenini tam yansıtır.
     /// </summary>
     [ExecuteAlways]
     [DisallowMultipleComponent]
@@ -13,21 +14,21 @@ namespace PixelGame
     public class MarinaSlotLayout : MonoBehaviour
     {
         [Header("⚓ Slot Boyutları (Width & Length / Height)")]
-        [Tooltip("Slotların yatay genişliği (Width / En - X ekseni).")]
+        [Tooltip("Slotların yatay genişliği (Width / En - X ekseni). 2. görsel referansı: ~1.72f.")]
         [Range(0.3f, 3.5f)]
-        [SerializeField] private float m_SlotWidth = 1.15f;
+        [SerializeField] private float m_SlotWidth = 1.72f;
 
-        [Tooltip("Slotların boyu / uzunluğu (Length / Height - Z ekseni).")]
+        [Tooltip("Slotların boyu / uzunluğu (Length / Height - Z ekseni). 2. görsel referansı: ~2.35f.")]
         [Range(0.3f, 3.5f)]
-        [SerializeField] private float m_SlotLength = 1.15f;
+        [SerializeField] private float m_SlotLength = 2.35f;
 
         // Geriye dönük uyumluluk için
-        [SerializeField, HideInInspector] private float m_SlotScale = 1.15f;
+        [SerializeField, HideInInspector] private float m_SlotScale = 1.72f;
 
         [Header("📏 Slotlar Arası Mesafe (Aralık)")]
-        [Tooltip("Slotların birbirine olan yatay mesafesi.")]
+        [Tooltip("Slotların birbirine olan yatay mesafesi. 2. görsel referansı: ~1.42f.")]
         [Range(0.6f, 2.5f)]
-        [SerializeField] private float m_SlotSpacing = 1.40f;
+        [SerializeField] private float m_SlotSpacing = 1.42f;
 
         [Header("📐 Çapraz Marina Açısı")]
         [Tooltip("Slotların ve gemilerin yanaşma açısı (varsayılan: -28 derece).")]
@@ -42,11 +43,24 @@ namespace PixelGame
         [Header("📍 Dikey Yükseklik & Derinlik")]
         [Tooltip("Slot şeridinin Y eksenindeki yüksekliği.")]
         [Range(-2f, 4f)]
-        [SerializeField] private float m_OffsetY = 0.45f;
+        [SerializeField] private float m_OffsetY = 2.82f;
 
         [Tooltip("Slot şeridinin Z eksenindeki derinliği.")]
         [Range(-3f, 3f)]
-        [SerializeField] private float m_OffsetZ = 0.0f;
+        [SerializeField] private float m_OffsetZ = 0.53f;
+
+        [Header("🌊 Sahil Kavis / Yay Eğrisi (Shoreline Arc)")]
+        [Tooltip("Slotların sahil koyu kıyısına uyumlu yay/kavis yapması için Y ekseni eğrilik gücü (U-kavis).")]
+        [Range(-0.3f, 0.3f)]
+        [SerializeField] private float m_ArcCurveY = 0.055f;
+
+        [Tooltip("Kavisin sol/sağ asimetrisi (koyun sol kıyısı daha yüksekte).")]
+        [Range(-0.2f, 0.2f)]
+        [SerializeField] private float m_ArcAsymmetry = -0.055f;
+
+        [Tooltip("Slotların kavis yönüne göre yelpaze açısı.")]
+        [Range(-10f, 10f)]
+        [SerializeField] private float m_ArcAngleFan = 0f;
 
         public float SlotWidth
         {
@@ -94,6 +108,24 @@ namespace PixelGame
         {
             get => m_OffsetZ;
             set { m_OffsetZ = value; ApplyLayout(); }
+        }
+
+        public float ArcCurveY
+        {
+            get => m_ArcCurveY;
+            set { m_ArcCurveY = value; ApplyLayout(); }
+        }
+
+        public float ArcAsymmetry
+        {
+            get => m_ArcAsymmetry;
+            set { m_ArcAsymmetry = value; ApplyLayout(); }
+        }
+
+        public float ArcAngleFan
+        {
+            get => m_ArcAngleFan;
+            set { m_ArcAngleFan = value; ApplyLayout(); }
         }
 
         [Header("⚓ Aktif Slot Sayısı")]
@@ -173,27 +205,30 @@ namespace PixelGame
 
         private void OnValidate()
         {
-            if (m_SlotWidth <= 0.001f) m_SlotWidth = m_SlotScale > 0.001f ? m_SlotScale : 1.15f;
-            if (m_SlotLength <= 0.001f) m_SlotLength = m_SlotScale > 0.001f ? m_SlotScale : 1.15f;
+            if (m_SlotWidth <= 0.001f) m_SlotWidth = 1.72f;
+            if (m_SlotLength <= 0.001f) m_SlotLength = 2.35f;
             ApplyLayout();
         }
 
         private void Reset()
         {
             m_SlotCount = 5;
-            m_SlotWidth = 1.15f;
-            m_SlotLength = 1.15f;
-            m_SlotScale = 1.15f;
-            m_SlotSpacing = 1.40f;
+            m_SlotWidth = 1.72f;
+            m_SlotLength = 2.35f;
+            m_SlotScale = 1.72f;
+            m_SlotSpacing = 1.42f;
             m_SlotAngle = -28f;
             m_WaterTiltX = -68f;
-            m_OffsetY = transform.localPosition.y;
-            m_OffsetZ = transform.localPosition.z;
+            m_OffsetY = transform.localPosition.y != 0 ? transform.localPosition.y : 2.82f;
+            m_OffsetZ = transform.localPosition.z != 0 ? transform.localPosition.z : 0.53f;
+            m_ArcCurveY = 0.055f;
+            m_ArcAsymmetry = -0.055f;
+            m_ArcAngleFan = 0f;
             ApplyLayout();
         }
 
         /// <summary>
-        /// Tüm aktif çocuk slot nesnelerini Inspector'daki değerlere göre anında yeniden hizalar ve ölçekler.
+        /// Tüm aktif çocuk slot nesnelerini 2. görsel oran ve kavis değerlerine göre anında yeniden hizalar ve ölçekler.
         /// </summary>
         [ContextMenu("Slotları Yeniden Hizala (Apply Layout)")]
         public void ApplyLayout()
@@ -225,10 +260,22 @@ namespace PixelGame
                 var slot = activeSlots[i];
                 Transform tr = slot.transform;
                 float posX = startX + i * m_SlotSpacing;
+                float t = count > 1 ? (i - (count - 1) * 0.5f) : 0f;
+                float posY = m_ArcCurveY * (t * t) + m_ArcAsymmetry * t;
+                float angle = m_SlotAngle + m_ArcAngleFan * t;
 
-                tr.localPosition = new Vector3(posX, 0f, 0f);
-                tr.localRotation = Quaternion.Euler(m_WaterTiltX, 0f, 0f) * Quaternion.Euler(0f, m_SlotAngle, 0f);
+                tr.localPosition = new Vector3(posX, posY, 0f);
+                tr.localRotation = Quaternion.Euler(m_WaterTiltX, 0f, 0f) * Quaternion.Euler(0f, angle, 0f);
                 tr.localScale = new Vector3(m_SlotWidth, 1f, m_SlotLength);
+
+                // Can simidi çocuk görselinin ölçeğini ve konumunu temizle
+                Transform lifebuoy = tr.Find("[Slot_Lifebuoy]");
+                if (lifebuoy != null)
+                {
+                    lifebuoy.localPosition = new Vector3(0f, 0.025f, 0f);
+                    lifebuoy.localRotation = Quaternion.identity;
+                    lifebuoy.localScale = Vector3.one;
+                }
             }
         }
     }

@@ -39,6 +39,22 @@ namespace PixelGame
         private int m_ShipsAwaitingDeparture = 0;
         private int m_ActiveCargoFlightCount = 0;
 
+        [Header("⚡ Otomatik Yerleştirme & 2X Turbo")]
+        [SerializeField] private bool m_EnableAutoPlaceAndTurbo = true;
+        private bool m_IsAutoPlacing = false;
+        private bool m_IsTurboActive = false;
+        private float m_AutoPlaceCheckTimer = 0f;
+
+        [Header("❌ Seviye Başarısızlık (Deadlock)")]
+        [SerializeField] private bool m_EnableFailOnDeadlock = true;
+        [SerializeField] private float m_DeadlockGraceDuration = 1.0f;
+        private bool m_IsLevelFailed = false;
+        private float m_DeadlockTimer = 0f;
+
+        public bool IsAutoPlacing => m_IsAutoPlacing;
+        public bool IsTurboActive => m_IsTurboActive;
+        public bool IsLevelFailed => m_IsLevelFailed;
+
         /// <summary>
         /// Koparılan parçanın kıyıya yürüme hızı (dünya birimi / sn). Süre buna göre
         /// mesafeden hesaplanır — sabit süre kullanılsaydı uzaktaki küpler yakındakilerden
@@ -126,6 +142,10 @@ namespace PixelGame
 
         private void OnLevelLoaded(PixelLevelData data)
         {
+            m_IsLevelFailed = false;
+            m_DeadlockTimer = 0f;
+            SetTurboSpeed(false);
+            m_IsAutoPlacing = false;
             m_BoardBoundsInitialized = false;
             m_LaneStates.Clear();
             m_LastPoppedLeft = null;
@@ -630,6 +650,26 @@ namespace PixelGame
         private void OnDisable()
         {
             PixelArtGenerator.LevelLoaded -= OnLevelLoaded;
+            SetTurboSpeed(false);
+        }
+
+        private void Update()
+        {
+            if (!Application.isPlaying) return;
+
+            // 1. Deadlock & Seviye Başarısızlık Kontrolü (tüm slotlar dolup hamle kalmadığında)
+            UpdateDeadlockCheck();
+
+            // 2. Otomatik Yerleştirme & 2X Turbo Kontrolü
+            if (!m_IsAutoPlacing && !m_LevelEndPending && !m_IsLevelFailed && m_EnableAutoPlaceAndTurbo)
+            {
+                m_AutoPlaceCheckTimer += Time.unscaledDeltaTime;
+                if (m_AutoPlaceCheckTimer >= 0.25f)
+                {
+                    m_AutoPlaceCheckTimer = 0f;
+                    CheckAutoPlaceRemainingShips();
+                }
+            }
         }
 
         private void Start()
@@ -914,6 +954,7 @@ namespace PixelGame
         {
             if (ship == null || ship.IsDeparting) return;
             StartCoroutine(ExtractMatchingCubesToShipRoutine(ship));
+            CheckAutoPlaceRemainingShips();
         }
 
         /// <summary>
@@ -1113,7 +1154,8 @@ namespace PixelGame
                     bool cubeOnLeft = cubeStartPos.x <= midX;
                     ReserveSideAndEntry(ship, cubeStartPos, cubeScale.x, out bool useLeft, out ShoreLanePath lane, out _, cubeOnLeft);
 
-                    StartCoroutine(FlyCubeThroughPierToShip(cubeStartPos, cubeColor, cubeScale.x * 0.45f, ship, targetCube, lane, cubeScale.x, useLeft));
+                    // Kullanıcı isteği: Küpler panodaki özgün boyutunu birebir korumalıdır (küçülerek gitmesinler, boyut neyse o kalsın).
+                    StartCoroutine(FlyCubeThroughPierToShip(cubeStartPos, cubeColor, cubeScale.x, ship, targetCube, lane, cubeScale.x, useLeft));
 
                     // Referans videoda küpler tek tek, rahat ve akıcı olarak gelmelidir;
                     // çok hızlı sıçramalar aynı anda yığılmış hissi verir.
@@ -1163,7 +1205,8 @@ namespace PixelGame
             // görsel gövde + bacaklar alt nesnede durur ve yürüyüşü o oynatır.
             GameObject flyerObj = new GameObject("WalkingCargoCube");
             flyerObj.transform.position = startPos;
-            float baseScale = Mathf.Clamp(size, 0.20f, 0.36f);
+            // Kullanıcı isteği: Küp panodan ayrıldığı andaki özgün boyutunu (cubeScale) sabit korur, küçülmez.
+            float baseScale = size > 0.001f ? size : (cubeWorldSize > 0.001f ? cubeWorldSize : 0.2605f);
 
             WalkingCargoVisual walker = WalkingCargoVisual.Attach(flyerObj, baseScale);
 
@@ -1351,7 +1394,7 @@ namespace PixelGame
             var st = GetOrBuildLaneState(targetShip, worldStart);
             bool cubeOnLeft = worldStart.x <= st.MidPoint.x;
             ReserveSideAndEntry(targetShip, worldStart, cubeScale.x, out bool useLeft, out ShoreLanePath lane, out _, cubeOnLeft);
-            StartCoroutine(FlyCubeThroughPierToShip(worldStart, shardColor, cubeScale.x * 0.45f, targetShip, sourceCube, lane, cubeScale.x, useLeft));
+            StartCoroutine(FlyCubeThroughPierToShip(worldStart, shardColor, cubeScale.x, targetShip, sourceCube, lane, cubeScale.x, useLeft));
         }
 
         /// <summary>
@@ -1450,6 +1493,8 @@ namespace PixelGame
                 yield return new WaitForSeconds(0.30f);
                 TriggerWaitingShipsCheck();
             }
+
+            CheckAutoPlaceRemainingShips();
         }
 
         /// <summary>
@@ -1457,6 +1502,7 @@ namespace PixelGame
         /// </summary>
         public bool TrySendShipFromQueue(ShipController ship)
         {
+            if (m_IsAutoPlacing || m_IsLevelFailed) return false;
             if (ship == null || ship.IsDocked || ship.IsMoving || ship.IsDeparting) return false;
 
             // 1. En ön sıra kontrolü
@@ -1484,6 +1530,117 @@ namespace PixelGame
             ship.transform.SetParent(null, true);
             ship.SailToSlot(emptySlot);
             return true;
+        }
+
+        /// <summary>
+        /// Sahnedeki tüm aktif ve boş yanaşma slotlarını döner.
+        /// </summary>
+        public List<ShipSlot> GetEmptySlots()
+        {
+            List<ShipSlot> list = new List<ShipSlot>();
+            if (m_Slots != null)
+            {
+                for (int i = 0; i < m_Slots.Count; i++)
+                {
+                    var s = m_Slots[i];
+                    if (s != null && s.IsEmpty && s.gameObject.activeInHierarchy)
+                    {
+                        list.Add(s);
+                    }
+                }
+            }
+            return list;
+        }
+
+        private bool IsAnyShipMoving()
+        {
+            ShipController[] allShips = Object.FindObjectsByType<ShipController>(FindObjectsSortMode.None);
+            for (int i = 0; i < allShips.Length; i++)
+            {
+                var s = allShips[i];
+                if (s != null && (s.IsMoving || s.IsDragging)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Kalan gemilerin boş slotlara sığıp sığmadığını kontrol eder.
+        /// Kullanıcının isteği: "mesela slotların hepsi boş 5 tane slotta boş kaldı 3 gemi
+        /// onları oto yerleştirip oyunu 2x oynatmak istiyorum otomatik bir şekilde yerleştirip 2x oynanacak yani"
+        /// </summary>
+        public void CheckAutoPlaceRemainingShips()
+        {
+            if (!m_EnableAutoPlaceAndTurbo || m_IsAutoPlacing || m_LevelEndPending || m_IsLevelFailed || !Application.isPlaying) return;
+            if (m_QueuePool == null || m_Slots == null || m_Slots.Count == 0) return;
+
+            // Eğer şu anda hareket eden veya sürüklenen herhangi bir gemi varsa bekle
+            if (IsAnyShipMoving()) return;
+
+            // Kuyrukta açık denizde veya sırada henüz gelmemiş başka gemi var mı?
+            if (!m_QueuePool.HasNoMoreFutureShips()) return;
+
+            // Şu an kuyrukta hazır bekleyen gemiler
+            List<ShipController> waitingShips = m_QueuePool.GetActiveWaitingShips();
+            int waitingCount = waitingShips.Count;
+            if (waitingCount == 0) return;
+
+            // Boş slotları al
+            List<ShipSlot> emptySlots = GetEmptySlots();
+            int emptyCount = emptySlots.Count;
+
+            // Kural: Kalan bekleyen gemi sayısı boş slot sayısına eşit veya daha azsa (Örn: 5 slot boş, 3 gemi kaldı)
+            // Tüm kalan gemiler tek seferde boş slotlara sığabilir; oyuncunun beklemesine gerek yok!
+            if (waitingCount <= emptyCount)
+            {
+                StartCoroutine(AutoPlaceRemainingShipsRoutine(waitingShips, emptySlots));
+            }
+        }
+
+        private IEnumerator AutoPlaceRemainingShipsRoutine(List<ShipController> shipsToPlace, List<ShipSlot> targetSlots)
+        {
+            m_IsAutoPlacing = true;
+            Debug.Log($"<color=#00FFAA><b>[ShipDispatcher]</b></color> ⚡ Otomatik Yerleştirme Devrede! Kalan {shipsToPlace.Count} gemi {targetSlots.Count} boş slota yerleştiriliyor ve oyun 2X hıza alınıyor.");
+
+            // 2X Hıza Geçiş ve Turbo Bildirimi
+            SetTurboSpeed(true);
+
+            // Gemileri sırayla, tatlı bir aralıkla (0.10s) boş slotlara yolla
+            for (int i = 0; i < shipsToPlace.Count; i++)
+            {
+                if (i >= targetSlots.Count) break;
+
+                ShipController ship = shipsToPlace[i];
+                ShipSlot slot = targetSlots[i];
+
+                if (ship != null && slot != null && slot.IsEmpty)
+                {
+                    if (m_QueuePool != null)
+                    {
+                        m_QueuePool.RemoveShipFromQueue(ship);
+                    }
+
+                    ship.transform.SetParent(null, true);
+                    ship.SailToSlot(slot, 0.35f);
+                }
+
+                yield return new WaitForSeconds(0.10f);
+            }
+
+            m_IsAutoPlacing = false;
+        }
+
+        /// <summary>
+        /// ⚡ 2X Turbo oyun hızını ve UI bildirimini yönetir.
+        /// </summary>
+        public void SetTurboSpeed(bool active)
+        {
+            m_IsTurboActive = active;
+            Time.timeScale = active ? 2.0f : 1.0f;
+
+            if (CasualHudController.Instance != null)
+            {
+                CasualHudController.Instance.SetTurboIndicator(active);
+            }
         }
 
         /// <summary>
@@ -1730,7 +1887,135 @@ namespace PixelGame
                 Debug.Log("<color=#00FFAA><b>[ShipDispatcher]</b></color> 🎉 Tüm piksel resmi tamamlandı! Son gemilerin sahneyi terk etmesi bekleniyor...");
                 BeginLevelEndSequence();
             }
+            else
+            {
+                CheckAutoPlaceRemainingShips();
+            }
         }
+
+        #region ❌ Deadlock & Seviye Başarısızlık Kontrolü
+
+        private void UpdateDeadlockCheck()
+        {
+            if (!m_EnableFailOnDeadlock || m_LevelEndPending || m_IsLevelFailed)
+            {
+                m_DeadlockTimer = 0f;
+                return;
+            }
+
+            if (CheckDeadlockCondition())
+            {
+                m_DeadlockTimer += Time.unscaledDeltaTime;
+                if (m_DeadlockTimer >= m_DeadlockGraceDuration)
+                {
+                    TriggerLevelFail();
+                }
+            }
+            else
+            {
+                m_DeadlockTimer = 0f;
+            }
+        }
+
+        /// <summary>
+        /// Tüm slotlar dolduğunda ve hamle yapılamadığında true döner.
+        /// Kullanıcı isteği: "slotların hepsi dolduğunda ve hamle yapılamadığında da level fail olacak"
+        /// </summary>
+        public bool CheckDeadlockCondition()
+        {
+            if (m_LevelEndPending || m_IsLevelFailed) return false;
+
+            // 1. Tabloda küp kalmadıysa kazanılmıştır, fail olamaz
+            int totalRemaining = GetTotalRemainingCubes();
+            if (totalRemaining <= 0) return false;
+
+            // 2. Slot referansları kontrolü
+            if (m_Slots == null || m_Slots.Count == 0) return false;
+
+            int activeSlotCount = 0;
+            for (int i = 0; i < m_Slots.Count; i++)
+            {
+                var slot = m_Slots[i];
+                if (slot == null || !slot.gameObject.activeInHierarchy) continue;
+
+                activeSlotCount++;
+                // "slotların hepsi dolduğunda": Eğer bir aktif slot dahi boşsa, oyuncu kuyruktan gemi gönderebilir -> fail DEĞİL
+                if (slot.IsEmpty || slot.DockedShip == null)
+                {
+                    return false;
+                }
+            }
+
+            if (activeSlotCount == 0) return false;
+
+            // 3. Havada uçuşan kargo var mı veya küp çekme coroutine'i çalışıyor mu?
+            if (m_ActiveCargoFlightCount > 0) return false;
+            if (m_ActiveExtractingShips.Count > 0) return false;
+
+            // 4. Sahnedeki gemilerden herhangi biri hareket halinde mi, sürükleniyor mu veya ayrılıyor mu?
+            var allShips = Object.FindObjectsByType<ShipController>(FindObjectsSortMode.None);
+            for (int i = 0; i < allShips.Length; i++)
+            {
+                var ship = allShips[i];
+                if (ship == null) continue;
+
+                if (ship.IsMoving || ship.IsDragging || ship.IsDeparting || ship.HasPendingCargo)
+                {
+                    return false;
+                }
+            }
+
+            // 5. Slotta yanaşık duran gemileri analiz et:
+            // Herhangi bir gemi:
+            // a) Tam kapasiteye ulaşmışsa -> kalkış yapacak, slot boşalacak -> fail DEĞİL
+            // b) Tabloda o renkten hiç küp kalmamışsa -> zorunlu kalkış yapacak, slot boşalacak -> fail DEĞİL
+            // c) Dış hatta (exposed) eşleşen küpü varsa -> küp toplayabilir -> fail DEĞİL
+            for (int i = 0; i < m_Slots.Count; i++)
+            {
+                var slot = m_Slots[i];
+                if (slot == null || !slot.gameObject.activeInHierarchy) continue;
+
+                ShipController ship = slot.DockedShip;
+                if (ship == null) return false;
+
+                if (ship.IsFull || !ship.CanAcceptMore)
+                {
+                    return false;
+                }
+
+                if (GetRemainingCountForColor(ship.ShipColor) == 0)
+                {
+                    return false;
+                }
+
+                if (HasExposedMatchingCube(ship.ShipColor))
+                {
+                    return false;
+                }
+            }
+
+            // Tüm slotlar dolu VE hiçbir gemi hamle yapamıyor, küp çekemiyor, hareket edemiyor!
+            return true;
+        }
+
+        public void TriggerLevelFail()
+        {
+            if (m_IsLevelFailed || m_LevelEndPending) return;
+
+            m_IsLevelFailed = true;
+            m_DeadlockTimer = 0f;
+
+            Debug.Log("<color=#FF3333><b>[ShipDispatcher]</b></color> ❌ SEVİYE BAŞARISIZ! Tüm slotlar dolu ve hamle yapılamıyor.");
+
+            SetTurboSpeed(false);
+
+            if (CasualHudController.Instance != null)
+            {
+                CasualHudController.Instance.ShowLevelFailPopup();
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// Küpler bitince çağrılır: artık toplanacak kargo kalmadığı için kuyrukta bekleyen (henüz
@@ -1815,6 +2100,8 @@ namespace PixelGame
 
         private void CompleteLevelTransition()
         {
+            SetTurboSpeed(false);
+            m_IsAutoPlacing = false;
             m_LevelEndPending = false;
             m_LastPoppedLeft = null;
             m_LastPoppedRight = null;

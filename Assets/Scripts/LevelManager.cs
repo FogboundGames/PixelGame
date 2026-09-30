@@ -68,43 +68,31 @@ namespace PixelGame
             if (Application.isPlaying && m_Levels.Count > 0)
             {
                 EnsureGenerator();
-                // Sahnedeki mevcut küpler ve sahne koruması açıksa bunları silip yeniden üretme!
-                if (m_Generator != null)
+
+                // Kullanıcı isteği: "level save durumu olsun hangi levelde kaldıysak oradan devam etsin"
+                int targetIndex = PlayerPrefs.HasKey(ProgressPrefKey)
+                    ? PlayerPrefs.GetInt(ProgressPrefKey)
+                    : m_CurrentLevelIndex;
+
+                targetIndex = Mathf.Clamp(targetIndex, 0, m_Levels.Count - 1);
+
+                // Eğer sahne düzenleme koruması (PreserveSceneEdits) AÇIKSA ve sahnede zaten küpler varsa
+                // ve bu küpler kayıtlı seviyeyle uyuşuyorsa sahneyi koru.
+                if (m_Generator != null && m_Generator.PreserveSceneEdits)
                 {
                     Transform container = m_Generator.CubesContainer;
                     int childCount = container != null ? container.childCount : 0;
-
-                    if (childCount > 0 || m_Generator.PreserveSceneEdits)
+                    if (childCount > 0 && m_Generator.ActiveLevelData == m_Levels[targetIndex])
                     {
-                        // Sahnedeki küpler hangi bölüme aitse ONU bağla.
-                        PixelLevelData level = m_Generator.ActiveLevelData;
-
-                        if (level != null)
-                        {
-                            int index = m_Levels.IndexOf(level);
-                            if (index >= 0) m_CurrentLevelIndex = index;
-                        }
-                        else
-                        {
-                            m_CurrentLevelIndex = Mathf.Clamp(m_CurrentLevelIndex, 0, m_Levels.Count - 1);
-                            level = m_Levels[m_CurrentLevelIndex];
-                        }
-
-                        if (level != null)
-                        {
-                            m_Generator.BindExistingLevel(level);
-                            Debug.Log($"<color=#00FFAA><b>[LevelManager]</b></color> Sahnedeki mevcut {childCount} küp ve sahne tasarımı korundu. Aktif Level: '{level.LevelName}'");
-                        }
+                        m_CurrentLevelIndex = targetIndex;
+                        m_Generator.BindExistingLevel(m_Levels[targetIndex]);
+                        Debug.Log($"<color=#00FFAA><b>[LevelManager]</b></color> Sahne düzeni korundu. Aktif Level {m_CurrentLevelIndex + 1}: '{m_Levels[targetIndex].LevelName}'");
                         return;
                     }
                 }
 
-                // Oturumlar arası kalınan yerden devam: kayıtlı ilerleme varsa Inspector'daki
-                // m_CurrentLevelIndex yerine onu kullan.
-                int startIndex = PlayerPrefs.HasKey(ProgressPrefKey)
-                    ? PlayerPrefs.GetInt(ProgressPrefKey)
-                    : m_CurrentLevelIndex;
-                LoadLevel(startIndex);
+                // Kaldığı seviyeden devam et:
+                LoadLevel(targetIndex);
             }
         }
 
@@ -124,6 +112,7 @@ namespace PixelGame
             }
 
             m_CurrentLevelIndex = Mathf.Clamp(index, 0, m_Levels.Count - 1);
+            Time.timeScale = 1.0f;
             PixelLevelData level = m_Levels[m_CurrentLevelIndex];
             if (level != null)
             {
@@ -146,6 +135,9 @@ namespace PixelGame
         public void ResetProgress()
         {
             PlayerPrefs.DeleteKey(ProgressPrefKey);
+            PlayerPrefs.Save();
+            m_CurrentLevelIndex = 0;
+            Debug.Log("<color=#FFAA00><b>[LevelManager]</b></color> 🔄 Seviye ilerlemesi sıfırlandı (Bölüm 1'e dönüldü).");
         }
 
         public void NextLevel()

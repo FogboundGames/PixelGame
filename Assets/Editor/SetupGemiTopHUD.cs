@@ -16,17 +16,11 @@ namespace PixelGame.Editor
         private const string ScenePath = "Assets/Scenes/Gemi.unity";
         private const string UIRoot = "Assets/UI/CasualUI/";
         private const string FontPath = "Assets/Fonts/LilitaOne-Regular SDF.asset";
-        private const string AutoRunKey = "GemiTopHUD_Installed_v3";
+        private const string AutoRunKey = "GemiTopHUD_Installed_v5";
 
         static SetupGemiTopHUD()
         {
-            // Otomatik tetikleme KAPATILDI. Bu blok her domain reload'da (proje açılışı,
-            // script derlemesi, git pull sonrası recompile) bir kez çalışıp BuildTopHUD()
-            // ile sahneye ikinci bir HUD enjekte ediyor ve sonunda SaveScene() ile diske
-            // sormadan yazıyordu. Sonuç: pull ile gelen HUD'ın üstüne eskisi biniyor ve
-            // git'te sahne "yerel olarak değişmiş" görünüyordu.
-            // Gerekirse PixelGame menüsünden elle çalıştırılır.
-            // EditorApplication.delayCall += AutoRunIfNeeded;
+            EditorApplication.delayCall += AutoRunIfNeeded;
         }
 
         /// <summary>Artık otomatik çağrılmıyor; bkz. statik kurucu.</summary>
@@ -222,7 +216,7 @@ namespace PixelGame.Editor
             Button restartBtn = restartGo.GetComponent<Button>();
             UnityEditor.Events.UnityEventTools.AddPersistentListener(restartBtn.onClick, ctrl.RestartLevel);
 
-            // 9b. HARD Rozeti (Sevimli beyaz tavşan maskot başı + pembe parlak HARD hapı)
+            // 9b. HARD Rozeti (Pembe parlak HARD hapı - sadece zor seviyelerde aktif)
             GameObject hardGo = new GameObject("HardBadge", typeof(RectTransform), typeof(Image));
             Undo.RegisterCreatedObjectUndo(hardGo, "Create HardBadge");
             hardGo.transform.SetParent(subHeaderGo.transform, false);
@@ -235,10 +229,29 @@ namespace PixelGame.Editor
             hardRt.sizeDelta = new Vector2(214f, 80f);
 
             Image hardImg = hardGo.GetComponent<Image>();
-            Sprite hardSprite = LoadSprite("badge_hard");
+            Sprite hardSprite = LoadSprite("badge_hard_pill");
+            if (hardSprite == null) hardSprite = LoadSprite("badge_hard");
             if (hardSprite != null) hardImg.sprite = hardSprite;
             hardImg.preserveAspect = true;
             hardImg.raycastTarget = false;
+
+            // 9b-2. Tavşan Maskotu (Daima görünen sevimli beyaz tavşan başı)
+            GameObject rabbitGo = new GameObject("RabbitMascot", typeof(RectTransform), typeof(Image));
+            Undo.RegisterCreatedObjectUndo(rabbitGo, "Create RabbitMascot");
+            rabbitGo.transform.SetParent(subHeaderGo.transform, false);
+
+            RectTransform rabbitRt = rabbitGo.GetComponent<RectTransform>();
+            rabbitRt.anchorMin = new Vector2(0f, 0.5f);
+            rabbitRt.anchorMax = new Vector2(0f, 0.5f);
+            rabbitRt.pivot = new Vector2(0f, 0.5f);
+            rabbitRt.anchoredPosition = new Vector2(138f, 0f);
+            rabbitRt.sizeDelta = new Vector2(214f, 80f);
+
+            Image rabbitImg = rabbitGo.GetComponent<Image>();
+            Sprite rabbitSprite = LoadSprite("mascot_bunny");
+            if (rabbitSprite != null) rabbitImg.sprite = rabbitSprite;
+            rabbitImg.preserveAspect = true;
+            rabbitImg.raycastTarget = false;
 
             // 9c. Seviye Başlığı (Yarı saydam sıcak bej kapsül arka planı + mavi konturlu "Level 35")
             GameObject subLevelGo = new GameObject("LevelTitle", typeof(RectTransform), typeof(Image));
@@ -293,42 +306,53 @@ namespace PixelGame.Editor
             soundRt.sizeDelta = new Vector2(100f, 100f);
 
             Image soundImg = soundGo.GetComponent<Image>();
-            Sprite soundSprite = LoadSprite("btn_sound");
-            if (soundSprite != null) soundImg.sprite = soundSprite;
+            Sprite soundOnSprite = LoadSprite("btn_sound");
+            Sprite soundOffSprite = LoadSprite("btn_sound_off");
+            if (soundOnSprite != null) soundImg.sprite = soundOnSprite;
             soundImg.preserveAspect = true;
             soundGo.AddComponent<CasualUIButtonJuice>();
             Button soundBtn = soundGo.GetComponent<Button>();
             UnityEditor.Events.UnityEventTools.AddPersistentListener(soundBtn.onClick, ctrl.ToggleSound);
 
-            // 9e. Music Button (Yeşil squircle, beyaz çift nota, altın alt çerçeve)
-            GameObject musicGo = new GameObject("MusicButton", typeof(RectTransform), typeof(Image), typeof(Button));
-            Undo.RegisterCreatedObjectUndo(musicGo, "Create MusicButton");
-            musicGo.transform.SetParent(subHeaderGo.transform, false);
+            ctrl.SoundButtonImage = soundImg;
+            ctrl.SoundOnSprite = soundOnSprite;
+            ctrl.SoundOffSprite = soundOffSprite;
 
-            RectTransform musicRt = musicGo.GetComponent<RectTransform>();
-            musicRt.anchorMin = new Vector2(1f, 0.5f);
-            musicRt.anchorMax = new Vector2(1f, 0.5f);
-            musicRt.pivot = new Vector2(0.5f, 0.5f);
-            musicRt.anchoredPosition = new Vector2(-75f, 0f);
-            musicRt.sizeDelta = new Vector2(100f, 100f);
+            // 9e. Haptics / Titreşim Button (Yeşil squircle, beyaz titreşen telefon, altın alt çerçeve)
+            GameObject hapticsGo = new GameObject("HapticsButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            Undo.RegisterCreatedObjectUndo(hapticsGo, "Create HapticsButton");
+            hapticsGo.transform.SetParent(subHeaderGo.transform, false);
 
-            Image musicImg = musicGo.GetComponent<Image>();
-            Sprite musicSprite = LoadSprite("btn_music");
-            if (musicSprite != null) musicImg.sprite = musicSprite;
-            musicImg.preserveAspect = true;
-            musicGo.AddComponent<CasualUIButtonJuice>();
-            Button musicBtn = musicGo.GetComponent<Button>();
-            UnityEditor.Events.UnityEventTools.AddPersistentListener(musicBtn.onClick, ctrl.ToggleMusic);
+            RectTransform hapticsRt = hapticsGo.GetComponent<RectTransform>();
+            hapticsRt.anchorMin = new Vector2(1f, 0.5f);
+            hapticsRt.anchorMax = new Vector2(1f, 0.5f);
+            hapticsRt.pivot = new Vector2(0.5f, 0.5f);
+            hapticsRt.anchoredPosition = new Vector2(-75f, 0f);
+            hapticsRt.sizeDelta = new Vector2(100f, 100f);
+
+            Image hapticsImg = hapticsGo.GetComponent<Image>();
+            Sprite hapticsOnSprite = LoadSprite("btn_haptic");
+            Sprite hapticsOffSprite = LoadSprite("btn_haptic_off");
+            if (hapticsOnSprite != null) hapticsImg.sprite = hapticsOnSprite;
+            hapticsImg.preserveAspect = true;
+            hapticsGo.AddComponent<CasualUIButtonJuice>();
+            Button hapticsBtn = hapticsGo.GetComponent<Button>();
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(hapticsBtn.onClick, ctrl.ToggleHaptics);
+
+            ctrl.HapticsButtonImage = hapticsImg;
+            ctrl.HapticsOnSprite = hapticsOnSprite;
+            ctrl.HapticsOffSprite = hapticsOffSprite;
 
             // Controller bağla
             ctrl.SubHeaderLevelText = subLevelTmp;
             ctrl.HardBadge = hardGo;
+            ctrl.RabbitMascot = rabbitGo;
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
             AssetDatabase.SaveAssets();
 
-            Debug.Log("<color=#00FFAA><b>[SetupGemiTopHUD]</b></color> 📱 Gemi sahnesi üst HUD ve Seviye Aksiyon Barı (Restart + HARD + Level 35 + Sound + Music) başarıyla kuruldu!");
+            Debug.Log("<color=#00FFAA><b>[SetupGemiTopHUD]</b></color> 📱 Gemi sahnesi üst HUD ve Seviye Aksiyon Barı (Restart + HARD + Level 35 + Sound + Haptics) başarıyla kuruldu!");
         }
 
         private static GameObject BuildPill(Transform parent, string name, string iconName, string countVal, TMP_FontAsset font, float width)

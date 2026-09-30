@@ -293,18 +293,11 @@ namespace PixelGame
             float hopY = hopFactor * StepHopHeight * m_BaseScale;
             m_Visual.localPosition = new Vector3(0f, hopY, 0f);
 
-            // 4. Organik Squash & Stretch (Yumuşak Esneme)
-            // Yere basma anında hafif yaylanma (squash), zıplama anında hafif uzama (stretch)
-            float squash = (1f - hopFactor) * 0.07f;
-            float stretch = hopFactor * 0.05f;
-            m_Visual.localScale = new Vector3(
-                m_BaseScale * (1f + squash * 0.8f - stretch * 0.4f),
-                m_BaseScale * (1f - squash + stretch),
-                m_BaseScale * (1f + squash * 0.8f - stretch * 0.4f)
-            );
+            // 4. Boyut Sabitliği: Küp panodaki özgün boyutunu (m_BaseScale) birebir korur, küçülmez.
+            m_Visual.localScale = Vector3.one * m_BaseScale;
         }
 
-        /// <summary>Havadayken bacaklar toplanır, havada sevimli esneme uygulanır.</summary>
+        /// <summary>Havadayken bacaklar toplanır, küp boyutunu sabit korur.</summary>
         public void SetAirborne(float deltaTime)
         {
             if (m_Visual == null) return;
@@ -320,10 +313,7 @@ namespace PixelGame
                     Quaternion.Euler(-38f, -8f, 10f) * m_LegRRest, m_AirborneBlend);
 
             m_Visual.localPosition = Vector3.zero;
-            m_Visual.localScale = Vector3.Lerp(m_Visual.localScale, new Vector3(
-                m_BaseScale * 0.95f,
-                m_BaseScale * 1.08f,
-                m_BaseScale * 0.95f), m_AirborneBlend);
+            m_Visual.localScale = Vector3.one * m_BaseScale;
         }
 
         /// <summary>Kıyıya varışta minik çömelme ve yaylanma (zıplamaya hazırlık).</summary>
@@ -333,10 +323,7 @@ namespace PixelGame
             float a = Mathf.Clamp01(amount01);
             m_Visual.localPosition = new Vector3(0f, -0.06f * a * m_BaseScale, 0f);
             m_Visual.localRotation = m_VisualRest;
-            m_Visual.localScale = new Vector3(
-                m_BaseScale * (1f + 0.20f * a),
-                m_BaseScale * (1f - 0.22f * a),
-                m_BaseScale * (1f + 0.20f * a));
+            m_Visual.localScale = Vector3.one * m_BaseScale;
 
             // Çömelirken bacaklar hafif dışa bükülür
             if (m_LegL != null)

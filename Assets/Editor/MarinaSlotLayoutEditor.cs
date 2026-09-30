@@ -12,7 +12,7 @@ namespace PixelGame.Editor
 
             EditorGUILayout.HelpBox(
                 "Bu bileşen su üzerindeki tüm gemi yanaşma slotlarının (WaterSlot_1..5) boyutunu, " +
-                "aralarındaki mesafeyi ve açısını canlı olarak kontrol eder. Slider'ları kaydırdığınızda sahne anında güncellenir.",
+                "sahil koyu yay/kavisini, aralarındaki mesafeyi ve açısını canlı kontrol eder. 2. görseldeki geniş ve orantılı can simidi standartları uygulanmıştır.",
                 MessageType.Info
             );
 
@@ -25,30 +25,30 @@ namespace PixelGame.Editor
             SerializedProperty tiltProp = serializedObject.FindProperty("m_WaterTiltX");
             SerializedProperty offsetYProp = serializedObject.FindProperty("m_OffsetY");
             SerializedProperty offsetZProp = serializedObject.FindProperty("m_OffsetZ");
+            SerializedProperty arcCurveYProp = serializedObject.FindProperty("m_ArcCurveY");
+            SerializedProperty arcAsymProp = serializedObject.FindProperty("m_ArcAsymmetry");
+            SerializedProperty arcFanProp = serializedObject.FindProperty("m_ArcAngleFan");
 
             EditorGUI.BeginChangeCheck();
 
-            EditorGUILayout.Slider(widthProp, 0.3f, 3.5f, new GUIContent("↔️ Slot Genişliği (Width)", "Slotların X eksenindeki yatay genişliği"));
-            EditorGUILayout.Slider(lengthProp, 0.3f, 3.5f, new GUIContent("↕️ Slot Uzunluğu (Length / Height)", "Slotların Z eksenindeki dikey/uzunluk boyu"));
-
-            EditorGUILayout.BeginHorizontal();
-            GUILayout.Space(EditorGUIUtility.labelWidth);
-            if (GUILayout.Button("🔗 1:1 Kare Yap (Genişliğe Eşitle)", EditorStyles.miniButton, GUILayout.Height(18)))
-            {
-                lengthProp.floatValue = widthProp.floatValue;
-            }
-            if (GUILayout.Button("🔗 1:1 Kare Yap (Uzunluğa Eşitle)", EditorStyles.miniButton, GUILayout.Height(18)))
-            {
-                widthProp.floatValue = lengthProp.floatValue;
-            }
-            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.LabelField("⚓ Slot Boyutları (2. Görsel Standart)", EditorStyles.boldLabel);
+            EditorGUILayout.Slider(widthProp, 0.5f, 3.0f, new GUIContent("↔️ Slot Genişliği (Width)", "Slotların X eksenindeki yatay genişliği (2. görsel: 1.72f)"));
+            EditorGUILayout.Slider(lengthProp, 0.5f, 3.5f, new GUIContent("↕️ Slot Uzunluğu (Length / Height)", "Slotların Z eksenindeki dikey/uzunluk boyu (2. görsel: 2.35f)"));
 
             EditorGUILayout.Space(4);
-            EditorGUILayout.Slider(spacingProp, 0.6f, 2.5f, new GUIContent("📏 Slot Aralığı (Spacing)", "Slotların birbirine olan mesafesi"));
-            EditorGUILayout.Slider(angleProp, -60f, 60f, new GUIContent("📐 Çapraz Marina Açısı", "Slotların yanaşma açısı"));
-            EditorGUILayout.Slider(tiltProp, -90f, 0f, new GUIContent("🌊 Su Eğim Açısı", "Kamera açısına göre eğim"));
+            EditorGUILayout.LabelField("📏 Yerleşim & Açı", EditorStyles.boldLabel);
+            EditorGUILayout.Slider(spacingProp, 0.8f, 2.5f, new GUIContent("📏 Slot Aralığı (Spacing)", "Slotların birbirine olan mesafesi"));
+            EditorGUILayout.Slider(angleProp, -60f, 60f, new GUIContent("📐 Çapraz Marina Açısı", "Slotların yanaşma açısı (varsayılan: -28°)"));
+            EditorGUILayout.Slider(tiltProp, -90f, 0f, new GUIContent("🌊 Su Eğim Açısı", "Kamera açısına göre eğim (varsayılan: -68°)"));
 
             EditorGUILayout.Space(4);
+            EditorGUILayout.LabelField("🌊 Sahil Kavis / Yay Eğrisi (Shoreline Arc)", EditorStyles.boldLabel);
+            EditorGUILayout.Slider(arcCurveYProp, -0.3f, 0.3f, new GUIContent("🌊 Kavis Gücü (Arc Curve Y)", "U-şeklinde sahil koyu eğriliği"));
+            EditorGUILayout.Slider(arcAsymProp, -0.2f, 0.2f, new GUIContent("📐 Kavis Asimetrisi", "Sol sahilin sağ sahile göre yükseklik farkı"));
+            EditorGUILayout.Slider(arcFanProp, -10f, 10f, new GUIContent("🪭 Açı Yelpazesi (Fan Angle)", "Kavis boyunca slotların hafifçe fırlama/dönme açısı"));
+
+            EditorGUILayout.Space(4);
+            EditorGUILayout.LabelField("📍 Dikey Konum & Derinlik", EditorStyles.boldLabel);
             EditorGUILayout.Slider(offsetYProp, -2f, 4f, new GUIContent("📍 Yükseklik (Y)", "Dikey konum"));
             EditorGUILayout.Slider(offsetZProp, -3f, 3f, new GUIContent("📍 Derinlik (Z)", "İleri/Geri konum"));
 
@@ -65,24 +65,28 @@ namespace PixelGame.Editor
 
             EditorGUILayout.BeginHorizontal();
             GUI.backgroundColor = new Color(0.25f, 0.85f, 0.45f);
-            if (GUILayout.Button("🔄 Slotları Yeniden Hizala"))
+            if (GUILayout.Button("📸 2. Görsel Boyutunu Uygula", GUILayout.Height(24)))
             {
+                widthProp.floatValue = 1.72f;
+                lengthProp.floatValue = 2.35f;
+                spacingProp.floatValue = 1.42f;
+                angleProp.floatValue = -28f;
+                tiltProp.floatValue = -68f;
+                offsetYProp.floatValue = 2.82f;
+                offsetZProp.floatValue = 0.53f;
+                arcCurveYProp.floatValue = 0.055f;
+                arcAsymProp.floatValue = -0.055f;
+                arcFanProp.floatValue = 0f;
+                serializedObject.ApplyModifiedProperties();
                 MarinaSlotLayout layout = (MarinaSlotLayout)target;
                 layout.ApplyLayout();
                 EditorUtility.SetDirty(layout);
+                UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(layout.gameObject.scene);
             }
 
             GUI.backgroundColor = new Color(0.85f, 0.85f, 0.9f);
-            if (GUILayout.Button("Varsayılana Dön"))
+            if (GUILayout.Button("🔄 Yeniden Hizala", GUILayout.Height(24)))
             {
-                widthProp.floatValue = 1.15f;
-                lengthProp.floatValue = 1.15f;
-                spacingProp.floatValue = 1.40f;
-                angleProp.floatValue = -28f;
-                tiltProp.floatValue = -68f;
-                offsetYProp.floatValue = 0.45f;
-                offsetZProp.floatValue = 0.0f;
-                serializedObject.ApplyModifiedProperties();
                 MarinaSlotLayout layout = (MarinaSlotLayout)target;
                 layout.ApplyLayout();
                 EditorUtility.SetDirty(layout);

@@ -110,6 +110,15 @@ namespace PixelGame.Editor
                 Debug.Log($"[MarinaDock] WaterSlot_{slotNum} için Lifebuoy UI görseli başarıyla kuruldu.");
             }
 
+            if (slots.Length > 0 && slots[0].transform.parent != null)
+            {
+                MarinaSlotLayout layout = slots[0].transform.parent.GetComponent<MarinaSlotLayout>();
+                if (layout != null)
+                {
+                    layout.ApplyLayout();
+                }
+            }
+
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
             AssetDatabase.SaveAssets();

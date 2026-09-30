@@ -185,6 +185,9 @@ namespace PixelGame
         [Tooltip("Bölüm sırası / numarası")]
         [SerializeField] private int m_LevelIndex = 1;
 
+        [Tooltip("Bu seviye ZOR (HARD) seviye mi? Açıksa üst barda tavşanın yanında 'HARD' rozeti görünür.")]
+        [SerializeField] private bool m_IsHardLevel = false;
+
         [Header("🖼️ Kaynak Görsel")]
         [Tooltip("Bölümde küplerle çizilecek piksel resmi")]
         [SerializeField] private Texture2D m_LevelTexture;
@@ -306,6 +309,7 @@ namespace PixelGame
         // Public Properties
         public string LevelName { get => m_LevelName; set => m_LevelName = value; }
         public int LevelIndex { get => m_LevelIndex; set => m_LevelIndex = value; }
+        public bool IsHardLevel { get => m_IsHardLevel; set => m_IsHardLevel = value; }
         public Texture2D LevelTexture { get => m_LevelTexture; set => m_LevelTexture = value; }
         public Texture2D OriginalSourceTexture { get => m_OriginalSourceTexture; set => m_OriginalSourceTexture = value; }
         public Sprite LevelSprite { get => m_LevelSprite; set => m_LevelSprite = value; }

@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: PixelGame::PixelGame.PixelLevelData
   m_LevelName: "Alt\u0131n Y\u0131ld\u0131z"
   m_LevelIndex: 1
+  m_IsHardLevel: 1
   m_LevelTexture: {fileID: 2800000, guid: f16dad97d6094c5fa353b599dab245b3, type: 3}
   m_OriginalSourceTexture: {fileID: 0}
   m_LevelSprite: {fileID: 0}
