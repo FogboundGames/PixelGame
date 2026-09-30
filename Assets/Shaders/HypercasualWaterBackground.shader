@@ -6,11 +6,12 @@ Shader "PixelGame/HypercasualWaterBackground"
         _Color ("Tint", Color) = (1,1,1,1)
 
         [Header(Water Area Settings)]
-        _WaterThresholdV ("Water Line V (0=Bottom, 1=Top)", Range(0.2, 0.6)) = 0.44
+        _WaterMinV ("Water Min V (Bottom Shore)", Range(0.1, 0.5)) = 0.30
+        _WaterMaxV ("Water Max V (Top Shore)", Range(0.5, 0.9)) = 0.65
         _WaterTransitionSmooth ("Water Transition Softness", Range(0.01, 0.15)) = 0.04
         _WaterBlueDominance ("Water Blue Detection Factor", Range(0.0, 0.5)) = 0.08
-        _WaterDarkness ("Water Darkness / Deep Tint Blend", Range(0.0, 1.0)) = 0.40
-        _WaterBrightness ("Water Brightness Multiplier", Range(0.3, 1.5)) = 0.70
+        _WaterDarkness ("Water Darkness / Deep Tint Blend", Range(0.0, 1.0)) = 0.20
+        _WaterBrightness ("Water Brightness Multiplier", Range(0.3, 1.5)) = 0.90
         _WaterDeepTint ("Water Deep Ocean Color Tint", Color) = (0.04, 0.38, 0.75, 1.0)
 
         [Header(Sand Beach Settings)]
@@ -99,7 +100,8 @@ Shader "PixelGame/HypercasualWaterBackground"
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _Color;
-                float _WaterThresholdV;
+                float _WaterMinV;
+                float _WaterMaxV;
                 float _WaterTransitionSmooth;
                 float _WaterBlueDominance;
                 float _WaterDarkness;
@@ -174,10 +176,12 @@ Shader "PixelGame/HypercasualWaterBackground"
                 // 1. Önce ham dokudan pikselleri örnekleyerek su mu kum mu olduğunu kesinleştir
                 half4 rawCol = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, baseUV);
 
-                // Su maskesi: v < _WaterThresholdV ve (b > r + _WaterBlueDominance)
-                float vFactor = smoothstep(_WaterThresholdV + _WaterTransitionSmooth, _WaterThresholdV - _WaterTransitionSmooth, baseUV.y);
-                float blueFactor = smoothstep(0.0, 0.15, (rawCol.b - rawCol.r) - _WaterBlueDominance);
-                float waterMask = saturate(vFactor * (blueFactor * 0.85 + 0.15));
+                // Su maskesi: Ortadaki lagün alanı (V: _WaterMinV.._WaterMaxV) ve mavi renk baskınlığı
+                float vTop = smoothstep(_WaterMaxV + _WaterTransitionSmooth, _WaterMaxV - _WaterTransitionSmooth, baseUV.y);
+                float vBottom = smoothstep(_WaterMinV - _WaterTransitionSmooth, _WaterMinV + _WaterTransitionSmooth, baseUV.y);
+                float vZone = vTop * vBottom;
+                float blueFactor = smoothstep(0.0, 0.12, (rawCol.b - rawCol.r) - _WaterBlueDominance);
+                float waterMask = saturate(vZone * blueFactor);
 
                 // 2. Kıyı Gel-Giti (Shoreline Tide Breathing)
                 float tide = sin(_Time.y * _TideSpeed) * _TideHeight;

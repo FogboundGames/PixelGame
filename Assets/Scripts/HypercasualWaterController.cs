@@ -205,8 +205,8 @@ namespace PixelGame
             Vector3 viewportPos = m_WorldCamera.WorldToViewportPoint(worldPos);
             Vector2 uv = new Vector2(viewportPos.x, viewportPos.y);
 
-            // Sadece su bölgesinde olan dalgaları kabul et (ekranın alt yarısı)
-            if (uv.y > 0.48f) return;
+            // Sadece su bölgesinde olan dalgaları kabul et (ekranın orta lagün alanı)
+            if (uv.y < 0.28f || uv.y > 0.68f) return;
 
             if (m_Ripples.Count >= 4)
             {

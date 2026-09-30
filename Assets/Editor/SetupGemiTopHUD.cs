@@ -42,7 +42,7 @@ namespace PixelGame.Editor
 
             TMP_FontAsset font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
 
-            // 1. HUD_Canvas (Screen Space - Overlay)
+            // 1. HUD_Canvas (Screen Space - Camera)
             GameObject canvasGo = GameObject.Find("HUD_Canvas");
             if (canvasGo == null)
             {
@@ -50,16 +50,21 @@ namespace PixelGame.Editor
                 Undo.RegisterCreatedObjectUndo(canvasGo, "Create HUD_Canvas");
             }
 
+            Camera cam = Camera.main;
+            if (cam == null) cam = Object.FindFirstObjectByType<Camera>();
+
             Canvas canvas = canvasGo.GetComponent<Canvas>();
             if (canvas == null) canvas = canvasGo.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            canvas.worldCamera = cam;
+            canvas.planeDistance = 5f;
             canvas.sortingOrder = 50;
 
             CanvasScaler scaler = canvasGo.GetComponent<CanvasScaler>();
             if (scaler == null) scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1080f, 1920f);
-            scaler.matchWidthOrHeight = 0.5f;
+            scaler.matchWidthOrHeight = 0f;
 
             GraphicRaycaster raycaster = canvasGo.GetComponent<GraphicRaycaster>();
             if (raycaster == null) raycaster = canvasGo.AddComponent<GraphicRaycaster>();
@@ -81,278 +86,150 @@ namespace PixelGame.Editor
             topRt.anchorMax = new Vector2(1f, 1f);
             topRt.pivot = new Vector2(0.5f, 1f);
             topRt.anchoredPosition = Vector2.zero;
-            topRt.sizeDelta = new Vector2(0f, 180f);
+            topRt.sizeDelta = new Vector2(0f, 150f);
 
-            // 4. Arka plan çentiği / banner (hud_top_banner.png)
-            GameObject bannerGo = new GameObject("TopBanner", typeof(RectTransform), typeof(Image));
-            Undo.RegisterCreatedObjectUndo(bannerGo, "Create TopBanner");
+            // 4. Arka plan çubuğu kaldırıldı (kum dokusunun üzerinde doğal şeffaf dursun)
+            GameObject bannerGo = new GameObject("TopBanner", typeof(RectTransform));
             bannerGo.transform.SetParent(topUIGo.transform, false);
 
-            RectTransform bannerRt = bannerGo.GetComponent<RectTransform>();
-            bannerRt.anchorMin = new Vector2(0f, 1f);
-            bannerRt.anchorMax = new Vector2(1f, 1f);
-            bannerRt.pivot = new Vector2(0.5f, 1f);
-            bannerRt.anchoredPosition = Vector2.zero;
-            bannerRt.sizeDelta = new Vector2(0f, 180f);
+            // 5. SOL: Altın Hapı (CoinPill - 🪙 250 +)
+            GameObject coinPill = new GameObject("CoinPill", typeof(RectTransform), typeof(Image));
+            coinPill.transform.SetParent(topUIGo.transform, false);
+            RectTransform coinRt = coinPill.GetComponent<RectTransform>();
+            coinRt.anchorMin = new Vector2(0f, 1f);
+            coinRt.anchorMax = new Vector2(0f, 1f);
+            coinRt.pivot = new Vector2(0f, 1f);
+            coinRt.anchoredPosition = new Vector2(30f, -22f);
+            coinRt.sizeDelta = new Vector2(265f, 88f);
 
-            Image bannerImg = bannerGo.GetComponent<Image>();
-            Sprite bannerSprite = LoadSprite("hud_top_banner");
-            if (bannerSprite != null) bannerImg.sprite = bannerSprite;
-            bannerImg.color = Color.white;
-            bannerImg.raycastTarget = false;
+            Image coinImg = coinPill.GetComponent<Image>();
+            Sprite coinSprite = LoadSprite("bg_coin_ref");
+            if (coinSprite == null) coinSprite = LoadSprite("ui_pill");
+            if (coinSprite != null) coinImg.sprite = coinSprite;
+            coinImg.color = Color.white;
+            coinImg.preserveAspect = true;
 
-            // 5. Sol: Ayarlar Düğmesi (SettingsButton - Mor kare, beyaz dişli)
+            // Dinamik Altın Sayısı Text (Opsiyonel sayaç)
+            GameObject coinCountGo = new GameObject("Count", typeof(RectTransform));
+            coinCountGo.transform.SetParent(coinPill.transform, false);
+            RectTransform ccRt = coinCountGo.GetComponent<RectTransform>();
+            ccRt.anchorMin = new Vector2(0.32f, 0f);
+            ccRt.anchorMax = new Vector2(0.80f, 1f);
+            ccRt.offsetMin = Vector2.zero;
+            ccRt.offsetMax = Vector2.zero;
+            TextMeshProUGUI coinTmp = coinCountGo.AddComponent<TextMeshProUGUI>();
+            coinTmp.text = "250";
+            if (font != null) coinTmp.font = font;
+            coinTmp.fontSize = 42f;
+            coinTmp.fontStyle = FontStyles.Bold;
+            coinTmp.alignment = TextAlignmentOptions.Center;
+            coinTmp.color = Color.white;
+            coinTmp.outlineWidth = 0.28f;
+            coinTmp.outlineColor = new Color32(40, 15, 60, 255);
+
+            // 6. ORTA: Seviye Kapsülü (🐚 LEVEL 5 🐚)
+            GameObject levelCapsuleGo = new GameObject("LevelCapsule", typeof(RectTransform), typeof(Image));
+            levelCapsuleGo.transform.SetParent(topUIGo.transform, false);
+
+            RectTransform levelCapRt = levelCapsuleGo.GetComponent<RectTransform>();
+            levelCapRt.anchorMin = new Vector2(0.5f, 1f);
+            levelCapRt.anchorMax = new Vector2(0.5f, 1f);
+            levelCapRt.pivot = new Vector2(0.5f, 1f);
+            levelCapRt.anchoredPosition = new Vector2(0f, -20f);
+            levelCapRt.sizeDelta = new Vector2(365f, 98f);
+
+            Image levelCapImg = levelCapsuleGo.GetComponent<Image>();
+            Sprite capSprite = LoadSprite("bg_level_ref");
+            if (capSprite == null) capSprite = LoadSprite("bg_level_capsule");
+            if (capSprite != null) levelCapImg.sprite = capSprite;
+            levelCapImg.color = Color.white;
+            levelCapImg.preserveAspect = true;
+            levelCapImg.raycastTarget = false;
+
+            GameObject levelTextGo = new GameObject("LevelText", typeof(RectTransform));
+            levelTextGo.transform.SetParent(levelCapsuleGo.transform, false);
+
+            RectTransform ltRt = levelTextGo.GetComponent<RectTransform>();
+            ltRt.anchorMin = Vector2.zero;
+            ltRt.anchorMax = Vector2.one;
+            ltRt.offsetMin = Vector2.zero;
+            ltRt.offsetMax = Vector2.zero;
+
+            TextMeshProUGUI levelTmp = levelTextGo.AddComponent<TextMeshProUGUI>();
+            levelTmp.text = ""; // Görselin kendisinde pixel-perfect LEVEL 5 bulunuyor
+            if (font != null) levelTmp.font = font;
+            levelTmp.fontSize = 44f;
+            levelTmp.fontStyle = FontStyles.Bold;
+            levelTmp.alignment = TextAlignmentOptions.Center;
+            levelTmp.color = Color.white;
+            levelTmp.outlineWidth = 0.25f;
+            levelTmp.outlineColor = new Color32(24, 60, 120, 255);
+
+            // 7. SAĞ: Ses ve Ayarlar Butonları
+            // 7a. Ses Butonu
+            GameObject soundGo = new GameObject("SoundButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            soundGo.transform.SetParent(topUIGo.transform, false);
+
+            RectTransform soundRt = soundGo.GetComponent<RectTransform>();
+            soundRt.anchorMin = new Vector2(1f, 1f);
+            soundRt.anchorMax = new Vector2(1f, 1f);
+            soundRt.pivot = new Vector2(1f, 1f);
+            soundRt.anchoredPosition = new Vector2(-138f, -22f);
+            soundRt.sizeDelta = new Vector2(96f, 96f);
+
+            Image soundImg = soundGo.GetComponent<Image>();
+            Sprite soundOnSprite = LoadSprite("btn_sound_ref");
+            if (soundOnSprite == null) soundOnSprite = LoadSprite("btn_sound");
+            Sprite soundOffSprite = LoadSprite("btn_sound_off");
+            if (soundOnSprite != null) soundImg.sprite = soundOnSprite;
+            soundImg.preserveAspect = true;
+            soundGo.AddComponent<CasualUIButtonJuice>();
+
+            // 7b. Ayarlar Butonu
             GameObject settingsGo = new GameObject("SettingsButton", typeof(RectTransform), typeof(Image), typeof(Button));
-            Undo.RegisterCreatedObjectUndo(settingsGo, "Create SettingsButton");
             settingsGo.transform.SetParent(topUIGo.transform, false);
 
             RectTransform setRt = settingsGo.GetComponent<RectTransform>();
-            setRt.anchorMin = new Vector2(0f, 0.5f);
-            setRt.anchorMax = new Vector2(0f, 0.5f);
-            setRt.pivot = new Vector2(0.5f, 0.5f);
-            setRt.anchoredPosition = new Vector2(90f, -8f);
-            setRt.sizeDelta = new Vector2(104f, 104f);
+            setRt.anchorMin = new Vector2(1f, 1f);
+            setRt.anchorMax = new Vector2(1f, 1f);
+            setRt.pivot = new Vector2(1f, 1f);
+            setRt.anchoredPosition = new Vector2(-30f, -22f);
+            setRt.sizeDelta = new Vector2(96f, 96f);
 
             Image setImg = settingsGo.GetComponent<Image>();
-            Sprite setSprite = LoadSprite("btn_settings");
+            Sprite setSprite = LoadSprite("btn_settings_ref");
+            if (setSprite == null) setSprite = LoadSprite("btn_settings");
             if (setSprite != null) setImg.sprite = setSprite;
             setImg.preserveAspect = true;
             settingsGo.AddComponent<CasualUIButtonJuice>();
 
-            // 6. Sağ: İstatistikler Şeridi (LEVEL + Can + Altın)
-            GameObject rowGo = new GameObject("StatsRow", typeof(RectTransform));
-            Undo.RegisterCreatedObjectUndo(rowGo, "Create StatsRow");
-            rowGo.transform.SetParent(topUIGo.transform, false);
-
-            RectTransform rowRt = rowGo.GetComponent<RectTransform>();
-            rowRt.anchorMin = new Vector2(1f, 0.5f);
-            rowRt.anchorMax = new Vector2(1f, 0.5f);
-            rowRt.pivot = new Vector2(1f, 0.5f);
-            rowRt.anchoredPosition = new Vector2(-40f, -8f);
-
-            HorizontalLayoutGroup layout = rowGo.AddComponent<HorizontalLayoutGroup>();
-            layout.childAlignment = TextAnchor.MiddleRight;
-            layout.spacing = 30f;
-            layout.childControlWidth = false;
-            layout.childControlHeight = false;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = false;
-
-            ContentSizeFitter fitter = rowGo.AddComponent<ContentSizeFitter>();
-            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-            fitter.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
-
-            // 6a. LEVEL 1 Etiketi
-            GameObject levelGo = new GameObject("LevelLabel", typeof(RectTransform));
-            levelGo.transform.SetParent(rowGo.transform, false);
-
-            RectTransform levelRt = levelGo.GetComponent<RectTransform>();
-            levelRt.sizeDelta = new Vector2(210f, 80f);
-
-            TextMeshProUGUI levelTmp = levelGo.AddComponent<TextMeshProUGUI>();
-            levelTmp.text = "LEVEL 1";
-            if (font != null) levelTmp.font = font;
-            levelTmp.fontSize = 50f;
-            levelTmp.fontStyle = FontStyles.Bold;
-            levelTmp.alignment = TextAlignmentOptions.MidlineRight;
-            levelTmp.color = Color.white;
-            levelTmp.outlineWidth = 0.20f;
-            levelTmp.outlineColor = new Color32(16, 22, 40, 255);
-            levelTmp.textWrappingMode = TextWrappingModes.NoWrap;
-
-            LayoutElement levelLe = levelGo.AddComponent<LayoutElement>();
-            levelLe.preferredWidth = 210f;
-            levelLe.preferredHeight = 80f;
-
-            // 6b. Can Hapı (HeartPill - Kırmızı kalp, 3, yeşil artı)
-            GameObject heartPill = BuildPill(rowGo.transform, "HeartPill", "icon_heart", "3", font, 195f);
-
-            // 6c. Altın Hapı (CoinPill - Sarı yıldızlı para, 250, yeşil artı)
-            GameObject coinPill = BuildPill(rowGo.transform, "CoinPill", "icon_coin", "250", font, 205f);
-
-            // 7. CasualHudController bağla
+            // Controller bağlantıları
             CasualHudController ctrl = canvasGo.GetComponent<CasualHudController>();
             if (ctrl == null) ctrl = canvasGo.AddComponent<CasualHudController>();
             ctrl.LevelText = levelTmp;
-            ctrl.LivesText = heartPill.transform.Find("Count")?.GetComponent<TextMeshProUGUI>();
-            ctrl.CoinsText = coinPill.transform.Find("Count")?.GetComponent<TextMeshProUGUI>();
+            ctrl.CoinsText = coinTmp;
+            ctrl.SoundButtonImage = soundImg;
+            ctrl.SoundOnSprite = soundOnSprite;
+            ctrl.SoundOffSprite = soundOffSprite;
 
-            // 8. Varsa eski SubHeader'ı temizle (idempotent)
+            Button soundBtn = soundGo.GetComponent<Button>();
+            if (soundBtn != null)
+            {
+                UnityEditor.Events.UnityEventTools.AddPersistentListener(soundBtn.onClick, ctrl.ToggleSound);
+            }
+
+            // 8. İkinci çubuğu (SubHeader) temizle (tek sıra şık referans düzeni)
             Transform oldSub = canvasGo.transform.Find("SubHeader");
             if (oldSub != null)
             {
                 Undo.DestroyObjectImmediate(oldSub.gameObject);
             }
 
-            // 9. SubHeader container (Seviye Aksiyon Barı: Restart + HARD + Level 35 + Sound + Music)
-            GameObject subHeaderGo = new GameObject("SubHeader", typeof(RectTransform));
-            Undo.RegisterCreatedObjectUndo(subHeaderGo, "Create SubHeader");
-            subHeaderGo.transform.SetParent(canvasGo.transform, false);
-
-            RectTransform subRt = subHeaderGo.GetComponent<RectTransform>();
-            subRt.anchorMin = new Vector2(0f, 1f);
-            subRt.anchorMax = new Vector2(1f, 1f);
-            subRt.pivot = new Vector2(0.5f, 1f);
-            subRt.anchoredPosition = new Vector2(0f, -188f);
-            subRt.sizeDelta = new Vector2(0f, 120f);
-
-            // 9a. Restart Button (Kırmızı squircle, beyaz dairesel yenileme oku, altın alt çerçeve)
-            GameObject restartGo = new GameObject("RestartButton", typeof(RectTransform), typeof(Image), typeof(Button));
-            Undo.RegisterCreatedObjectUndo(restartGo, "Create RestartButton");
-            restartGo.transform.SetParent(subHeaderGo.transform, false);
-
-            RectTransform restartRt = restartGo.GetComponent<RectTransform>();
-            restartRt.anchorMin = new Vector2(0f, 0.5f);
-            restartRt.anchorMax = new Vector2(0f, 0.5f);
-            restartRt.pivot = new Vector2(0.5f, 0.5f);
-            restartRt.anchoredPosition = new Vector2(75f, 0f);
-            restartRt.sizeDelta = new Vector2(100f, 100f);
-
-            Image restartImg = restartGo.GetComponent<Image>();
-            Sprite restartSprite = LoadSprite("btn_restart");
-            if (restartSprite != null) restartImg.sprite = restartSprite;
-            restartImg.preserveAspect = true;
-            restartGo.AddComponent<CasualUIButtonJuice>();
-            Button restartBtn = restartGo.GetComponent<Button>();
-            UnityEditor.Events.UnityEventTools.AddPersistentListener(restartBtn.onClick, ctrl.RestartLevel);
-
-            // 9b. HARD Rozeti (Pembe parlak HARD hapı - sadece zor seviyelerde aktif)
-            GameObject hardGo = new GameObject("HardBadge", typeof(RectTransform), typeof(Image));
-            Undo.RegisterCreatedObjectUndo(hardGo, "Create HardBadge");
-            hardGo.transform.SetParent(subHeaderGo.transform, false);
-
-            RectTransform hardRt = hardGo.GetComponent<RectTransform>();
-            hardRt.anchorMin = new Vector2(0f, 0.5f);
-            hardRt.anchorMax = new Vector2(0f, 0.5f);
-            hardRt.pivot = new Vector2(0f, 0.5f);
-            hardRt.anchoredPosition = new Vector2(138f, 0f);
-            hardRt.sizeDelta = new Vector2(214f, 80f);
-
-            Image hardImg = hardGo.GetComponent<Image>();
-            Sprite hardSprite = LoadSprite("badge_hard_pill");
-            if (hardSprite == null) hardSprite = LoadSprite("badge_hard");
-            if (hardSprite != null) hardImg.sprite = hardSprite;
-            hardImg.preserveAspect = true;
-            hardImg.raycastTarget = false;
-
-            // 9b-2. Tavşan Maskotu (Daima görünen sevimli beyaz tavşan başı)
-            GameObject rabbitGo = new GameObject("RabbitMascot", typeof(RectTransform), typeof(Image));
-            Undo.RegisterCreatedObjectUndo(rabbitGo, "Create RabbitMascot");
-            rabbitGo.transform.SetParent(subHeaderGo.transform, false);
-
-            RectTransform rabbitRt = rabbitGo.GetComponent<RectTransform>();
-            rabbitRt.anchorMin = new Vector2(0f, 0.5f);
-            rabbitRt.anchorMax = new Vector2(0f, 0.5f);
-            rabbitRt.pivot = new Vector2(0f, 0.5f);
-            rabbitRt.anchoredPosition = new Vector2(138f, 0f);
-            rabbitRt.sizeDelta = new Vector2(214f, 80f);
-
-            Image rabbitImg = rabbitGo.GetComponent<Image>();
-            Sprite rabbitSprite = LoadSprite("mascot_bunny");
-            if (rabbitSprite != null) rabbitImg.sprite = rabbitSprite;
-            rabbitImg.preserveAspect = true;
-            rabbitImg.raycastTarget = false;
-
-            // 9c. Seviye Başlığı (Yarı saydam sıcak bej kapsül arka planı + mavi konturlu "Level 35")
-            GameObject subLevelGo = new GameObject("LevelTitle", typeof(RectTransform), typeof(Image));
-            Undo.RegisterCreatedObjectUndo(subLevelGo, "Create LevelTitle");
-            subLevelGo.transform.SetParent(subHeaderGo.transform, false);
-
-            RectTransform subLevelRt = subLevelGo.GetComponent<RectTransform>();
-            subLevelRt.anchorMin = new Vector2(0.5f, 0.5f);
-            subLevelRt.anchorMax = new Vector2(0.5f, 0.5f);
-            subLevelRt.pivot = new Vector2(0.5f, 0.5f);
-            subLevelRt.anchoredPosition = new Vector2(0f, 0f);
-            subLevelRt.sizeDelta = new Vector2(280f, 76f);
-
-            Image capImg = subLevelGo.GetComponent<Image>();
-            Sprite capSprite = LoadSprite("bg_level_capsule");
-            if (capSprite != null) capImg.sprite = capSprite;
-            capImg.color = Color.white;
-            capImg.raycastTarget = false;
-
-            // Kapsül içindeki dinamik Seviye Metni
-            GameObject textGo = new GameObject("Text", typeof(RectTransform));
-            Undo.RegisterCreatedObjectUndo(textGo, "Create Text");
-            textGo.transform.SetParent(subLevelGo.transform, false);
-
-            RectTransform textRt = textGo.GetComponent<RectTransform>();
-            textRt.anchorMin = Vector2.zero;
-            textRt.anchorMax = Vector2.one;
-            textRt.offsetMin = Vector2.zero;
-            textRt.offsetMax = Vector2.zero;
-
-            TextMeshProUGUI subLevelTmp = textGo.AddComponent<TextMeshProUGUI>();
-            subLevelTmp.text = "Level 35";
-            if (font != null) subLevelTmp.font = font;
-            subLevelTmp.fontSize = 54f;
-            subLevelTmp.fontStyle = FontStyles.Bold;
-            subLevelTmp.alignment = TextAlignmentOptions.Center;
-            subLevelTmp.color = Color.white;
-            subLevelTmp.outlineWidth = 0.30f;
-            subLevelTmp.outlineColor = new Color32(48, 120, 200, 255);
-            subLevelTmp.textWrappingMode = TextWrappingModes.NoWrap;
-
-            // 9d. Sound Button (Yeşil squircle, beyaz hoparlör ve ses dalgaları, altın alt çerçeve)
-            GameObject soundGo = new GameObject("SoundButton", typeof(RectTransform), typeof(Image), typeof(Button));
-            Undo.RegisterCreatedObjectUndo(soundGo, "Create SoundButton");
-            soundGo.transform.SetParent(subHeaderGo.transform, false);
-
-            RectTransform soundRt = soundGo.GetComponent<RectTransform>();
-            soundRt.anchorMin = new Vector2(1f, 0.5f);
-            soundRt.anchorMax = new Vector2(1f, 0.5f);
-            soundRt.pivot = new Vector2(0.5f, 0.5f);
-            soundRt.anchoredPosition = new Vector2(-185f, 0f);
-            soundRt.sizeDelta = new Vector2(100f, 100f);
-
-            Image soundImg = soundGo.GetComponent<Image>();
-            Sprite soundOnSprite = LoadSprite("btn_sound");
-            Sprite soundOffSprite = LoadSprite("btn_sound_off");
-            if (soundOnSprite != null) soundImg.sprite = soundOnSprite;
-            soundImg.preserveAspect = true;
-            soundGo.AddComponent<CasualUIButtonJuice>();
-            Button soundBtn = soundGo.GetComponent<Button>();
-            UnityEditor.Events.UnityEventTools.AddPersistentListener(soundBtn.onClick, ctrl.ToggleSound);
-
-            ctrl.SoundButtonImage = soundImg;
-            ctrl.SoundOnSprite = soundOnSprite;
-            ctrl.SoundOffSprite = soundOffSprite;
-
-            // 9e. Haptics / Titreşim Button (Yeşil squircle, beyaz titreşen telefon, altın alt çerçeve)
-            GameObject hapticsGo = new GameObject("HapticsButton", typeof(RectTransform), typeof(Image), typeof(Button));
-            Undo.RegisterCreatedObjectUndo(hapticsGo, "Create HapticsButton");
-            hapticsGo.transform.SetParent(subHeaderGo.transform, false);
-
-            RectTransform hapticsRt = hapticsGo.GetComponent<RectTransform>();
-            hapticsRt.anchorMin = new Vector2(1f, 0.5f);
-            hapticsRt.anchorMax = new Vector2(1f, 0.5f);
-            hapticsRt.pivot = new Vector2(0.5f, 0.5f);
-            hapticsRt.anchoredPosition = new Vector2(-75f, 0f);
-            hapticsRt.sizeDelta = new Vector2(100f, 100f);
-
-            Image hapticsImg = hapticsGo.GetComponent<Image>();
-            Sprite hapticsOnSprite = LoadSprite("btn_haptic");
-            Sprite hapticsOffSprite = LoadSprite("btn_haptic_off");
-            if (hapticsOnSprite != null) hapticsImg.sprite = hapticsOnSprite;
-            hapticsImg.preserveAspect = true;
-            hapticsGo.AddComponent<CasualUIButtonJuice>();
-            Button hapticsBtn = hapticsGo.GetComponent<Button>();
-            UnityEditor.Events.UnityEventTools.AddPersistentListener(hapticsBtn.onClick, ctrl.ToggleHaptics);
-
-            ctrl.HapticsButtonImage = hapticsImg;
-            ctrl.HapticsOnSprite = hapticsOnSprite;
-            ctrl.HapticsOffSprite = hapticsOffSprite;
-
-            // Controller bağla
-            ctrl.SubHeaderLevelText = subLevelTmp;
-            ctrl.HardBadge = hardGo;
-            ctrl.RabbitMascot = rabbitGo;
-
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
             AssetDatabase.SaveAssets();
 
-            Debug.Log("<color=#00FFAA><b>[SetupGemiTopHUD]</b></color> 📱 Gemi sahnesi üst HUD ve Seviye Aksiyon Barı (Restart + HARD + Level 35 + Sound + Haptics) başarıyla kuruldu!");
+            Debug.Log("<color=#00FFAA><b>[SetupGemiTopHUD]</b></color> 📱 Gemi sahnesi üst HUD başarıyla kuruldu!");
         }
 
         private static GameObject BuildPill(Transform parent, string name, string iconName, string countVal, TMP_FontAsset font, float width)

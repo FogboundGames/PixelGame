@@ -14,49 +14,49 @@ namespace PixelGame
     public class MarinaSlotLayout : MonoBehaviour
     {
         [Header("⚓ Slot Boyutları (Width & Length / Height)")]
-        [Tooltip("Slotların yatay genişliği (Width / En - X ekseni). 2. görsel referansı: ~1.72f.")]
+        [Tooltip("Slotların yatay genişliği (Width / En - X ekseni). Referans görsel: ~1.35f.")]
         [Range(0.3f, 3.5f)]
-        [SerializeField] private float m_SlotWidth = 1.72f;
+        [SerializeField] private float m_SlotWidth = 1.35f;
 
-        [Tooltip("Slotların boyu / uzunluğu (Length / Height - Z ekseni). 2. görsel referansı: ~2.35f.")]
+        [Tooltip("Slotların boyu / uzunluğu (Length / Height - Z ekseni). Referans görsel: ~1.35f.")]
         [Range(0.3f, 3.5f)]
-        [SerializeField] private float m_SlotLength = 2.35f;
+        [SerializeField] private float m_SlotLength = 1.35f;
 
         // Geriye dönük uyumluluk için
-        [SerializeField, HideInInspector] private float m_SlotScale = 1.72f;
+        [SerializeField, HideInInspector] private float m_SlotScale = 1.35f;
 
         [Header("📏 Slotlar Arası Mesafe (Aralık)")]
-        [Tooltip("Slotların birbirine olan yatay mesafesi. 2. görsel referansı: ~1.42f.")]
+        [Tooltip("Slotların birbirine olan yatay mesafesi. Referans görsel: 1.54f.")]
         [Range(0.6f, 2.5f)]
-        [SerializeField] private float m_SlotSpacing = 1.42f;
+        [SerializeField] private float m_SlotSpacing = 1.54f;
 
-        [Header("📐 Çapraz Marina Açısı")]
-        [Tooltip("Slotların ve gemilerin yanaşma açısı (varsayılan: -28 derece).")]
+        [Header("📐 Yanaşma Açısı")]
+        [Tooltip("Slotların ve gemilerin yanaşma açısı (Referans: 0 derece, düz yatay).")]
         [Range(-60f, 60f)]
-        [SerializeField] private float m_SlotAngle = -28f;
+        [SerializeField] private float m_SlotAngle = 0f;
 
         [Header("🌊 Su Düzlemi Eğim Açısı")]
-        [Tooltip("Kamera perspektifine göre su yüzeyi eğim açısı (varsayılan: -68 derece).")]
+        [Tooltip("Kamera perspektifine göre su yüzeyi eğim açısı (varsayılan: -60 derece).")]
         [Range(-90f, 0f)]
-        [SerializeField] private float m_WaterTiltX = -68f;
+        [SerializeField] private float m_WaterTiltX = -60f;
 
         [Header("📍 Dikey Yükseklik & Derinlik")]
         [Tooltip("Slot şeridinin Y eksenindeki yüksekliği.")]
-        [Range(-2f, 4f)]
-        [SerializeField] private float m_OffsetY = 2.82f;
+        [Range(-4f, 4f)]
+        [SerializeField] private float m_OffsetY = 0f;
 
         [Tooltip("Slot şeridinin Z eksenindeki derinliği.")]
         [Range(-3f, 3f)]
-        [SerializeField] private float m_OffsetZ = 0.53f;
+        [SerializeField] private float m_OffsetZ = 0.05f;
 
         [Header("🌊 Sahil Kavis / Yay Eğrisi (Shoreline Arc)")]
-        [Tooltip("Slotların sahil koyu kıyısına uyumlu yay/kavis yapması için Y ekseni eğrilik gücü (U-kavis).")]
+        [Tooltip("Slotların sahil koyu kıyısına uyumlu yay/kavis yapması için Y ekseni eğrilik gücü (0 = Düz sıra).")]
         [Range(-0.3f, 0.3f)]
-        [SerializeField] private float m_ArcCurveY = 0.055f;
+        [SerializeField] private float m_ArcCurveY = 0f;
 
-        [Tooltip("Kavisin sol/sağ asimetrisi (koyun sol kıyısı daha yüksekte).")]
+        [Tooltip("Kavisin sol/sağ asimetrisi.")]
         [Range(-0.2f, 0.2f)]
-        [SerializeField] private float m_ArcAsymmetry = -0.055f;
+        [SerializeField] private float m_ArcAsymmetry = 0f;
 
         [Tooltip("Slotların kavis yönüne göre yelpaze açısı.")]
         [Range(-10f, 10f)]
@@ -205,24 +205,24 @@ namespace PixelGame
 
         private void OnValidate()
         {
-            if (m_SlotWidth <= 0.001f) m_SlotWidth = 1.72f;
-            if (m_SlotLength <= 0.001f) m_SlotLength = 2.35f;
+            if (m_SlotWidth <= 0.001f) m_SlotWidth = 1.35f;
+            if (m_SlotLength <= 0.001f) m_SlotLength = 1.35f;
             ApplyLayout();
         }
 
         private void Reset()
         {
             m_SlotCount = 5;
-            m_SlotWidth = 1.72f;
-            m_SlotLength = 2.35f;
-            m_SlotScale = 1.72f;
-            m_SlotSpacing = 1.42f;
-            m_SlotAngle = -28f;
-            m_WaterTiltX = -68f;
-            m_OffsetY = transform.localPosition.y != 0 ? transform.localPosition.y : 2.82f;
-            m_OffsetZ = transform.localPosition.z != 0 ? transform.localPosition.z : 0.53f;
-            m_ArcCurveY = 0.055f;
-            m_ArcAsymmetry = -0.055f;
+            m_SlotWidth = 1.35f;
+            m_SlotLength = 1.35f;
+            m_SlotScale = 1.35f;
+            m_SlotSpacing = 1.54f;
+            m_SlotAngle = 0f;
+            m_WaterTiltX = -60f;
+            m_OffsetY = 0f;
+            m_OffsetZ = 0.05f;
+            m_ArcCurveY = 0f;
+            m_ArcAsymmetry = 0f;
             m_ArcAngleFan = 0f;
             ApplyLayout();
         }

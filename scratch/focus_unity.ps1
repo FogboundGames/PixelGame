@@ -18,7 +18,7 @@ public class DynamicFocusUnity {
                 return true;
             }, IntPtr.Zero);
         }
-        System.Threading.Thread.Sleep(300);
+        System.Threading.Thread.Sleep(800);
         keybd_event(0x11, 0, 0, 0); // Ctrl down
         keybd_event(0x52, 0, 0, 0); // R down
         keybd_event(0x52, 0, 2, 0); // R up
@@ -27,11 +27,6 @@ public class DynamicFocusUnity {
 }
 "@
 Add-Type -TypeDefinition $source
-$unityProc = Get-Process -Name Unity | Sort-Object WorkingSet64 -Descending | Select-Object -First 1
-if ($unityProc) {
-    Write-Output "Focusing and refreshing Unity PID: $($unityProc.Id)"
-    [DynamicFocusUnity]::BringToFrontAndRefresh($unityProc.Id)
-    Write-Output "Done."
-} else {
-    Write-Output "Unity process not found."
-}
+Write-Output "Focusing and refreshing Unity PID: 21784"
+[DynamicFocusUnity]::BringToFrontAndRefresh(21784)
+Write-Output "Done."
