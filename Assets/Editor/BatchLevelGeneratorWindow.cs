@@ -1,16 +1,26 @@
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using System.Net.Http;
 using UnityEditor;
 using UnityEngine;
 
 namespace PixelGame.Editor
 {
     /// <summary>
-    /// Klasördeki veya sürüklenen onlarca piksel görselini tek tıkla
-    /// optimize edilmiş, dengeli ve %100 çözülebilir oyun seviyelerine dönüştüren toplu üretim aracı.
+    /// Klasördeki görsellerden veya internetteki emojilerden (API) tek tıkla
+    /// 25x25 piksel sanatına dönüştürülmüş, optimize edilmiş ve %100 çözülebilir
+    /// oyun seviyeleri üreten toplu otomasyon aracı.
     /// </summary>
     public class BatchLevelGeneratorWindow : EditorWindow
     {
+        public enum SourceType
+        {
+            FolderOrDrop,   // 📁 Klasör veya Sürükle-Bırak
+            EmojiApi        // 🌐 Emojilerden Üret (API)
+        }
+
         public enum ColorReductionMode
         {
             Fixed,          // Sabit renk sayısı (örn. 4 veya 5 renk)
@@ -26,7 +36,9 @@ namespace PixelGame.Editor
             Fixed3              // Sabit 3 İskele (Zor)
         }
 
+        private SourceType m_SourceType = SourceType.FolderOrDrop;
         private DefaultAsset m_FolderAsset;
+        private string m_EmojiInput = "🍕, 🍔, 🍟, 🍩, 🍦, 🍓";
         private List<Texture2D> m_TexturesToProcess = new List<Texture2D>();
         private ColorReductionMode m_ColorMode = ColorReductionMode.Fixed;
         private int m_FixedTargetColors = 4;
@@ -40,18 +52,33 @@ namespace PixelGame.Editor
         private bool m_HasRun = false;
         private int m_SuccessCount = 0;
 
+        private static readonly Dictionary<string, string> EmojiNames = new Dictionary<string, string>
+        {
+            { "🍕", "Pizza" }, { "🍔", "Burger" }, { "🍟", "Patates" }, { "🍩", "Donut" },
+            { "🍦", "Dondurma" }, { "🌮", "Taco" }, { "🌭", "Sosisli" }, { "🥞", "Pankek" },
+            { "🍓", "Cilek" }, { "🍉", "Karpuz" }, { "🥑", "Avokado" }, { "🍌", "Muz" },
+            { "🍇", "Uzum" }, { "🍒", "Kiraz" }, { "🍍", "Ananas" }, { "🍎", "Elma" },
+            { "🍄", "Mantar" }, { "🐱", "Kedi" }, { "🐶", "Kopek" }, { "🐼", "Panda" },
+            { "🐰", "Tavsan" }, { "🦊", "Tilki" }, { "🐸", "Kurbaga" }, { "🐵", "Maymun" },
+            { "🐧", "Penguen" }, { "🚀", "Roket" }, { "🛸", "UFO" }, { "👑", "Tac" },
+            { "💎", "Elmas" }, { "🎁", "Hediye" }, { "⚔️", "Kilic" }, { "🎮", "OyunKol" },
+            { "🪐", "Gezegen" }, { "🚗", "Araba" }, { "⚽", "FutbolTopu" }, { "🏀", "BasketTopu" },
+            { "⭐", "Yildiz" }, { "❤️", "Kalp" }, { "🔥", "Ates" }, { "⚡", "Simsek" }
+        };
+
         [MenuItem("Tools/PixelGame/📁 Toplu Seviye Üreticisi (Batch Generator)", priority = 2)]
         public static void OpenWindow()
         {
             var window = GetWindow<BatchLevelGeneratorWindow>("Toplu Seviye Üreticisi");
-            window.minSize = new Vector2(580, 620);
+            window.minSize = new Vector2(580, 650);
             window.Show();
         }
 
         public static void OpenWithFolder(DefaultAsset folder)
         {
             var window = GetWindow<BatchLevelGeneratorWindow>("Toplu Seviye Üreticisi");
-            window.minSize = new Vector2(580, 620);
+            window.minSize = new Vector2(580, 650);
+            window.m_SourceType = SourceType.FolderOrDrop;
             window.m_FolderAsset = folder;
             window.ScanFolder();
             window.Show();
@@ -66,7 +93,7 @@ namespace PixelGame.Editor
 
             EditorGUILayout.Space(6);
 
-            // 1. Kaynak Görsel Seçim Alanı
+            // 1. Kaynak Görsel Seçim Alanı (Klasör veya Emoji API)
             DrawSourceSection();
 
             EditorGUILayout.Space(8);
@@ -101,39 +128,47 @@ namespace PixelGame.Editor
                 alignment = TextAnchor.MiddleLeft,
                 normal = { textColor = new Color(0.35f, 0.88f, 1f) }
             };
-            GUI.Label(new Rect(rect.x + 12, rect.y, rect.width - 24, rect.height), "📁 Toplu Seviye Üreticisi (Batch Level Pipeline)", titleStyle);
+            GUI.Label(new Rect(rect.x + 12, rect.y, rect.width - 24, rect.height), "📁 Toplu Seviye Üreticisi & Emoji Pipeline", titleStyle);
         }
 
         private void DrawSourceSection()
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("1. Kaynak Görseller (Klasör veya Sürükle-Bırak)", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("1. Kaynak Türü Seçimi", EditorStyles.boldLabel);
 
-            EditorGUI.BeginChangeCheck();
-            m_FolderAsset = (DefaultAsset)EditorGUILayout.ObjectField("Klasör Seç:", m_FolderAsset, typeof(DefaultAsset), false);
-            if (EditorGUI.EndChangeCheck())
+            EditorGUILayout.BeginHorizontal();
+            bool isFolder = m_SourceType == SourceType.FolderOrDrop;
+            GUI.backgroundColor = isFolder ? new Color(0.25f, 0.75f, 1f) : new Color(0.85f, 0.85f, 0.9f);
+            if (GUILayout.Button("📁 Klasör / Sürükle-Bırak", EditorStyles.miniButtonLeft, GUILayout.Height(26)))
             {
-                ScanFolder();
+                m_SourceType = SourceType.FolderOrDrop;
             }
 
-            // Sürükle-Bırak Bölgesi
-            Rect dropRect = EditorGUILayout.GetControlRect(false, 46);
-            EditorGUI.DrawRect(dropRect, new Color(0.12f, 0.18f, 0.25f, 0.8f));
-
-            GUIStyle dropStyle = new GUIStyle(EditorStyles.boldLabel)
+            bool isEmoji = m_SourceType == SourceType.EmojiApi;
+            GUI.backgroundColor = isEmoji ? new Color(0.25f, 0.85f, 0.5f) : new Color(0.85f, 0.85f, 0.9f);
+            if (GUILayout.Button("🌐 Emojilerden Üret (API)", EditorStyles.miniButtonRight, GUILayout.Height(26)))
             {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 11,
-                normal = { textColor = new Color(0.4f, 0.9f, 0.7f) }
-            };
-            GUI.Label(dropRect, "📥 Buraya bir klasör veya birden fazla PNG görseli sürükleyip bırakın", dropStyle);
+                m_SourceType = SourceType.EmojiApi;
+            }
+            GUI.backgroundColor = Color.white;
+            EditorGUILayout.EndHorizontal();
 
-            HandleDragAndDrop(dropRect);
+            EditorGUILayout.Space(6);
+
+            if (m_SourceType == SourceType.FolderOrDrop)
+            {
+                DrawFolderSection();
+            }
+            else
+            {
+                DrawEmojiSection();
+            }
 
             EditorGUILayout.Space(4);
 
+            // Ortak: Hazır görseller listesi & önizleme
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField($"Seçili Görsel Sayısı: <b>{m_TexturesToProcess.Count}</b> adet", new GUIStyle(EditorStyles.label) { richText = true });
+            EditorGUILayout.LabelField($"İşlenecek Görsel Sayısı: <b>{m_TexturesToProcess.Count}</b> adet", new GUIStyle(EditorStyles.label) { richText = true });
             if (m_TexturesToProcess.Count > 0)
             {
                 if (GUILayout.Button("Listeyi Temizle", EditorStyles.miniButton, GUILayout.Width(100)))
@@ -143,7 +178,6 @@ namespace PixelGame.Editor
             }
             EditorGUILayout.EndHorizontal();
 
-            // Küçük önizleme listesi
             if (m_TexturesToProcess.Count > 0)
             {
                 EditorGUILayout.Space(2);
@@ -168,6 +202,68 @@ namespace PixelGame.Editor
             }
 
             EditorGUILayout.EndVertical();
+        }
+
+        private void DrawFolderSection()
+        {
+            EditorGUI.BeginChangeCheck();
+            m_FolderAsset = (DefaultAsset)EditorGUILayout.ObjectField("Klasör Seç:", m_FolderAsset, typeof(DefaultAsset), false);
+            if (EditorGUI.EndChangeCheck())
+            {
+                ScanFolder();
+            }
+
+            // Sürükle-Bırak Bölgesi
+            Rect dropRect = EditorGUILayout.GetControlRect(false, 44);
+            EditorGUI.DrawRect(dropRect, new Color(0.12f, 0.18f, 0.25f, 0.8f));
+
+            GUIStyle dropStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 11,
+                normal = { textColor = new Color(0.4f, 0.9f, 0.7f) }
+            };
+            GUI.Label(dropRect, "📥 Buraya bir klasör veya birden fazla PNG görseli sürükleyip bırakın", dropStyle);
+
+            HandleDragAndDrop(dropRect);
+        }
+
+        private void DrawEmojiSection()
+        {
+            EditorGUILayout.LabelField("İstediğiniz Emojileri Yazın (veya yapıştırın):", EditorStyles.boldLabel);
+            m_EmojiInput = EditorGUILayout.TextField(m_EmojiInput, GUILayout.Height(24));
+
+            EditorGUILayout.Space(4);
+            EditorGUILayout.LabelField("Hazır Tema Presetleri (Tek Tıkla Seç):", EditorStyles.miniLabel);
+
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("🍔 Fast Food", EditorStyles.miniButton))
+            {
+                m_EmojiInput = "🍕, 🍔, 🍟, 🍩, 🍦, 🌮, 🌭, 🥞";
+            }
+            if (GUILayout.Button("🍎 Meyveler", EditorStyles.miniButton))
+            {
+                m_EmojiInput = "🍓, 🍉, 🥑, 🍌, 🍇, 🍒, 🍍, 🍎";
+            }
+            if (GUILayout.Button("🐱 Hayvanlar", EditorStyles.miniButton))
+            {
+                m_EmojiInput = "🐱, 🐶, 🐼, 🐰, 🦊, 🐸, 🐵, 🐧";
+            }
+            if (GUILayout.Button("🚀 Macera", EditorStyles.miniButton))
+            {
+                m_EmojiInput = "🚀, 🛸, 👑, 💎, 🎁, ⚔️, 🎮, 🪐";
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(4);
+            List<string> parsed = ParseEmojis(m_EmojiInput);
+
+            GUI.backgroundColor = new Color(0.3f, 0.85f, 0.5f);
+            if (GUILayout.Button($"🌐 {parsed.Count} Emojiyi API'den İndir ve 25x25 Piksele Dönüştür", GUILayout.Height(28)))
+            {
+                FetchAndProcessEmojis(parsed);
+            }
+            GUI.backgroundColor = Color.white;
         }
 
         private void DrawSettingsSection()
@@ -213,7 +309,7 @@ namespace PixelGame.Editor
             GUI.backgroundColor = new Color(0.25f, 0.85f, 0.45f);
             string btnText = m_TexturesToProcess.Count > 0 
                 ? $"⚡ {m_TexturesToProcess.Count} Adet Seviyeyi Otomatik Üret ve Kaydet" 
-                : "Önce Görselleri Seçin";
+                : "Önce Görselleri veya Emojileri Belirleyin";
 
             if (GUILayout.Button(btnText, GUILayout.Height(36)))
             {
@@ -248,7 +344,7 @@ namespace PixelGame.Editor
                     if (evt.type == EventType.DragPerform)
                     {
                         DragAndDrop.AcceptDrag();
-                        foreach (Object draggedObject in DragAndDrop.objectReferences)
+                        foreach (UnityEngine.Object draggedObject in DragAndDrop.objectReferences)
                         {
                             if (draggedObject is DefaultAsset folderAsset)
                             {
@@ -286,6 +382,157 @@ namespace PixelGame.Editor
                     m_TexturesToProcess.Add(tex);
                 }
             }
+        }
+
+        private List<string> ParseEmojis(string input)
+        {
+            var list = new List<string>();
+            if (string.IsNullOrWhiteSpace(input)) return list;
+
+            var enumerator = StringInfo.GetTextElementEnumerator(input);
+            while (enumerator.MoveNext())
+            {
+                string elem = enumerator.GetTextElement().Trim();
+                if (!string.IsNullOrEmpty(elem) && elem != "," && elem != ";" && elem != " " && !list.Contains(elem))
+                {
+                    list.Add(elem);
+                }
+            }
+            return list;
+        }
+
+        private void FetchAndProcessEmojis(List<string> emojis)
+        {
+            if (emojis == null || emojis.Count == 0) return;
+
+            if (!AssetDatabase.IsValidFolder("Assets/25x25"))
+            {
+                AssetDatabase.CreateFolder("Assets", "25x25");
+            }
+
+            m_TexturesToProcess.Clear();
+
+            try
+            {
+                using (var httpClient = new HttpClient())
+                {
+                    httpClient.DefaultRequestHeaders.Add("User-Agent", "PixelGame-Editor/1.0");
+
+                    for (int i = 0; i < emojis.Count; i++)
+                    {
+                        string emo = emojis[i];
+                        string friendlyName = GetEmojiFriendlyName(emo, i);
+
+                        float progress = (float)i / emojis.Count;
+                        EditorUtility.DisplayProgressBar("Emoji İndiriliyor & 25x25 Yapılıyor...", $"{emo} ({friendlyName})", progress);
+
+                        string url = $"https://emojicdn.elk.sh/{Uri.EscapeDataString(emo)}?style=twitter";
+
+                        byte[] data = null;
+                        try
+                        {
+                            data = httpClient.GetByteArrayAsync(url).GetAwaiter().GetResult();
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogWarning($"[BatchGenerator] '{emo}' indirilemedi: {ex.Message}");
+                            continue;
+                        }
+
+                        if (data == null || data.Length == 0) continue;
+
+                        Texture2D rawTex = new Texture2D(2, 2);
+                        if (rawTex.LoadImage(data))
+                        {
+                            Texture2D scaled25 = DownscaleTo25x25(rawTex);
+                            DestroyImmediate(rawTex);
+
+                            if (scaled25 != null)
+                            {
+                                string filePath = $"Assets/25x25/{friendlyName}.png";
+                                byte[] pngBytes = scaled25.EncodeToPNG();
+                                DestroyImmediate(scaled25);
+
+                                File.WriteAllBytes(filePath, pngBytes);
+                                AssetDatabase.ImportAsset(filePath, ImportAssetOptions.ForceUpdate);
+
+                                TextureImporter importer = AssetImporter.GetAtPath(filePath) as TextureImporter;
+                                if (importer != null)
+                                {
+                                    importer.textureType = TextureImporterType.Sprite;
+                                    importer.filterMode = FilterMode.Point;
+                                    importer.textureCompression = TextureImporterCompression.Uncompressed;
+                                    importer.isReadable = true;
+                                    importer.alphaIsTransparency = true;
+                                    importer.SaveAndReimport();
+                                }
+
+                                Texture2D savedTex = AssetDatabase.LoadAssetAtPath<Texture2D>(filePath);
+                                if (savedTex != null && !m_TexturesToProcess.Contains(savedTex))
+                                {
+                                    m_TexturesToProcess.Add(savedTex);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                AssetDatabase.Refresh();
+                EditorUtility.DisplayDialog("Emojiler Hazır!", 
+                    $"{m_TexturesToProcess.Count} adet emoji başarıyla 25x25 piksel olarak indirildi ve 'Assets/25x25' klasörüne kaydedildi.\n\nŞimdi 'Seviyeleri Otomatik Üret' butonuna basarak doğrudan oynanabilir bölümler oluşturabilirsiniz.", "Tamam");
+            }
+            finally
+            {
+                EditorUtility.ClearProgressBar();
+            }
+        }
+
+        private static string GetEmojiFriendlyName(string emoji, int index)
+        {
+            if (EmojiNames.TryGetValue(emoji, out string name)) return name;
+            return $"Emoji_{index + 1}";
+        }
+
+        /// <summary>
+        /// Yüksek çözünürlüklü emoji görselini 25x25 piksele indirger ve kenar şeffaflıklarını netleştirir.
+        /// </summary>
+        public static Texture2D DownscaleTo25x25(Texture2D source)
+        {
+            if (source == null) return null;
+            int targetW = 25;
+            int targetH = 25;
+
+            RenderTexture rt = RenderTexture.GetTemporary(targetW, targetH, 0, RenderTextureFormat.ARGB32);
+            rt.filterMode = FilterMode.Bilinear;
+            RenderTexture prev = RenderTexture.active;
+            RenderTexture.active = rt;
+
+            Graphics.Blit(source, rt);
+
+            Texture2D result = new Texture2D(targetW, targetH, TextureFormat.RGBA32, false);
+            result.ReadPixels(new Rect(0, 0, targetW, targetH), 0, 0);
+            result.Apply();
+
+            RenderTexture.active = prev;
+            RenderTexture.ReleaseTemporary(rt);
+
+            // Şeffaflık temizliği (0.25'ten küçükleri tamamen şeffaf yap, diğerlerini opaklaştır)
+            Color[] px = result.GetPixels();
+            for (int i = 0; i < px.Length; i++)
+            {
+                if (px[i].a < 0.25f)
+                {
+                    px[i] = Color.clear;
+                }
+                else
+                {
+                    px[i].a = 1f;
+                }
+            }
+            result.SetPixels(px);
+            result.Apply();
+
+            return result;
         }
 
         private void ExecuteBatchGeneration()
@@ -450,7 +697,7 @@ namespace PixelGame.Editor
             // Vagonların birbirini bloklamaması için hafif kaydırma (Fisher-Yates)
             for (int i = level.WagonSequence.Count - 1; i > 0; i--)
             {
-                int rnd = Random.Range(0, i + 1);
+                int rnd = UnityEngine.Random.Range(0, i + 1);
                 var temp = level.WagonSequence[i];
                 level.WagonSequence[i] = level.WagonSequence[rnd];
                 level.WagonSequence[rnd] = temp;
@@ -464,7 +711,7 @@ namespace PixelGame.Editor
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 PixelLevelData lvl = AssetDatabase.LoadAssetAtPath<PixelLevelData>(path);
-                if (lvl != null && lvl.LevelName != null && lvl.LevelName.IndexOf("Rakun", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                if (lvl != null && lvl.LevelName != null && lvl.LevelName.IndexOf("Rakun", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     return lvl;
                 }
