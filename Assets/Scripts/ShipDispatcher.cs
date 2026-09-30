@@ -132,6 +132,11 @@ namespace PixelGame
             m_LastPoppedRight = null;
             m_LastExtractedColor = Color.clear;
             EnsureBoardBounds(forceRefresh: true);
+            EnsureReferences();
+            if (m_QueuePool != null)
+            {
+                m_QueuePool.InitializeQueue();
+            }
         }
 
         /// <summary>
@@ -638,23 +643,35 @@ namespace PixelGame
 
         public void EnsureReferences()
         {
-            if (m_Slots == null || m_Slots.Count == 0)
+            if (m_Generator == null)
             {
-                m_Slots = new List<ShipSlot>(GetComponentsInChildren<ShipSlot>(true));
-                if (m_Slots.Count == 0)
+                m_Generator = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
+            }
+
+            PixelLevelData level = m_Generator != null ? m_Generator.ActiveLevelData : null;
+            int targetSlots = (level != null && level.SlotCount > 0) ? level.SlotCount : 5;
+
+            var marina = UnityEngine.Object.FindFirstObjectByType<MarinaSlotLayout>();
+            if (marina != null)
+            {
+                marina.SetSlotCount(targetSlots);
+            }
+
+            // Sadece aktif olan slotları sıralı olarak al
+            m_Slots.Clear();
+            var allSlots = UnityEngine.Object.FindObjectsByType<ShipSlot>(FindObjectsSortMode.None);
+            System.Array.Sort(allSlots, (a, b) => a.SlotIndex.CompareTo(b.SlotIndex));
+            foreach (var s in allSlots)
+            {
+                if (s != null && s.gameObject.activeInHierarchy)
                 {
-                    m_Slots = new List<ShipSlot>(Object.FindObjectsByType<ShipSlot>(FindObjectsSortMode.None));
+                    m_Slots.Add(s);
                 }
             }
 
             if (m_QueuePool == null)
             {
-                m_QueuePool = Object.FindFirstObjectByType<ShipQueuePool>();
-            }
-
-            if (m_Generator == null)
-            {
-                m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
+                m_QueuePool = UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
             }
         }
 
@@ -1658,6 +1675,28 @@ namespace PixelGame
                 }
             }
 
+            return 0;
+        }
+
+        public int GetTotalRemainingCubes()
+        {
+            if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (m_Generator != null && m_Generator.CubesContainer != null)
+            {
+                var cubes = m_Generator.CubesContainer.GetComponentsInChildren<PixelCube>(false);
+                if (cubes != null && cubes.Length > 0)
+                {
+                    int count = 0;
+                    foreach (var cube in cubes)
+                    {
+                        if (cube != null && !cube.IsPopped && cube.gameObject.activeSelf && !s_ReservedCubes.Contains(cube))
+                        {
+                            count++;
+                        }
+                    }
+                    return count;
+                }
+            }
             return 0;
         }
 

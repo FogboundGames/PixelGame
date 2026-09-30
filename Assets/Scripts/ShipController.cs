@@ -680,8 +680,10 @@ namespace PixelGame
 
         public static bool IsYellowSpectrum(Color c)
         {
-            // Amber ve aşırı parlak sarıları 1. fotodaki gibi göz yormayan mat, yumuşak pastel sarıya eşle
-            return c.r > 0.70f && c.g > 0.45f && c.b < 0.35f;
+            Color.RGBToHSV(c, out float h, out float s, out float v);
+            // Sadece gerçek parlak sarı spektrumu (Hue 46° - 68° / 0.128 - 0.189, Sat > 0.4, Val > 0.6)
+            // Kahverengi ve turuncular (Hue < 0.12f) asla sarıya dönüştürülmez.
+            return (h >= 0.125f && h <= 0.19f && s > 0.4f && v > 0.6f);
         }
 
         // 1. Fotodaki pastel krem/altın sarısı (#F4D462 - aşırı göz alan neon sarı değil)

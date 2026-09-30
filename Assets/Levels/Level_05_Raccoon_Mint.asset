@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: Level_05_Raccoon_Mint
   m_EditorClassIdentifier: PixelGame::PixelGame.PixelLevelData
   m_LevelName: Nane Rakun (Toon 19)
-  m_LevelIndex: 5
+  m_LevelIndex: 15
   m_LevelTexture: {fileID: 2800000, guid: 9ef43424a02a4532ab1abe19c4ecdb88, type: 3}
+  m_OriginalSourceTexture: {fileID: 0}
   m_LevelSprite: {fileID: 0}
   m_UseNativeResolution: 1
   m_CustomResolution: {x: 24, y: 24}

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_15_Pizza
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Pizza
-  m_LevelIndex: 15
+  m_LevelIndex: 6
   m_LevelTexture: {fileID: 2800000, guid: 49885ae0015808b1597391f87bb1c1f5, type: 3}
   m_OriginalSourceTexture: {fileID: 2800000, guid: 51c9eec292de3bc76b8a4b3b92553cc7, type: 3}
   m_LevelSprite: {fileID: 0}

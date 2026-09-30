@@ -25,8 +25,67 @@ namespace PixelGame
         [SerializeField] private List<Transform> m_QueueSpots = new List<Transform>();
         [SerializeField] private List<ShipController> m_WaitingShips = new List<ShipController>();
 
+        private Queue<WagonSequenceEntry> m_LevelSequenceQueue = new Queue<WagonSequenceEntry>();
+        private bool m_UsingLevelSequence = false;
+
         public int Capacity => m_Columns * m_Rows;
         public List<ShipController> WaitingShips => m_WaitingShips;
+        public bool UsingLevelSequence => m_UsingLevelSequence;
+        public int RemainingSequenceShipsCount => m_LevelSequenceQueue != null ? m_LevelSequenceQueue.Count : 0;
+
+        public PixelLevelData GetActiveLevel()
+        {
+            LevelManager lm = LevelManager.Instance != null ? LevelManager.Instance : Object.FindFirstObjectByType<LevelManager>();
+            if (lm != null && lm.CurrentLevel != null) return lm.CurrentLevel;
+
+            PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (gen != null && gen.ActiveLevelData != null) return gen.ActiveLevelData;
+
+            return null;
+        }
+
+        public int GetTotalCapacityOfActiveShips()
+        {
+            int total = 0;
+            if (m_WaitingShips != null)
+            {
+                foreach (var s in m_WaitingShips)
+                {
+                    if (s != null && !s.IsDeparting)
+                    {
+                        total += s.RemainingCapacity;
+                    }
+                }
+            }
+            if (ShipDispatcher.Instance != null && ShipDispatcher.Instance.Slots != null)
+            {
+                foreach (var slot in ShipDispatcher.Instance.Slots)
+                {
+                    if (slot != null && slot.DockedShip != null && !slot.DockedShip.IsDeparting)
+                    {
+                        total += slot.DockedShip.RemainingCapacity;
+                    }
+                }
+            }
+            return total;
+        }
+
+        private bool TryGetNextSequenceShip(out Color shipColor, out int capacity)
+        {
+            if (m_UsingLevelSequence && m_LevelSequenceQueue != null && m_LevelSequenceQueue.Count > 0)
+            {
+                WagonSequenceEntry entry = m_LevelSequenceQueue.Dequeue();
+                if (entry != null && entry.capacity > 0)
+                {
+                    shipColor = entry.wagonColor;
+                    capacity = entry.capacity;
+                    return true;
+                }
+            }
+            shipColor = Color.clear;
+            capacity = 0;
+            return false;
+        }
 
         private void Awake()
         {
@@ -42,93 +101,175 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Kuyruk için bekleme noktalarını (spot) bulur veya gerekirse oluşturur.
-        /// Sahnede önceden ayarlanmış spot konumlarını KESİNLİKLE korur.
+        /// Kuyruk için bekleme noktalarını (spot) seviyenin kolon ve sıra ayarlarına göre dinamik olarak oluşturur ve konumlandırır.
         /// </summary>
-        public void EnsureSpots()
+        public void RebuildSpots(int targetCols, int targetRows)
         {
-            // 1. Önce sahnede halihazırda var olan çocuk spotları topla
+            m_Columns = Mathf.Clamp(targetCols, 1, 8);
+            m_Rows = Mathf.Clamp(targetRows, 1, 6);
+            int totalNeeded = m_Columns * m_Rows;
+
+            // 1. Mevcut spotları topla
             m_QueueSpots.Clear();
+            List<Transform> existing = new List<Transform>();
             for (int i = 0; i < transform.childCount; i++)
             {
                 Transform cTr = transform.GetChild(i);
                 if (cTr.name.StartsWith("Spot_"))
                 {
-                    m_QueueSpots.Add(cTr);
+                    existing.Add(cTr);
                 }
             }
 
-            // Sahnede zaten yeterli sayıda spot varsa mevcut konumlarını koru ve çık
-            if (m_QueueSpots.Count >= Capacity)
+            // Fazla spotları kaldır (spot altındaki gemilerle birlikte)
+            while (existing.Count > totalNeeded)
             {
-                return;
+                int lastIdx = existing.Count - 1;
+                Transform doomed = existing[lastIdx];
+                existing.RemoveAt(lastIdx);
+                if (doomed != null)
+                {
+                    for (int c = doomed.childCount - 1; c >= 0; c--)
+                    {
+                        Transform ship = doomed.GetChild(c);
+                        ship.SetParent(null);
+                        ship.gameObject.SetActive(false);
+#if UNITY_EDITOR
+                        if (!Application.isPlaying) DestroyImmediate(ship.gameObject);
+                        else Destroy(ship.gameObject);
+#else
+                        Destroy(ship.gameObject);
+#endif
+                    }
+#if UNITY_EDITOR
+                    if (!Application.isPlaying) DestroyImmediate(doomed.gameObject);
+                    else Destroy(doomed.gameObject);
+#else
+                    Destroy(doomed.gameObject);
+#endif
+                }
             }
 
-            // Eğer eksik spot varsa veya hiç oluşturulmamışsa tamamla
+            // Eksik spotları oluştur
+            while (existing.Count < totalNeeded)
+            {
+                GameObject spotObj = new GameObject($"Spot_{existing.Count}");
+                spotObj.transform.SetParent(transform, false);
+                existing.Add(spotObj.transform);
+            }
+
+            // Tüm spotları doğru kolon/sıra düzenine göre konumlandır
             float startX = -(m_Columns - 1) * m_Spacing.x * 0.5f;
 
             for (int r = 0; r < m_Rows; r++)
             {
                 for (int c = 0; c < m_Columns; c++)
                 {
-                    string spotName = $"Spot_R{r}_C{c}";
-                    Transform existingSpot = transform.Find(spotName);
-                    if (existingSpot == null)
-                    {
-                        GameObject spotObj = new GameObject(spotName);
-                        existingSpot = spotObj.transform;
-                        existingSpot.SetParent(transform, false);
+                    int spotIdx = r * m_Columns + c;
+                    Transform spot = existing[spotIdx];
+                    spot.name = $"Spot_R{r}_C{c}";
 
-                        float posX = startX + c * m_Spacing.x;
-                        float posZ = -r * m_Spacing.y;
+                    float posX = startX + c * m_Spacing.x;
+                    float posZ = -r * m_Spacing.y;
 
-                        existingSpot.localPosition = new Vector3(posX, 0f, posZ);
-                        existingSpot.localRotation = Quaternion.identity;
-                        existingSpot.localScale = Vector3.one;
-                    }
+                    spot.localPosition = new Vector3(posX, 0f, posZ);
+                    spot.localRotation = Quaternion.identity;
+                    spot.localScale = Vector3.one;
 
-                    if (!m_QueueSpots.Contains(existingSpot))
-                    {
-                        m_QueueSpots.Add(existingSpot);
-                    }
+                    m_QueueSpots.Add(spot);
                 }
             }
         }
 
+        public void EnsureSpots()
+        {
+            PixelLevelData level = GetActiveLevel();
+            int targetCols = (level != null && level.PoolColumns > 0) ? level.PoolColumns : m_Columns;
+            int targetRows = (level != null && level.PoolRows > 0) ? level.PoolRows : m_Rows;
+            RebuildSpots(targetCols, targetRows);
+        }
+
+        private int m_LastInitFrame = -1;
+        private PixelLevelData m_LastInitLevel = null;
+
         /// <summary>
         /// Seviye başlangıcında kuyruğu renkli gemilerle doldurur.
-        /// Spotlarda önceden oluşturulmuş gemiler varsa bunları doğrudan seviye renkleriyle tazeler.
+        /// Seviyede özel gemi sırası (WagonSequence) varsa tam o sıra ve kapasiteler kullanılır;
+        /// yoksa dinamik kilitlenmesiz renk ve kapasite algoritması devreye girer.
         /// </summary>
         public void InitializeQueue()
         {
-            EnsureSpots();
+            PixelLevelData level = GetActiveLevel();
+            int targetCols = (level != null && level.PoolColumns > 0) ? level.PoolColumns : m_Columns;
+            int targetRows = (level != null && level.PoolRows > 0) ? level.PoolRows : m_Rows;
+            RebuildSpots(targetCols, targetRows);
+
+            // Aynı frame içinde mükerrer çağrıları engelle (Start + LevelLoaded çakışması)
+            if (Application.isPlaying && m_LastInitFrame == Time.frameCount && m_LastInitLevel == level)
+            {
+                return;
+            }
+            m_LastInitFrame = Application.isPlaying ? Time.frameCount : -1;
+            m_LastInitLevel = level;
+
+            m_WaitingShips.Clear();
+
+            // 1. Seviyede tanımlı özel gemi sırası var mı kontrol et
+            m_LevelSequenceQueue.Clear();
+            if (level != null && level.UseCustomWagonSequence && level.WagonSequence != null && level.WagonSequence.Count > 0)
+            {
+                m_UsingLevelSequence = true;
+                foreach (var entry in level.WagonSequence)
+                {
+                    if (entry != null && entry.capacity > 0)
+                    {
+                        m_LevelSequenceQueue.Enqueue(entry);
+                    }
+                }
+                Debug.Log($"<color=#00FFAA><b>[ShipQueuePool]</b></color> 🚢 Seviye özel gemi sırası devrede: {m_LevelSequenceQueue.Count} adet gemi sıralandı.");
+            }
+            else
+            {
+                m_UsingLevelSequence = false;
+            }
 
             for (int i = 0; i < m_QueueSpots.Count; i++)
             {
                 Transform spot = m_QueueSpots[i];
                 if (spot == null) continue;
 
-                // HER gemi "açıkta" (hemen toplanabilir) olan renklerden seçilir.
-                //
-                // Eskiden bu sadece ilk 2 gemi için yapılıyordu, gerisi kalan renkler
-                // arasından rastgele seçiliyordu. Sorun: tamamen gömülü bir renge gemi
-                // atanırsa o gemi hiç dolamaz, kalkamaz ve slotu kalıcı olarak işgal eder.
-                // Bütün slotlar böyle olunca oyun kilitlenir.
-                //
-                // LevelSolvabilityAnalyzer ile ölçüldü (bölüm başına 30-200 deneme):
-                //   preferExposed = (i < 2)  -> kilitlenme riski %37-93
-                //   preferExposed = her gemi -> %3-20
-                // Ara değerler (3, 4) işe yaramıyor; tek bir gömülü renkli gemi bile
-                // slotu tıkadığı için hepsinin seçilebilir olması gerekiyor.
-                //
-                // GetRemainingLevelColor açıkta renk yoksa zaten kalan renklere düşüyor,
-                // yani bu güvenli taraf.
-                const bool preferExposed = true;
-                Color shipColor = GetNextNeededColor(preferExposed);
-                int capacity = GetRecommendedCapacity(shipColor);
+                // Eğer özel sıra kullanılıyorsa ve tüm sıra baştan az sayıda gemiden ibaretse fazla spotları doldurma
+                if (m_UsingLevelSequence && m_LevelSequenceQueue.Count == 0 && i >= level.WagonSequence.Count)
+                {
+                    for (int c = spot.childCount - 1; c >= 0; c--)
+                    {
+                        var sc = spot.GetChild(c).GetComponent<ShipController>();
+                        if (sc != null)
+                        {
+                            sc.transform.SetParent(null);
+                            sc.gameObject.SetActive(false);
+#if UNITY_EDITOR
+                            if (!Application.isPlaying) DestroyImmediate(sc.gameObject);
+                            else Destroy(sc.gameObject);
+#else
+                            Destroy(sc.gameObject);
+#endif
+                        }
+                    }
+                    continue;
+                }
+
+                Color shipColor;
+                int capacity;
+                if (!TryGetNextSequenceShip(out shipColor, out capacity))
+                {
+                    const bool preferExposed = true;
+                    shipColor = GetNextNeededColor(preferExposed);
+                    capacity = GetRecommendedCapacity(shipColor);
+                }
 
                 ShipController existingShip = spot.GetComponentInChildren<ShipController>();
-                if (existingShip != null)
+                if (existingShip != null && existingShip.gameObject.activeInHierarchy)
                 {
                     existingShip.Configure(shipColor, capacity);
 
@@ -137,7 +278,7 @@ namespace PixelGame
                 }
                 else
                 {
-                    SpawnShipAtSpot(i, preferExposed);
+                    SpawnShipAtSpot(i, shipColor, capacity);
                 }
             }
         }
@@ -148,13 +289,16 @@ namespace PixelGame
             {
                 if (m_WaitingShips[i] != null)
                 {
+                    var shipGo = m_WaitingShips[i].gameObject;
+                    m_WaitingShips[i].transform.SetParent(null);
+                    shipGo.SetActive(false);
 #if UNITY_EDITOR
                     if (!Application.isPlaying)
-                        DestroyImmediate(m_WaitingShips[i].gameObject);
+                        DestroyImmediate(shipGo);
                     else
-                        Destroy(m_WaitingShips[i].gameObject);
+                        Destroy(shipGo);
 #else
-                    Destroy(m_WaitingShips[i].gameObject);
+                    Destroy(shipGo);
 #endif
                 }
             }
@@ -167,6 +311,8 @@ namespace PixelGame
                 {
                     Transform child = spot.GetChild(i);
                     if (child.GetComponent<ShipController>() == null) continue;
+                    child.SetParent(null);
+                    child.gameObject.SetActive(false);
 #if UNITY_EDITOR
                     if (!Application.isPlaying)
                         DestroyImmediate(child.gameObject);
@@ -182,16 +328,29 @@ namespace PixelGame
         /// <summary>
         /// Belirtilen spot indeksinde yeni bir gemi üretir.
         /// </summary>
-        /// <summary>
-        /// Varsayılan artık true: gömülü renge gemi atayıp slot tıkamamak için
-        /// (bkz. RefreshQueue içindeki açıklama ve ölçüm).
-        /// </summary>
-        public ShipController SpawnShipAtSpot(int spotIndex, bool preferExposed = true)
+        public ShipController SpawnShipAtSpot(int spotIndex, Color shipColor, int capacity)
         {
             if (spotIndex < 0 || spotIndex >= m_QueueSpots.Count) return null;
             if (m_ShipPrefab == null) return null;
 
             Transform spot = m_QueueSpots[spotIndex];
+
+            // Varsa eski ölü / pasif objeleri temizle
+            for (int c = spot.childCount - 1; c >= 0; c--)
+            {
+                Transform oldChild = spot.GetChild(c);
+                if (oldChild.GetComponent<ShipController>() != null)
+                {
+                    oldChild.SetParent(null);
+                    oldChild.gameObject.SetActive(false);
+#if UNITY_EDITOR
+                    if (!Application.isPlaying) DestroyImmediate(oldChild.gameObject);
+                    else Destroy(oldChild.gameObject);
+#else
+                    Destroy(oldChild.gameObject);
+#endif
+                }
+            }
 
             GameObject shipObj = Instantiate(m_ShipPrefab, spot.position, spot.rotation, spot);
             shipObj.name = $"Waiting_Ship_{spotIndex}";
@@ -202,8 +361,6 @@ namespace PixelGame
             ShipController ship = shipObj.GetComponent<ShipController>();
             if (ship == null) ship = shipObj.AddComponent<ShipController>();
 
-            Color shipColor = GetNextNeededColor(preferExposed);
-            int capacity = GetRecommendedCapacity(shipColor);
             ship.Configure(shipColor, capacity);
 
             while (m_WaitingShips.Count <= spotIndex)
@@ -213,6 +370,19 @@ namespace PixelGame
             m_WaitingShips[spotIndex] = ship;
 
             return ship;
+        }
+
+        public ShipController SpawnShipAtSpot(int spotIndex, bool preferExposed = true)
+        {
+            Color shipColor;
+            int capacity;
+            if (!TryGetNextSequenceShip(out shipColor, out capacity))
+            {
+                shipColor = GetNextNeededColor(preferExposed);
+                capacity = GetRecommendedCapacity(shipColor);
+            }
+
+            return SpawnShipAtSpot(spotIndex, shipColor, capacity);
         }
 
         /// <summary>
@@ -236,32 +406,32 @@ namespace PixelGame
             if (frontIndex < 0) return;
 
             int col = frontIndex % m_Columns;
-            int backIndex = m_Columns + col;
 
-            m_WaitingShips[frontIndex] = null;
-
-            // 1. Arkadaki gemiyi aynı sütunda öne kaydır
-            if (backIndex < m_WaitingShips.Count && m_WaitingShips[backIndex] != null)
+            // 1. Aynı sütundaki arkadaki tüm gemileri birer kademe öne kaydır
+            for (int r = 0; r < m_Rows - 1; r++)
             {
-                ShipController backShip = m_WaitingShips[backIndex];
-                m_WaitingShips[frontIndex] = backShip;
-                m_WaitingShips[backIndex] = null;
+                int curIdx = r * m_Columns + col;
+                int nxtIdx = (r + 1) * m_Columns + col;
 
-                Transform frontSpot = m_QueueSpots[frontIndex];
-
-                // Öndeki (az önce tıklanan) gemi slota doğru yola çıkıp ön spottan gerçekten
-                // uzaklaşana kadar arkadaki gemiyi bekletiyoruz — yoksa ikisi tam aynı anda,
-                // aynı noktada iç içe biniyordu.
-                if (gameObject.activeInHierarchy)
+                if (nxtIdx < m_WaitingShips.Count && m_WaitingShips[nxtIdx] != null)
                 {
-                    StartCoroutine(MoveBackShipToFrontSpot(backShip, frontSpot, 0.15f));
+                    ShipController advancingShip = m_WaitingShips[nxtIdx];
+                    m_WaitingShips[curIdx] = advancingShip;
+                    m_WaitingShips[nxtIdx] = null;
+
+                    Transform targetSpot = m_QueueSpots[curIdx];
+                    if (gameObject.activeInHierarchy)
+                    {
+                        StartCoroutine(MoveBackShipToFrontSpot(advancingShip, targetSpot, 0.12f * (r + 1)));
+                    }
                 }
             }
 
-            // 2. Boşalan arka yere açık denizden yeni gemi yüzerek gelsin
+            // 2. En arka sıradaki boşalan yere açık denizden yeni gemi yüzerek gelsin
+            int lastRowIdx = (m_Rows - 1) * m_Columns + col;
             if (gameObject.activeInHierarchy)
             {
-                StartCoroutine(SpawnAndSailInNewShip(backIndex, 0.18f));
+                StartCoroutine(SpawnAndSailInNewShip(lastRowIdx, 0.18f));
             }
         }
 
@@ -309,6 +479,26 @@ namespace PixelGame
             if (spotIndex < 0 || spotIndex >= m_QueueSpots.Count) yield break;
             if (m_ShipPrefab == null) yield break;
 
+            // Eğer özel sıra kullanılıyorsa ve sırada başka gemi kalmadıysa:
+            if (m_UsingLevelSequence && (m_LevelSequenceQueue == null || m_LevelSequenceQueue.Count == 0))
+            {
+                int remainingCubes = ShipDispatcher.Instance != null ? ShipDispatcher.Instance.GetTotalRemainingCubes() : 0;
+                int currentShipCapacity = GetTotalCapacityOfActiveShips();
+                if (remainingCubes <= currentShipCapacity)
+                {
+                    // Seviyedeki tüm küpler mevcut gemilerce karşılanıyor, yeni gemiye gerek yok
+                    yield break;
+                }
+            }
+
+            Color shipColor;
+            int capacity;
+            if (!TryGetNextSequenceShip(out shipColor, out capacity))
+            {
+                shipColor = GetNextNeededColor(false);
+                capacity = GetRecommendedCapacity(shipColor);
+            }
+
             Transform spot = m_QueueSpots[spotIndex];
 
             // Gemiyi arkadan (açık denizden, local Z = -2.6f) başlat
@@ -323,8 +513,6 @@ namespace PixelGame
             ShipController ship = shipObj.GetComponent<ShipController>();
             if (ship == null) ship = shipObj.AddComponent<ShipController>();
 
-            Color shipColor = GetNextNeededColor(false);
-            int capacity = GetRecommendedCapacity(shipColor);
             ship.Configure(shipColor, capacity);
 
             while (m_WaitingShips.Count <= spotIndex)

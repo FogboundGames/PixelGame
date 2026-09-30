@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_11_Duck
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Duck
-  m_LevelIndex: 11
+  m_LevelIndex: 7
   m_LevelTexture: {fileID: 2800000, guid: 9e7cd209e769b551f80ac28f098d4b1b, type: 3}
   m_OriginalSourceTexture: {fileID: 2800000, guid: 244210ad29af9a1439860a1ae1439df0, type: 3}
   m_LevelSprite: {fileID: 0}

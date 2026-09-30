@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_16_Cilek
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Cilek
-  m_LevelIndex: 16
+  m_LevelIndex: 9
   m_LevelTexture: {fileID: 2800000, guid: 4994b3aa62b619b19b6e10f6286eca89, type: 3}
   m_OriginalSourceTexture: {fileID: 2800000, guid: 059d97940892bd94881f793939cd6d9a, type: 3}
   m_LevelSprite: {fileID: 0}

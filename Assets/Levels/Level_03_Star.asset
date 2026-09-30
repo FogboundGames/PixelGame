@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: "Level_03_Alt\u0131n Y\u0131ld\u0131z"
   m_EditorClassIdentifier: PixelGame::PixelGame.PixelLevelData
   m_LevelName: "Alt\u0131n Y\u0131ld\u0131z"
-  m_LevelIndex: 3
+  m_LevelIndex: 1
   m_LevelTexture: {fileID: 2800000, guid: f16dad97d6094c5fa353b599dab245b3, type: 3}
+  m_OriginalSourceTexture: {fileID: 0}
   m_LevelSprite: {fileID: 0}
   m_UseNativeResolution: 1
   m_CustomResolution: {x: 24, y: 24}
@@ -48,11 +49,39 @@ MonoBehaviour:
   m_SkipTransparent: 1
   m_SlotSprite: {fileID: 0}
   m_SlotCount: 5
-  m_PoolColumns: 4
-  m_PoolRows: 2
+  m_PoolColumns: 2
+  m_PoolRows: 4
   m_TruckCapacity: 16
-  m_UseCustomWagonSequence: 0
-  m_WagonSequence: []
+  m_UseCustomWagonSequence: 1
+  m_WagonSequence:
+  - wagonColor: {r: 0.7254902, g: 0.4901961, b: 0.1333333, a: 1}
+    capacity: 16
+    paletteIndex: 0
+    label: Turuncu (#1) (#1)
+  - wagonColor: {r: 0.7254902, g: 0.4901961, b: 0.1333333, a: 1}
+    capacity: 16
+    paletteIndex: 0
+    label: Turuncu (#1) (#2)
+  - wagonColor: {r: 0.7254902, g: 0.4901961, b: 0.1333333, a: 1}
+    capacity: 8
+    paletteIndex: 0
+    label: Turuncu (#1) (#3)
+  - wagonColor: {r: 1, g: 0.8, b: 0.1254902, a: 1}
+    capacity: 16
+    paletteIndex: 1
+    label: "Sar\u0131 (#2) (#4)"
+  - wagonColor: {r: 1, g: 0.8, b: 0.1254902, a: 1}
+    capacity: 16
+    paletteIndex: 1
+    label: "Sar\u0131 (#2) (#5)"
+  - wagonColor: {r: 1, g: 0.8, b: 0.1254902, a: 1}
+    capacity: 5
+    paletteIndex: 1
+    label: "Sar\u0131 (#2) (#6)"
+  - wagonColor: {r: 1, g: 0.9882353, b: 0.8431373, a: 1}
+    capacity: 1
+    paletteIndex: 2
+    label: Beyaz (#3) (#7)
   m_FigureShadowTexture: {fileID: 0}
   m_UseCustomColorTheme: 0
   m_ColorTheme:

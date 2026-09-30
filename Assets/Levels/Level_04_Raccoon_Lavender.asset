@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_04_Raccoon_Lavender
   m_EditorClassIdentifier: PixelGame::PixelGame.PixelLevelData
   m_LevelName: Lavanta Rakun (Toon 18)
-  m_LevelIndex: 4
+  m_LevelIndex: 16
   m_LevelTexture: {fileID: 2800000, guid: 6f0fe25b1ca140c2920f0a2f18f287e6, type: 3}
   m_OriginalSourceTexture: {fileID: 2800000, guid: 6f0fe25b1ca140c2920f0a2f18f287e6, type: 3}
   m_LevelSprite: {fileID: 0}

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_02_Piksel Kalp
   m_EditorClassIdentifier: PixelGame::PixelGame.PixelLevelData
   m_LevelName: Piksel Kalp
-  m_LevelIndex: 1
+  m_LevelIndex: 2
   m_LevelTexture: {fileID: 2800000, guid: 61898abaffe8fb97d8aa9be0efc140ab, type: 3}
   m_OriginalSourceTexture: {fileID: 0}
   m_LevelSprite: {fileID: 0}
@@ -49,43 +49,83 @@ MonoBehaviour:
   m_SkipTransparent: 1
   m_SlotSprite: {fileID: 0}
   m_SlotCount: 5
-  m_PoolColumns: 5
-  m_PoolRows: 2
+  m_PoolColumns: 3
+  m_PoolRows: 6
   m_TruckCapacity: 16
   m_UseCustomWagonSequence: 1
   m_WagonSequence:
-  - wagonColor: {r: 1, g: 0.15411769, b: 0.5829278, a: 1}
-    capacity: 16
-    paletteIndex: 0
-    label: Renk #1 (1)
-  - wagonColor: {r: 1, g: 0.013602984, b: 0.48293352, a: 1}
+  - wagonColor: {r: 0.7843137, g: 0.0392157, b: 0.3921569, a: 1}
     capacity: 16
     paletteIndex: 1
-    label: Renk #2 (1)
-  - wagonColor: {r: 1, g: 0.013602984, b: 0.48293352, a: 1}
-    capacity: 16
-    paletteIndex: 1
-    label: Renk #2 (2)
-  - wagonColor: {r: 1, g: 0.15411769, b: 0.5829278, a: 1}
+    label: "Fu\u015Fya (#2) (#1)"
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
     capacity: 16
     paletteIndex: 0
-    label: Renk #1 (3)
-  - wagonColor: {r: 1, g: 0.013602984, b: 0.48293352, a: 1}
+    label: "Fu\u015Fya (#1) (#2)"
+  - wagonColor: {r: 0.7843137, g: 0.0392157, b: 0.3921569, a: 1}
+    capacity: 16
+    paletteIndex: 1
+    label: "Fu\u015Fya (#2) (#3)"
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    capacity: 16
+    paletteIndex: 0
+    label: "Fu\u015Fya (#1) (#4)"
+  - wagonColor: {r: 0.7843137, g: 0.0392157, b: 0.3921569, a: 1}
+    capacity: 16
+    paletteIndex: 1
+    label: "Fu\u015Fya (#2) (#5)"
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    capacity: 16
+    paletteIndex: 0
+    label: "Fu\u015Fya (#1) (#6)"
+  - wagonColor: {r: 0.7843137, g: 0.0392157, b: 0.3921569, a: 1}
     capacity: 2
     paletteIndex: 1
-    label: Renk #2 (3)
-  - wagonColor: {r: 1, g: 0.15411769, b: 0.5829278, a: 1}
+    label: "Fu\u015Fya (#2) (#7)"
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
     capacity: 16
     paletteIndex: 0
-    label: Renk #1 (4)
-  - wagonColor: {r: 1, g: 0.15411769, b: 0.5829278, a: 1}
+    label: "Fu\u015Fya (#1) (#8)"
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
     capacity: 16
     paletteIndex: 0
-    label: Renk #1 (5)
-  - wagonColor: {r: 1, g: 0.15411769, b: 0.5829278, a: 1}
-    capacity: 7
+    label: "Fu\u015Fya (#1) (#9)"
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    capacity: 16
     paletteIndex: 0
-    label: Renk #1 (6)
+    label: "Fu\u015Fya (#1) (#10)"
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    capacity: 16
+    paletteIndex: 0
+    label: "Fu\u015Fya (#1) (#11)"
+  - wagonColor: {r: 1, g: 0.7647059, b: 0.9019608, a: 1}
+    capacity: 5
+    paletteIndex: 2
+    label: "A\xE7\u0131k Pembe (#3) (#12)"
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    capacity: 16
+    paletteIndex: 0
+    label: "Fu\u015Fya (#1) (#13)"
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    capacity: 16
+    paletteIndex: 0
+    label: "Fu\u015Fya (#1) (#14)"
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    capacity: 16
+    paletteIndex: 0
+    label: "Fu\u015Fya (#1) (#15)"
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    capacity: 16
+    paletteIndex: 0
+    label: "Fu\u015Fya (#1) (#16)"
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    capacity: 16
+    paletteIndex: 0
+    label: "Fu\u015Fya (#1) (#17)"
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    capacity: 11
+    paletteIndex: 0
+    label: "Fu\u015Fya (#1) (#18)"
   m_FigureShadowTexture: {fileID: 0}
   m_UseCustomColorTheme: 0
   m_ColorTheme:

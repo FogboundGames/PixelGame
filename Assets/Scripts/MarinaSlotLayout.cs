@@ -96,6 +96,81 @@ namespace PixelGame
             set { m_OffsetZ = value; ApplyLayout(); }
         }
 
+        [Header("⚓ Aktif Slot Sayısı")]
+        [Tooltip("Sahnedeki aktif yanaşma slotu sayısı (1 - 8). Seviye verisindeki SlotCount ile otomatik senkronize olur.")]
+        [Range(1, 8)]
+        [SerializeField] private int m_SlotCount = 5;
+
+        public int SlotCount
+        {
+            get => m_SlotCount;
+            set => SetSlotCount(value);
+        }
+
+        private void Awake()
+        {
+            SyncWithLevel();
+        }
+
+        private void Start()
+        {
+            SyncWithLevel();
+        }
+
+        public void SyncWithLevel()
+        {
+            PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
+            PixelLevelData level = gen != null ? gen.ActiveLevelData : null;
+            if (level != null && level.SlotCount > 0)
+            {
+                SetSlotCount(level.SlotCount);
+            }
+            else
+            {
+                ApplyLayout();
+            }
+        }
+
+        public void SetSlotCount(int targetCount)
+        {
+            m_SlotCount = Mathf.Clamp(targetCount, 1, 8);
+
+            var allSlots = new System.Collections.Generic.List<ShipSlot>(GetComponentsInChildren<ShipSlot>(true));
+            allSlots.Sort((a, b) => a.SlotIndex.CompareTo(b.SlotIndex));
+
+            if (allSlots.Count == 0) return;
+
+            // Eksik slot varsa ilkinden klonlayarak üret
+            while (allSlots.Count < m_SlotCount)
+            {
+                GameObject newSlotObj = Instantiate(allSlots[0].gameObject, transform);
+                newSlotObj.name = $"WaterSlot_{allSlots.Count + 1}";
+                ShipSlot newSlot = newSlotObj.GetComponent<ShipSlot>();
+                if (newSlot != null)
+                {
+                    newSlot.SlotIndex = allSlots.Count;
+                    newSlot.ReleaseShip();
+                }
+                allSlots.Add(newSlot);
+            }
+
+            // İstenen sayı kadarını aktif yap, fazlasını deaktive et
+            for (int i = 0; i < allSlots.Count; i++)
+            {
+                if (allSlots[i] != null)
+                {
+                    allSlots[i].SlotIndex = i;
+                    bool shouldBeActive = (i < m_SlotCount);
+                    if (allSlots[i].gameObject.activeSelf != shouldBeActive)
+                    {
+                        allSlots[i].gameObject.SetActive(shouldBeActive);
+                    }
+                }
+            }
+
+            ApplyLayout();
+        }
+
         private void OnValidate()
         {
             if (m_SlotWidth <= 0.001f) m_SlotWidth = m_SlotScale > 0.001f ? m_SlotScale : 1.15f;
@@ -105,6 +180,7 @@ namespace PixelGame
 
         private void Reset()
         {
+            m_SlotCount = 5;
             m_SlotWidth = 1.15f;
             m_SlotLength = 1.15f;
             m_SlotScale = 1.15f;
@@ -117,26 +193,36 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Tüm çocuk slot nesnelerini Inspector'daki değerlere göre anında yeniden hizalar ve ölçekler.
+        /// Tüm aktif çocuk slot nesnelerini Inspector'daki değerlere göre anında yeniden hizalar ve ölçekler.
         /// </summary>
         [ContextMenu("Slotları Yeniden Hizala (Apply Layout)")]
         public void ApplyLayout()
         {
             transform.localPosition = new Vector3(transform.localPosition.x, m_OffsetY, m_OffsetZ);
 
-            var slots = GetComponentsInChildren<ShipSlot>(true);
-            if (slots == null || slots.Length == 0) return;
+            var allSlots = GetComponentsInChildren<ShipSlot>(true);
+            if (allSlots == null || allSlots.Length == 0) return;
 
-            Array.Sort(slots, (a, b) => a.SlotIndex.CompareTo(b.SlotIndex));
+            // Sadece aktif slotları filtrele ve sırala
+            var activeSlots = new System.Collections.Generic.List<ShipSlot>();
+            for (int i = 0; i < allSlots.Length; i++)
+            {
+                if (allSlots[i] != null && allSlots[i].gameObject.activeSelf)
+                {
+                    activeSlots.Add(allSlots[i]);
+                }
+            }
 
-            int count = slots.Length;
+            activeSlots.Sort((a, b) => a.SlotIndex.CompareTo(b.SlotIndex));
+
+            int count = activeSlots.Count;
+            if (count == 0) return;
+
             float startX = -(count - 1) * m_SlotSpacing * 0.5f;
 
             for (int i = 0; i < count; i++)
             {
-                var slot = slots[i];
-                if (slot == null) continue;
-
+                var slot = activeSlots[i];
                 Transform tr = slot.transform;
                 float posX = startX + i * m_SlotSpacing;
 

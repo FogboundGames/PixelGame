@@ -13,20 +13,20 @@ MonoBehaviour:
   m_Name: LevelSequence
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.LevelSequence
   m_Levels:
-  - {fileID: 11400000, guid: 85848949177f4235a3f3ef3e3efb98fc, type: 2}
-  - {fileID: 11400000, guid: ec26301e3251463d94f2c891a979cac9, type: 2}
   - {fileID: 11400000, guid: e306336b412b46cba91733c61ff05438, type: 2}
-  - {fileID: 11400000, guid: 7124cdb31c4f48daba390840737d67c3, type: 2}
-  - {fileID: 11400000, guid: 11ea177cca7f4cad9ce14693b2bb0cb4, type: 2}
-  - {fileID: 11400000, guid: 4910ab346f5842059ea9a804a0073ef5, type: 2}
+  - {fileID: 11400000, guid: 85848949177f4235a3f3ef3e3efb98fc, type: 2}
+  - {fileID: 11400000, guid: 4a0f059b828cef1e79e7e838f99c7e28, type: 2}
+  - {fileID: 11400000, guid: ebd3c3b785b2b80269615eee4bb2cf4c, type: 2}
+  - {fileID: 11400000, guid: b3f60e2c2f3f776b18c0b05ef5bdc439, type: 2}
+  - {fileID: 11400000, guid: a8b3ff04b221a86e3921f3e8afe2d8f4, type: 2}
+  - {fileID: 11400000, guid: dd5748e39cc502847963d55c4fde8fb4, type: 2}
+  - {fileID: 11400000, guid: 6fe2fa3bd5211015693802a2f4cb3f4b, type: 2}
+  - {fileID: 11400000, guid: fc26cc490965f31a6b4dc394b359b6a9, type: 2}
+  - {fileID: 11400000, guid: f67364c4a12b67a808d9cb06e4921e28, type: 2}
+  - {fileID: 11400000, guid: 30f5dc06c044c3362947aeef85fa5bea, type: 2}
   - {fileID: 11400000, guid: 57a0fff35a166510fae3056278cfb34a, type: 2}
   - {fileID: 11400000, guid: d624921f186e76992ac7f83888ddc142, type: 2}
-  - {fileID: 11400000, guid: 6fe2fa3bd5211015693802a2f4cb3f4b, type: 2}
-  - {fileID: 11400000, guid: ebd3c3b785b2b80269615eee4bb2cf4c, type: 2}
-  - {fileID: 11400000, guid: dd5748e39cc502847963d55c4fde8fb4, type: 2}
-  - {fileID: 11400000, guid: b3f60e2c2f3f776b18c0b05ef5bdc439, type: 2}
-  - {fileID: 11400000, guid: f67364c4a12b67a808d9cb06e4921e28, type: 2}
-  - {fileID: 11400000, guid: 4a0f059b828cef1e79e7e838f99c7e28, type: 2}
-  - {fileID: 11400000, guid: a8b3ff04b221a86e3921f3e8afe2d8f4, type: 2}
-  - {fileID: 11400000, guid: fc26cc490965f31a6b4dc394b359b6a9, type: 2}
-  - {fileID: 11400000, guid: 30f5dc06c044c3362947aeef85fa5bea, type: 2}
+  - {fileID: 11400000, guid: 4910ab346f5842059ea9a804a0073ef5, type: 2}
+  - {fileID: 11400000, guid: 11ea177cca7f4cad9ce14693b2bb0cb4, type: 2}
+  - {fileID: 11400000, guid: 7124cdb31c4f48daba390840737d67c3, type: 2}
+  - {fileID: 11400000, guid: ec26301e3251463d94f2c891a979cac9, type: 2}

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_14_Rocket
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Rocket
-  m_LevelIndex: 14
+  m_LevelIndex: 3
   m_LevelTexture: {fileID: 2800000, guid: 1c89332aa3e0094fda706e1e0c5e311e, type: 3}
   m_OriginalSourceTexture: {fileID: 2800000, guid: 3341c5042695bdb6f825d68af98ad7a6, type: 3}
   m_LevelSprite: {fileID: 0}

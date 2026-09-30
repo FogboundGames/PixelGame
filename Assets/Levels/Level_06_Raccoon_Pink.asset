@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: Level_06_Raccoon_Pink
   m_EditorClassIdentifier: PixelGame::PixelGame.PixelLevelData
   m_LevelName: Pembe Rakun (Toon 11)
-  m_LevelIndex: 6
+  m_LevelIndex: 14
   m_LevelTexture: {fileID: 2800000, guid: 99de842fd80d47e889fa0caa8e6b1150, type: 3}
+  m_OriginalSourceTexture: {fileID: 0}
   m_LevelSprite: {fileID: 0}
   m_UseNativeResolution: 1
   m_CustomResolution: {x: 24, y: 24}

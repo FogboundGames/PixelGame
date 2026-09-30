@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_12_Gameboy
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Gameboy
-  m_LevelIndex: 12
+  m_LevelIndex: 5
   m_LevelTexture: {fileID: 2800000, guid: c4e3aa23e92ba9b24b7ee1633124d371, type: 3}
   m_OriginalSourceTexture: {fileID: 2800000, guid: 392292cdeee2a52d68428107f9797a6b, type: 3}
   m_LevelSprite: {fileID: 0}

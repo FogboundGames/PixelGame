@@ -671,7 +671,7 @@ namespace PixelGame.Editor
             DrawTabButton(DetailTab.SimpleMode, "⚡ Kolay Mod (Gemi)", tabStyle);
             DrawTabButton(DetailTab.LevelSetup, "📋 Bölüm & Izgara", tabStyle);
             DrawTabButton(DetailTab.ColorStudio, "🎨 Piksel Renkleri & TCP2", tabStyle);
-            DrawTabButton(DetailTab.TruckLayout, "🚚 Vagon & Ray Düzeni", tabStyle);
+            DrawTabButton(DetailTab.TruckLayout, "🚢 Gemi / Vagon Sıra Düzeni", tabStyle);
             DrawTabButton(DetailTab.SceneTools, "🛠️ Sahne Araçları", tabStyle);
             EditorGUILayout.EndHorizontal();
         }
@@ -1803,9 +1803,9 @@ namespace PixelGame.Editor
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
             EditorGUILayout.HelpBox(
-                "🚚 Bu sekme KAMYON sahnesi (SampleScene.unity) içindir.\n" +
-                "Eğer GEMİ sahnesi (Gemi.unity) ile çalışıyorsanız vagon ve ray dizilimi yapmanıza gerek yoktur; " +
-                "gemiler ve kapasiteler tahtadan otomatik seçilir.", MessageType.Info);
+                "🚢 Bu sekme hem GEMİ (Gemi.unity) hem de KAMYON (SampleScene.unity) sahnesi içindir.\n" +
+                "Bölümdeki toplam küp sayısına göre gemilerin/vagonların kaçlı olacağını (16'lık, 20'lik vb.), hangi renkle ve hangi sırayla " +
+                "geleceğini buradan otomatik (akıllı) dağıtabilir veya elle özelleştirebilirsiniz. 'Manuel Sıra' açık olduğunda oyunda birebir bu sıra kullanılır.", MessageType.Info);
 
             // 1. Üst Kontrol & Denge Şeridi
             DrawSmartGridTopBar();
@@ -1837,7 +1837,7 @@ namespace PixelGame.Editor
                 fontSize = 13,
                 normal = { textColor = new Color(0.2f, 0.85f, 1f) }
             };
-            EditorGUILayout.LabelField("🚚 Vagon & Havuz Matris Tasarımcısı", titleStyle, GUILayout.Width(235));
+            EditorGUILayout.LabelField("🚢 Gemi & Vagon Sıra Tasarımcısı", titleStyle, GUILayout.Width(240));
 
             EditorGUI.BeginChangeCheck();
             bool manual = EditorGUILayout.ToggleLeft("⚡ Manuel Sıra", m_SelectedLevel.UseCustomWagonSequence, EditorStyles.boldLabel, GUILayout.Width(115));
@@ -1939,7 +1939,14 @@ namespace PixelGame.Editor
                 EditorUtility.SetDirty(m_SelectedLevel);
                 NotifyLiveSceneUpdate();
             }
-            m_TargetGridRows = EditorGUILayout.IntField(m_TargetGridRows, GUILayout.Width(26));
+            int newRows = EditorGUILayout.IntField(m_TargetGridRows, GUILayout.Width(26));
+            if (newRows != m_TargetGridRows)
+            {
+                m_TargetGridRows = Mathf.Clamp(newRows, 1, 12);
+                m_SelectedLevel.PoolRows = m_TargetGridRows;
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+            }
             if (GUILayout.Button("+", EditorStyles.toolbarButton, GUILayout.Width(18)))
             {
                 m_TargetGridRows = Mathf.Min(12, m_TargetGridRows + 1);
@@ -1958,7 +1965,14 @@ namespace PixelGame.Editor
                 EditorUtility.SetDirty(m_SelectedLevel);
                 NotifyLiveSceneUpdate();
             }
-            m_GridColumnsPerRow = EditorGUILayout.IntField(m_GridColumnsPerRow, GUILayout.Width(26));
+            int newCols = EditorGUILayout.IntField(m_GridColumnsPerRow, GUILayout.Width(26));
+            if (newCols != m_GridColumnsPerRow)
+            {
+                m_GridColumnsPerRow = Mathf.Clamp(newCols, 1, 8);
+                m_SelectedLevel.PoolColumns = m_GridColumnsPerRow;
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+            }
             if (GUILayout.Button("+", EditorStyles.toolbarButton, GUILayout.Width(18)))
             {
                 m_GridColumnsPerRow = Mathf.Min(8, m_GridColumnsPerRow + 1);
@@ -1993,7 +2007,13 @@ namespace PixelGame.Editor
                 EditorUtility.SetDirty(m_SelectedLevel);
                 NotifyLiveSceneUpdate();
             }
-            m_SelectedLevel.SlotCount = EditorGUILayout.IntField(m_SelectedLevel.SlotCount, GUILayout.Width(26));
+            int newSlots = EditorGUILayout.IntField(m_SelectedLevel.SlotCount, GUILayout.Width(26));
+            if (newSlots != m_SelectedLevel.SlotCount)
+            {
+                m_SelectedLevel.SlotCount = Mathf.Clamp(newSlots, 1, 8);
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+            }
             if (GUILayout.Button("+", EditorStyles.toolbarButton, GUILayout.Width(18)))
             {
                 m_SelectedLevel.SlotCount = Mathf.Min(8, m_SelectedLevel.SlotCount + 1);
@@ -2300,7 +2320,7 @@ namespace PixelGame.Editor
                 for (int c = 0; c < cols; c++)
                 {
                     int slotIndex = startIdx + c;
-                    DrawGridSlotTile(slotIndex, r, c);
+                    DrawGridSlotTile(slotIndex, r, c, cols);
                 }
 
                 GUILayout.FlexibleSpace();
@@ -2326,14 +2346,14 @@ namespace PixelGame.Editor
             EditorGUILayout.EndVertical();
         }
 
-        private void DrawGridSlotTile(int slotIndex, int r, int c)
+        private void DrawGridSlotTile(int slotIndex, int r, int c, int cols)
         {
             var sequence = m_SelectedLevel.WagonSequence;
             bool isFilled = (slotIndex < sequence.Count && sequence[slotIndex] != null);
             bool isSwapSelected = (m_SelectedSlotForSwap == slotIndex);
 
-            float cardWidth = 152f;
-            float cardHeight = 92f;
+            float cardWidth = 158f;
+            float cardHeight = 118f;
 
             if (isFilled)
             {
@@ -2341,12 +2361,12 @@ namespace PixelGame.Editor
                 Color wc = wagon.wagonColor;
                 string cDisplayName = GetColorDisplayName(wc, wagon.label, slotIndex);
 
-                // Dış Kutu (Swap seçiliyse sarı kenarlık)
-                GUI.backgroundColor = isSwapSelected ? Color.yellow : Color.white;
+                // Dış Kutu (Swap seçiliyse parlak sarı kenarlık)
+                GUI.backgroundColor = isSwapSelected ? new Color(1f, 0.92f, 0.25f) : Color.white;
                 EditorGUILayout.BeginVertical("box", GUILayout.Width(cardWidth), GUILayout.Height(cardHeight));
                 GUI.backgroundColor = Color.white;
 
-                // Üst Şerit: Vagon Rengi + Numara + Silme Butonu
+                // 1. Üst Şerit: Vagon Rengi + Numara + Silme Butonu
                 Rect topRect = EditorGUILayout.GetControlRect(false, 20);
                 EditorGUI.DrawRect(topRect, wc);
 
@@ -2375,36 +2395,46 @@ namespace PixelGame.Editor
                     return;
                 }
 
-                // Orta Alan: Tıklanabilir Gövde (Fırça / Takas / Boşalt)
-                GUIStyle bodyBtnStyle = new GUIStyle(GUI.skin.label)
-                {
-                    alignment = TextAnchor.MiddleCenter,
-                    fontSize = 10,
-                    fontStyle = FontStyle.Bold
-                };
-
-                string actionPrompt = "🛒 Vagon";
-                if (m_ActiveBrushPaletteIndex >= 0 && m_ActiveBrushPaletteIndex < m_SelectedLevel.ColorPalette.Count)
-                {
-                    var brushEntry = m_SelectedLevel.ColorPalette[m_ActiveBrushPaletteIndex];
-                    string bName = GetColorDisplayName(brushEntry.targetColor, brushEntry.label, m_ActiveBrushPaletteIndex);
-                    actionPrompt = $"🖌️ {bName} Yap";
-                }
-                else if (m_ActiveBrushPaletteIndex == -2)
-                {
-                    actionPrompt = "🧹 Boşalt";
-                }
-                else if (isSwapSelected)
-                {
-                    actionPrompt = "⭐ Taşınacak";
-                }
-
-                if (GUILayout.Button(actionPrompt, bodyBtnStyle, GUILayout.Height(18)))
+                // 2. Takas / Seçim Butonu
+                string swapBtnText = isSwapSelected ? "⭐ SEÇİLDİ (Hedefe Tıkla)" : "⇄ Taşı / Takas";
+                GUI.backgroundColor = isSwapSelected ? new Color(1f, 0.88f, 0.2f) : Color.white;
+                if (GUILayout.Button(swapBtnText, EditorStyles.miniButton, GUILayout.Height(18)))
                 {
                     HandleSlotClick(slotIndex);
                 }
+                GUI.backgroundColor = Color.white;
 
-                // Kapasite Stepper Kontrolü
+                // 3. Tekil Yön Okları Pad'i: ◀ (Sol) | ▲ (Üst Kolon) | ▼ (Alt Kolon) | ▶ (Sağ)
+                EditorGUILayout.BeginHorizontal();
+
+                GUI.enabled = slotIndex > 0;
+                if (GUILayout.Button(new GUIContent("◀", "Solundaki vagonla yer değiştir"), EditorStyles.miniButton, GUILayout.Width(28), GUILayout.Height(18)))
+                {
+                    SwapWagons(slotIndex, slotIndex - 1);
+                }
+
+                GUI.enabled = slotIndex >= cols;
+                if (GUILayout.Button(new GUIContent("▲", "Üst dalgadaki aynı kolonla yer değiştir"), EditorStyles.miniButton, GUILayout.Width(28), GUILayout.Height(18)))
+                {
+                    SwapWagons(slotIndex, slotIndex - cols);
+                }
+
+                GUI.enabled = true;
+                if (GUILayout.Button(new GUIContent("▼", "Alt dalgadaki aynı kolonla yer değiştir"), EditorStyles.miniButton, GUILayout.Width(28), GUILayout.Height(18)))
+                {
+                    SwapWagons(slotIndex, slotIndex + cols);
+                }
+
+                GUI.enabled = true;
+                if (GUILayout.Button(new GUIContent("▶", "Sağındaki vagonla yer değiştir"), EditorStyles.miniButton, GUILayout.Width(28), GUILayout.Height(18)))
+                {
+                    SwapWagons(slotIndex, slotIndex + 1);
+                }
+                GUI.enabled = true;
+
+                EditorGUILayout.EndHorizontal();
+
+                // 4. Kapasite Stepper Kontrolü
                 EditorGUILayout.BeginHorizontal();
                 GUILayout.Label("Kap:", EditorStyles.miniBoldLabel, GUILayout.Width(26));
 
@@ -2452,7 +2482,7 @@ namespace PixelGame.Editor
 
                 EditorGUILayout.EndHorizontal();
 
-                // Hızlı Renk Noktaları (Tek tıkla rengi doğrudan değiştir)
+                // 5. Hızlı Renk Noktaları (Tek tıkla rengi doğrudan değiştir)
                 if (m_SelectedLevel.ColorPalette != null && m_SelectedLevel.ColorPalette.Count > 0)
                 {
                     EditorGUILayout.Space(1);
@@ -2495,16 +2525,16 @@ namespace PixelGame.Editor
                 };
                 GUILayout.Label($"⭕ Boş Slot #{slotIndex + 1}", emptyTitle, GUILayout.Height(18));
 
-                GUI.backgroundColor = (m_ActiveBrushPaletteIndex >= 0) ? new Color(0.3f, 0.88f, 0.5f) : Color.white;
-                string emptyBtnLabel = "+ Vagon Ekle";
-                if (m_ActiveBrushPaletteIndex >= 0 && m_ActiveBrushPaletteIndex < m_SelectedLevel.ColorPalette.Count)
+                string emptyBtnLabel = (m_SelectedSlotForSwap != -1) ? $"⬇ Buraya Taşı (#{m_SelectedSlotForSwap + 1})" : "+ Vagon Ekle";
+                GUI.backgroundColor = (m_SelectedSlotForSwap != -1) ? new Color(0.3f, 0.88f, 0.5f) : (m_ActiveBrushPaletteIndex >= 0 ? new Color(0.3f, 0.88f, 0.5f) : Color.white);
+                if (m_ActiveBrushPaletteIndex >= 0 && m_ActiveBrushPaletteIndex < m_SelectedLevel.ColorPalette.Count && m_SelectedSlotForSwap == -1)
                 {
                     var bEntry = m_SelectedLevel.ColorPalette[m_ActiveBrushPaletteIndex];
                     string bName = GetColorDisplayName(bEntry.targetColor, bEntry.label, m_ActiveBrushPaletteIndex);
                     emptyBtnLabel = $"🖌️ {bName} Yerleştir";
                 }
 
-                if (GUILayout.Button(emptyBtnLabel, EditorStyles.miniButton, GUILayout.Height(30)))
+                if (GUILayout.Button(emptyBtnLabel, EditorStyles.miniButton, GUILayout.Height(28)))
                 {
                     HandleSlotClick(slotIndex);
                 }
@@ -2535,6 +2565,43 @@ namespace PixelGame.Editor
 
                 EditorGUILayout.EndVertical();
             }
+        }
+
+        private void SwapWagons(int a, int b)
+        {
+            var sequence = m_SelectedLevel.WagonSequence;
+            if (sequence == null) sequence = m_SelectedLevel.WagonSequence = new List<WagonSequenceEntry>();
+            if (a < 0 || b < 0) return;
+
+            Undo.RecordObject(m_SelectedLevel, "Swap Wagons");
+
+            while (sequence.Count <= Mathf.Max(a, b))
+            {
+                sequence.Add(null);
+            }
+
+            (sequence[a], sequence[b]) = (sequence[b], sequence[a]);
+
+            // Listenin sonundaki boşlukları temizle
+            while (sequence.Count > 0 && sequence[sequence.Count - 1] == null)
+            {
+                sequence.RemoveAt(sequence.Count - 1);
+            }
+
+            // Etiketleri sıra numarasına göre güncelle (#1, #2, ...)
+            for (int i = 0; i < sequence.Count; i++)
+            {
+                if (sequence[i] != null)
+                {
+                    string cName = GetColorDisplayName(sequence[i].wagonColor, sequence[i].label, i);
+                    sequence[i].label = $"{cName} (#{i + 1})";
+                }
+            }
+
+            m_SelectedSlotForSwap = -1;
+            m_SelectedLevel.UseCustomWagonSequence = true;
+            EditorUtility.SetDirty(m_SelectedLevel);
+            NotifyLiveSceneUpdate();
         }
 
         private void HandleSlotClick(int slotIndex)
@@ -2583,7 +2650,6 @@ namespace PixelGame.Editor
                 }
                 else
                 {
-                    // Boş slota tıklandıysa otomatik sıradaki eksik rengi koy
                     Color missingColor = GetNextMissingColorOrDefault();
                     string defName = GetColorDisplayName(missingColor, "", slotIndex);
                     int cap = Mathf.Max(1, m_SelectedLevel.TruckCapacity);
@@ -2596,26 +2662,7 @@ namespace PixelGame.Editor
             }
             else
             {
-                // İki slotu takas et / taşı
-                Undo.RecordObject(m_SelectedLevel, "Swap Wagons");
-
-                while (sequence.Count <= Mathf.Max(m_SelectedSlotForSwap, slotIndex))
-                {
-                    sequence.Add(null);
-                }
-
-                (sequence[m_SelectedSlotForSwap], sequence[slotIndex]) = (sequence[slotIndex], sequence[m_SelectedSlotForSwap]);
-
-                // Listenin sonundaki null'ları temizle
-                while (sequence.Count > 0 && sequence[sequence.Count - 1] == null)
-                {
-                    sequence.RemoveAt(sequence.Count - 1);
-                }
-
-                m_SelectedSlotForSwap = -1;
-                m_SelectedLevel.UseCustomWagonSequence = true;
-                EditorUtility.SetDirty(m_SelectedLevel);
-                NotifyLiveSceneUpdate();
+                SwapWagons(m_SelectedSlotForSwap, slotIndex);
             }
         }
 
@@ -2627,6 +2674,70 @@ namespace PixelGame.Editor
             public Dictionary<Color, int> exposedPerColor;
             public Dictionary<Color, string> colorNames;
             public Dictionary<Color, int> paletteIndices;
+        }
+
+        private Dictionary<Vector2Int, Color> GetLevelPixelGrid()
+        {
+            var grid = new Dictionary<Vector2Int, Color>();
+            if (m_SelectedLevel == null) return grid;
+
+            // 1. Önce doğrudan 2D seviye dokusundan piksel haritası oku
+            Texture2D tex = m_SelectedLevel.GetActiveTexture();
+            if (tex != null)
+            {
+                EnsureTextureReadable(tex);
+                int w = tex.width;
+                int h = tex.height;
+                Color32[] raw = tex.GetPixels32();
+
+                for (int y = 0; y < h; y++)
+                {
+                    for (int x = 0; x < w; x++)
+                    {
+                        Color32 p32 = raw[y * w + x];
+                        if (p32.a < 25) continue;
+                        Color c = p32;
+
+                        Color matched = c;
+                        if (m_SelectedLevel.ColorPalette != null)
+                        {
+                            for (int p = 0; p < m_SelectedLevel.ColorPalette.Count; p++)
+                            {
+                                var pEntry = m_SelectedLevel.ColorPalette[p];
+                                if (pEntry != null && PaletteColorOverride.ColorsMatch(pEntry.targetColor, c, 0.08f))
+                                {
+                                    matched = pEntry.targetColor;
+                                    break;
+                                }
+                            }
+                        }
+                        grid[new Vector2Int(x, y)] = matched;
+                    }
+                }
+                if (grid.Count > 0) return grid;
+            }
+
+            // 2. Doku yoksa sahnedeki 3D küplerden oku
+            PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
+            PixelCube[] sceneCubes = null;
+            if (gen != null && gen.CubesContainer != null)
+            {
+                sceneCubes = gen.CubesContainer.GetComponentsInChildren<PixelCube>();
+            }
+            if (sceneCubes == null || sceneCubes.Length == 0)
+            {
+                sceneCubes = Object.FindObjectsByType<PixelCube>(FindObjectsSortMode.None);
+            }
+            if (sceneCubes != null)
+            {
+                foreach (var cube in sceneCubes)
+                {
+                    if (cube == null || !cube.gameObject.activeSelf || cube.IsPopped) continue;
+                    grid[new Vector2Int(cube.GridX, cube.GridY)] = cube.CurrentColor;
+                }
+            }
+
+            return grid;
         }
 
         private SceneCubeCountResult CountCubesFromSceneOrPalette()
@@ -2643,46 +2754,24 @@ namespace PixelGame.Editor
 
             if (m_SelectedLevel == null) return result;
 
-            // 1. Sahnedeki 3D küpleri topla
-            PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
-            PixelCube[] sceneCubes = null;
-            if (gen != null && gen.CubesContainer != null && gen.CubesContainer.childCount > 0)
+            var grid = GetLevelPixelGrid();
+            if (grid.Count > 0)
             {
-                sceneCubes = gen.CubesContainer.GetComponentsInChildren<PixelCube>();
-            }
-            if (sceneCubes == null || sceneCubes.Length == 0)
-            {
-                sceneCubes = Object.FindObjectsByType<PixelCube>(FindObjectsSortMode.None);
-            }
-
-            if (sceneCubes != null && sceneCubes.Length > 0)
-            {
-                Dictionary<(int, int), PixelCube> gridMap = null;
-                try
+                result.fromScene = true;
+                foreach (var kvp in grid)
                 {
-                    gridMap = Miner.BuildCubeGridMap(sceneCubes);
-                }
-                catch { }
+                    Vector2Int pos = kvp.Key;
+                    Color c = kvp.Value;
 
-                foreach (var cube in sceneCubes)
-                {
-                    if (cube == null || !cube.gameObject.activeSelf || cube.IsPopped) continue;
-                    Color rawColor = cube.CurrentColor;
-                    if (rawColor.a < 0.1f) continue;
-
-                    Color matchedColor = rawColor;
-                    string label = "";
                     int palIdx = 0;
-
-                    if (m_SelectedLevel.ColorPalette != null && m_SelectedLevel.ColorPalette.Count > 0)
+                    string label = "";
+                    if (m_SelectedLevel.ColorPalette != null)
                     {
                         for (int p = 0; p < m_SelectedLevel.ColorPalette.Count; p++)
                         {
                             var pEntry = m_SelectedLevel.ColorPalette[p];
-                            if (pEntry == null) continue;
-                            if (PaletteColorOverride.ColorsMatch(pEntry.targetColor, rawColor, 0.08f))
+                            if (pEntry != null && PaletteColorOverride.ColorsMatch(pEntry.targetColor, c, 0.08f))
                             {
-                                matchedColor = pEntry.targetColor;
                                 label = pEntry.label;
                                 palIdx = p;
                                 break;
@@ -2690,41 +2779,29 @@ namespace PixelGame.Editor
                         }
                     }
 
-                    if (!result.totalPerColor.ContainsKey(matchedColor))
+                    if (!result.totalPerColor.ContainsKey(c))
                     {
-                        result.totalPerColor[matchedColor] = 0;
-                        result.exposedPerColor[matchedColor] = 0;
-                        result.colorNames[matchedColor] = GetColorDisplayName(matchedColor, label, palIdx);
-                        result.paletteIndices[matchedColor] = palIdx;
+                        result.totalPerColor[c] = 0;
+                        result.exposedPerColor[c] = 0;
+                        result.colorNames[c] = GetColorDisplayName(c, label, palIdx);
+                        result.paletteIndices[c] = palIdx;
                     }
 
-                    result.totalPerColor[matchedColor]++;
+                    result.totalPerColor[c]++;
                     result.totalCubes++;
 
-                    bool isExposed = true;
-                    if (gridMap != null)
-                    {
-                        try
-                        {
-                            isExposed = Miner.IsCubeExposed(cube, gridMap);
-                        }
-                        catch { isExposed = true; }
-                    }
+                    bool isExposed = !grid.ContainsKey(new Vector2Int(pos.x - 1, pos.y)) ||
+                                     !grid.ContainsKey(new Vector2Int(pos.x + 1, pos.y)) ||
+                                     !grid.ContainsKey(new Vector2Int(pos.x, pos.y - 1)) ||
+                                     !grid.ContainsKey(new Vector2Int(pos.x, pos.y + 1));
 
                     if (isExposed)
                     {
-                        result.exposedPerColor[matchedColor]++;
+                        result.exposedPerColor[c]++;
                     }
                 }
-
-                if (result.totalPerColor.Count > 0)
-                {
-                    result.fromScene = true;
-                }
             }
-
-            // 2. Sahneden bulunamadıysa Bölümün Renk Paleti verisini kullan (Fallback)
-            if (!result.fromScene && m_SelectedLevel.ColorPalette != null)
+            else if (m_SelectedLevel.ColorPalette != null)
             {
                 for (int p = 0; p < m_SelectedLevel.ColorPalette.Count; p++)
                 {
@@ -2757,213 +2834,140 @@ namespace PixelGame.Editor
 
             int capPerWagon = Mathf.Max(1, m_SelectedLevel.TruckCapacity);
 
-            // Her renk için gereken vagon listesi oluştur
-            Dictionary<Color, List<WagonSequenceEntry>> colorWagons = new Dictionary<Color, List<WagonSequenceEntry>>();
-            int totalGeneratedWagons = 0;
+            // Simülasyon için ızgarayı al
+            Dictionary<Vector2Int, Color> simGrid = GetLevelPixelGrid();
+            Dictionary<Color, int> remainingTotal = new Dictionary<Color, int>(scan.totalPerColor);
 
-            foreach (var kvp in scan.totalPerColor)
-            {
-                Color c = kvp.Key;
-                int remaining = kvp.Value;
-                string name = scan.colorNames[c];
-                int palIdx = scan.paletteIndices[c];
-
-                var wList = new List<WagonSequenceEntry>();
-                while (remaining > 0)
-                {
-                    int load = Mathf.Min(capPerWagon, remaining);
-                    wList.Add(new WagonSequenceEntry(c, load, palIdx, $"{name} ({load})"));
-                    remaining -= load;
-                }
-                colorWagons[c] = wList;
-                totalGeneratedWagons += wList.Count;
-            }
-
-            // Bulmaca akışını seçilen zorluk moduna göre oluştur:
             var sequence = new List<WagonSequenceEntry>();
 
-            if (m_WagonDifficulty == WagonDifficultyMode.Easy)
+            if (simGrid.Count == 0)
             {
-                // 🟢 KOLAY MOD (Risksiz & Akıcı):
-                // En çok dış yüzeyi (exposed) olan renkler en başa gelir.
-                // Tamamen gömülü renkler (exposed == 0) en son dalgalara ertelenir.
-                // Aynı renkten 1-2 vagon peş peşe verilerek oyuncunun o rengi hızla bitirip raydan göndermesi sağlanır (sıfır kilit).
-                List<Color> sortedColors = new List<Color>(scan.totalPerColor.Keys);
-                sortedColors.Sort((a, b) =>
+                foreach (var kvp in remainingTotal)
                 {
-                    int expA = scan.exposedPerColor.ContainsKey(a) ? scan.exposedPerColor[a] : 0;
-                    int expB = scan.exposedPerColor.ContainsKey(b) ? scan.exposedPerColor[b] : 0;
-                    if (expA != expB) return expB.CompareTo(expA);
-                    return scan.totalPerColor[b].CompareTo(scan.totalPerColor[a]);
-                });
-
-                List<Color> exposedColors = new List<Color>();
-                List<Color> buriedColors = new List<Color>();
-                foreach (var c in sortedColors)
-                {
-                    int exp = scan.exposedPerColor.ContainsKey(c) ? scan.exposedPerColor[c] : 0;
-                    if (exp > 0) exposedColors.Add(c);
-                    else buriedColors.Add(c);
-                }
-
-                while (exposedColors.Count > 0)
-                {
-                    for (int i = 0; i < exposedColors.Count; i++)
+                    int rem = kvp.Value;
+                    while (rem > 0)
                     {
-                        Color c = exposedColors[i];
-                        var bucket = colorWagons[c];
-                        if (bucket.Count > 0)
-                        {
-                            int take = Mathf.Min(bucket.Count, 2);
-                            for (int t = 0; t < take; t++)
-                            {
-                                sequence.Add(bucket[0]);
-                                bucket.RemoveAt(0);
-                            }
-                        }
-                    }
-
-                    for (int i = exposedColors.Count - 1; i >= 0; i--)
-                    {
-                        if (colorWagons[exposedColors[i]].Count == 0)
-                        {
-                            exposedColors.RemoveAt(i);
-                        }
-                    }
-                }
-
-                // Gömülü renkler en sonda gelir
-                foreach (var c in buriedColors)
-                {
-                    var bucket = colorWagons[c];
-                    while (bucket.Count > 0)
-                    {
-                        sequence.Add(bucket[0]);
-                        bucket.RemoveAt(0);
-                    }
-                }
-            }
-            else if (m_WagonDifficulty == WagonDifficultyMode.Hard)
-            {
-                // 🔴 ZOR MOD (Taktiksel & Slot Baskısı):
-                // Açık renklerin arasına, henüz az açık veya gömülü renklerin vagonları erken enjekte edilir.
-                // Bu vagonlar ray slotlarını işgal ederek oyuncuyu diğer slotları dikkatle kullanıp yolu açmaya zorlar.
-                List<Color> highExposed = new List<Color>();
-                List<Color> lowOrBuried = new List<Color>();
-
-                foreach (var kvp in scan.totalPerColor)
-                {
-                    Color c = kvp.Key;
-                    int tot = kvp.Value;
-                    int exp = scan.exposedPerColor.ContainsKey(c) ? scan.exposedPerColor[c] : 0;
-                    float ratio = tot > 0 ? (float)exp / tot : 1f;
-
-                    if (ratio >= 0.4f && exp > 0)
-                        highExposed.Add(c);
-                    else
-                        lowOrBuried.Add(c);
-                }
-
-                if (highExposed.Count == 0) highExposed.AddRange(lowOrBuried);
-                if (lowOrBuried.Count == 0) lowOrBuried.AddRange(highExposed);
-
-                int step = 0;
-                while (sequence.Count < totalGeneratedWagons)
-                {
-                    step++;
-                    // 2. adımda ve her 3 adımda bir gömülü vagon enjekte et (ray slotunu bağlama taktiği)
-                    bool injectBuried = (step == 2 || step % 3 == 0) && lowOrBuried.Count > 0;
-                    Color pickColor = Color.black;
-                    bool found = false;
-
-                    if (injectBuried)
-                    {
-                        for (int i = 0; i < lowOrBuried.Count; i++)
-                        {
-                            Color c = lowOrBuried[i];
-                            if (colorWagons[c].Count > 0)
-                            {
-                                pickColor = c;
-                                found = true;
-                                lowOrBuried.RemoveAt(i);
-                                lowOrBuried.Add(c);
-                                break;
-                            }
-                        }
-                    }
-
-                    if (!found)
-                    {
-                        for (int i = 0; i < highExposed.Count; i++)
-                        {
-                            Color c = highExposed[i];
-                            if (colorWagons[c].Count > 0)
-                            {
-                                pickColor = c;
-                                found = true;
-                                highExposed.RemoveAt(i);
-                                highExposed.Add(c);
-                                break;
-                            }
-                        }
-                    }
-
-                    if (!found)
-                    {
-                        foreach (var kvp in colorWagons)
-                        {
-                            if (kvp.Value.Count > 0)
-                            {
-                                pickColor = kvp.Key;
-                                found = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (found && colorWagons[pickColor].Count > 0)
-                    {
-                        sequence.Add(colorWagons[pickColor][0]);
-                        colorWagons[pickColor].RemoveAt(0);
-                    }
-                    else
-                    {
-                        break;
+                        int load = Mathf.Min(capPerWagon, rem);
+                        sequence.Add(new WagonSequenceEntry(kvp.Key, load, scan.paletteIndices[kvp.Key], $"{scan.colorNames[kvp.Key]} ({load})"));
+                        rem -= load;
                     }
                 }
             }
             else
             {
-                // 🟡 DENGELİ MOD (Standart Dağılım - Casual Puzzle):
-                // Açık yüzeyi yüksek renkler ilk dalgaya yayılır, ardından dönüşümlü (round-robin) dağıtılır.
-                List<Color> colorPriorityList = new List<Color>(scan.totalPerColor.Keys);
-                colorPriorityList.Sort((a, b) =>
-                {
-                    int expA = scan.exposedPerColor.ContainsKey(a) ? scan.exposedPerColor[a] : 0;
-                    int expB = scan.exposedPerColor.ContainsKey(b) ? scan.exposedPerColor[b] : 0;
-                    return expB.CompareTo(expA);
-                });
+                // Katman Katman Dıştan İçe Peeling Simülasyonu
+                Color lastChosenColor = Color.clear;
 
-                int colorIdx = 0;
-                while (colorPriorityList.Count > 0)
+                while (simGrid.Count > 0)
                 {
-                    Color curColor = colorPriorityList[colorIdx % colorPriorityList.Count];
-                    var bucket = colorWagons[curColor];
-
-                    if (bucket.Count > 0)
+                    // 1. Dış havaya temas eden (exposed) pikselleri bul
+                    Dictionary<Color, List<Vector2Int>> exposedByColor = new Dictionary<Color, List<Vector2Int>>();
+                    foreach (var kvp in simGrid)
                     {
-                        var wagon = bucket[0];
-                        bucket.RemoveAt(0);
-                        sequence.Add(wagon);
+                        Vector2Int p = kvp.Key;
+                        Color c = kvp.Value;
+
+                        bool exp = !simGrid.ContainsKey(new Vector2Int(p.x - 1, p.y)) ||
+                                   !simGrid.ContainsKey(new Vector2Int(p.x + 1, p.y)) ||
+                                   !simGrid.ContainsKey(new Vector2Int(p.x, p.y - 1)) ||
+                                   !simGrid.ContainsKey(new Vector2Int(p.x, p.y + 1));
+
+                        if (exp)
+                        {
+                            if (!exposedByColor.ContainsKey(c)) exposedByColor[c] = new List<Vector2Int>();
+                            exposedByColor[c].Add(p);
+                        }
                     }
 
-                    if (bucket.Count == 0)
+                    if (exposedByColor.Count == 0)
                     {
-                        colorPriorityList.RemoveAt(colorIdx % colorPriorityList.Count);
+                        foreach (var kvp in simGrid)
+                        {
+                            if (!exposedByColor.ContainsKey(kvp.Value)) exposedByColor[kvp.Value] = new List<Vector2Int>();
+                            exposedByColor[kvp.Value].Add(kvp.Key);
+                            break;
+                        }
                     }
-                    else
+
+                    // 2. Sadece şu anda dışa AÇIK olan renkler arasından seçim yap
+                    Color chosenColor = Color.clear;
+
+                    if (m_WagonDifficulty == WagonDifficultyMode.Easy)
                     {
-                        colorIdx++;
+                        // Kolay Mod: En çok açık yüzeyi olan rengi al, bitene kadar sürdür
+                        if (lastChosenColor != Color.clear && exposedByColor.ContainsKey(lastChosenColor) && remainingTotal[lastChosenColor] > 0)
+                        {
+                            chosenColor = lastChosenColor;
+                        }
+                        else
+                        {
+                            int maxExp = -1;
+                            foreach (var kvp in exposedByColor)
+                            {
+                                if (kvp.Value.Count > maxExp)
+                                {
+                                    maxExp = kvp.Value.Count;
+                                    chosenColor = kvp.Key;
+                                }
+                            }
+                        }
+                    }
+                    else if (m_WagonDifficulty == WagonDifficultyMode.Medium)
+                    {
+                        // Dengeli Mod: Açık yüzeyi olan renkler arasında dönüşümlü (round-robin) dağıt
+                        // Ama ASLA açık yüzeyi 0 olan bir rengi erkenden alma!
+                        List<Color> candidates = new List<Color>(exposedByColor.Keys);
+                        candidates.Sort((a, b) => exposedByColor[b].Count.CompareTo(exposedByColor[a].Count));
+
+                        if (lastChosenColor != Color.clear && candidates.Count > 1 && candidates[0] == lastChosenColor)
+                        {
+                            chosenColor = candidates[1];
+                        }
+                        else
+                        {
+                            chosenColor = candidates[0];
+                        }
+                    }
+                    else // Hard
+                    {
+                        List<Color> candidates = new List<Color>(exposedByColor.Keys);
+                        candidates.Sort((a, b) => exposedByColor[a].Count.CompareTo(exposedByColor[b].Count));
+                        chosenColor = candidates[0];
+                    }
+
+                    lastChosenColor = chosenColor;
+
+                    // 3. Vagon oluştur
+                    int remForColor = remainingTotal[chosenColor];
+                    int wagonLoad = Mathf.Min(capPerWagon, remForColor);
+                    int palIdx = scan.paletteIndices[chosenColor];
+                    string cName = scan.colorNames[chosenColor];
+
+                    sequence.Add(new WagonSequenceEntry(chosenColor, wagonLoad, palIdx, $"{cName} ({wagonLoad})"));
+                    remainingTotal[chosenColor] -= wagonLoad;
+
+                    // 4. Bu renkten 'wagonLoad' kadar açık pikseli simülasyondan soy (sil)
+                    var peelList = exposedByColor[chosenColor];
+                    int peeled = 0;
+                    foreach (var pt in peelList)
+                    {
+                        simGrid.Remove(pt);
+                        peeled++;
+                        if (peeled >= wagonLoad) break;
+                    }
+
+                    if (peeled < wagonLoad)
+                    {
+                        List<Vector2Int> extraSame = new List<Vector2Int>();
+                        foreach (var kvp in simGrid)
+                        {
+                            if (kvp.Value == chosenColor) extraSame.Add(kvp.Key);
+                        }
+                        for (int i = 0; i < extraSame.Count && peeled < wagonLoad; i++)
+                        {
+                            simGrid.Remove(extraSame[i]);
+                            peeled++;
+                        }
                     }
                 }
             }
@@ -2993,9 +2997,10 @@ namespace PixelGame.Editor
 
             string modeName = m_WagonDifficulty == WagonDifficultyMode.Easy ? "🟢 Kolay (Risksiz)" :
                               m_WagonDifficulty == WagonDifficultyMode.Medium ? "🟡 Dengeli (Standart)" : "🔴 Zor (Taktiksel)";
-            string sourceText = scan.fromScene ? "🎯 Sahne 3D Derinlik Analizi" : "🎨 Renk Paleti";
+            string sourceText = scan.fromScene ? "🎯 Katman Katman Dıştan İçe Soyma Analizi" : "🎨 Renk Paleti";
             m_LastSmartStatusMessage = $"✓ Akıllı Sıralama [{modeName}]: {sourceText} ile {scan.totalCubes} küp için {sequence.Count} vagon ve {m_TargetGridRows} dalga başarıyla oluşturuldu! ({m_TargetGridRows} Dalga × {cols} Kolon)";
             Debug.Log($"<color=#00FFAA><b>[LevelDesigner]</b></color> {m_LastSmartStatusMessage}");
+
         }
 
         private void AutoDistributeSmartPuzzle()
@@ -3475,6 +3480,30 @@ namespace PixelGame.Editor
                 pool.RefreshEditorPreview();
             }
 
+            // Sahnedeki ShipQueuePool'u anında senkronize et
+            ShipQueuePool shipPool = Object.FindFirstObjectByType<ShipQueuePool>();
+            if (shipPool != null && m_SelectedLevel != null)
+            {
+                shipPool.RebuildSpots(m_SelectedLevel.PoolColumns, m_SelectedLevel.PoolRows);
+                shipPool.InitializeQueue();
+            }
+
+            // Sahnedeki MarinaSlotLayout ve ShipDispatcher slot sayısını anında senkronize et
+            if (m_SelectedLevel != null)
+            {
+                MarinaSlotLayout marina = Object.FindFirstObjectByType<MarinaSlotLayout>();
+                if (marina != null)
+                {
+                    marina.SetSlotCount(m_SelectedLevel.SlotCount);
+                }
+
+                ShipDispatcher dispatcher = Object.FindFirstObjectByType<ShipDispatcher>();
+                if (dispatcher != null)
+                {
+                    dispatcher.EnsureReferences();
+                }
+            }
+
             // Sahnedeki vagon veya parçaların rengini anında güncelle
             TruckPaint[] paints = Object.FindObjectsByType<TruckPaint>(FindObjectsSortMode.None);
             foreach (var paint in paints)
@@ -3522,6 +3551,11 @@ namespace PixelGame.Editor
         {
             m_SelectedLevel = level;
             Selection.activeObject = level;
+            if (level != null)
+            {
+                m_GridColumnsPerRow = Mathf.Clamp(level.PoolColumns, 1, 8);
+                m_TargetGridRows = Mathf.Max(1, level.PoolRows);
+            }
             if (level != null && level.ColorPalette.Count == 0 && level.GetActiveTexture() != null)
             {
                 EnsureTextureReadable(level.GetActiveTexture());
