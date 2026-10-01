@@ -38,6 +38,12 @@ namespace PixelGame
         [SerializeField] private float m_PhaseOffset = 0f;
 
         private Vector3 m_BasePosition = new Vector3(0f, 0.025f, 0f);
+        private Vector3 m_BaseScale = Vector3.one;
+
+        [Header("💦 Suya Batma Animasyonu (Water Dip Impact)")]
+        private float m_DipOffsetY = 0f;
+        private Vector3 m_DipScaleOffset = Vector3.zero;
+        private Coroutine m_DipCoroutine;
 
         public float PhaseOffset
         {
@@ -50,26 +56,109 @@ namespace PixelGame
             m_BasePosition = basePos;
         }
 
+        public void SetBaseScale(Vector3 baseScale)
+        {
+            m_BaseScale = baseScale;
+        }
+
         private void OnEnable()
         {
             m_BasePosition = new Vector3(0f, 0.025f, 0f);
+            m_DipOffsetY = 0f;
+            m_DipScaleOffset = Vector3.zero;
+        }
+
+        private void OnDisable()
+        {
+            if (m_DipCoroutine != null)
+            {
+                StopCoroutine(m_DipCoroutine);
+                m_DipCoroutine = null;
+            }
+            m_DipOffsetY = 0f;
+            m_DipScaleOffset = Vector3.zero;
+        }
+
+        /// <summary>
+        /// Gemi yanaştığında can simidinin ve suyun hafifçe batıp yaylanmasını sağlar.
+        /// </summary>
+        public void TriggerWaterDipImpact(float depth = 0.16f, float duration = 0.52f)
+        {
+            if (!isActiveAndEnabled) return;
+            if (m_DipCoroutine != null)
+            {
+                StopCoroutine(m_DipCoroutine);
+            }
+            m_DipCoroutine = StartCoroutine(WaterDipRoutine(depth, duration));
+        }
+
+        private System.Collections.IEnumerator WaterDipRoutine(float depth, float duration)
+        {
+            // 1. Faz: Suya ani dalış / batma (Plunge) - Hızlı ve tok darbe
+            float plungeTime = duration * 0.28f;
+            float elapsed = 0f;
+            while (elapsed < plungeTime)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / plungeTime);
+                float easeOut = Mathf.Sin(t * Mathf.PI * 0.5f);
+                m_DipOffsetY = Mathf.Lerp(0f, -depth, easeOut);
+                // Basınçla hafif yatay genişleme (hydrodynamic squash & stretch)
+                m_DipScaleOffset = new Vector3(0.12f * easeOut, -0.08f * easeOut, 0.12f * easeOut);
+                yield return null;
+            }
+
+            // 2. Faz: Suyun kaldırma kuvvetiyle yukarı geri fırlama / yaylanma (Rebound)
+            float reboundTime = duration * 0.36f;
+            elapsed = 0f;
+            float reboundHeight = depth * 0.35f;
+            while (elapsed < reboundTime)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / reboundTime);
+                float ease = Mathf.Sin(t * Mathf.PI * 0.5f);
+                m_DipOffsetY = Mathf.Lerp(-depth, reboundHeight, ease);
+                m_DipScaleOffset = Vector3.Lerp(new Vector3(0.12f, -0.08f, 0.12f), new Vector3(-0.04f, 0.05f, -0.04f), ease);
+                yield return null;
+            }
+
+            // 3. Faz: Durgunlaşma ve normal su seviyesine sönümlü oturma (Settle)
+            float settleTime = duration * 0.36f;
+            elapsed = 0f;
+            while (elapsed < settleTime)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / settleTime);
+                float smooth = Mathf.SmoothStep(0f, 1f, t);
+                m_DipOffsetY = Mathf.Lerp(reboundHeight, 0f, smooth);
+                m_DipScaleOffset = Vector3.Lerp(new Vector3(-0.04f, 0.05f, -0.04f), Vector3.zero, smooth);
+                yield return null;
+            }
+
+            m_DipOffsetY = 0f;
+            m_DipScaleOffset = Vector3.zero;
+            m_DipCoroutine = null;
         }
 
         private void Update()
         {
             float t = Application.isPlaying ? Time.time : (float)Time.realtimeSinceStartup;
 
-            // 1. Dikey su salınımı (Bobbing)
+            // 1. Dikey su salınımı (Bobbing) + Suya batma etkisi (Dip)
             float bobY = Mathf.Sin((t * m_BobSpeed) + m_PhaseOffset) * m_BobHeight;
-            transform.localPosition = new Vector3(m_BasePosition.x, m_BasePosition.y + bobY, m_BasePosition.z);
+            transform.localPosition = new Vector3(m_BasePosition.x, m_BasePosition.y + bobY + m_DipOffsetY, m_BasePosition.z);
 
             // 2. Hafif su dalgası eğim salınımı (Tilt)
             float tiltZ = Mathf.Cos((t * m_BobSpeed * 0.85f) + m_PhaseOffset) * m_TiltAngle;
             transform.localRotation = Quaternion.Euler(0f, 0f, tiltZ);
 
-            // 3. Hafif nefes alma / genleşme (Scale Breathing)
+            // 3. Hafif nefes alma / genleşme (Scale Breathing) + Suya batma basınç tepkisi
             float breath = 1.0f + Mathf.Sin((t * m_BreathSpeed) + m_PhaseOffset) * m_ScaleAmount;
-            transform.localScale = new Vector3(breath, breath, breath);
+            transform.localScale = new Vector3(
+                (m_BaseScale.x * breath) + m_DipScaleOffset.x,
+                (m_BaseScale.y * breath) + m_DipScaleOffset.y,
+                (m_BaseScale.z * breath) + m_DipScaleOffset.z
+            );
         }
     }
 }

@@ -1,9 +1,15 @@
 import ctypes
 from ctypes import wintypes
-import time
+import psutil
 
 user32 = ctypes.windll.user32
-unity_pids = [23024, 20008, 28808]
+
+unity_pids = set()
+for proc in psutil.process_iter(['pid', 'name']):
+    if proc.info['name'] and 'unity' in proc.info['name'].lower():
+        unity_pids.add(proc.info['pid'])
+
+print("Unity PIDs:", unity_pids)
 
 found_hwnds = []
 
@@ -22,8 +28,7 @@ user32.EnumWindows(CB_TYPE(enum_cb), 0)
 
 for h, pid, t in found_hwnds:
     print(f"HWND: {hex(h)}, PID: {pid}, Title: '{t}'")
-    if t:
-        # Attempt to activate and bring to front
+    if t and "Unity" in t:
         user32.ShowWindow(h, 9) # SW_RESTORE
         user32.SetForegroundWindow(h)
         print("Restored & set foreground:", hex(h))

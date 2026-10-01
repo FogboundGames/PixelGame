@@ -86,6 +86,10 @@ namespace PixelGame
         [SerializeField] private float m_RollAngle = 2.0f;
         [SerializeField] private float m_PitchAngle = 1.2f;
 
+        [Header("💦 Suya Batma Animasyonu (Water Dip Impact)")]
+        private float m_CurrentDipOffset = 0f;
+        private Coroutine m_ShipDipCoroutine;
+
         [Header("🚢 Görsel Katman (Visual Decoupling)")]
         [Tooltip("Görsel mesh ve güverte modellerini barındıran ayrık child transform. " +
                  "Bobbing, banking roll ve görsel feedback buraya uygulanır; gameplay root transformu ve collider stabil kalır.")]
@@ -250,7 +254,7 @@ namespace PixelGame
         {
             m_LinkedPartner = partner;
             m_LinkId = linkId;
-            if (tether != null) m_Tether = tether;
+            m_Tether = tether;
         }
 
         public void SetTether(LinkedShipTether tether)
@@ -553,7 +557,7 @@ namespace PixelGame
             UpdateBadgePlacement();
         }
 
-        private void UpdateBadgePlacement()
+        public void UpdateBadgePlacement()
         {
             if (m_BadgeCanvasObj == null)
             {
@@ -576,9 +580,8 @@ namespace PixelGame
                 canvasTr.SetParent(transform, true);
             }
 
-            // 1. Kullanıcı isteği: "gemilerdeki textler ortalanacak"
-            // Gemi gövdesinin/kabininin tam ortası: X = 0f, Y = 2.22f, Z = -0.20f
-            Vector3 roofLocalPos = new Vector3(0f, 2.22f, -0.20f);
+            // 1. Gemi kabin çatısının tam geometrik merkezi (Y=2.22f tavan düzlemi, Z=-0.42f tavan merkezi):
+            Vector3 roofLocalPos = new Vector3(0f, 2.22f, -0.42f);
             Transform sourceTr = m_VisualRoot != null ? m_VisualRoot : transform;
             Vector3 targetWorldPos = sourceTr.TransformPoint(roofLocalPos);
             if ((canvasTr.position - targetWorldPos).sqrMagnitude > 0.00001f)
@@ -586,9 +589,8 @@ namespace PixelGame
                 canvasTr.position = targetWorldPos;
             }
 
-            // 2. Kullanıcı isteği: "slotlara yerleştiğinde de textler sabit konumda olacak değişim göstermesinler (ilk görselde yer alıyor)"
-            // Slotların X/Y/Z rotasyonu veya su dalgalanması ne olursa olsun,
-            // yazı HER ZAMAN kameraya dik, düzgün ve net bakar; asla yana yatmaz, bozulmaz.
+            // 2. Kullanıcı isteği: "slotlara yerleştiğinde de textler sabit konumda olacak değişim göstermesinler"
+            // Yazı HER ZAMAN kameraya dik, düzgün ve net bakar; asla yana yatmaz, bozulmaz.
             Camera cam = Camera.main;
             Quaternion targetWorldRot = cam != null ? cam.transform.rotation : Quaternion.identity;
             if (canvasTr.rotation != targetWorldRot)
@@ -597,14 +599,12 @@ namespace PixelGame
             }
 
             // 3. Kullanıcı isteği: "2.görseldeki gibi görünsün textler daha kaliteli hale getir"
-            // 2. Görsel referansındaki gibi aracın genişliğinin ~%72-75'ini kaplayan BÜYÜK HERO TEXT.
-            // Ebeveyn slot veya kuyruk ölçeği ne olursa olsun sabit bir dünya boyutunda tut:
+            // Tavanın ortasına tam oturan, net, dolgun HERO TEXT:
             Vector3 boatLossy = transform.lossyScale;
             float avgLossy = (Mathf.Abs(boatLossy.x) + Mathf.Abs(boatLossy.y) + Mathf.Abs(boatLossy.z)) / 3f;
             if (avgLossy < 0.0001f) avgLossy = 0.35f;
 
-            // Hedef dünya metin genişliği: ~0.70 dünya birimi (geminin 0.94 dünya genişliğinin %74.5'i)
-            float targetLocalScaleFactor = 0.0088f / avgLossy;
+            float targetLocalScaleFactor = 0.0072f / avgLossy;
             Vector3 targetLocalScale = Vector3.one * targetLocalScaleFactor;
             if ((canvasTr.localScale - targetLocalScale).sqrMagnitude > 0.000001f)
             {
@@ -619,13 +619,22 @@ namespace PixelGame
             {
                 RectTransform rt = m_BadgeText.rectTransform;
                 if (rt.anchoredPosition != Vector2.zero) rt.anchoredPosition = Vector2.zero;
-                if (Mathf.Abs(rt.localPosition.z - (-11.5f)) > 0.001f) rt.localPosition = new Vector3(0f, 0f, -11.5f);
+                if (rt.localPosition != Vector3.zero) rt.localPosition = Vector3.zero;
                 if (rt.sizeDelta != new Vector2(180f, 120f)) rt.sizeDelta = new Vector2(180f, 120f);
                 if (rt.localScale != Vector3.one) rt.localScale = Vector3.one;
 
-                if (m_BadgeText.fontSize != 72f) m_BadgeText.fontSize = 72f;
+                if (m_BadgeText.fontSize != 58f) m_BadgeText.fontSize = 58f;
                 if (m_BadgeText.color != Color.white) m_BadgeText.color = Color.white;
-                if (m_BadgeText.outlineWidth != 0.22f) m_BadgeText.outlineWidth = 0.22f;
+                if (m_BadgeText.outlineWidth != 0.28f) m_BadgeText.outlineWidth = 0.28f;
+                m_BadgeText.outlineColor = new Color32(18, 18, 22, 255);
+                if (m_BadgeText.fontMaterial != null)
+                {
+                    if (!m_BadgeText.fontMaterial.IsKeywordEnabled("OUTLINE_ON"))
+                        m_BadgeText.fontMaterial.EnableKeyword("OUTLINE_ON");
+                    m_BadgeText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.28f);
+                    m_BadgeText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, new Color32(18, 18, 22, 255));
+                    m_BadgeText.fontMaterial.SetInt("unity_GUIZTestMode", (int)UnityEngine.Rendering.CompareFunction.Always);
+                }
             }
 
             if (!m_BadgeCanvasObj.activeSelf && !m_IsDeparting && !IsFull && RemainingCapacity > 0)
@@ -657,8 +666,9 @@ namespace PixelGame
                 // VisualRoot yalnızca yerel dikey ofsetleri taşır (Pickup Lift + Water Bobbing).
                 Vector3 pickupOffset = new Vector3(0f, m_CurrentPickupLift, 0f);
                 Vector3 bobbingOffset = new Vector3(0f, dy, 0f);
+                Vector3 dipOffset = new Vector3(0f, m_CurrentDipOffset, 0f);
 
-                m_VisualRoot.localPosition = pickupOffset + bobbingOffset;
+                m_VisualRoot.localPosition = pickupOffset + bobbingOffset + dipOffset;
 
                 // Aşama 4 Rotation Composition:
                 // FinalRotation = BobbingRotation * DynamicDragRotation (Pitch + Yaw + Banking Roll)
@@ -692,6 +702,62 @@ namespace PixelGame
                     m_FakeShadowObj.transform.localPosition = new Vector3(m_FakeShadowOffset.x, -0.015f, m_FakeShadowOffset.y);
                 }
             }
+        }
+
+        /// <summary>
+        /// Gemi slota yanaştığında suyun içine hafifçe dalıp yaylanmasını sağlar (Water Dip Impact).
+        /// </summary>
+        public void TriggerWaterDipImpact(float depth = 0.18f, float duration = 0.52f)
+        {
+            if (!gameObject.activeInHierarchy) return;
+            if (m_ShipDipCoroutine != null)
+            {
+                StopCoroutine(m_ShipDipCoroutine);
+            }
+            m_ShipDipCoroutine = StartCoroutine(ShipWaterDipRoutine(depth, duration));
+        }
+
+        private IEnumerator ShipWaterDipRoutine(float depth, float duration)
+        {
+            // 1. Faz: Suya ani dalış / batma (Plunge) - Tok ve tatlı darbe
+            float plungeTime = duration * 0.28f;
+            float elapsed = 0f;
+            while (elapsed < plungeTime)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / plungeTime);
+                float easeOut = Mathf.Sin(t * Mathf.PI * 0.5f);
+                m_CurrentDipOffset = Mathf.Lerp(0f, -depth, easeOut);
+                yield return null;
+            }
+
+            // 2. Faz: Suyun kaldırma kuvvetiyle yukarı geri fırlama / yaylanma (Rebound)
+            float reboundTime = duration * 0.36f;
+            elapsed = 0f;
+            float reboundHeight = depth * 0.35f;
+            while (elapsed < reboundTime)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / reboundTime);
+                float ease = Mathf.Sin(t * Mathf.PI * 0.5f);
+                m_CurrentDipOffset = Mathf.Lerp(-depth, reboundHeight, ease);
+                yield return null;
+            }
+
+            // 3. Faz: Durgunlaşma ve normal su seviyesine sönümlü oturma (Settle)
+            float settleTime = duration * 0.36f;
+            elapsed = 0f;
+            while (elapsed < settleTime)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / settleTime);
+                float smooth = Mathf.SmoothStep(0f, 1f, t);
+                m_CurrentDipOffset = Mathf.Lerp(reboundHeight, 0f, smooth);
+                yield return null;
+            }
+
+            m_CurrentDipOffset = 0f;
+            m_ShipDipCoroutine = null;
         }
 
         /// <summary>
@@ -779,6 +845,68 @@ namespace PixelGame
             s_CachedBoatMaterials.Clear();
         }
 
+        public static Texture2D GetOrCreateTintedBoatTexture(Color shipColor)
+        {
+            Color32 key = (Color32)shipColor;
+            key.a = 255;
+            if (s_CachedBoatTextures.TryGetValue(key, out Texture2D cached) && cached != null)
+            {
+                return cached;
+            }
+
+            int size = 64;
+            int tileSize = size / 16;
+            Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            tex.name = $"BoatAtlas_{ColorUtility.ToHtmlStringRGB(shipColor)}";
+            tex.filterMode = FilterMode.Point;
+            tex.wrapMode = TextureWrapMode.Clamp;
+
+            // Kenney boat-house-a palet eşlemesi:
+            // Tile 1: Cam pencereler (açık gök mavisi)
+            // Tile 7: ANA GÖVDE VE KABİN DUVARLARI (624 yüzey - Takım Rengi!)
+            // Tile 9: KABİN TAVANI (84 yüzey - Kullanıcı isteği: ortadaki küplerin renginde!)
+            // Tile 11: SU HATTI / ALT OMURGA (40 yüzey - Takım renginin derin gölgesi)
+            // Tile 13: GÜVERTE & TAMPON ÇITASI (28 yüzey - Koyu grafit kauçuk)
+            Color32 glassColor = new Color32(185, 228, 255, 255);
+            Color32 hullMain = (Color32)shipColor;
+            hullMain.a = 255;
+            // Kullanıcı isteği: "ortadaki küplerin renginde olsun textlerin altındaki kısımda"
+            // Çatı (Tile 9, metnin altındaki zemin): Ortadaki küplerle birebir aynı canlı renk!
+            Color32 roofColor = hullMain;
+            Color32 waterlineColor = shipColor * 0.70f;
+            waterlineColor.a = 255;
+            Color32 deckColor = new Color32(38, 42, 50, 255);
+
+            Color32[] pixels = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    int tileX = x / tileSize;
+                    Color32 pixelCol;
+                    if (tileX == 1)
+                        pixelCol = glassColor;
+                    else if (tileX == 7)
+                        pixelCol = hullMain;   // 624 yüzey -> Ana gövde ve kabin!
+                    else if (tileX == 9)
+                        pixelCol = roofColor;  // 84 yüzey -> Tavan (yazının altındaki zemin!)
+                    else if (tileX == 11)
+                        pixelCol = waterlineColor; // 40 yüzey -> Su altı
+                    else if (tileX == 13)
+                        pixelCol = deckColor;  // 28 yüzey -> Güverte/tampon
+                    else
+                        pixelCol = hullMain;
+
+                    pixels[y * size + x] = pixelCol;
+                }
+            }
+
+            tex.SetPixels32(pixels);
+            tex.Apply(false, false);
+            s_CachedBoatTextures[key] = tex;
+            return tex;
+        }
+
         public static Material GetOrCreateBoatMaterial(Color color)
         {
             Color32 key = (Color32)color;
@@ -799,39 +927,41 @@ namespace PixelGame
             Material mat = baseMat != null ? new Material(baseMat) : new Material(Shader.Find("Toony Colors Pro 2/PixelGame/Cartoon") ?? Shader.Find("Universal Render Pipeline/Lit"));
             mat.name = $"Ship_BoatMat_{ColorUtility.ToHtmlStringRGB(color)}";
 
-            // PixelCube.cs ile %100 birebir aynı renk hesabı (Color squaring bug'ı kaldırıldı):
-            // Shader albedo = _BaseMap.rgb * _BaseColor.rgb olduğu için _BaseMap saf beyaz olmalıdır;
-            // aksi halde color * color çarpımı (double multiplication) rengi aşırı karartır ve ton kaydırır.
-            Texture2D whiteTex = GetWhiteTexture();
-            mat.SetTexture("_BaseMap", whiteTex);
-            mat.SetTexture("_MainTex", whiteTex);
-            mat.SetColor("_BaseColor", color);
-            mat.SetColor("_Color", color);
+            // Kenney atlas tabanlı akıllı palet dokusu (Pencereler cam mavisi, tamponlar grafit kauçuk, tavan açık vurgulu, gövde takım rengi):
+            Texture2D boatAtlas = GetOrCreateTintedBoatTexture(color);
+            mat.SetTexture("_BaseMap", boatAtlas);
+            mat.SetTexture("_MainTex", boatAtlas);
+            // Beyaz BaseColor çarpanı ile dokudaki çoklu materyal tonları (cam, kauçuk, tavan, gövde) korunur:
+            mat.SetColor("_BaseColor", Color.white);
+            mat.SetColor("_Color", Color.white);
 
-            // PixelCube.cs ile %100 birebir aynı mat cel-shading aydınlatması ve pürüzsüzlük:
-            if (mat.HasProperty("_ProceduralBevelWidth")) mat.SetFloat("_ProceduralBevelWidth", 0f);
-            if (mat.HasProperty("_ProceduralBevelIntensity")) mat.SetFloat("_ProceduralBevelIntensity", 0f);
+            // Toony Colors Pro 2 Stylized Plastic & Cel-shading ayarları (Üstteki pikselart küpleriyle %100 aynı görsel derinlik ve kalite):
+            if (mat.HasProperty("_StylizedPlasticOn")) mat.SetFloat("_StylizedPlasticOn", 1f);
+            if (mat.HasProperty("_PlasticTopLight")) mat.SetFloat("_PlasticTopLight", 0.35f);
+            if (mat.HasProperty("_PlasticHighlightIntensity")) mat.SetFloat("_PlasticHighlightIntensity", 0.85f);
+            if (mat.HasProperty("_PlasticHighlightSize")) mat.SetFloat("_PlasticHighlightSize", 0.30f);
+            if (mat.HasProperty("_PlasticBevelAO")) mat.SetFloat("_PlasticBevelAO", 0.30f);
+            if (mat.HasProperty("_PlasticHighlightColor")) mat.SetColor("_PlasticHighlightColor", Color.white);
 
-            if (mat.HasProperty("_PlasticHighlightIntensity")) mat.SetFloat("_PlasticHighlightIntensity", 0f);
-            if (mat.HasProperty("_PlasticTopLight")) mat.SetFloat("_PlasticTopLight", 0f);
-            if (mat.HasProperty("_StylizedPlasticOn")) mat.SetFloat("_StylizedPlasticOn", 0f);
+            // Yumuşak oyuncak plastik cilası & pürüzsüzlük
+            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.45f);
+            if (mat.HasProperty("_SpecularRoughnessPBR")) mat.SetFloat("_SpecularRoughnessPBR", 0.55f);
+            if (mat.HasProperty("_SpecularColor")) mat.SetColor("_SpecularColor", new Color(0.85f, 0.85f, 0.85f, 1f));
+            if (mat.HasProperty("_SpecularHighlights")) mat.SetFloat("_SpecularHighlights", 1f);
 
-            if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", new Color(0f, 0f, 0f, 0f));
-            if (mat.HasProperty("_PlasticHighlightColor")) mat.SetColor("_PlasticHighlightColor", color);
-
-            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.22f);
-            if (mat.HasProperty("_SpecularRoughnessPBR")) mat.SetFloat("_SpecularRoughnessPBR", 0.60f);
-            if (mat.HasProperty("_SpecularColor")) mat.SetColor("_SpecularColor", new Color(0.15f, 0.15f, 0.15f, 1f));
-            if (mat.HasProperty("_SpecularHighlights")) mat.SetFloat("_SpecularHighlights", 0f);
-
-            // PixelCube ile birebir aynı HColor (highlight) ve SColor (shadow) tonları:
-            Color hColor = Color.Lerp(Color.white, color, 0.45f);
-            Color sColor = color * 0.70f;
+            // Canlı, temiz cel-shading tonları (asla çamurlu gri olmaz)
+            Color hColor = Color.white;
+            Color sColor = new Color(0.55f, 0.54f, 0.65f, 1f);
             mat.SetColor("_HColor", hColor);
             mat.SetColor("_SColor", sColor);
 
             if (mat.HasProperty("_RampThreshold")) mat.SetFloat("_RampThreshold", 0.42f);
-            if (mat.HasProperty("_RampSmoothing")) mat.SetFloat("_RampSmoothing", 0.65f);
+            if (mat.HasProperty("_RampSmoothing")) mat.SetFloat("_RampSmoothing", 0.60f);
+
+            // Su üzerinde parlak kenar ışıltısı (Rim lighting)
+            if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", new Color(0.45f, 0.75f, 1.0f, 0.40f));
+            if (mat.HasProperty("_RimMin")) mat.SetFloat("_RimMin", 0.50f);
+            if (mat.HasProperty("_RimMax")) mat.SetFloat("_RimMax", 0.95f);
 
             s_CachedBoatMaterials[key] = mat;
             return mat;
@@ -843,6 +973,11 @@ namespace PixelGame
         public void ApplyColorToShip(Color color)
         {
             m_ShipColor = color;
+            EnsureVisualComponents();
+            CreateOrFindBadge();
+            UpdateBadgePlacement();
+            UpdateBadgeText();
+
             if (m_Renderers == null || m_Renderers.Length == 0)
             {
                 m_Renderers = GetComponentsInChildren<MeshRenderer>(true);
@@ -913,6 +1048,19 @@ namespace PixelGame
             if (m_IsDeparting) return;
             m_IsDeparting = true;
             m_EnableWaterBobbing = false;
+
+            // Halat/zincir varsa bağını kopar ve partneri serbest bırak
+            if (m_Tether != null)
+            {
+                Destroy(m_Tether.gameObject);
+                m_Tether = null;
+            }
+            if (m_LinkedPartner != null)
+            {
+                m_LinkedPartner.SetLinkedPartner(null, 0, null);
+                m_LinkedPartner = null;
+            }
+            m_LinkId = 0;
 
             // Rozeti / texti HEMEN yok et (Kullanıcı: "textteki sayı dolduğunda text yok olsun")
             if (m_BadgeCanvasObj != null)
@@ -1101,13 +1249,17 @@ namespace PixelGame
             if (slot == null || !slot.IsEmpty) return false;
             if (m_IsDocked || m_IsMoving || m_IsDeparting) return false;
 
-            // Kuyruktaki gemiler için sıra kontrolü (yalnızca ön sıradaki gemiler slota yanaşabilir)
+            // Kuyruktaki gemiler için sıra kontrolü (yalnızca ön sıradaki veya serbest bağlı gemiler slota yanaşabilir)
             ShipQueuePool queuePool = UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
             if (queuePool != null && queuePool.WaitingShips != null && queuePool.WaitingShips.Contains(this))
             {
-                if (!queuePool.IsFrontRow(this))
+                if (IsLinked)
                 {
-                    return false;
+                    if (!CanDispatchLinked()) return false;
+                }
+                else
+                {
+                    if (!queuePool.IsFrontRow(this)) return false;
                 }
             }
 
@@ -1275,16 +1427,21 @@ namespace PixelGame
             m_BaseLocalRotation = Quaternion.identity;
             ResetVisualOffset();
 
-            // Slota yanaşma puf dalgası ve görsel yaylanma (VisualRoot üzerinde bağımsız punch)
-            SpawnWaterRipple(transform.position, 0.28f, 0.95f, 0.45f);
+            // Slota yanaşma puf dalgası, suya batma yaylanması (VisualRoot üzerinde bağımsız punch)
+            if (targetSlot != null)
+            {
+                targetSlot.TriggerWaterDipImpact(0.18f, 0.52f);
+            }
+            TriggerWaterDipImpact(0.18f, 0.52f);
+            SpawnWaterRipple(transform.position, 0.35f, 1.25f, 0.55f);
             if (m_VisualRoot != null)
             {
-                m_VisualRoot.DOPunchScale(new Vector3(0.06f, -0.06f, 0.06f), 0.20f, 2, 0.45f)
+                m_VisualRoot.DOPunchScale(new Vector3(0.08f, -0.10f, 0.08f), 0.38f, 2, 0.40f)
                     .OnComplete(() => m_VisualRoot.localScale = Vector3.one);
             }
             else
             {
-                transform.DOPunchScale(new Vector3(0.06f, -0.06f, 0.06f) * m_BaseScale.x, 0.20f, 2, 0.45f)
+                transform.DOPunchScale(new Vector3(0.08f, -0.10f, 0.08f) * m_BaseScale.x, 0.38f, 2, 0.40f)
                     .OnComplete(() => transform.localScale = GetLocalScaleForBaseWorldScale());
             }
 
@@ -1654,25 +1811,72 @@ namespace PixelGame
 
             bool isValidDrop = (candidate != null && candidate.IsEmpty && CanDockInSlot(candidate));
 
+            ShipSlot partnerSlot = null;
+            if (isValidDrop && IsLinked && m_LinkedPartner != null)
+            {
+                // Bağlı gemi için 2. boş slot ara (candidate dışındaki en yakın boş slot)
+                float minPartnerDist = float.MaxValue;
+                if (ShipDispatcher.Instance != null && ShipDispatcher.Instance.Slots != null)
+                {
+                    foreach (var s in ShipDispatcher.Instance.Slots)
+                    {
+                        if (s != null && s != candidate && s.IsEmpty)
+                        {
+                            float d = Vector3.Distance(candidate.transform.position, s.transform.position);
+                            if (d < minPartnerDist)
+                            {
+                                minPartnerDist = d;
+                                partnerSlot = s;
+                            }
+                        }
+                    }
+                }
+
+                if (partnerSlot == null)
+                {
+                    // 2. boş slot yoksa bağlı gemiler yanaşamaz!
+                    isValidDrop = false;
+                    PlayWobble();
+                    if (m_LinkedPartner != null) m_LinkedPartner.PlayWobble();
+                    if (m_Tether != null) m_Tether.Rattle();
+                }
+            }
+
             if (isValidDrop)
             {
                 m_CandidateSlot = null;
 
-                // Kuyruk kontrolü: Ön sıradan slota gönderiliyorsa kuyruk yöneticisini bilgilendir
                 ShipQueuePool queuePool = UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
-                if (queuePool != null && queuePool.WaitingShips != null && queuePool.WaitingShips.Contains(this))
+                if (IsLinked && m_LinkedPartner != null && partnerSlot != null)
                 {
-                    if (queuePool.IsFrontRow(this))
+                    if (queuePool != null)
                     {
-                        queuePool.OnFrontShipDispatched(this);
+                        queuePool.OnLinkedShipsDispatched(this, m_LinkedPartner);
                     }
+
+                    transform.SetParent(null, true);
+                    m_LinkedPartner.transform.SetParent(null, true);
+
+                    SailToSlot(candidate, m_SnapDuration);
+                    m_LinkedPartner.SailToSlot(partnerSlot, 0.35f);
                 }
+                else
+                {
+                    // Kuyruk kontrolü: Ön sıradan slota gönderiliyorsa kuyruk yöneticisini bilgilendir
+                    if (queuePool != null && queuePool.WaitingShips != null && queuePool.WaitingShips.Contains(this))
+                    {
+                        if (queuePool.IsFrontRow(this))
+                        {
+                            queuePool.OnFrontShipDispatched(this);
+                        }
+                    }
 
-                // Kuyruk hiyerarşisinden dünya uzayına çıkar
-                transform.SetParent(null, true);
+                    // Kuyruk hiyerarşisinden dünya uzayına çıkar
+                    transform.SetParent(null, true);
 
-                // Mevcut Bezier SailToSlotRoutine ile hızlı, tatmin edici snap (m_SnapDuration: 0.16s)
-                SailToSlot(candidate, m_SnapDuration);
+                    // Mevcut Bezier SailToSlotRoutine ile hızlı, tatmin edici snap (m_SnapDuration: 0.16s)
+                    SailToSlot(candidate, m_SnapDuration);
+                }
             }
             else
             {
@@ -2186,8 +2390,8 @@ namespace PixelGame
                 canvasObj.transform.SetParent(transform, false);
             }
 
-            // Standart Canvas transform değerleri (Gemi gövde çatısı tam merkezi: X=0, Y=2.22, Z=-0.20)
-            canvasObj.transform.localPosition = new Vector3(0f, 2.22f, -0.20f);
+            // Standart Canvas transform değerleri (Gemi gövde çatısı tam merkezi: X=0, Y=2.22, Z=-0.42)
+            canvasObj.transform.localPosition = new Vector3(0f, 2.22f, -0.42f);
             canvasObj.transform.localRotation = Quaternion.identity;
             canvasObj.transform.localScale = Vector3.one * 0.025f;
 
@@ -2238,7 +2442,7 @@ namespace PixelGame
             }
 
             RectTransform textRect = textObj.GetComponent<RectTransform>();
-            textRect.localPosition = new Vector3(0f, 0f, -11.5f);
+            textRect.localPosition = Vector3.zero;
             textRect.localRotation = Quaternion.identity;
             textRect.localScale = Vector3.one;
             textRect.sizeDelta = new Vector2(180f, 120f);
@@ -2273,7 +2477,7 @@ namespace PixelGame
             if (tmp == null) tmp = textObj.AddComponent<TextMeshProUGUI>();
 
             if (tmpFont != null) tmp.font = tmpFont;
-            tmp.fontSize = 72f;
+            tmp.fontSize = 58f;
             tmp.fontStyle = FontStyles.Bold;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.color = Color.white; // 2. görseldeki gibi NET BEYAZ
@@ -2282,12 +2486,12 @@ namespace PixelGame
             tmp.raycastTarget = false;
 
             // 2. Görseldeki gibi pürüzsüz, yuvarlak ve kaliteli siyah kontur (SDF fragment shader ile hesaplanır)
-            tmp.outlineWidth = 0.22f;
+            tmp.outlineWidth = 0.28f;
             tmp.outlineColor = new Color32(18, 18, 22, 255);
             if (tmp.fontMaterial != null)
             {
                 tmp.fontMaterial.EnableKeyword("OUTLINE_ON");
-                tmp.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.22f);
+                tmp.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.28f);
                 tmp.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, new Color32(18, 18, 22, 255));
             }
 

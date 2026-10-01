@@ -23,12 +23,17 @@ namespace PixelGame
 
         private void Awake()
         {
-            if (m_IndicatorTransform == null)
+            EnsureIndicatorReference();
+        }
+
+        private void EnsureIndicatorReference()
+        {
+            if (m_IndicatorTransform == null || !m_IndicatorTransform.gameObject.activeSelf)
             {
-                m_IndicatorTransform = transform.Find("FoamSlot");
+                m_IndicatorTransform = transform.Find("[Slot_Lifebuoy]");
                 if (m_IndicatorTransform == null)
                 {
-                    m_IndicatorTransform = transform.Find("[Slot_Lifebuoy]");
+                    m_IndicatorTransform = transform.Find("FoamSlot");
                 }
                 if (m_IndicatorTransform == null)
                 {
@@ -51,6 +56,26 @@ namespace PixelGame
         public void ReleaseShip()
         {
             m_DockedShip = null;
+
+            // Gemi ayrıldığında can simidinin hafifçe yukarı yaylanması (kurtulma kaldırma kuvveti)
+            TriggerWaterDipImpact(-0.05f, 0.35f);
+        }
+
+        /// <summary>
+        /// Gemi slota yanaştığında can simidinin ve suyun hafifçe suya batıp yaylanmasını sağlar.
+        /// </summary>
+        public void TriggerWaterDipImpact(float depth = 0.16f, float duration = 0.52f)
+        {
+            EnsureIndicatorReference();
+
+            if (m_IndicatorTransform != null)
+            {
+                FoamSlotBobbing bobbing = m_IndicatorTransform.GetComponent<FoamSlotBobbing>();
+                if (bobbing != null)
+                {
+                    bobbing.TriggerWaterDipImpact(depth, duration);
+                }
+            }
         }
     }
 }

@@ -68,11 +68,11 @@ namespace PixelGame
 
         [Tooltip("Ön ve arka sıralar arasındaki dikey aralık (Y ekseni). Gemilerin iç içe girmemesi için slider ile ayarlayabilirsiniz.")]
         [Range(0.6f, 2.5f)]
-        [SerializeField] private float m_SpacingY = 1.25f;
+        [SerializeField] private float m_SpacingY = 1.80f;
 
         [Tooltip("Tüm gemi havuzunun dikey konumu (Yüksekliği).")]
         [Range(-8f, 0f)]
-        [SerializeField] private float m_OffsetY = -4.95f;
+        [SerializeField] private float m_OffsetY = -5.35f;
 
         [Header("🎛️ Sütun Sayısına Göre Özel Profiller (Presets)")]
         [Tooltip("Açık olduğunda sütun sayısına (2, 3, 4, 5, 6) göre aşağıdaki profil ayarları otomatik uygulanır.")]
@@ -80,11 +80,11 @@ namespace PixelGame
 
         [SerializeField] private List<ColumnLayoutPreset> m_ColumnPresets = new List<ColumnLayoutPreset>()
         {
-            new ColumnLayoutPreset(2, 0.24f, 1.60f, 1.35f, -4.95f),
-            new ColumnLayoutPreset(3, 0.23f, 1.40f, 1.30f, -4.95f),
-            new ColumnLayoutPreset(4, 0.21f, 1.20f, 1.25f, -4.95f),
-            new ColumnLayoutPreset(5, 0.18f, 1.05f, 1.20f, -4.95f),
-            new ColumnLayoutPreset(6, 0.16f, 0.90f, 1.15f, -4.95f)
+            new ColumnLayoutPreset(2, 0.24f, 1.60f, 1.85f, -5.35f),
+            new ColumnLayoutPreset(3, 0.3003f, 1.093f, 1.80f, -5.35f),
+            new ColumnLayoutPreset(4, 0.21f, 1.20f, 1.65f, -5.35f),
+            new ColumnLayoutPreset(5, 0.18f, 1.05f, 1.55f, -5.35f),
+            new ColumnLayoutPreset(6, 0.16f, 0.90f, 1.45f, -5.35f)
         };
 
         // Geriye dönük uyumluluk
@@ -563,6 +563,8 @@ namespace PixelGame
 #endif
                 }
             }
+
+            ClearAllTethers();
         }
 
         /// <summary>
@@ -631,10 +633,124 @@ namespace PixelGame
 
         /// <summary>
         /// Sahnedeki veya kuyruktaki tüm bağlı gemileri eşleştirir ve aralarına dinamik halat/zincir (tether) çeker.
+        /// Slotlara yanaşmış gemiler dahil tüm bağlı gemilerin halatları korunur; asla gereksiz yere silinmez.
         /// </summary>
         public void RefreshLinkedShipTethers()
         {
-            // Varsa eski tether objelerini temizle
+            // 1. Sahnedeki mevcut tether objelerini kontrol et: Sadece geçersiz/kopmuş olanları temizle, geçerlileri koru!
+            LinkedShipTether[] oldTethers = UnityEngine.Object.FindObjectsByType<LinkedShipTether>(FindObjectsSortMode.None);
+            HashSet<int> activeTetherLinkIds = new HashSet<int>();
+
+            for (int i = oldTethers.Length - 1; i >= 0; i--)
+            {
+                LinkedShipTether t = oldTethers[i];
+                if (t == null) continue;
+
+                bool isValid = t.ShipA != null && t.ShipB != null &&
+                               t.ShipA.gameObject.activeInHierarchy && t.ShipB.gameObject.activeInHierarchy &&
+                               !t.ShipA.IsDeparting && !t.ShipB.IsDeparting &&
+                               t.ShipA.LinkId == t.LinkId && t.ShipB.LinkId == t.LinkId &&
+                               t.LinkId > 0;
+
+                if (!isValid)
+                {
+#if UNITY_EDITOR
+                    if (!Application.isPlaying) DestroyImmediate(t.gameObject);
+                    else Destroy(t.gameObject);
+#else
+                    Destroy(t.gameObject);
+#endif
+                }
+                else
+                {
+                    activeTetherLinkIds.Add(t.LinkId);
+                    t.ShipA.SetLinkedPartner(t.ShipB, t.LinkId, t);
+                    t.ShipB.SetLinkedPartner(t.ShipA, t.LinkId, t);
+                }
+            }
+
+            // 2. Sahnedeki TÜM aktif gemileri topla (kuyruk + slotlar + su üzerinde yüzenler)
+            List<ShipController> activeShips = new List<ShipController>();
+
+            // Kuyruktaki gemiler
+            if (m_WaitingShips != null)
+            {
+                foreach (var s in m_WaitingShips)
+                {
+                    if (s != null && s.LinkId > 0 && s.gameObject.activeInHierarchy && !s.IsDeparting && !activeShips.Contains(s))
+                    {
+                        activeShips.Add(s);
+                    }
+                }
+            }
+
+            // Slotlardaki yanaşmış gemiler
+            if (ShipDispatcher.Instance != null && ShipDispatcher.Instance.Slots != null)
+            {
+                foreach (var slot in ShipDispatcher.Instance.Slots)
+                {
+                    if (slot != null && slot.DockedShip != null)
+                    {
+                        ShipController s = slot.DockedShip;
+                        if (s.LinkId > 0 && s.gameObject.activeInHierarchy && !s.IsDeparting && !activeShips.Contains(s))
+                        {
+                            activeShips.Add(s);
+                        }
+                    }
+                }
+            }
+
+            // Sahnedeki diğer aktif gemiler (hareket halindekiler dahil)
+            ShipController[] sceneShips = UnityEngine.Object.FindObjectsByType<ShipController>(FindObjectsSortMode.None);
+            foreach (var s in sceneShips)
+            {
+                if (s != null && s.LinkId > 0 && s.gameObject.activeInHierarchy && !s.IsDeparting && !activeShips.Contains(s))
+                {
+                    activeShips.Add(s);
+                }
+            }
+
+            // 3. linkId'lerine göre grupla
+            Dictionary<int, List<ShipController>> linkGroups = new Dictionary<int, List<ShipController>>();
+            foreach (var s in activeShips)
+            {
+                if (!linkGroups.ContainsKey(s.LinkId))
+                {
+                    linkGroups[s.LinkId] = new List<ShipController>();
+                }
+                linkGroups[s.LinkId].Add(s);
+            }
+
+            // 4. Halatı henüz olmayan bağlı gruplar için yeni tether oluştur
+            foreach (var kvp in linkGroups)
+            {
+                int linkId = kvp.Key;
+                List<ShipController> ships = kvp.Value;
+
+                if (ships.Count >= 2)
+                {
+                    ShipController a = ships[0];
+                    ShipController b = ships[1];
+
+                    if (!activeTetherLinkIds.Contains(linkId))
+                    {
+                        LinkedShipTether tether = LinkedShipTether.CreateTether(a, b, linkId);
+                        a.SetLinkedPartner(b, linkId, tether);
+                        b.SetLinkedPartner(a, linkId, tether);
+                        activeTetherLinkIds.Add(linkId);
+                    }
+                    else
+                    {
+                        LinkedShipTether existing = a.Tether != null ? a.Tether : b.Tether;
+                        if (a.LinkedPartner != b || a.Tether == null) a.SetLinkedPartner(b, linkId, existing);
+                        if (b.LinkedPartner != a || b.Tether == null) b.SetLinkedPartner(a, linkId, existing);
+                    }
+                }
+            }
+        }
+
+        public void ClearAllTethers()
+        {
             LinkedShipTether[] oldTethers = UnityEngine.Object.FindObjectsByType<LinkedShipTether>(FindObjectsSortMode.None);
             for (int i = oldTethers.Length - 1; i >= 0; i--)
             {
@@ -646,43 +762,6 @@ namespace PixelGame
 #else
                     Destroy(oldTethers[i].gameObject);
 #endif
-                }
-            }
-
-            // Aktif gemileri topla
-            List<ShipController> activeShips = new List<ShipController>();
-            if (m_WaitingShips != null)
-            {
-                foreach (var s in m_WaitingShips)
-                {
-                    if (s != null && s.LinkId > 0 && s.gameObject.activeInHierarchy && !s.IsDeparting)
-                    {
-                        activeShips.Add(s);
-                    }
-                }
-            }
-
-            // linkId'lerine göre grupla
-            Dictionary<int, List<ShipController>> linkGroups = new Dictionary<int, List<ShipController>>();
-            foreach (var s in activeShips)
-            {
-                if (!linkGroups.ContainsKey(s.LinkId))
-                {
-                    linkGroups[s.LinkId] = new List<ShipController>();
-                }
-                linkGroups[s.LinkId].Add(s);
-            }
-
-            // Eşleştir ve halat oluştur
-            foreach (var kvp in linkGroups)
-            {
-                if (kvp.Value.Count >= 2)
-                {
-                    ShipController a = kvp.Value[0];
-                    ShipController b = kvp.Value[1];
-                    LinkedShipTether tether = LinkedShipTether.CreateTether(a, b, kvp.Key);
-                    a.SetLinkedPartner(b, kvp.Key, tether);
-                    b.SetLinkedPartner(a, kvp.Key, tether);
                 }
             }
         }

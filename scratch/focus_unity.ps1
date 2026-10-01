@@ -27,6 +27,6 @@ public class DynamicFocusUnity {
 }
 "@
 Add-Type -TypeDefinition $source
-Write-Output "Focusing and refreshing Unity PID: 21784"
-[DynamicFocusUnity]::BringToFrontAndRefresh(21784)
+Write-Output "Focusing and refreshing Unity PID: 3204"
+[DynamicFocusUnity]::BringToFrontAndRefresh(3204)
 Write-Output "Done."

@@ -204,18 +204,6 @@ namespace PixelGame
             s_CargoPropertyBlock.SetColor(ColorProp, color);
             s_CargoPropertyBlock.SetColor(EmissionColorProp, Color.black);
 
-            Color hColor = Color.Lerp(Color.white, color, 0.45f);
-            Color sColor = color * 0.70f;
-            s_CargoPropertyBlock.SetColor(HColorProp, hColor);
-            s_CargoPropertyBlock.SetColor(SColorProp, sColor);
-            s_CargoPropertyBlock.SetFloat(SpecularHighlightsProp, 0f);
-            s_CargoPropertyBlock.SetFloat(SmoothnessProp, 0.22f);
-            s_CargoPropertyBlock.SetFloat(SpecularRoughnessPBRProp, 0.60f);
-            s_CargoPropertyBlock.SetFloat(RampSmoothingProp, 0.65f);
-            s_CargoPropertyBlock.SetFloat(RampThresholdProp, 0.42f);
-            s_CargoPropertyBlock.SetFloat(StylizedPlasticOnProp, 0f);
-            s_CargoPropertyBlock.SetFloat(PlasticTopLightProp, 0f);
-            s_CargoPropertyBlock.SetFloat(PlasticHighlightIntensityProp, 0f);
 
             for (int i = 0; i < all.Length; i++)
             {

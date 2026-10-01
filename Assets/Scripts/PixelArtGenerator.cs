@@ -74,6 +74,19 @@ namespace PixelGame
         [Range(0f, 2f)]
         [SerializeField] private float m_EmissionIntensity = 0.0f;
 
+        [Header("🏖️ Sabit Kum Oyun Alanı (Beach Sand Target Area)")]
+        [Tooltip("Yeni sahil arkaplanında kum alanına göre sabit yerleşim ve ölçeklendirme kullan.")]
+        [SerializeField] private bool m_UseFixedSandArea = true;
+
+        [Tooltip("Piksel sanatının sahile tam oturacağı sabit dünya merkezi.")]
+        [SerializeField] private Vector3 m_FixedSandCenter = new Vector3(0f, 2.85f, 0.26f);
+
+        [Tooltip("Piksel sanatının sahile taşmadan tam oturacağı maksimum dünya genişliği.")]
+        [SerializeField] private float m_FixedSandWidth = 5.20f;
+
+        [Tooltip("Piksel sanatının sahile taşmadan tam oturacağı maksimum dünya yüksekliği.")]
+        [SerializeField] private float m_FixedSandHeight = 4.68f;
+
         [Header("🔲 Izgara & Küp Yerleşimi")]
         [Tooltip("Küpler arasındaki DİKEY (satırlar/önler, Y ekseni) fiziksel boşluk oranı (0 = bitişik, 0.1 = %10 boşluk, negatif = üst üste biner)")]
         [Range(-0.3f, 1.0f)]
@@ -174,6 +187,10 @@ namespace PixelGame
         public Texture2D SourceTexture { get => m_SourceTexture; set => m_SourceTexture = value; }
         public Sprite SourceSprite { get => m_SourceSprite; set => m_SourceSprite = value; }
         public RectTransform TargetFrameRect { get => m_TargetFrameRect; set => m_TargetFrameRect = value; }
+        public bool UseFixedSandArea { get => m_UseFixedSandArea; set => m_UseFixedSandArea = value; }
+        public Vector3 FixedSandCenter { get => m_FixedSandCenter; set => m_FixedSandCenter = value; }
+        public float FixedSandWidth { get => m_FixedSandWidth; set => m_FixedSandWidth = value; }
+        public float FixedSandHeight { get => m_FixedSandHeight; set => m_FixedSandHeight = value; }
         public PixelLevelData ActiveLevelData { get => m_ActiveLevelData; set => m_ActiveLevelData = value; }
         public bool UseNativeResolution { get => m_UseNativeResolution; set => m_UseNativeResolution = value; }
         public Vector2Int GridResolution { get => m_GridResolution; set => m_GridResolution = value; }
@@ -635,8 +652,8 @@ namespace PixelGame
                 float visCenterX = (minX + maxX) * 0.5f;
                 float visCenterY = (minY + maxY) * 0.5f;
 
-                float visCellSizeX = (worldWidth * 0.88f) / visW;
-                float visCellSizeY = (worldHeight * 0.88f) / visH;
+                float visCellSizeX = worldWidth / visW;
+                float visCellSizeY = worldHeight / visH;
                 cellSize = Mathf.Min(visCellSizeX, visCellSizeY);
 
                 stepX = cellSize * (1f + m_CubeSpacingX);
@@ -645,7 +662,7 @@ namespace PixelGame
                 startPos = new Vector3(
                     worldCenter.x - visCenterX * stepX,
                     worldCenter.y - visCenterY * stepY,
-                    m_TargetZ
+                    worldCenter.z + m_TargetZ
                 );
             }
             else
@@ -662,7 +679,7 @@ namespace PixelGame
                 startPos = new Vector3(
                     worldCenter.x - totalWidth * 0.5f,
                     worldCenter.y - totalHeight * 0.5f,
-                    m_TargetZ
+                    worldCenter.z + m_TargetZ
                 );
             }
 
@@ -828,9 +845,8 @@ namespace PixelGame
                 float visCenterX = (minX + maxX) * 0.5f;
                 float visCenterY = (minY + maxY) * 0.5f;
 
-                // Dolu figürün çerçevenin içini ferahça dolduracağı hücre boyutu (%88 çerçeve oranı)
-                float visCellSizeX = (worldWidth * 0.88f) / visW;
-                float visCellSizeY = (worldHeight * 0.88f) / visH;
+                float visCellSizeX = worldWidth / visW;
+                float visCellSizeY = worldHeight / visH;
                 cellSize = Mathf.Min(visCellSizeX, visCellSizeY);
 
                 stepX = cellSize * (1f + m_CubeSpacingX);
@@ -842,7 +858,7 @@ namespace PixelGame
                 startPos = new Vector3(
                     worldCenter.x - visCenterX * stepX,
                     worldCenter.y - visCenterY * stepY,
-                    m_TargetZ
+                    worldCenter.z + m_TargetZ
                 );
             }
             else
@@ -860,7 +876,7 @@ namespace PixelGame
                 startPos = new Vector3(
                     worldCenter.x - totalWidth * 0.5f + stepX * 0.5f,
                     worldCenter.y - totalHeight * 0.5f + stepY * 0.5f,
-                    m_TargetZ
+                    worldCenter.z + m_TargetZ
                 );
             }
 
@@ -1904,11 +1920,34 @@ namespace PixelGame
             worldWidth = 0f;
             worldHeight = 0f;
 
-            // 1. Kullanıcının yerleştirdiği OtCerceve veya BoardFrame varsa doğrudan onun dünya sınırlarına tam oturt
-            EnsureTargetFrameRect();
             if (cam == null) cam = GetActiveCamera();
 
-            if (m_TargetFrameRect != null && cam != null)
+            // 1. Sabit Sahil Kum Oyun Alanı (Beach Sand Target Area) - Yeni arkaplan ile tam senkron
+            if (m_UseFixedSandArea)
+            {
+                Transform sandZone = transform.parent != null && transform.parent.name == "[Zone_Sand_PlayArea]"
+                    ? transform.parent
+                    : GameObject.Find("[Zone_Sand_PlayArea]")?.transform;
+
+                if (sandZone != null)
+                {
+                    // sandZone.position.y (4.33f) üzerindeki -1.48f ofset, sahildeki tam kum merkezini (2.85f) verir
+                    worldCenter = new Vector3(sandZone.position.x, sandZone.position.y - 1.48f, sandZone.position.z);
+                }
+                else
+                {
+                    worldCenter = m_FixedSandCenter;
+                }
+
+                worldWidth = m_FixedSandWidth;
+                worldHeight = m_FixedSandHeight;
+                return true;
+            }
+
+            // 2. Kullanıcının yerleştirdiği OtCerceve veya BoardFrame varsa doğrudan onun dünya sınırlarına tam oturt
+            EnsureTargetFrameRect();
+
+            if (m_TargetFrameRect != null && m_TargetFrameRect.gameObject.activeInHierarchy && cam != null)
             {
                 Canvas.ForceUpdateCanvases();
 
@@ -2124,9 +2163,15 @@ namespace PixelGame
 
         private void EnsureTargetFrameRect()
         {
+            if (m_UseFixedSandArea)
+            {
+                m_TargetFrameRect = null;
+                return;
+            }
+
             // 1. Kullanıcının yerleştirdiği OtCerceve çerçevesini doğrudan ve en yüksek öncelikle ara
             GameObject otGo = GameObject.Find("OtCerceve");
-            if (otGo != null)
+            if (otGo != null && otGo.activeInHierarchy)
             {
                 RectTransform rt = otGo.GetComponent<RectTransform>();
                 if (rt != null)
@@ -2139,6 +2184,11 @@ namespace PixelGame
 
             if (m_TargetFrameRect != null && m_TargetFrameRect.gameObject != null)
             {
+                if (!m_TargetFrameRect.gameObject.activeInHierarchy)
+                {
+                    m_TargetFrameRect = null;
+                    return;
+                }
                 if (m_TargetFrameRect.name == "OtCerceve")
                 {
                     EnsureOtCerceveShadow(m_TargetFrameRect.gameObject);
@@ -2151,7 +2201,7 @@ namespace PixelGame
             foreach (var name in preferredNames)
             {
                 GameObject go = GameObject.Find(name);
-                if (go != null)
+                if (go != null && go.activeInHierarchy)
                 {
                     RectTransform rt = go.GetComponent<RectTransform>();
                     if (rt != null)

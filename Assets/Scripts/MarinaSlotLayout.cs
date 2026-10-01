@@ -36,14 +36,14 @@ namespace PixelGame
         [SerializeField] private float m_SlotAngle = 0f;
 
         [Header("🌊 Su Düzlemi Eğim Açısı")]
-        [Tooltip("Kamera perspektifine göre su yüzeyi eğim açısı (varsayılan: -60 derece).")]
+        [Tooltip("Kamera perspektifine göre su yüzeyi eğim açısı (varsayılan: -28 derece, pikselart küpleriyle uyumlu 3B izometrik derinlik).")]
         [Range(-90f, 0f)]
-        [SerializeField] private float m_WaterTiltX = -60f;
+        [SerializeField] private float m_WaterTiltX = -28f;
 
         [Header("📍 Dikey Yükseklik & Derinlik")]
-        [Tooltip("Slot şeridinin Y eksenindeki yüksekliği.")]
-        [Range(-4f, 4f)]
-        [SerializeField] private float m_OffsetY = -0.7f;
+        [Tooltip("Slot şeridinin Y eksenindeki yüksekliği (Kumsal kıyısına yakınlık: -2.20f).")]
+        [Range(-5f, 5f)]
+        [SerializeField] private float m_OffsetY = -2.20f;
 
         [Tooltip("Slot şeridinin Z eksenindeki derinliği.")]
         [Range(-3f, 3f)]
@@ -144,9 +144,32 @@ namespace PixelGame
             SyncWithLevel();
         }
 
+        private void OnEnable()
+        {
+            PixelArtGenerator.LevelLoaded -= OnLevelLoaded;
+            PixelArtGenerator.LevelLoaded += OnLevelLoaded;
+        }
+
+        private void OnDisable()
+        {
+            PixelArtGenerator.LevelLoaded -= OnLevelLoaded;
+        }
+
         private void Start()
         {
             SyncWithLevel();
+        }
+
+        private void OnLevelLoaded(PixelLevelData level)
+        {
+            if (level != null && level.SlotCount > 0)
+            {
+                SetSlotCount(level.SlotCount);
+            }
+            else
+            {
+                ApplyLayout();
+            }
         }
 
         public void SyncWithLevel()
@@ -218,8 +241,8 @@ namespace PixelGame
             m_SlotScale = 1.08f;
             m_SlotSpacing = 1.48f;
             m_SlotAngle = 0f;
-            m_WaterTiltX = -60f;
-            m_OffsetY = -0.7f;
+            m_WaterTiltX = -28f;
+            m_OffsetY = -2.20f;
             m_OffsetZ = 0.05f;
             m_ArcCurveY = 0f;
             m_ArcAsymmetry = 0f;
@@ -268,16 +291,30 @@ namespace PixelGame
                 tr.localRotation = Quaternion.Euler(m_WaterTiltX, 0f, 0f) * Quaternion.Euler(0f, angle, 0f);
                 tr.localScale = new Vector3(m_SlotWidth, 1f, m_SlotLength);
 
-                // Köpük / taban slot çocuk görselini bul (FoamSlot veya [Slot_Lifebuoy])
+                // Can simidi slot görselini ([Slot_Lifebuoy]) öncelikli kullan
                 Transform foamSlot = tr.Find("FoamSlot");
                 Transform lifebuoy = tr.Find("[Slot_Lifebuoy]");
-                Transform visualTr = foamSlot != null ? foamSlot : lifebuoy;
+                Transform visualTr = lifebuoy != null ? lifebuoy : foamSlot;
 
                 if (visualTr != null)
                 {
                     visualTr.localPosition = new Vector3(0f, 0.025f, 0f);
                     visualTr.localRotation = Quaternion.identity;
-                    visualTr.localScale = Vector3.one;
+
+                    // Can simidinin ekranda dolgun, dairesel ve izometrik derinlikli durması için perspektif ve scale kompanzasyonu
+                    Vector3 circleComp = Vector3.one;
+                    if (visualTr == lifebuoy)
+                    {
+                        float tiltFactor = Mathf.Sin(Mathf.Abs(m_WaterTiltX) * Mathf.Deg2Rad);
+                        if (tiltFactor < 0.05f) tiltFactor = 0.47f;
+                        // Kullanıcı referans görselindeki dolgunluk ve 0.90 dairesel en/boy oranı
+                        float targetScreenAspect = 0.90f;
+                        float zComp = (targetScreenAspect / tiltFactor) * (m_SlotWidth / Mathf.Max(0.001f, m_SlotLength));
+                        // 1.35f çarpanı ile simitlerin su alanını doldurması ve gemileri rahatça kucaklaması sağlanır
+                        circleComp = new Vector3(1.35f, 1f, 1.35f * zComp);
+                    }
+                    visualTr.localScale = circleComp;
+
                     if (!visualTr.gameObject.activeSelf)
                     {
                         visualTr.gameObject.SetActive(true);
@@ -291,12 +328,13 @@ namespace PixelGame
                     }
                     bobbing.PhaseOffset = i * 0.75f;
                     bobbing.SetBasePosition(new Vector3(0f, 0.025f, 0f));
+                    bobbing.SetBaseScale(circleComp);
                 }
 
-                // Eğer hem FoamSlot hem [Slot_Lifebuoy] varsa ve FoamSlot kullanılıyorsa, lifebuoy kapatılsın
-                if (foamSlot != null && lifebuoy != null)
+                // Can simidi aktifken eski düz FoamSlot kapatılsın
+                if (lifebuoy != null && foamSlot != null)
                 {
-                    lifebuoy.gameObject.SetActive(false);
+                    foamSlot.gameObject.SetActive(false);
                 }
             }
         }

@@ -196,19 +196,6 @@ namespace PixelGame
             s_PropertyBlock.SetColor(BaseColorProp, color);
             s_PropertyBlock.SetColor(ColorProp, color);
 
-            // Gemilerin mat cel-shading aydınlatması ile %100 birebir aynı aydınlatma:
-            Color hColor = Color.Lerp(Color.white, color, 0.45f);
-            Color sColor = color * 0.70f;
-            s_PropertyBlock.SetColor(HColorProp, hColor);
-            s_PropertyBlock.SetColor(SColorProp, sColor);
-            s_PropertyBlock.SetFloat(SpecularHighlightsProp, 0f);
-            s_PropertyBlock.SetFloat(SmoothnessProp, 0.22f);
-            s_PropertyBlock.SetFloat(SpecularRoughnessPBRProp, 0.60f);
-            s_PropertyBlock.SetFloat(RampSmoothingProp, 0.65f);
-            s_PropertyBlock.SetFloat(RampThresholdProp, 0.42f);
-            s_PropertyBlock.SetFloat(StylizedPlasticOnProp, 0f);
-            s_PropertyBlock.SetFloat(PlasticTopLightProp, 0f);
-            s_PropertyBlock.SetFloat(PlasticHighlightIntensityProp, 0f);
 
             if (emission > 0f)
             {

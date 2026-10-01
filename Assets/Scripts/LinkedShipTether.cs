@@ -8,6 +8,7 @@ namespace PixelGame
     /// İki bağlı gemi (Linked Ships) arasında su üzerinde dinamik olarak gerilen,
     /// hafif sarkan ve gemiler hareket ettikçe onları takip eden halat/zincir bileşeni.
     /// </summary>
+    [ExecuteAlways]
     [RequireComponent(typeof(LineRenderer))]
     public class LinkedShipTether : MonoBehaviour
     {
@@ -17,9 +18,9 @@ namespace PixelGame
         [SerializeField] private int m_LinkId = 0;
 
         [Header("🪢 Halat / Zincir Görsel Ayarları")]
-        [SerializeField] private int m_SegmentCount = 14;
-        [SerializeField] private float m_SagAmount = 0.22f; // Suya doğru sarkma miktarı
-        [SerializeField] private float m_LineWidth = 0.16f; // Daha belirgin ve kalın halat
+        [SerializeField] private int m_SegmentCount = 16;
+        [SerializeField] private float m_SagAmount = 0.09f; // Suya doğru doğal ve estetik sarkma miktarı
+        [SerializeField] private float m_LineWidth = 0.22f; // Kullanıcı isteği: daha belirgin ve hafif kalın halat
         [SerializeField] private Color m_RopeColor = new Color(0.85f, 0.65f, 0.35f, 1f);
 
         private LineRenderer m_LineRenderer;
@@ -37,7 +38,24 @@ namespace PixelGame
             if (a == null || b == null) return null;
 
             GameObject tetherObj = new GameObject($"Tether_Link_{linkId}_{a.name}_{b.name}");
-            tetherObj.transform.SetParent(a.transform.parent, false);
+            
+            Transform parentTr = null;
+            GameObject container = GameObject.Find("[SHIP_TETHERS]");
+            if (container == null)
+            {
+                GameObject models = GameObject.Find("[GAMEPLAY_MODELS]");
+                if (models != null)
+                {
+                    container = new GameObject("[SHIP_TETHERS]");
+                    container.transform.SetParent(models.transform, false);
+                }
+            }
+            if (container != null)
+            {
+                parentTr = container.transform;
+            }
+
+            tetherObj.transform.SetParent(parentTr, true);
 
             LinkedShipTether tether = tetherObj.AddComponent<LinkedShipTether>();
             tether.Setup(a, b, linkId);
@@ -60,7 +78,14 @@ namespace PixelGame
             EnsureLineRenderer();
         }
 
-        private void EnsureLineRenderer()
+        private void OnEnable()
+        {
+            EnsureLineRenderer();
+            ApplyColorsFromShips();
+            UpdateTetherPositions();
+        }
+
+        public void EnsureLineRenderer()
         {
             if (m_LineRenderer == null) m_LineRenderer = GetComponent<LineRenderer>();
             if (m_LineRenderer == null) m_LineRenderer = gameObject.AddComponent<LineRenderer>();
@@ -69,27 +94,32 @@ namespace PixelGame
             m_LineRenderer.positionCount = m_SegmentCount;
             m_LineRenderer.startWidth = m_LineWidth;
             m_LineRenderer.endWidth = m_LineWidth;
-            m_LineRenderer.numCapVertices = 6;
-            m_LineRenderer.numCornerVertices = 6;
+            m_LineRenderer.numCapVertices = 8;
+            m_LineRenderer.numCornerVertices = 8;
 
             if (s_TetherMaterial == null)
             {
                 Shader shader = Shader.Find("Sprites/Default");
+                if (shader == null) shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
                 if (shader == null) shader = Shader.Find("Universal Render Pipeline/Unlit");
                 if (shader == null) shader = Shader.Find("Hidden/Internal-Colored");
                 if (shader == null) shader = Shader.Find("Unlit/Color");
-                if (shader == null) shader = Shader.Find("Standard");
                 s_TetherMaterial = new Material(shader);
+                s_TetherMaterial.name = "Ship_Tether_SharedMat";
                 s_TetherMaterial.color = Color.white;
+                if (s_TetherMaterial.HasProperty("_BaseColor")) s_TetherMaterial.SetColor("_BaseColor", Color.white);
+                if (s_TetherMaterial.HasProperty("_Color")) s_TetherMaterial.SetColor("_Color", Color.white);
             }
 
             m_LineRenderer.material = s_TetherMaterial;
             m_LineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             m_LineRenderer.receiveShadows = false;
+            m_LineRenderer.sortingOrder = 50;
         }
 
         /// <summary>
-        /// Halatı yarı yarıya bağlı iki geminin rengine boyar (Soldaki gemi mor ise solu mor, sağdaki pembe ise sağı pembe).
+        /// Halatı yarı yarıya bağlı iki geminin renklerine boyar (örn: biri beyaz biri siyahsa yarısı beyaz, yarısı siyah;
+        /// ikisi aynı renkse tamamen o renkte). Ortada tatlı ve pürüzsüz bir renk geçişi oluşturur.
         /// </summary>
         public void ApplyColorsFromShips()
         {
@@ -109,8 +139,8 @@ namespace PixelGame
                 new GradientColorKey[]
                 {
                     new GradientColorKey(colA, 0.0f),
-                    new GradientColorKey(colA, 0.46f),
-                    new GradientColorKey(colB, 0.54f),
+                    new GradientColorKey(colA, 0.44f),
+                    new GradientColorKey(colB, 0.56f),
                     new GradientColorKey(colB, 1.0f)
                 },
                 new GradientAlphaKey[]
@@ -125,20 +155,70 @@ namespace PixelGame
 
         private void LateUpdate()
         {
-            if (m_ShipA == null || m_ShipB == null || !m_ShipA.gameObject.activeInHierarchy || !m_ShipB.gameObject.activeInHierarchy)
+            if (m_ShipA == null || m_ShipB == null)
             {
-                Destroy(gameObject);
+                if (Application.isPlaying) Destroy(gameObject);
                 return;
             }
 
-            // Eğer her iki gemi de ayrılıyorsa halatı yok et
-            if (m_ShipA.IsDeparting && m_ShipB.IsDeparting)
+            if (!m_ShipA.gameObject.activeInHierarchy || !m_ShipB.gameObject.activeInHierarchy)
             {
-                Destroy(gameObject);
+                if (Application.isPlaying) Destroy(gameObject);
+                return;
+            }
+
+            // Eğer gemilerden biri veya her ikisi ayrılıyorsa halatı yok et
+            if (m_ShipA.IsDeparting || m_ShipB.IsDeparting)
+            {
+                if (Application.isPlaying) Destroy(gameObject);
                 return;
             }
 
             UpdateTetherPositions();
+        }
+
+        private void OnDestroy()
+        {
+            if (m_ShipA != null && m_ShipA.Tether == this)
+            {
+                m_ShipA.SetTether(null);
+            }
+            if (m_ShipB != null && m_ShipB.Tether == this)
+            {
+                m_ShipB.SetTether(null);
+            }
+        }
+
+        /// <summary>
+        /// Gemi gövdesinin dış çevresindeki ideal halat bağlantı noktasını yerel koordinatta hesaplar.
+        /// Z=0 noktası geminin tam boy ortası, Y=0.95f tam dikey bel ortasıdır.
+        /// Böylece yan yana gemilerde halat gemilerin tam orta yerlerinden bağlanır.
+        /// </summary>
+        public static Vector3 CalculateHullPerimeterPoint(Vector3 localDir)
+        {
+            // Kenney boat-house-a gövde boyutları (yerel uzayda X yarıçapı ~0.85f, Z yarıçapı ~1.75f, gövde bel ortası ~0.95f)
+            const float Rx = 0.85f;
+            const float Rz = 1.75f;
+            const float WaistY = 0.95f;
+
+            float dx = localDir.x;
+            float dz = localDir.z;
+            float lenSq = dx * dx + dz * dz;
+
+            if (lenSq < 0.0001f)
+            {
+                return new Vector3(0f, WaistY, 0f);
+            }
+
+            float invLen = 1f / Mathf.Sqrt(lenSq);
+            dx *= invLen;
+            dz *= invLen;
+
+            // Elips yüzey kesişim formülü: (dx/Rx)^2 + (dz/Rz)^2 = 1 / factor^2
+            float denom = (dx * dx) / (Rx * Rx) + (dz * dz) / (Rz * Rz);
+            float factor = Mathf.Sqrt(1f / denom);
+
+            return new Vector3(dx * factor, WaistY, dz * factor);
         }
 
         public void UpdateTetherPositions()
@@ -150,12 +230,29 @@ namespace PixelGame
                 ApplyColorsFromShips();
             }
 
-            Vector3 posA = m_ShipA.transform.position + new Vector3(0f, 0.05f, 0f);
-            Vector3 posB = m_ShipB.transform.position + new Vector3(0f, 0.05f, 0f);
+            // Gemilerin tam orta yükseklik ve merkez noktaları (yerel Z=0 geminin tam boy ortası, Y=0.95f bel ortasıdır)
+            Vector3 centerA = m_ShipA.transform.TransformPoint(new Vector3(0f, 0.95f, 0f));
+            Vector3 centerB = m_ShipB.transform.TransformPoint(new Vector3(0f, 0.95f, 0f));
 
-            float dist = Vector3.Distance(posA, posB);
-            // Mesafe uzadıkça sarkma azalır (gerilir), yaklaştıkça sarkar
-            float currentSag = Mathf.Clamp(m_SagAmount * (1.8f - Mathf.Clamp01(dist / 3.5f)), 0.02f, 0.35f);
+            Vector3 worldDelta = centerB - centerA;
+            float worldDist = worldDelta.magnitude;
+            if (worldDist < 0.001f) return;
+
+            Vector3 worldDir = worldDelta / worldDist;
+
+            // A gemisinin gövde kenarındaki orta bağlantı noktası
+            Vector3 localDirA = m_ShipA.transform.InverseTransformDirection(worldDir);
+            Vector3 localAttachA = CalculateHullPerimeterPoint(localDirA);
+            Vector3 posA = m_ShipA.transform.TransformPoint(localAttachA);
+
+            // B gemisinin gövde kenarındaki orta bağlantı noktası
+            Vector3 localDirB = m_ShipB.transform.InverseTransformDirection(-worldDir);
+            Vector3 localAttachB = CalculateHullPerimeterPoint(localDirB);
+            Vector3 posB = m_ShipB.transform.TransformPoint(localAttachB);
+
+            float attachDist = Vector3.Distance(posA, posB);
+            // Doğal sarkma miktarı: iki gemi arasındaki mesafeye orantılı tatlı bir sarkma
+            float currentSag = Mathf.Clamp(m_SagAmount * Mathf.Clamp(attachDist / 1.1f, 0.35f, 1.2f), 0.04f, 0.16f);
 
             if (m_LineRenderer.positionCount != m_SegmentCount)
             {
@@ -165,14 +262,12 @@ namespace PixelGame
             for (int i = 0; i < m_SegmentCount; i++)
             {
                 float t = (float)i / (m_SegmentCount - 1);
-                // Doğrusal enterpolasyon
                 Vector3 p = Vector3.Lerp(posA, posB, t);
 
                 // Parabolik sarkma (U eğrisi: t*(1-t)*4 tepe noktası)
                 float sagFactor = 4f * t * (1f - t);
                 p.y -= currentSag * sagFactor;
 
-                // Titreme / gerilme sarsıntısı varsa ekle
                 if (m_RattleIntensity > 0.001f)
                 {
                     p.x += Mathf.Sin(Time.time * 45f + i * 2f) * m_RattleIntensity * sagFactor;

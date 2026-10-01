@@ -11,11 +11,60 @@ namespace PixelGame.Editor
 
         static CaptureGameViewScreenshot()
         {
-            // Otomatik tetikleme kapatıldı.
-            // EditorApplication.delayCall += Capture;
+            // Auto-trigger disabled; use PixelGame menu item or delayCall when needed
+            // EditorApplication.delayCall += CaptureGemiScene;
         }
 
         private static bool s_IsCapturing = false;
+
+        [MenuItem("PixelGame/📸 9:16 Gemi Ekran Görüntüsü")]
+        public static void CaptureGemiScene()
+        {
+            if (s_IsCapturing) return;
+            try
+            {
+                if (!EditorApplication.isPlayingOrWillChangePlaymode)
+                {
+                    if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().path != "Assets/Scenes/Gemi.unity")
+                    {
+                        UnityEditor.SceneManagement.EditorSceneManager.OpenScene("Assets/Scenes/Gemi.unity");
+                    }
+
+                    MarinaSlotLayout marina = Object.FindFirstObjectByType<MarinaSlotLayout>();
+                    if (marina != null)
+                    {
+                        marina.ApplyLayout();
+                    }
+
+                    ShipController.ClearMaterialCache();
+
+                    ShipController[] ships = Object.FindObjectsByType<ShipController>(FindObjectsSortMode.None);
+                    foreach (var ship in ships)
+                    {
+                        if (ship != null)
+                        {
+                            ship.ApplyColorToShip(ship.ShipColor);
+                        }
+                    }
+
+                    LinkedShipTether[] tethers = Object.FindObjectsByType<LinkedShipTether>(FindObjectsSortMode.None);
+                    foreach (var tether in tethers)
+                    {
+                        if (tether != null)
+                        {
+                            tether.EnsureLineRenderer();
+                            tether.ApplyColorsFromShips();
+                            tether.UpdateTetherPositions();
+                        }
+                    }
+                }
+                Capture();
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning("[CaptureGemiScene] " + ex.Message);
+            }
+        }
 
         public static void CaptureBatch()
         {
@@ -24,7 +73,7 @@ namespace PixelGame.Editor
             Capture();
         }
 
-        // [MenuItem("Tools/PixelGame/📸 9:16 Ekran Görüntüsü Al (Capture Screenshot)")]
+        [MenuItem("PixelGame/📸 9:16 Ekran Görüntüsü Al (Capture Screenshot)")]
         public static void Capture()
         {
             if (s_IsCapturing) return;
@@ -123,23 +172,9 @@ namespace PixelGame.Editor
                 Material mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
                 if (mat != null)
                 {
-                    bool matDirty = false;
-                    if (mat.HasProperty("_StylizedPlasticOn") && mat.GetFloat("_StylizedPlasticOn") > 0.5f) { mat.SetFloat("_StylizedPlasticOn", 0.0f); matDirty = true; }
-                    if (mat.HasProperty("_PlasticHighlightIntensity")) { mat.SetFloat("_PlasticHighlightIntensity", 0f); matDirty = true; }
-                    if (mat.HasProperty("_PlasticTopLight")) { mat.SetFloat("_PlasticTopLight", 0f); matDirty = true; }
-                    if (mat.HasProperty("_SpecularHighlights")) { mat.SetFloat("_SpecularHighlights", 0f); matDirty = true; }
-                    if (mat.HasProperty("_SpecularColor")) { mat.SetColor("_SpecularColor", new Color(0.05f, 0.05f, 0.05f, 1f)); matDirty = true; }
-                    if (mat.HasProperty("_SpecularRoughnessPBR")) { mat.SetFloat("_SpecularRoughnessPBR", 0.85f); matDirty = true; }
-                    if (mat.HasProperty("_Smoothness")) { mat.SetFloat("_Smoothness", 0.10f); matDirty = true; }
-                    if (mat.HasProperty("_RampSmoothing")) { mat.SetFloat("_RampSmoothing", 0.60f); matDirty = true; }
-                    if (mat.HasProperty("_ProceduralBevelWidth")) { mat.SetFloat("_ProceduralBevelWidth", 0.045f); matDirty = true; }
-                    if (mat.HasProperty("_ProceduralBevelIntensity")) { mat.SetFloat("_ProceduralBevelIntensity", 0.75f); matDirty = true; }
-
-                    if (matDirty)
-                    {
-                        EditorUtility.SetDirty(mat);
-                        AssetDatabase.SaveAssets();
-                    }
+                    CartoonShader.ApplyColor(mat, Color.white);
+                    EditorUtility.SetDirty(mat);
+                    AssetDatabase.SaveAssets();
                 }
 
                 // 4. PixelArtGenerator jeneratörünü güncelle (boşluksuz ızgara & 3D derinlik)
@@ -330,4 +365,4 @@ namespace PixelGame.Editor
         }
     }
 }
-// trigger 09/20/2026 00:46:30
+// trigger 10/01/2026 20:04:10

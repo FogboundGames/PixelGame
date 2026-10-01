@@ -84,6 +84,7 @@ namespace PixelGame
             public float NextEntryRight;
             public int Toggle;              // sırayla sol/sağ seçmek için
             public Vector3 MidPoint;
+            public float NextHopTime;
         }
 
         private readonly Dictionary<ShipController, ShipLaneState> m_LaneStates = new Dictionary<ShipController, ShipLaneState>();
@@ -256,6 +257,17 @@ namespace PixelGame
             return next;
         }
 
+        /// <summary>Kıyıdan gemiye zıplama sırasını ayırır (küplerin havada ve inişte iç içe geçmesini önler).</summary>
+        private float ReserveShipHop(ShipController ship, float minInterval = 0.18f)
+        {
+            if (ship == null) return Time.time;
+            if (!m_LaneStates.TryGetValue(ship, out var st) || st == null) return Time.time;
+            float now = Time.time;
+            float next = Mathf.Max(now, st.NextHopTime + minInterval);
+            st.NextHopTime = next;
+            return next;
+        }
+
         /// <summary>
         /// Küpün kendi bulunduğu konumundan doğrudan gemiye gider; sabit duran ana küplerin
         /// üzerinden değil, en kısa temiz kenardan dolaşıp geçer.
@@ -275,357 +287,71 @@ namespace PixelGame
             return (point - nearest).sqrMagnitude <= radius * radius;
         }
 
-        private struct GridPathNode
-        {
-            public int x;
-            public int y;
-            public float priority;
-        }
-
-        private class GridMinHeap
-        {
-            private readonly List<GridPathNode> m_Elements = new List<GridPathNode>(128);
-
-            public int Count => m_Elements.Count;
-
-            public void Push(int x, int y, float priority)
-            {
-                m_Elements.Add(new GridPathNode { x = x, y = y, priority = priority });
-                int i = m_Elements.Count - 1;
-                while (i > 0)
-                {
-                    int parent = (i - 1) / 2;
-                    if (m_Elements[parent].priority <= m_Elements[i].priority) break;
-                    var tmp = m_Elements[parent];
-                    m_Elements[parent] = m_Elements[i];
-                    m_Elements[i] = tmp;
-                    i = parent;
-                }
-            }
-
-            public (int x, int y, float priority) Pop()
-            {
-                var ret = m_Elements[0];
-                int last = m_Elements.Count - 1;
-                m_Elements[0] = m_Elements[last];
-                m_Elements.RemoveAt(last);
-                int count = m_Elements.Count;
-                int i = 0;
-                while (true)
-                {
-                    int left = 2 * i + 1;
-                    int right = 2 * i + 2;
-                    int smallest = i;
-                    if (left < count && m_Elements[left].priority < m_Elements[smallest].priority)
-                        smallest = left;
-                    if (right < count && m_Elements[right].priority < m_Elements[smallest].priority)
-                        smallest = right;
-                    if (smallest == i) break;
-                    var tmp = m_Elements[i];
-                    m_Elements[i] = m_Elements[smallest];
-                    m_Elements[smallest] = tmp;
-                    i = smallest;
-                }
-                return (ret.x, ret.y, ret.priority);
-            }
-        }
-
-        private ShoreLanePath BuildCubeWalkPath(Vector3 startPos, ShipController ship, bool useLeft)
-        {
-            return BuildCubeWalkPath(startPos, ship, null, useLeft);
-        }
-
         /// <summary>
-        /// Küpün panodan gemiye gidiş rotasını hesaplar.
-        /// Kullanıcı kuralı: Küpler asla diğer sabit/kalan küplerin üstünden geçmez!
-        /// Panodaki boşlukları ve dış açık havayı kullanarak diğer küplerin etrafından dolaşır.
+        /// Küpün panodaki anlık konumundan (startPos) başlayarak kıyıya (shore) kadar
+        /// kesintisiz, ana görselin (piksel resmin) üzerinden geçmeden dış kenarlardan (en yakın açık havadan)
+        /// dolaşan, pürüzsüz Catmull-Rom yürüyüş rotası oluşturur.
         /// </summary>
-        private ShoreLanePath BuildCubeWalkPath(Vector3 startPos, ShipController ship, PixelCube sourceCube, bool useLeft)
+        private ShoreLanePath BuildCubeWalkPath(Vector3 startPos, ShipController ship, bool useLeft)
         {
             EnsureBoardBounds();
 
             const float pierSurfaceZ = -0.65f;
             const float pierY = -0.32f;
-            float shipX = (ship != null) ? ship.transform.position.x : startPos.x;
-            Vector3 pierLandingPos = new Vector3(shipX, pierY, pierSurfaceZ);
 
-            if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
-            if (m_Generator == null || m_Generator.CubesContainer == null)
+            float boardBottomY = m_BoardBottomY;
+            float boardMinX = m_BoardMinX;
+            float boardMaxX = m_BoardMaxX;
+
+            float centerX = (boardMinX + boardMaxX) * 0.5f;
+            float shipX = ship != null ? ship.transform.position.x : centerX;
+
+            // Ana görselin tamamen dışındaki güvenli dış koridor (flank) X koordinatı
+            const float flankMargin = 0.55f;
+            float flankX = useLeft ? (boardMinX - flankMargin) : (boardMaxX + flankMargin);
+            float outwardSign = useLeft ? -1f : 1f;
+
+            // Panonun altındaki güvenli toplanma ve kıyıya geçiş noktaları
+            float clearBelowBoardY = boardBottomY - 0.35f;
+            Vector3 mid = new Vector3(centerX + outwardSign * 0.15f, clearBelowBoardY - 0.50f, pierSurfaceZ);
+            Vector3 shore = new Vector3(Mathf.Lerp(centerX, shipX, 0.55f) + outwardSign * 0.08f, pierY, pierSurfaceZ);
+
+            List<Vector3> waypoints = new List<Vector3>();
+            waypoints.Add(startPos);
+
+            // Küp zaten en alt kenarda mı (altında başka küp kalmamış mı)?
+            bool isVeryBottom = startPos.y <= (boardBottomY + 0.15f);
+
+            if (isVeryBottom)
             {
-                return ShoreLanePath.BuildDirect(startPos, pierLandingPos, 32);
-            }
-
-            var allCubes = m_Generator.CubesContainer.GetComponentsInChildren<PixelCube>(false);
-            if (allCubes == null || allCubes.Length == 0)
-            {
-                return ShoreLanePath.BuildDirect(startPos, pierLandingPos, 32);
-            }
-
-            Dictionary<(int, int), PixelCube> gridMap = new Dictionary<(int, int), PixelCube>(allCubes.Length);
-            int minX = int.MaxValue, maxX = int.MinValue;
-            int minY = int.MaxValue, maxY = int.MinValue;
-
-            for (int i = 0; i < allCubes.Length; i++)
-            {
-                PixelCube c = allCubes[i];
-                if (c != null)
-                {
-                    gridMap[(c.GridX, c.GridY)] = c;
-                    if (c.GridX < minX) minX = c.GridX;
-                    if (c.GridX > maxX) maxX = c.GridX;
-                    if (c.GridY < minY) minY = c.GridY;
-                    if (c.GridY > maxY) maxY = c.GridY;
-                }
-            }
-
-            if (minX == int.MaxValue)
-            {
-                return ShoreLanePath.BuildDirect(startPos, pierLandingPos, 32);
-            }
-
-            // Izgara adımlarını mevcut küpler üzerinden dinamik hesapla
-            float stepX = 0.22f;
-            float stepY = 0.22f;
-            bool foundStepX = false, foundStepY = false;
-            for (int i = 0; i < allCubes.Length; i++)
-            {
-                PixelCube c = allCubes[i];
-                if (c == null) continue;
-                if (!foundStepX && gridMap.TryGetValue((c.GridX + 1, c.GridY), out var rc) && rc != null)
-                {
-                    float diffX = Mathf.Abs(rc.transform.position.x - c.transform.position.x);
-                    if (diffX > 0.05f) { stepX = diffX; foundStepX = true; }
-                }
-                if (!foundStepY && gridMap.TryGetValue((c.GridX, c.GridY + 1), out var uc) && uc != null)
-                {
-                    float diffY = Mathf.Abs(uc.transform.position.y - c.transform.position.y);
-                    if (diffY > 0.05f) { stepY = diffY; foundStepY = true; }
-                }
-                if (foundStepX && foundStepY) break;
-            }
-
-            // Başlangıç küpünün ızgara koordinatı
-            int startGx = 0;
-            int startGy = 0;
-            if (sourceCube != null)
-            {
-                startGx = sourceCube.GridX;
-                startGy = sourceCube.GridY;
+                // Alt kenardaki küp: altında görsel olmadığı için doğrudan panonun altındaki boşluğa iner
+                waypoints.Add(new Vector3(startPos.x, clearBelowBoardY, pierSurfaceZ));
+                waypoints.Add(new Vector3(Mathf.Lerp(startPos.x, centerX, 0.45f), clearBelowBoardY - 0.25f, pierSurfaceZ));
+                waypoints.Add(mid);
+                waypoints.Add(shore);
             }
             else
             {
-                float bestDistSq = float.MaxValue;
-                for (int i = 0; i < allCubes.Length; i++)
-                {
-                    PixelCube c = allCubes[i];
-                    if (c == null) continue;
-                    float d = (c.transform.position - startPos).sqrMagnitude;
-                    if (d < bestDistSq)
-                    {
-                        bestDistSq = d;
-                        startGx = c.GridX;
-                        startGy = c.GridY;
-                    }
-                }
+                // Üst, orta ve yan küpler:
+                // 1. Adım: Kendi Y hizasında DOĞRUDAN DIŞARI (yan flank koridoruna) adım atar.
+                // Y aşağı düşmediği için alttaki küplerin/ana görselin üzerinden ASLA geçmez!
+                waypoints.Add(new Vector3(flankX, startPos.y, pierSurfaceZ));
+
+                // 2. Adım: Tamamen görselin dışındaki yan bordür koridorundan panonun altına kadar iner
+                waypoints.Add(new Vector3(flankX, clearBelowBoardY, pierSurfaceZ));
+
+                // 3. Adım: Panonun altından iskeleye doğru yumuşak kavis
+                waypoints.Add(new Vector3(Mathf.Lerp(flankX, centerX, 0.45f), clearBelowBoardY - 0.25f, pierSurfaceZ));
+                waypoints.Add(mid);
+                waypoints.Add(shore);
             }
 
-            // Panonun dışındaki açık hava marjı (2 hücre)
-            const int margin = 2;
-            int boundMinX = minX - margin;
-            int boundMaxX = maxX + margin;
-            int boundMinY = minY - margin;
-            int boundMaxY = maxY + margin;
+            return ShoreLanePath.BuildThrough(waypoints, 24);
+        }
 
-            // Hücre engel kontrolü: Kalan/patlamamış aktif küpler engeldir
-            bool IsBlocked(int gx, int gy)
-            {
-                // Dış marjdaki açık hava alanları asla engelli değildir
-                if (gx < minX || gx > maxX || gy < minY || gy > maxY) return false;
-
-                if (gridMap.TryGetValue((gx, gy), out PixelCube cube))
-                {
-                    // Patlamamış ve aktif olan küpler geçilmez engeldir (sourceCube hariç)
-                    if (cube != null && !cube.IsPopped && cube.gameObject.activeSelf && cube != sourceCube)
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            // Izgara hücresinin dünya konumu
-            Vector3 CellToWorldPos(int gx, int gy)
-            {
-                if (gridMap.TryGetValue((gx, gy), out PixelCube c) && c != null)
-                {
-                    return new Vector3(c.transform.position.x, c.transform.position.y, pierSurfaceZ);
-                }
-                float wx = m_BoardMinX + (gx - minX) * stepX;
-                float wy = m_BoardBottomY + (gy - minY) * stepY;
-                return new Vector3(wx, wy, pierSurfaceZ);
-            }
-
-            // Dijkstra ile engellerin etrafından en kısa ve doğal rotayı bul
-            var gScore = new Dictionary<(int, int), float>();
-            var parent = new Dictionary<(int, int), (int, int)>();
-            var heap = new GridMinHeap();
-
-            var startNode = (startGx, startGy);
-            gScore[startNode] = 0f;
-            heap.Push(startGx, startGy, 0f);
-
-            (int x, int y)? bestExit = null;
-            float bestTotalCost = float.MaxValue;
-
-            // 8 Yön (4 Ortogonal, 4 Çapraz)
-            int[] dx = { -1, 1, 0, 0, -1, 1, -1, 1 };
-            int[] dy = { 0, 0, -1, 1, -1, -1, 1, 1 };
-
-            int maxIterations = 3000;
-            int iter = 0;
-
-            while (heap.Count > 0 && iter++ < maxIterations)
-            {
-                var (cx, cy, cost) = heap.Pop();
-
-                if (cost > gScore[(cx, cy)]) continue;
-
-                // Panonun altına (kumsala) çıkış noktasına ulaşıldı mı?
-                if (cy <= boundMinY)
-                {
-                    float exitWx = CellToWorldPos(cx, cy).x;
-                    float distToShip = Mathf.Abs(exitWx - shipX);
-                    float totalCost = cost + (distToShip / stepX) * 0.70f;
-                    if (totalCost < bestTotalCost)
-                    {
-                        bestTotalCost = totalCost;
-                        bestExit = (cx, cy);
-                    }
-
-                    if (cost >= bestTotalCost) break;
-                    continue;
-                }
-
-                for (int i = 0; i < 8; i++)
-                {
-                    int nx = cx + dx[i];
-                    int ny = cy + dy[i];
-
-                    if (nx < boundMinX || nx > boundMaxX || ny < boundMinY || ny > boundMaxY) continue;
-
-                    bool isDiagonal = (i >= 4);
-
-                    // Çapraz geçişte küp köşesini kesmeyi engelle
-                    if (isDiagonal)
-                    {
-                        if (IsBlocked(nx, ny) || IsBlocked(nx, cy) || IsBlocked(cx, ny))
-                            continue;
-                    }
-                    else
-                    {
-                        if (IsBlocked(nx, ny))
-                            continue;
-                    }
-
-                    float stepCost = isDiagonal ? 1.414f : 1.0f;
-
-                    // Yukarı doğru tırmanışa hafif ceza (küp genel olarak aşağı akmalı)
-                    if (dy[i] > 0) stepCost += 0.35f;
-
-                    // İstenen taraf (sol/sağ) yönlendirmesi
-                    if (useLeft && dx[i] > 0) stepCost += 0.12f;
-                    else if (!useLeft && dx[i] < 0) stepCost += 0.12f;
-
-                    // Sabit küplere sürtünerek gitmek yerine açık havayı tercih etmesi için hafif yakınlık payı
-                    float clearance = 0f;
-                    for (int cdx = -1; cdx <= 1; cdx++)
-                    {
-                        for (int cdy = -1; cdy <= 1; cdy++)
-                        {
-                            if (cdx == 0 && cdy == 0) continue;
-                            if (IsBlocked(nx + cdx, ny + cdy)) clearance += 0.08f;
-                        }
-                    }
-                    stepCost += clearance;
-
-                    float newG = cost + stepCost;
-                    var nKey = (nx, ny);
-                    if (!gScore.TryGetValue(nKey, out float curG) || newG < curG)
-                    {
-                        gScore[nKey] = newG;
-                        parent[nKey] = (cx, cy);
-                        heap.Push(nx, ny, newG);
-                    }
-                }
-            }
-
-            if (bestExit.HasValue)
-            {
-                List<(int x, int y)> pathCells = new List<(int x, int y)>();
-                var cur = bestExit.Value;
-                while (true)
-                {
-                    pathCells.Add(cur);
-                    if (cur.x == startGx && cur.y == startGy) break;
-                    if (!parent.TryGetValue(cur, out cur)) break;
-                }
-                pathCells.Reverse();
-
-                List<Vector3> waypoints = new List<Vector3>(pathCells.Count + 4);
-                waypoints.Add(startPos); // Panodaki tam orijinal küp konumu
-
-                int totalCount = pathCells.Count;
-                for (int i = 1; i < totalCount; i++)
-                {
-                    var cell = pathCells[i];
-                    Vector3 wp = CellToWorldPos(cell.x, cell.y);
-                    // Z geçişi: panodan ayrılırken yumuşakça pierSurfaceZ derinliğine geç
-                    float zProgress = Mathf.Clamp01((float)i / Mathf.Min(4, totalCount));
-                    wp.z = Mathf.Lerp(startPos.z, pierSurfaceZ, Mathf.SmoothStep(0f, 1f, zProgress));
-                    waypoints.Add(wp);
-                }
-
-                // Kumsaldan gemiye yumuşak kavis
-                Vector3 exitWp = waypoints[waypoints.Count - 1];
-                if (Mathf.Abs(exitWp.x - shipX) > 0.35f)
-                {
-                    Vector3 beachMid = new Vector3(
-                        Mathf.Lerp(exitWp.x, shipX, 0.50f),
-                        Mathf.Lerp(exitWp.y, pierY, 0.50f),
-                        pierSurfaceZ
-                    );
-                    waypoints.Add(beachMid);
-                }
-
-                waypoints.Add(pierLandingPos);
-
-                // Tekrarlanan / aşırı yakın ardışık noktaları temizle
-                List<Vector3> cleanWaypoints = new List<Vector3>(waypoints.Count);
-                for (int i = 0; i < waypoints.Count; i++)
-                {
-                    if (i == 0 || (waypoints[i] - cleanWaypoints[cleanWaypoints.Count - 1]).sqrMagnitude > 1e-5f)
-                    {
-                        cleanWaypoints.Add(waypoints[i]);
-                    }
-                }
-
-                if (cleanWaypoints.Count >= 2)
-                {
-                    return ShoreLanePath.BuildThrough(cleanWaypoints, 12);
-                }
-            }
-
-            // Güvenli yedek hat (Fallback): dış kontur üzerinden dolan
-            float contourX = useLeft ? (m_BoardMinX - 0.65f) : (m_BoardMaxX + 0.65f);
-            float sandY = m_BoardBottomY - 0.35f;
-            return ShoreLanePath.BuildThrough(new[]
-            {
-                startPos,
-                new Vector3(contourX, startPos.y, pierSurfaceZ),
-                new Vector3(contourX, sandY, pierSurfaceZ),
-                new Vector3(Mathf.Lerp(contourX, shipX, 0.5f), Mathf.Lerp(sandY, pierY, 0.5f), pierSurfaceZ),
-                pierLandingPos
-            }, 18);
+        private ShoreLanePath BuildCubeWalkPath(Vector3 startPos, ShipController ship, PixelCube sourceCube, bool useLeft)
+        {
+            return BuildCubeWalkPath(startPos, ship, useLeft);
         }
 
         private void Awake()
@@ -1280,18 +1006,19 @@ namespace PixelGame
             }
 
             // ------------------------------------------------------------------
-            // 1C. Kıyıda çömelme — zıplamaya hazırlık
+            // 1C. Kıyıda çömelme & Gemiye Zıplama Sırası (Anti-clipping)
             // ------------------------------------------------------------------
             if (flyerObj != null)
             {
                 flyerObj.transform.position = pierLandingPos;
 
+                float hopTime = ReserveShipHop(ship, 0.18f);
+
                 const float crouchDuration = 0.10f;
                 float crouchElapsed = 0f;
-                while (crouchElapsed < crouchDuration && flyerObj != null)
+                while (flyerObj != null && (crouchElapsed < crouchDuration || Time.time < hopTime))
                 {
                     crouchElapsed += Time.deltaTime;
-                    // 0 -> 1 -> 0: çök, sonra yaylan
                     float ct = Mathf.Clamp01(crouchElapsed / crouchDuration);
                     walker.Crouch(Mathf.Sin(ct * Mathf.PI));
                     yield return null;

@@ -39,7 +39,7 @@ namespace PixelGame.Editor
             EditorGUILayout.LabelField("📏 Yerleşim & Açı", EditorStyles.boldLabel);
             EditorGUILayout.Slider(spacingProp, 0.8f, 2.5f, new GUIContent("📏 Slot Aralığı (Spacing)", "Slotların birbirine olan mesafesi"));
             EditorGUILayout.Slider(angleProp, -60f, 60f, new GUIContent("📐 Çapraz Marina Açısı", "Slotların yanaşma açısı (varsayılan: -28°)"));
-            EditorGUILayout.Slider(tiltProp, -90f, 0f, new GUIContent("🌊 Su Eğim Açısı", "Kamera açısına göre eğim (varsayılan: -68°)"));
+            EditorGUILayout.Slider(tiltProp, -90f, 0f, new GUIContent("🌊 Su Eğim Açısı", "Kamera açısına göre eğim (varsayılan: -28°)"));
 
             EditorGUILayout.Space(4);
             EditorGUILayout.LabelField("🌊 Sahil Kavis / Yay Eğrisi (Shoreline Arc)", EditorStyles.boldLabel);
@@ -49,7 +49,7 @@ namespace PixelGame.Editor
 
             EditorGUILayout.Space(4);
             EditorGUILayout.LabelField("📍 Dikey Konum & Derinlik", EditorStyles.boldLabel);
-            EditorGUILayout.Slider(offsetYProp, -2f, 4f, new GUIContent("📍 Yükseklik (Y)", "Dikey konum"));
+            EditorGUILayout.Slider(offsetYProp, -5f, 5f, new GUIContent("📍 Yükseklik (Y)", "Dikey konum (Sahil için -2.83f)"));
             EditorGUILayout.Slider(offsetZProp, -3f, 3f, new GUIContent("📍 Derinlik (Z)", "İleri/Geri konum"));
 
             if (EditorGUI.EndChangeCheck())

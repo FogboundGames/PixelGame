@@ -40,7 +40,7 @@ Material:
     - _AlphaBreath: 0.08
     - _PulseAmount: 0.012
     - _PulseSpeed: 1.1
-    - _ShimmerIntensity: 0.28
+    - _ShimmerIntensity: 0.12
     - _ShimmerScale: 18
     - _ShimmerSpeed: 1.4
     - _WaveAmplitude: 0.008

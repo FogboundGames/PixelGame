@@ -121,7 +121,7 @@ namespace PixelGame.Editor
                 sandZone = szGo.transform;
                 sandZone.SetParent(gameplayRoot.transform, false);
             }
-            sandZone.position = new Vector3(0f, 5.35f, 0f);
+            sandZone.position = new Vector3(0f, 4.33f, 0.26f);
             sandZone.rotation = Quaternion.identity;
             sandZone.localScale = Vector3.one;
 
@@ -133,6 +133,8 @@ namespace PixelGame.Editor
                 generator.transform.localPosition = new Vector3(0f, 0f, 0f);
                 generator.transform.localRotation = Quaternion.identity;
                 generator.transform.localScale = new Vector3(1.18f, 1.18f, 1f);
+                generator.UseFixedSandArea = true;
+                generator.TargetFrameRect = null;
 
                 // Küpleri sahneye oturt
                 if (generator.CubesContainer == null || generator.CubesContainer.childCount == 0)
@@ -163,7 +165,7 @@ namespace PixelGame.Editor
                 slotsGroup = sGo.transform;
                 slotsGroup.SetParent(waterZone, false);
             }
-            slotsGroup.localPosition = Vector3.zero;
+            slotsGroup.localPosition = new Vector3(0f, -2.83f, 0.05f);
             slotsGroup.localRotation = Quaternion.identity;
             slotsGroup.localScale = Vector3.one;
 
@@ -171,12 +173,12 @@ namespace PixelGame.Editor
             if (slotLayout == null) slotLayout = slotsGroup.gameObject.AddComponent<MarinaSlotLayout>();
 
             slotLayout.SlotCount = 5;
-            slotLayout.SlotSpacing = 1.54f;
-            slotLayout.SlotWidth = 1.38f;
-            slotLayout.SlotLength = 1.593f; // Kamera eğiminde ekranda tam dairesel görünüm (1.38 / sin(60°))
+            slotLayout.SlotSpacing = 1.48f;
+            slotLayout.SlotWidth = 1.08f;
+            slotLayout.SlotLength = 1.55f;
             slotLayout.SlotAngle = 0f;
-            slotLayout.WaterTiltX = -60f;
-            slotLayout.OffsetY = 0f;
+            slotLayout.WaterTiltX = -28f;
+            slotLayout.OffsetY = -2.20f;
             slotLayout.OffsetZ = 0.05f;
             slotLayout.ArcCurveY = 0f;
             slotLayout.ArcAsymmetry = 0f;
@@ -208,7 +210,7 @@ namespace PixelGame.Editor
             }
             queueObj.SetParent(gameplayRoot.transform, false);
             queueObj.position = new Vector3(0f, -4.95f, 0f);
-            queueObj.rotation = Quaternion.Euler(-60f, 0f, 0f);
+            queueObj.rotation = Quaternion.Euler(-28f, 0f, 0f);
             queueObj.localScale = Vector3.one * 1.35f;
 
             ShipQueuePool queuePool = queueObj.GetComponent<ShipQueuePool>();
