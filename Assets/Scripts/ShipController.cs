@@ -484,6 +484,12 @@ namespace PixelGame
             );
         }
 
+        public void SetBaseScale(Vector3 scale)
+        {
+            m_BaseScale = scale;
+            transform.localScale = GetLocalScaleForBaseWorldScale();
+        }
+
         public void ApplyBaseScale()
         {
             // Orijinal ölçeği koru — asla 0.26f gibi sabit bir dünya boyutu ile ezme!

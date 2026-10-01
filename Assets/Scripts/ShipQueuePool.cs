@@ -6,6 +6,44 @@ using DG.Tweening;
 namespace PixelGame
 {
     /// <summary>
+    /// Belirli bir sütun sayısına (2, 3, 4, 5, 6 sütun) özel gemi boyutu ve aralık profili.
+    /// Kullanıcı Inspector'dan istediği sütun sayısına göre ayarları özelleştirebilir.
+    /// </summary>
+    [System.Serializable]
+    public class ColumnLayoutPreset
+    {
+        [Tooltip("Bu kuralın geçerli olduğu sütun sayısı (Örn: 2, 3, 4, 5, 6)")]
+        public int columns = 4;
+
+        [Range(0.10f, 0.40f)]
+        [Tooltip("Bu sütun sayısındaki gemi boyutu")]
+        public float shipScale = 0.21f;
+
+        [Range(0.5f, 2.5f)]
+        [Tooltip("Bu sütun sayısındaki yatay aralık (X)")]
+        public float spacingX = 1.20f;
+
+        [Range(0.5f, 2.5f)]
+        [Tooltip("Bu sütun sayısındaki dikey aralık (Y)")]
+        public float spacingY = 1.25f;
+
+        [Range(-8.0f, 0.0f)]
+        [Tooltip("Bu sütun sayısındaki havuz dikey konumu (Offset Y)")]
+        public float offsetY = -4.95f;
+
+        public ColumnLayoutPreset() { }
+
+        public ColumnLayoutPreset(int cols, float scale, float spX, float spY, float offY)
+        {
+            columns = cols;
+            shipScale = scale;
+            spacingX = spX;
+            spacingY = spY;
+            offsetY = offY;
+        }
+    }
+
+    /// <summary>
     /// Su üzerinde bekleyen gemi kuyruğunu (sırasını) yönetir.
     /// 2 sıra x 4 sütun halinde ferah ve düzenli bir filo yerleşimi sağlar.
     /// Ön sıradaki gemi ayrıldığında, aynı kulvardaki (sütundaki) arka gemi öne kayar ve arkaya denizden yeni gemi gelir.
@@ -18,8 +56,39 @@ namespace PixelGame
         [SerializeField] private GameObject m_ShipPrefab;
         [SerializeField] private int m_Columns = 4;
         [SerializeField] private int m_Rows = 2;
-        [SerializeField] private Vector2 m_Spacing = new Vector2(1.28f, 1.35f);
-        [SerializeField] private float m_ShipScale = 0.26f;
+
+        [Header("📏 Gemi Boyutu & Aralıkları (Canlı Ayarlanabilir)")]
+        [Tooltip("Gemilerin boyutu/ölçeği (Varsayılan: 0.21).")]
+        [Range(0.12f, 0.40f)]
+        [SerializeField] private float m_ShipScale = 0.21f;
+
+        [Tooltip("Gemiler arasındaki yatay aralık (X ekseni). Kumsala taşmaması için slider ile anında ayarlayabilirsiniz.")]
+        [Range(0.6f, 2.5f)]
+        [SerializeField] private float m_SpacingX = 1.20f;
+
+        [Tooltip("Ön ve arka sıralar arasındaki dikey aralık (Y ekseni). Gemilerin iç içe girmemesi için slider ile ayarlayabilirsiniz.")]
+        [Range(0.6f, 2.5f)]
+        [SerializeField] private float m_SpacingY = 1.25f;
+
+        [Tooltip("Tüm gemi havuzunun dikey konumu (Yüksekliği).")]
+        [Range(-8f, 0f)]
+        [SerializeField] private float m_OffsetY = -4.95f;
+
+        [Header("🎛️ Sütun Sayısına Göre Özel Profiller (Presets)")]
+        [Tooltip("Açık olduğunda sütun sayısına (2, 3, 4, 5, 6) göre aşağıdaki profil ayarları otomatik uygulanır.")]
+        [SerializeField] private bool m_UseColumnPresets = true;
+
+        [SerializeField] private List<ColumnLayoutPreset> m_ColumnPresets = new List<ColumnLayoutPreset>()
+        {
+            new ColumnLayoutPreset(2, 0.24f, 1.60f, 1.35f, -4.95f),
+            new ColumnLayoutPreset(3, 0.23f, 1.40f, 1.30f, -4.95f),
+            new ColumnLayoutPreset(4, 0.21f, 1.20f, 1.25f, -4.95f),
+            new ColumnLayoutPreset(5, 0.18f, 1.05f, 1.20f, -4.95f),
+            new ColumnLayoutPreset(6, 0.16f, 0.90f, 1.15f, -4.95f)
+        };
+
+        // Geriye dönük uyumluluk
+        [SerializeField, HideInInspector] private Vector2 m_Spacing = new Vector2(1.20f, 1.25f);
 
         [Header("📍 Kuyruk Yerleri")]
         [SerializeField] private List<Transform> m_QueueSpots = new List<Transform>();
@@ -32,6 +101,43 @@ namespace PixelGame
         public List<ShipController> WaitingShips => m_WaitingShips;
         public bool UsingLevelSequence => m_UsingLevelSequence;
         public int RemainingSequenceShipsCount => m_LevelSequenceQueue != null ? m_LevelSequenceQueue.Count : 0;
+
+        public bool UseColumnPresets { get => m_UseColumnPresets; set => m_UseColumnPresets = value; }
+        public List<ColumnLayoutPreset> ColumnPresets => m_ColumnPresets;
+        public float ShipScale => m_ShipScale;
+        public float SpacingX => m_SpacingX;
+        public float SpacingY => m_SpacingY;
+        public float OffsetY => m_OffsetY;
+
+        public ColumnLayoutPreset GetPresetForColumns(int cols)
+        {
+            if (m_ColumnPresets == null || m_ColumnPresets.Count == 0) return null;
+            for (int i = 0; i < m_ColumnPresets.Count; i++)
+            {
+                if (m_ColumnPresets[i] != null && m_ColumnPresets[i].columns == cols)
+                    return m_ColumnPresets[i];
+            }
+            return null;
+        }
+
+        public bool ApplyPresetForColumns(int cols)
+        {
+            if (!m_UseColumnPresets) return false;
+            var preset = GetPresetForColumns(cols);
+            if (preset != null)
+            {
+                m_ShipScale = preset.shipScale;
+                m_SpacingX = preset.spacingX;
+                m_SpacingY = preset.spacingY;
+                m_OffsetY = preset.offsetY;
+
+                Vector3 lp = transform.localPosition;
+                lp.y = m_OffsetY;
+                transform.localPosition = lp;
+                return true;
+            }
+            return false;
+        }
 
         public PixelLevelData GetActiveLevel()
         {
@@ -154,14 +260,58 @@ namespace PixelGame
 #if UNITY_EDITOR
         private void OnValidate()
         {
-            if (Application.isPlaying) return;
+            // Edit modunda veya Play modunda Inspector slider'ı oynatıldığında anında güncelle
             UnityEditor.EditorApplication.delayCall += () =>
             {
                 if (this != null && gameObject != null)
                 {
-                    RebuildSpots(m_Columns, m_Rows);
+                    ApplyLiveSettings();
                 }
             };
+        }
+
+        /// <summary>
+        /// Inspector'daki slider ayarlarını (Gemi Ölçeği, X/Y Aralıkları, Havuz Yüksekliği)
+        /// hem Edit hem Play modunda sahnedeki tüm gemilere anında uygular.
+        /// </summary>
+        public void ApplyLiveSettings()
+        {
+            // 1. Havuzun genel dikey yüksekliğini (Y) güncelle
+            Vector3 lp = transform.localPosition;
+            lp.y = m_OffsetY;
+            transform.localPosition = lp;
+
+            // 2. Kullanıcının X ve Y aralıklarıyla spotları yeniden konumlandır
+            RebuildSpots(m_Columns, m_Rows);
+
+            // 3. Sahnede var olan tüm gemilerin (kuyruktaki + çocuklardaki) ölçeğini kullanıcının slider ayarıyla güncelle
+            ShipController[] allShips = GetComponentsInChildren<ShipController>(true);
+            foreach (var s in allShips)
+            {
+                if (s != null)
+                {
+                    s.transform.localScale = Vector3.one * m_ShipScale;
+                    s.SetBaseScale(Vector3.one * m_ShipScale);
+                }
+            }
+
+            // 4. Eğer oyundaysak ve slota yanaşmış gemiler varsa onların da temel boyutunu senkronize et
+            if (ShipDispatcher.Instance != null && ShipDispatcher.Instance.Slots != null)
+            {
+                foreach (var slot in ShipDispatcher.Instance.Slots)
+                {
+                    if (slot != null && slot.DockedShip != null)
+                    {
+                        slot.DockedShip.SetBaseScale(Vector3.one * m_ShipScale);
+                    }
+                }
+            }
+
+            if (!Application.isPlaying)
+            {
+                UnityEditor.EditorUtility.SetDirty(gameObject);
+                UnityEditor.SceneView.RepaintAll();
+            }
         }
 #endif
 
@@ -173,6 +323,12 @@ namespace PixelGame
             m_Columns = Mathf.Clamp(targetCols, 1, 8);
             m_Rows = Mathf.Clamp(targetRows, 1, 6);
             int totalNeeded = m_Columns * m_Rows;
+
+            // Eğer sütun profilleri aktifse, bu sütun sayısına özel boyutu ve aralıkları otomatik uygula
+            if (m_UseColumnPresets)
+            {
+                ApplyPresetForColumns(m_Columns);
+            }
 
             // 1. Mevcut spotları topla
             m_QueueSpots.Clear();
@@ -223,17 +379,10 @@ namespace PixelGame
                 existing.Add(spotObj.transform);
             }
 
-            // Tüm spotları doğru kolon/sıra düzenine göre konumlandır
-            // Satırlar arası mesafenin (Y ekseni) en az gemi boyu + emniyet payı (1.42f) olmasını garanti et;
-            // aksi halde gemiler birbiri ile iç içe geçer.
-            float actualSpacingY = Mathf.Max(1.42f, m_Spacing.y);
-            float actualSpacingX = m_Spacing.x;
-
-            // Eğer çok sayıda kolon varsa (örn 5 kolon), yan kumsallara taşmaması için X aralığını dinamik daralt
-            if (m_Columns >= 5 && actualSpacingX > 1.25f)
-            {
-                actualSpacingX = 1.25f;
-            }
+            // Kolon ve sıra aralıklarını doğrudan Inspector'daki slider ayarlarından al (kullanıcı tam kontrol sahibi)
+            float actualSpacingX = m_SpacingX > 0.001f ? m_SpacingX : 1.20f;
+            float actualSpacingY = m_SpacingY > 0.001f ? m_SpacingY : 1.25f;
+            m_Spacing = new Vector2(actualSpacingX, actualSpacingY);
 
             float startX = -(m_Columns - 1) * actualSpacingX * 0.5f;
 
@@ -347,6 +496,8 @@ namespace PixelGame
                 ShipController existingShip = spot.GetComponentInChildren<ShipController>();
                 if (existingShip != null && existingShip.gameObject.activeInHierarchy)
                 {
+                    existingShip.transform.localScale = Vector3.one * m_ShipScale;
+                    existingShip.SetBaseScale(Vector3.one * m_ShipScale);
                     existingShip.Configure(shipColor, capacity);
 
                     while (m_WaitingShips.Count <= i) m_WaitingShips.Add(null);
@@ -436,6 +587,7 @@ namespace PixelGame
 
             ShipController ship = shipObj.GetComponent<ShipController>();
             if (ship == null) ship = shipObj.AddComponent<ShipController>();
+            ship.SetBaseScale(Vector3.one * m_ShipScale);
 
             ship.Configure(shipColor, capacity);
 
@@ -544,6 +696,7 @@ namespace PixelGame
                         backShip.transform.localPosition = Vector3.zero;
                         backShip.transform.localRotation = Quaternion.identity;
                         backShip.transform.localScale = Vector3.one * m_ShipScale;
+                        backShip.SetBaseScale(Vector3.one * m_ShipScale);
                         backShip.SetQueueAnimating(false);
                     }
                 });
@@ -588,6 +741,7 @@ namespace PixelGame
 
             ShipController ship = shipObj.GetComponent<ShipController>();
             if (ship == null) ship = shipObj.AddComponent<ShipController>();
+            ship.SetBaseScale(Vector3.one * m_ShipScale);
 
             ship.Configure(shipColor, capacity);
 

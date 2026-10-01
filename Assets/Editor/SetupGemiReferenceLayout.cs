@@ -217,8 +217,8 @@ namespace PixelGame.Editor
             var qSo = new SerializedObject(queuePool);
             qSo.FindProperty("m_Columns").intValue = 4;
             qSo.FindProperty("m_Rows").intValue = 2;
-            qSo.FindProperty("m_Spacing").vector2Value = new Vector2(1.64f, 1.42f);
-            qSo.FindProperty("m_ShipScale").floatValue = 0.26f;
+            qSo.FindProperty("m_Spacing").vector2Value = new Vector2(1.20f, 1.25f);
+            qSo.FindProperty("m_ShipScale").floatValue = 0.21f;
             qSo.ApplyModifiedPropertiesWithoutUndo();
 
             queuePool.RebuildSpots(4, 2);
