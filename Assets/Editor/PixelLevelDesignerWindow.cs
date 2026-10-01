@@ -25,6 +25,7 @@ namespace PixelGame.Editor
         private int m_TargetGridRows = 4;
         private int m_ActiveBrushPaletteIndex = -1;
         private int m_SelectedSlotForSwap = -1;
+        private int m_SelectedSlotForLink = -1;
         private string m_LastSmartStatusMessage = "";
 
         public enum WagonDifficultyMode
@@ -2128,6 +2129,10 @@ namespace PixelGame.Editor
             {
                 EditorGUILayout.HelpBox($"🔄 Slot #{m_SelectedSlotForSwap + 1} seçildi! Yerini değiştirmek istediğiniz başka bir slota tıklayın.", MessageType.Info);
             }
+            else if (m_SelectedSlotForLink >= 0)
+            {
+                EditorGUILayout.HelpBox($"🔗 Slot #{m_SelectedSlotForLink + 1} bağlamak için seçildi! Bağlamak istediğiniz 2. geminin '🔗 ile Bağla' butonuna tıklayın (İptal için aynı butona tekrar basın).", MessageType.Info);
+            }
 
             EditorGUILayout.EndVertical();
         }
@@ -2353,7 +2358,7 @@ namespace PixelGame.Editor
             bool isSwapSelected = (m_SelectedSlotForSwap == slotIndex);
 
             float cardWidth = 158f;
-            float cardHeight = 118f;
+            float cardHeight = 142f;
 
             if (isFilled)
             {
@@ -2361,8 +2366,13 @@ namespace PixelGame.Editor
                 Color wc = wagon.wagonColor;
                 string cDisplayName = GetColorDisplayName(wc, wagon.label, slotIndex);
 
-                // Dış Kutu (Swap seçiliyse parlak sarı kenarlık)
-                GUI.backgroundColor = isSwapSelected ? new Color(1f, 0.92f, 0.25f) : Color.white;
+                // Dış Kutu (Swap seçiliyse sarı, Bağlama modundaysa turuncu, Zaten bağlıysa ferah mavi)
+                Color boxBg = Color.white;
+                if (isSwapSelected) boxBg = new Color(1f, 0.92f, 0.25f);
+                else if (m_SelectedSlotForLink == slotIndex) boxBg = new Color(1f, 0.82f, 0.25f);
+                else if (wagon.linkId > 0) boxBg = new Color(0.85f, 0.94f, 1.0f);
+
+                GUI.backgroundColor = boxBg;
                 EditorGUILayout.BeginVertical("box", GUILayout.Width(cardWidth), GUILayout.Height(cardHeight));
                 GUI.backgroundColor = Color.white;
 
@@ -2388,6 +2398,7 @@ namespace PixelGame.Editor
                         sequence.RemoveAt(sequence.Count - 1);
                     }
                     m_SelectedSlotForSwap = -1;
+                    m_SelectedSlotForLink = -1;
                     m_SelectedLevel.UseCustomWagonSequence = true;
                     EditorUtility.SetDirty(m_SelectedLevel);
                     NotifyLiveSceneUpdate();
@@ -2400,6 +2411,7 @@ namespace PixelGame.Editor
                 GUI.backgroundColor = isSwapSelected ? new Color(1f, 0.88f, 0.2f) : Color.white;
                 if (GUILayout.Button(swapBtnText, EditorStyles.miniButton, GUILayout.Height(18)))
                 {
+                    m_SelectedSlotForLink = -1;
                     HandleSlotClick(slotIndex);
                 }
                 GUI.backgroundColor = Color.white;
@@ -2432,6 +2444,62 @@ namespace PixelGame.Editor
                 }
                 GUI.enabled = true;
 
+                EditorGUILayout.EndHorizontal();
+
+                // 3.5. 🔗 Bağla / Birleştir Butonu
+                EditorGUILayout.BeginHorizontal();
+                bool isLinked = (wagon.linkId > 0);
+                bool isLinkSelected = (m_SelectedSlotForLink == slotIndex);
+
+                if (isLinked)
+                {
+                    GUI.backgroundColor = new Color(0.2f, 0.85f, 0.95f);
+                    GUILayout.Label($"🔗 Bağ #{wagon.linkId}", EditorStyles.miniBoldLabel, GUILayout.Height(17));
+                    GUI.backgroundColor = new Color(1f, 0.4f, 0.4f);
+                    if (GUILayout.Button(new GUIContent("✕", "Bağlantıyı kopar"), EditorStyles.miniButton, GUILayout.Width(20), GUILayout.Height(16)))
+                    {
+                        Undo.RecordObject(m_SelectedLevel, "Unlink Wagon");
+                        m_SelectedLevel.UnlinkWagon(slotIndex);
+                        m_SelectedLevel.UseCustomWagonSequence = true;
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                        NotifyLiveSceneUpdate();
+                    }
+                    GUI.backgroundColor = Color.white;
+                }
+                else
+                {
+                    if (isLinkSelected)
+                    {
+                        GUI.backgroundColor = new Color(1f, 0.85f, 0.2f);
+                        if (GUILayout.Button("⭐ Seçildi (İptal)", EditorStyles.miniButton, GUILayout.Height(17)))
+                        {
+                            m_SelectedSlotForLink = -1;
+                        }
+                        GUI.backgroundColor = Color.white;
+                    }
+                    else if (m_SelectedSlotForLink != -1)
+                    {
+                        GUI.backgroundColor = new Color(0.35f, 0.95f, 0.45f);
+                        if (GUILayout.Button($"🔗 #{m_SelectedSlotForLink + 1} ile Bağla", EditorStyles.miniButton, GUILayout.Height(17)))
+                        {
+                            Undo.RecordObject(m_SelectedLevel, "Link Wagons");
+                            m_SelectedLevel.LinkWagons(m_SelectedSlotForLink, slotIndex);
+                            m_SelectedSlotForLink = -1;
+                            m_SelectedLevel.UseCustomWagonSequence = true;
+                            EditorUtility.SetDirty(m_SelectedLevel);
+                            NotifyLiveSceneUpdate();
+                        }
+                        GUI.backgroundColor = Color.white;
+                    }
+                    else
+                    {
+                        if (GUILayout.Button(new GUIContent("🔗 Bağla", "Başka bir gemiyle bağlamak için tıkla"), EditorStyles.miniButton, GUILayout.Height(17)))
+                        {
+                            m_SelectedSlotForLink = slotIndex;
+                            m_SelectedSlotForSwap = -1;
+                        }
+                    }
+                }
                 EditorGUILayout.EndHorizontal();
 
                 // 4. Kapasite Stepper Kontrolü

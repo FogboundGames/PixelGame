@@ -236,6 +236,51 @@ namespace PixelGame
         public bool IsFull => m_CurrentCargo >= m_Capacity;
         public bool IsDeparting => m_IsDeparting;
 
+        // ---------------- 🔗 Bağlı Gemi (Linked Ships) ----------------
+        private int m_LinkId = 0;
+        private ShipController m_LinkedPartner = null;
+        private LinkedShipTether m_Tether = null;
+
+        public int LinkId => m_LinkId;
+        public ShipController LinkedPartner => m_LinkedPartner;
+        public bool IsLinked => m_LinkId > 0 && m_LinkedPartner != null;
+        public LinkedShipTether Tether => m_Tether;
+
+        public void SetLinkedPartner(ShipController partner, int linkId, LinkedShipTether tether = null)
+        {
+            m_LinkedPartner = partner;
+            m_LinkId = linkId;
+            if (tether != null) m_Tether = tether;
+        }
+
+        public void SetTether(LinkedShipTether tether)
+        {
+            m_Tether = tether;
+        }
+
+        /// <summary>
+        /// Bağlı gemilerin ikisinin birden en ön sırada ve serbest olup olmadığını kontrol eder.
+        /// </summary>
+        public bool CanDispatchLinked()
+        {
+            if (!IsLinked) return true;
+            if (m_LinkedPartner == null) return true;
+
+            if (m_IsDocked || m_IsMoving || m_IsDeparting) return false;
+            if (m_LinkedPartner.IsDocked || m_LinkedPartner.IsMoving || m_LinkedPartner.IsDeparting) return false;
+
+            ShipQueuePool pool = UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
+            if (pool != null)
+            {
+                // Her iki geminin de çıkış yolu açık olmalı
+                // (Alt alta bağlı gemiler birbirini engellemez; yalnızca yabancı gemiler engel sayılır)
+                if (!pool.IsShipUnblockedForDispatch(this)) return false;
+                if (!pool.IsShipUnblockedForDispatch(m_LinkedPartner)) return false;
+            }
+
+            return true;
+        }
+
         // ---------------- Rezerve (yolda olan) kargo ----------------
         // Küp panodan koparıldığı anda gemiye yazılmıyor; uçuş ~1.5 sn sürüyor ve
         // AddCargo ancak varışta çağrılıyor. Bu sayaç olmadan kapasite kontrolü
@@ -1439,6 +1484,13 @@ namespace PixelGame
             if (!m_EnableDrag) return false;
             if (m_IsDocked || m_IsMoving || m_IsDeparting) return false;
             if (ShipDispatcher.Instance != null && (ShipDispatcher.Instance.IsAutoPlacing || ShipDispatcher.Instance.IsLevelFailed)) return false;
+            if (IsLinked && !CanDispatchLinked())
+            {
+                PlayWobble();
+                if (m_LinkedPartner != null) m_LinkedPartner.PlayWobble();
+                if (m_Tether != null) m_Tether.Rattle();
+                return false;
+            }
             return true;
         }
 
@@ -1566,6 +1618,15 @@ namespace PixelGame
 
             if (m_IsDocked || m_IsMoving || m_IsDeparting) return;
             if (ShipDispatcher.Instance != null && (ShipDispatcher.Instance.IsAutoPlacing || ShipDispatcher.Instance.IsLevelFailed)) return;
+
+            // Bağlı gemi henüz serbest değilse uyar ve gönderme
+            if (IsLinked && !CanDispatchLinked())
+            {
+                PlayWobble();
+                if (m_LinkedPartner != null) m_LinkedPartner.PlayWobble();
+                if (m_Tether != null) m_Tether.Rattle();
+                return;
+            }
 
             // Mevcut click-to-send mantığı %100 aynen çalışır
             if (ShipDispatcher.Instance != null)

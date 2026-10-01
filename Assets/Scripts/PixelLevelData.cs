@@ -42,14 +42,18 @@ namespace PixelGame
         public int paletteIndex = 0;
         public string label = "Vagon";
 
+        [Tooltip("Eğer bu gemi başka bir gemiye bağlıysa her ikisi aynı pozitif ID'yi taşır (örn: 1, 2, 3...). 0 = Bağımsız gemi.")]
+        public int linkId = 0;
+
         public WagonSequenceEntry() { }
 
-        public WagonSequenceEntry(Color color, int cap = 16, int palIdx = 0, string lbl = "Vagon")
+        public WagonSequenceEntry(Color color, int cap = 16, int palIdx = 0, string lbl = "Vagon", int link = 0)
         {
             wagonColor = color;
             capacity = cap;
             paletteIndex = palIdx;
             label = lbl;
+            linkId = link;
         }
     }
 
@@ -515,6 +519,89 @@ namespace PixelGame
             return sum;
         }
 
+
+        #region 🔗 Bağlı Gemi (Linked Ships) Yönetimi
+
+        /// <summary>
+        /// Kullanılmayan en küçük pozitif Link ID'sini bulur (1, 2, 3...).
+        /// </summary>
+        public int GetNextAvailableLinkId()
+        {
+            if (m_WagonSequence == null) return 1;
+            HashSet<int> used = new HashSet<int>();
+            foreach (var w in m_WagonSequence)
+            {
+                if (w != null && w.linkId > 0) used.Add(w.linkId);
+            }
+            int id = 1;
+            while (used.Contains(id)) id++;
+            return id;
+        }
+
+        /// <summary>
+        /// Sıradaki iki gemiyi birbirine bağlar (ikisine de aynı linkId'yi atar).
+        /// </summary>
+        public void LinkWagons(int indexA, int indexB)
+        {
+            if (m_WagonSequence == null) return;
+            if (indexA < 0 || indexA >= m_WagonSequence.Count) return;
+            if (indexB < 0 || indexB >= m_WagonSequence.Count) return;
+            if (indexA == indexB) return;
+
+            var wagonA = m_WagonSequence[indexA];
+            var wagonB = m_WagonSequence[indexB];
+            if (wagonA == null || wagonB == null) return;
+
+            // Varsa eski bağları temizle
+            UnlinkWagon(indexA);
+            UnlinkWagon(indexB);
+
+            int newLinkId = GetNextAvailableLinkId();
+            wagonA.linkId = newLinkId;
+            wagonB.linkId = newLinkId;
+            m_UseCustomWagonSequence = true;
+        }
+
+        /// <summary>
+        /// Verilen indeksteki geminin bağını ve partnerinin bağını koparır (linkId = 0).
+        /// </summary>
+        public void UnlinkWagon(int index)
+        {
+            if (m_WagonSequence == null || index < 0 || index >= m_WagonSequence.Count) return;
+            var target = m_WagonSequence[index];
+            if (target == null || target.linkId <= 0) return;
+
+            int oldLinkId = target.linkId;
+            foreach (var w in m_WagonSequence)
+            {
+                if (w != null && w.linkId == oldLinkId)
+                {
+                    w.linkId = 0;
+                }
+            }
+            m_UseCustomWagonSequence = true;
+        }
+
+        /// <summary>
+        /// Verilen indeksteki gemiyle aynı linkId'yi paylaşan diğer geminin indeksini döner (-1 yoksa).
+        /// </summary>
+        public int GetLinkedPartnerIndex(int index)
+        {
+            if (m_WagonSequence == null || index < 0 || index >= m_WagonSequence.Count) return -1;
+            var target = m_WagonSequence[index];
+            if (target == null || target.linkId <= 0) return -1;
+
+            for (int i = 0; i < m_WagonSequence.Count; i++)
+            {
+                if (i != index && m_WagonSequence[i] != null && m_WagonSequence[i].linkId == target.linkId)
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        #endregion
 
         /// <summary>
         /// Bu bölümü bitirmek için gereken toplam kamyon sayısı.

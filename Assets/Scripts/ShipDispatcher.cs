@@ -1499,20 +1499,65 @@ namespace PixelGame
 
         /// <summary>
         /// Kuyruktan tıklanan gemiyi boş bir slota göndermeyi dener.
+        /// Eğer gemi başka bir gemiye bağlıysa, her ikisi birden en ön sırada olmalı ve
+        /// sahilde en az 2 boş slot bulunmalıdır; ikisi birlikte hareket eder.
         /// </summary>
         public bool TrySendShipFromQueue(ShipController ship)
         {
             if (m_IsAutoPlacing || m_IsLevelFailed) return false;
             if (ship == null || ship.IsDocked || ship.IsMoving || ship.IsDeparting) return false;
 
-            // 1. En ön sıra kontrolü
+            // 1. 🔗 Bağlı Gemi Kontrolü
+            if (ship.IsLinked)
+            {
+                ShipController partner = ship.LinkedPartner;
+
+                // Partner de en ön sırada mı?
+                if (!ship.CanDispatchLinked() || partner == null)
+                {
+                    ship.PlayWobble();
+                    if (partner != null) partner.PlayWobble();
+                    if (ship.Tether != null) ship.Tether.Rattle();
+                    return false;
+                }
+
+                // 2 slotluk boş yer var mı? (Kural: 2 slot kaplayacaklar, 2 slotluk yer yoksa tıklanmaz)
+                List<ShipSlot> emptySlots = GetEmptySlots();
+                if (emptySlots == null || emptySlots.Count < 2)
+                {
+                    ship.PlayWobble();
+                    if (partner != null) partner.PlayWobble();
+                    if (ship.Tether != null) ship.Tether.Rattle();
+                    return false;
+                }
+
+                // İki slotu tahsis et ve iki gemiyi birlikte gönder
+                ShipSlot slotA = emptySlots[0];
+                ShipSlot slotB = emptySlots[1];
+
+                // Her iki gemiyi de kuyruk sisteminden çıkar (alt alta olsalar dahi çift sıra kaydırmayı kusursuz işletir)
+                if (m_QueuePool != null)
+                {
+                    m_QueuePool.OnLinkedShipsDispatched(ship, partner);
+                }
+
+                ship.transform.SetParent(null, true);
+                partner.transform.SetParent(null, true);
+
+                ship.SailToSlot(slotA);
+                partner.SailToSlot(slotB);
+                return true;
+            }
+
+            // 2. Normal Tekil Gemi Kontrolü
+            // En ön sıra kontrolü
             if (m_QueuePool != null && !m_QueuePool.IsFrontRow(ship))
             {
                 ship.PlayWobble();
                 return false;
             }
 
-            // 2. Boş slot kontrolü
+            // Boş slot kontrolü
             ShipSlot emptySlot = FindEmptySlot();
             if (emptySlot == null)
             {
@@ -1520,7 +1565,7 @@ namespace PixelGame
                 return false;
             }
 
-            // 3. Kuyruktan çıkar, arkadaki gemiyi öne kaydır ve açık denizden yenisini getir
+            // Kuyruktan çıkar, arkadaki gemiyi öne kaydır ve açık denizden yenisini getir
             if (m_QueuePool != null)
             {
                 m_QueuePool.OnFrontShipDispatched(ship);

@@ -227,7 +227,7 @@ namespace PixelGame
             }
         }
 
-        private bool TryGetNextSequenceShip(out Color shipColor, out int capacity)
+        private bool TryGetNextSequenceShip(out Color shipColor, out int capacity, out int linkId)
         {
             if (m_UsingLevelSequence && m_LevelSequenceQueue != null && m_LevelSequenceQueue.Count > 0)
             {
@@ -236,12 +236,19 @@ namespace PixelGame
                 {
                     shipColor = entry.wagonColor;
                     capacity = entry.capacity;
+                    linkId = entry.linkId;
                     return true;
                 }
             }
             shipColor = Color.clear;
             capacity = 0;
+            linkId = 0;
             return false;
+        }
+
+        private bool TryGetNextSequenceShip(out Color shipColor, out int capacity)
+        {
+            return TryGetNextSequenceShip(out shipColor, out capacity, out _);
         }
 
         private void Awake()
@@ -486,11 +493,13 @@ namespace PixelGame
 
                 Color shipColor;
                 int capacity;
-                if (!TryGetNextSequenceShip(out shipColor, out capacity))
+                int linkId;
+                if (!TryGetNextSequenceShip(out shipColor, out capacity, out linkId))
                 {
                     const bool preferExposed = true;
                     shipColor = GetNextNeededColor(preferExposed);
                     capacity = GetRecommendedCapacity(shipColor);
+                    linkId = 0;
                 }
 
                 ShipController existingShip = spot.GetComponentInChildren<ShipController>();
@@ -498,6 +507,7 @@ namespace PixelGame
                 {
                     existingShip.transform.localScale = Vector3.one * m_ShipScale;
                     existingShip.SetBaseScale(Vector3.one * m_ShipScale);
+                    existingShip.SetLinkedPartner(null, linkId);
                     existingShip.Configure(shipColor, capacity);
 
                     while (m_WaitingShips.Count <= i) m_WaitingShips.Add(null);
@@ -505,9 +515,12 @@ namespace PixelGame
                 }
                 else
                 {
-                    SpawnShipAtSpot(i, shipColor, capacity);
+                    SpawnShipAtSpot(i, shipColor, capacity, linkId);
                 }
             }
+
+            // Tüm gemiler oluştuktan sonra bağlı olanları eşleştir ve aralarına halat/zincir çek
+            RefreshLinkedShipTethers();
         }
 
         public void ClearQueue()
@@ -555,7 +568,7 @@ namespace PixelGame
         /// <summary>
         /// Belirtilen spot indeksinde yeni bir gemi üretir.
         /// </summary>
-        public ShipController SpawnShipAtSpot(int spotIndex, Color shipColor, int capacity)
+        public ShipController SpawnShipAtSpot(int spotIndex, Color shipColor, int capacity, int linkId = 0)
         {
             if (spotIndex < 0 || spotIndex >= m_QueueSpots.Count) return null;
             if (m_ShipPrefab == null) return null;
@@ -588,6 +601,7 @@ namespace PixelGame
             ShipController ship = shipObj.GetComponent<ShipController>();
             if (ship == null) ship = shipObj.AddComponent<ShipController>();
             ship.SetBaseScale(Vector3.one * m_ShipScale);
+            ship.SetLinkedPartner(null, linkId);
 
             ship.Configure(shipColor, capacity);
 
@@ -604,13 +618,73 @@ namespace PixelGame
         {
             Color shipColor;
             int capacity;
-            if (!TryGetNextSequenceShip(out shipColor, out capacity))
+            int linkId;
+            if (!TryGetNextSequenceShip(out shipColor, out capacity, out linkId))
             {
                 shipColor = GetNextNeededColor(preferExposed);
                 capacity = GetRecommendedCapacity(shipColor);
+                linkId = 0;
             }
 
-            return SpawnShipAtSpot(spotIndex, shipColor, capacity);
+            return SpawnShipAtSpot(spotIndex, shipColor, capacity, linkId);
+        }
+
+        /// <summary>
+        /// Sahnedeki veya kuyruktaki tüm bağlı gemileri eşleştirir ve aralarına dinamik halat/zincir (tether) çeker.
+        /// </summary>
+        public void RefreshLinkedShipTethers()
+        {
+            // Varsa eski tether objelerini temizle
+            LinkedShipTether[] oldTethers = UnityEngine.Object.FindObjectsByType<LinkedShipTether>(FindObjectsSortMode.None);
+            for (int i = oldTethers.Length - 1; i >= 0; i--)
+            {
+                if (oldTethers[i] != null)
+                {
+#if UNITY_EDITOR
+                    if (!Application.isPlaying) DestroyImmediate(oldTethers[i].gameObject);
+                    else Destroy(oldTethers[i].gameObject);
+#else
+                    Destroy(oldTethers[i].gameObject);
+#endif
+                }
+            }
+
+            // Aktif gemileri topla
+            List<ShipController> activeShips = new List<ShipController>();
+            if (m_WaitingShips != null)
+            {
+                foreach (var s in m_WaitingShips)
+                {
+                    if (s != null && s.LinkId > 0 && s.gameObject.activeInHierarchy && !s.IsDeparting)
+                    {
+                        activeShips.Add(s);
+                    }
+                }
+            }
+
+            // linkId'lerine göre grupla
+            Dictionary<int, List<ShipController>> linkGroups = new Dictionary<int, List<ShipController>>();
+            foreach (var s in activeShips)
+            {
+                if (!linkGroups.ContainsKey(s.LinkId))
+                {
+                    linkGroups[s.LinkId] = new List<ShipController>();
+                }
+                linkGroups[s.LinkId].Add(s);
+            }
+
+            // Eşleştir ve halat oluştur
+            foreach (var kvp in linkGroups)
+            {
+                if (kvp.Value.Count >= 2)
+                {
+                    ShipController a = kvp.Value[0];
+                    ShipController b = kvp.Value[1];
+                    LinkedShipTether tether = LinkedShipTether.CreateTether(a, b, kvp.Key);
+                    a.SetLinkedPartner(b, kvp.Key, tether);
+                    b.SetLinkedPartner(a, kvp.Key, tether);
+                }
+            }
         }
 
         /// <summary>
@@ -622,6 +696,122 @@ namespace PixelGame
             if (index < 0) return false;
             int rowIndex = index / m_Columns;
             return rowIndex == 0;
+        }
+
+        /// <summary>
+        /// Bir geminin çıkış yolunun açık olup olmadığını kontrol eder.
+        /// - Tekil gemi ise: En ön sırada (Row 0) olmalıdır.
+        /// - Bağlı gemi ise: Geminin önünde kendi bağlı partneri DIŞINDA başka bir engel gemi olmamalıdır.
+        ///   (Böylece aynı sütunda alt alta bağlı olan gemiler birbirini engellemez!)
+        /// </summary>
+        public bool IsShipUnblockedForDispatch(ShipController ship)
+        {
+            if (ship == null) return false;
+            int index = m_WaitingShips.IndexOf(ship);
+            if (index < 0) return false;
+
+            int col = index % m_Columns;
+            int row = index / m_Columns;
+
+            // Eğer zaten en ön sıradaysa önü tamamen açıktır
+            if (row == 0) return true;
+
+            // Önündeki tüm satırları kontrol et
+            for (int r = 0; r < row; r++)
+            {
+                int checkIdx = r * m_Columns + col;
+                if (checkIdx < m_WaitingShips.Count)
+                {
+                    ShipController blocker = m_WaitingShips[checkIdx];
+                    if (blocker != null && blocker.gameObject.activeInHierarchy && !blocker.IsDeparting && !blocker.IsDocked)
+                    {
+                        // Eğer öndeki gemi bu geminin kendi bağlı partneri ise engel sayılmaz!
+                        if (ship.IsLinked && ship.LinkedPartner == blocker)
+                        {
+                            continue;
+                        }
+                        // Başka yabancı bir gemi varsa önü kapalıdır
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// İki bağlı gemi birlikte slota gönderildiğinde kuyruğu günceller.
+        /// Eğer aynı sütundaysalar (alt alta), o sütunun iki sırasını birden temizleyip arkadakileri kaydırır.
+        /// Farklı sütundaysalar her sütunu ayrı ayrı günceller.
+        /// </summary>
+        public void OnLinkedShipsDispatched(ShipController shipA, ShipController shipB)
+        {
+            int idxA = m_WaitingShips.IndexOf(shipA);
+            int idxB = m_WaitingShips.IndexOf(shipB);
+
+            if (idxA < 0 && idxB < 0) return;
+
+            // Eğer sadece biri kuyruktaysa normal gönder
+            if (idxA < 0) { OnFrontShipDispatched(shipB); return; }
+            if (idxB < 0) { OnFrontShipDispatched(shipA); return; }
+
+            int colA = idxA % m_Columns;
+            int colB = idxB % m_Columns;
+
+            if (colA != colB)
+            {
+                // Farklı sütunlardalar: Her birini kendi sütununda dispatch et
+                OnFrontShipDispatched(shipA);
+                OnFrontShipDispatched(shipB);
+            }
+            else
+            {
+                // AYNI SÜTUNDALAR (Alt alta):
+                int col = colA;
+                int rowMin = Mathf.Min(idxA / m_Columns, idxB / m_Columns);
+                int rowMax = Mathf.Max(idxA / m_Columns, idxB / m_Columns);
+
+                m_WaitingShips[idxA] = null;
+                m_WaitingShips[idxB] = null;
+
+                // Arkada kalan sıraları 2 basamak öne kaydır
+                int shiftCount = 2;
+                for (int r = rowMin; r < m_Rows - shiftCount; r++)
+                {
+                    int curIdx = r * m_Columns + col;
+                    int srcIdx = (r + shiftCount) * m_Columns + col;
+
+                    if (srcIdx < m_WaitingShips.Count && m_WaitingShips[srcIdx] != null)
+                    {
+                        ShipController advancingShip = m_WaitingShips[srcIdx];
+                        m_WaitingShips[curIdx] = advancingShip;
+                        m_WaitingShips[srcIdx] = null;
+
+                        Transform targetSpot = m_QueueSpots[curIdx];
+                        if (gameObject.activeInHierarchy)
+                        {
+                            StartCoroutine(MoveBackShipToFrontSpot(advancingShip, targetSpot, 0.10f * (r - rowMin + 1)));
+                        }
+                    }
+                }
+
+                // Boşalan son 2 sıraya denizden yeni gemiler gelsin
+                if (gameObject.activeInHierarchy)
+                {
+                    int last1 = (m_Rows - 2) * m_Columns + col;
+                    int last2 = (m_Rows - 1) * m_Columns + col;
+
+                    if (m_Rows >= 2)
+                    {
+                        StartCoroutine(SpawnAndSailInNewShip(last1, 0.15f));
+                        StartCoroutine(SpawnAndSailInNewShip(last2, 0.30f));
+                    }
+                    else
+                    {
+                        StartCoroutine(SpawnAndSailInNewShip(last2, 0.18f));
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -698,6 +888,7 @@ namespace PixelGame
                         backShip.transform.localScale = Vector3.one * m_ShipScale;
                         backShip.SetBaseScale(Vector3.one * m_ShipScale);
                         backShip.SetQueueAnimating(false);
+                        RefreshLinkedShipTethers();
                     }
                 });
         }
@@ -722,10 +913,12 @@ namespace PixelGame
 
             Color shipColor;
             int capacity;
-            if (!TryGetNextSequenceShip(out shipColor, out capacity))
+            int linkId;
+            if (!TryGetNextSequenceShip(out shipColor, out capacity, out linkId))
             {
                 shipColor = GetNextNeededColor(false);
                 capacity = GetRecommendedCapacity(shipColor);
+                linkId = 0;
             }
 
             Transform spot = m_QueueSpots[spotIndex];
@@ -742,6 +935,7 @@ namespace PixelGame
             ShipController ship = shipObj.GetComponent<ShipController>();
             if (ship == null) ship = shipObj.AddComponent<ShipController>();
             ship.SetBaseScale(Vector3.one * m_ShipScale);
+            ship.SetLinkedPartner(null, linkId);
 
             ship.Configure(shipColor, capacity);
 
@@ -772,7 +966,9 @@ namespace PixelGame
                         ship.transform.localPosition = Vector3.zero;
                         ship.transform.localRotation = Quaternion.identity;
                         ship.transform.localScale = Vector3.one * m_ShipScale;
+                        ship.SetBaseScale(Vector3.one * m_ShipScale);
                         ship.SetQueueAnimating(false);
+                        RefreshLinkedShipTethers();
                     }
                 });
         }
