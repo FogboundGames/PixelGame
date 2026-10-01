@@ -151,6 +151,20 @@ namespace PixelGame
             }
         }
 
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            if (Application.isPlaying) return;
+            UnityEditor.EditorApplication.delayCall += () =>
+            {
+                if (this != null && gameObject != null)
+                {
+                    RebuildSpots(m_Columns, m_Rows);
+                }
+            };
+        }
+#endif
+
         /// <summary>
         /// Kuyruk için bekleme noktalarını (spot) seviyenin kolon ve sıra ayarlarına göre dinamik olarak oluşturur ve konumlandırır.
         /// </summary>
@@ -210,7 +224,18 @@ namespace PixelGame
             }
 
             // Tüm spotları doğru kolon/sıra düzenine göre konumlandır
-            float startX = -(m_Columns - 1) * m_Spacing.x * 0.5f;
+            // Satırlar arası mesafenin (Y ekseni) en az gemi boyu + emniyet payı (1.42f) olmasını garanti et;
+            // aksi halde gemiler birbiri ile iç içe geçer.
+            float actualSpacingY = Mathf.Max(1.42f, m_Spacing.y);
+            float actualSpacingX = m_Spacing.x;
+
+            // Eğer çok sayıda kolon varsa (örn 5 kolon), yan kumsallara taşmaması için X aralığını dinamik daralt
+            if (m_Columns >= 5 && actualSpacingX > 1.25f)
+            {
+                actualSpacingX = 1.25f;
+            }
+
+            float startX = -(m_Columns - 1) * actualSpacingX * 0.5f;
 
             for (int r = 0; r < m_Rows; r++)
             {
@@ -220,8 +245,8 @@ namespace PixelGame
                     Transform spot = existing[spotIdx];
                     spot.name = $"Spot_R{r}_C{c}";
 
-                    float posX = startX + c * m_Spacing.x;
-                    float posZ = -r * m_Spacing.y;
+                    float posX = startX + c * actualSpacingX;
+                    float posZ = -r * actualSpacingY;
 
                     spot.localPosition = new Vector3(posX, 0f, posZ);
                     spot.localRotation = Quaternion.identity;

@@ -16,7 +16,9 @@ namespace PixelGame.Editor
 
         static SetupMarinaDockSlots()
         {
-            EditorApplication.delayCall += AutoSetupIfNeeded;
+            // Otomatik tetikleme kapatıldı: Unity veya PC yeniden başladığında sahneyi habersiz değiştirmemesi için.
+            // Gerekirse PixelGame menüsünden elle çalıştırılır.
+            // EditorApplication.delayCall += AutoSetupIfNeeded;
         }
 
         private static void AutoSetupIfNeeded()
@@ -72,7 +74,7 @@ namespace PixelGame.Editor
                     {
                         Undo.DestroyObjectImmediate(child.gameObject);
                     }
-                    else
+                    else if (child.name != "FoamSlot")
                     {
                         // IndicatorMesh vb. eski nesneleri deaktive et
                         child.gameObject.SetActive(false);

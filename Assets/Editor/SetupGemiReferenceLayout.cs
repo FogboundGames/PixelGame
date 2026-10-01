@@ -17,7 +17,9 @@ namespace PixelGame.Editor
 
         static SetupGemiReferenceLayout()
         {
-            EditorApplication.delayCall += AutoRunOnce;
+            // Otomatik tetikleme kapatıldı: Unity veya PC yeniden başladığında sahneyi habersiz değiştirmemesi için.
+            // Gerekirse PixelGame menüsünden elle çalıştırılır.
+            // EditorApplication.delayCall += AutoRunOnce;
         }
 
         private static void AutoRunOnce()
@@ -215,7 +217,7 @@ namespace PixelGame.Editor
             var qSo = new SerializedObject(queuePool);
             qSo.FindProperty("m_Columns").intValue = 4;
             qSo.FindProperty("m_Rows").intValue = 2;
-            qSo.FindProperty("m_Spacing").vector2Value = new Vector2(1.64f, 0.90f);
+            qSo.FindProperty("m_Spacing").vector2Value = new Vector2(1.64f, 1.42f);
             qSo.FindProperty("m_ShipScale").floatValue = 0.26f;
             qSo.ApplyModifiedPropertiesWithoutUndo();
 

@@ -29,6 +29,10 @@ namespace PixelGame
         [Tooltip("Şu an aktif olan bölüm indeksi (0 tabanlı)")]
         [SerializeField] private int m_CurrentLevelIndex = 0;
 
+        [Header("🎮 Editör Test Ayarları")]
+        [Tooltip("İşaretliyse Editörde Play'e basıldığında PlayerPrefs yok sayılır ve doğrudan seçili olan 'Current Level Index' bölümü başlar.")]
+        [SerializeField] private bool m_StartFromSelectedLevelInEditor = true;
+
         [Header("⚙️ Jeneratör Referansı")]
         [SerializeField] private PixelArtGenerator m_Generator;
 
@@ -36,6 +40,7 @@ namespace PixelGame
         public LevelSequence Sequence { get => m_LevelSequence; set => m_LevelSequence = value; }
         public int CurrentLevelIndex => m_CurrentLevelIndex;
         public PixelLevelData CurrentLevel => (m_Levels != null && m_CurrentLevelIndex >= 0 && m_CurrentLevelIndex < m_Levels.Count) ? m_Levels[m_CurrentLevelIndex] : null;
+        public bool StartFromSelectedLevelInEditor { get => m_StartFromSelectedLevelInEditor; set => m_StartFromSelectedLevelInEditor = value; }
 
         /// <summary>
         /// LevelSequence asset'i atanmışsa m_Levels'i onunla eşitler. LevelSequence tek doğruluk
@@ -69,11 +74,29 @@ namespace PixelGame
             {
                 EnsureGenerator();
 
-                // Kullanıcı isteği: "level save durumu olsun hangi levelde kaldıysak oradan devam etsin"
-                int targetIndex = PlayerPrefs.HasKey(ProgressPrefKey)
-                    ? PlayerPrefs.GetInt(ProgressPrefKey)
-                    : m_CurrentLevelIndex;
-
+                // Editörde geliştirici seçtiği veya sahnede aktif olan seviyeyi test edebilsin diye kontrol yapılır.
+                int targetIndex = m_CurrentLevelIndex;
+#if UNITY_EDITOR
+                // Eğer sahnede PixelArtGenerator'da aktif atanmış bir bölüm varsa, öncelik doğrudan odur!
+                if (m_Generator != null && m_Generator.ActiveLevelData != null)
+                {
+                    int activeIdx = m_Levels.IndexOf(m_Generator.ActiveLevelData);
+                    if (activeIdx >= 0)
+                    {
+                        targetIndex = activeIdx;
+                        m_CurrentLevelIndex = activeIdx;
+                    }
+                }
+                else if (!m_StartFromSelectedLevelInEditor && PlayerPrefs.HasKey(ProgressPrefKey))
+                {
+                    targetIndex = PlayerPrefs.GetInt(ProgressPrefKey);
+                }
+#else
+                if (PlayerPrefs.HasKey(ProgressPrefKey))
+                {
+                    targetIndex = PlayerPrefs.GetInt(ProgressPrefKey);
+                }
+#endif
                 targetIndex = Mathf.Clamp(targetIndex, 0, m_Levels.Count - 1);
 
                 // Eğer sahne düzenleme koruması (PreserveSceneEdits) AÇIKSA ve sahnede zaten küpler varsa
@@ -128,6 +151,26 @@ namespace PixelGame
         }
 
         /// <summary>
+        /// Dışarıdan (PixelArtGenerator veya Level Designer) bir bölüm yüklendiğinde
+        /// LevelManager'ın indeksini o bölümle senkronize eder.
+        /// </summary>
+        public void SyncActiveLevel(PixelLevelData levelData)
+        {
+            if (levelData == null || m_Levels == null) return;
+            int idx = m_Levels.IndexOf(levelData);
+            if (idx >= 0)
+            {
+                m_CurrentLevelIndex = idx;
+#if UNITY_EDITOR
+                if (!Application.isPlaying)
+                {
+                    UnityEditor.EditorUtility.SetDirty(this);
+                }
+#endif
+            }
+        }
+
+        /// <summary>
         /// Kayıtlı oyuncu ilerlemesini (kaldığı bölüm) siler; bir sonraki başlangıçta 0. bölümden
         /// başlar. "Yeni Oyun" / ilerlemeyi sıfırlama gibi menü aksiyonlarından çağırmak için.
         /// </summary>
@@ -140,6 +183,13 @@ namespace PixelGame
             Debug.Log("<color=#FFAA00><b>[LevelManager]</b></color> 🔄 Seviye ilerlemesi sıfırlandı (Bölüm 1'e dönüldü).");
         }
 
+        [ContextMenu("🔄 Seçili Bölümü Yükle (Load Selected)")]
+        public void LoadSelectedLevel()
+        {
+            LoadLevel(m_CurrentLevelIndex);
+        }
+
+        [ContextMenu("▶ Sonraki Bölüm (Next Level)")]
         public void NextLevel()
         {
             if (m_Levels.Count == 0) return;
@@ -147,6 +197,7 @@ namespace PixelGame
             LoadLevel(next);
         }
 
+        [ContextMenu("◀ Önceki Bölüm (Previous Level)")]
         public void PreviousLevel()
         {
             if (m_Levels.Count == 0) return;

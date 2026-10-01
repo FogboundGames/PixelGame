@@ -25,7 +25,15 @@ namespace PixelGame
         {
             if (m_IndicatorTransform == null)
             {
-                m_IndicatorTransform = transform.Find("IndicatorMesh");
+                m_IndicatorTransform = transform.Find("FoamSlot");
+                if (m_IndicatorTransform == null)
+                {
+                    m_IndicatorTransform = transform.Find("[Slot_Lifebuoy]");
+                }
+                if (m_IndicatorTransform == null)
+                {
+                    m_IndicatorTransform = transform.Find("IndicatorMesh");
+                }
             }
         }
 

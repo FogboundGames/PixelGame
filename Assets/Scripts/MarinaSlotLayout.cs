@@ -14,21 +14,21 @@ namespace PixelGame
     public class MarinaSlotLayout : MonoBehaviour
     {
         [Header("⚓ Slot Boyutları (Width & Length / Height)")]
-        [Tooltip("Slotların yatay genişliği (Width / En - X ekseni). Referans görsel: ~1.35f.")]
+        [Tooltip("Slotların yatay genişliği (Width / En - X ekseni).")]
         [Range(0.3f, 3.5f)]
-        [SerializeField] private float m_SlotWidth = 1.35f;
+        [SerializeField] private float m_SlotWidth = 1.08f;
 
-        [Tooltip("Slotların boyu / uzunluğu (Length / Height - Z ekseni). Referans görsel: ~1.35f.")]
+        [Tooltip("Slotların boyu / uzunluğu (Length / Height - Z ekseni).")]
         [Range(0.3f, 3.5f)]
-        [SerializeField] private float m_SlotLength = 1.35f;
+        [SerializeField] private float m_SlotLength = 1.55f;
 
         // Geriye dönük uyumluluk için
-        [SerializeField, HideInInspector] private float m_SlotScale = 1.35f;
+        [SerializeField, HideInInspector] private float m_SlotScale = 1.08f;
 
         [Header("📏 Slotlar Arası Mesafe (Aralık)")]
-        [Tooltip("Slotların birbirine olan yatay mesafesi. Referans görsel: 1.54f.")]
+        [Tooltip("Slotların birbirine olan yatay mesafesi.")]
         [Range(0.6f, 2.5f)]
-        [SerializeField] private float m_SlotSpacing = 1.54f;
+        [SerializeField] private float m_SlotSpacing = 1.48f;
 
         [Header("📐 Yanaşma Açısı")]
         [Tooltip("Slotların ve gemilerin yanaşma açısı (Referans: 0 derece, düz yatay).")]
@@ -43,7 +43,7 @@ namespace PixelGame
         [Header("📍 Dikey Yükseklik & Derinlik")]
         [Tooltip("Slot şeridinin Y eksenindeki yüksekliği.")]
         [Range(-4f, 4f)]
-        [SerializeField] private float m_OffsetY = 0f;
+        [SerializeField] private float m_OffsetY = -0.7f;
 
         [Tooltip("Slot şeridinin Z eksenindeki derinliği.")]
         [Range(-3f, 3f)]
@@ -205,21 +205,21 @@ namespace PixelGame
 
         private void OnValidate()
         {
-            if (m_SlotWidth <= 0.001f) m_SlotWidth = 1.35f;
-            if (m_SlotLength <= 0.001f) m_SlotLength = 1.35f;
+            if (m_SlotWidth <= 0.001f) m_SlotWidth = 1.08f;
+            if (m_SlotLength <= 0.001f) m_SlotLength = 1.55f;
             ApplyLayout();
         }
 
         private void Reset()
         {
             m_SlotCount = 5;
-            m_SlotWidth = 1.35f;
-            m_SlotLength = 1.35f;
-            m_SlotScale = 1.35f;
-            m_SlotSpacing = 1.54f;
+            m_SlotWidth = 1.08f;
+            m_SlotLength = 1.55f;
+            m_SlotScale = 1.08f;
+            m_SlotSpacing = 1.48f;
             m_SlotAngle = 0f;
             m_WaterTiltX = -60f;
-            m_OffsetY = 0f;
+            m_OffsetY = -0.7f;
             m_OffsetZ = 0.05f;
             m_ArcCurveY = 0f;
             m_ArcAsymmetry = 0f;
@@ -268,13 +268,35 @@ namespace PixelGame
                 tr.localRotation = Quaternion.Euler(m_WaterTiltX, 0f, 0f) * Quaternion.Euler(0f, angle, 0f);
                 tr.localScale = new Vector3(m_SlotWidth, 1f, m_SlotLength);
 
-                // Can simidi çocuk görselinin ölçeğini ve konumunu temizle
+                // Köpük / taban slot çocuk görselini bul (FoamSlot veya [Slot_Lifebuoy])
+                Transform foamSlot = tr.Find("FoamSlot");
                 Transform lifebuoy = tr.Find("[Slot_Lifebuoy]");
-                if (lifebuoy != null)
+                Transform visualTr = foamSlot != null ? foamSlot : lifebuoy;
+
+                if (visualTr != null)
                 {
-                    lifebuoy.localPosition = new Vector3(0f, 0.025f, 0f);
-                    lifebuoy.localRotation = Quaternion.identity;
-                    lifebuoy.localScale = Vector3.one;
+                    visualTr.localPosition = new Vector3(0f, 0.025f, 0f);
+                    visualTr.localRotation = Quaternion.identity;
+                    visualTr.localScale = Vector3.one;
+                    if (!visualTr.gameObject.activeSelf)
+                    {
+                        visualTr.gameObject.SetActive(true);
+                    }
+
+                    // Köpük slot su salınım animasyonunu ekle / senkronize et
+                    FoamSlotBobbing bobbing = visualTr.GetComponent<FoamSlotBobbing>();
+                    if (bobbing == null)
+                    {
+                        bobbing = visualTr.gameObject.AddComponent<FoamSlotBobbing>();
+                    }
+                    bobbing.PhaseOffset = i * 0.75f;
+                    bobbing.SetBasePosition(new Vector3(0f, 0.025f, 0f));
+                }
+
+                // Eğer hem FoamSlot hem [Slot_Lifebuoy] varsa ve FoamSlot kullanılıyorsa, lifebuoy kapatılsın
+                if (foamSlot != null && lifebuoy != null)
+                {
+                    lifebuoy.gameObject.SetActive(false);
                 }
             }
         }

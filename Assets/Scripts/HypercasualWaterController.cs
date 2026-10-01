@@ -21,18 +21,26 @@ namespace PixelGame
         [SerializeField] private RawImage m_RawImage;
         [SerializeField] private Camera m_WorldCamera;
 
+        [Header("🏖️ Yeni Arkaplan Su Alanı")]
+        [SerializeField] [Range(0.0f, 0.4f)] private float m_WaterMinV = 0.01f;
+        [SerializeField] [Range(0.5f, 1.0f)] private float m_WaterMaxV = 0.88f;
+        [SerializeField] [Range(0.0f, 0.2f)] private float m_WaterBlueDominance = 0.02f;
+
         [Header("✨ Dalga & Parıltı Ayarları")]
-        [SerializeField] [Range(0.2f, 4.0f)] private float m_WaveSpeed = 1.35f;
-        [SerializeField] [Range(5.0f, 35.0f)] private float m_WaveFrequency = 16.0f;
-        [SerializeField] [Range(0.001f, 0.025f)] private float m_WaveAmplitude = 0.0065f;
+        [SerializeField] [Range(0.2f, 4.0f)] private float m_WaveSpeed = 1.25f;
+        [SerializeField] [Range(5.0f, 35.0f)] private float m_WaveFrequency = 14.0f;
+        [SerializeField] [Range(0.001f, 0.025f)] private float m_WaveAmplitude = 0.0055f;
         [SerializeField] [Range(0.0f, 0.6f)] private float m_ShimmerIntensity = 0.22f;
 
         [Header("🌊 Su Rengi & Derinlik (Gemilerin Ön Plana Çıkması İçin)")]
-        [SerializeField] [Range(0.0f, 1.0f)] private float m_WaterDarkness = 0.42f;
-        [SerializeField] [Range(0.3f, 1.2f)] private float m_WaterBrightness = 0.70f;
-        [SerializeField] private Color m_WaterDeepTint = new Color(0.04f, 0.38f, 0.75f, 1.0f);
+        [SerializeField] [Range(0.0f, 1.0f)] private float m_WaterDarkness = 0.15f;
+        [SerializeField] [Range(0.3f, 1.2f)] private float m_WaterBrightness = 1.00f;
+        [SerializeField] private Color m_WaterDeepTint = new Color(0.04f, 0.40f, 0.78f, 1.0f);
 
         private Material m_WaterMaterial;
+        private static readonly int WaterMinVProp = Shader.PropertyToID("_WaterMinV");
+        private static readonly int WaterMaxVProp = Shader.PropertyToID("_WaterMaxV");
+        private static readonly int WaterBlueDominanceProp = Shader.PropertyToID("_WaterBlueDominance");
         private static readonly int WaveSpeedProp = Shader.PropertyToID("_WaveSpeed");
         private static readonly int WaveFrequencyProp = Shader.PropertyToID("_WaveFrequency");
         private static readonly int WaveAmplitudeProp = Shader.PropertyToID("_WaveAmplitude");
@@ -174,6 +182,9 @@ namespace PixelGame
         {
             if (m_WaterMaterial == null) return;
 
+            m_WaterMaterial.SetFloat(WaterMinVProp, m_WaterMinV);
+            m_WaterMaterial.SetFloat(WaterMaxVProp, m_WaterMaxV);
+            m_WaterMaterial.SetFloat(WaterBlueDominanceProp, m_WaterBlueDominance);
             m_WaterMaterial.SetFloat(WaveSpeedProp, m_WaveSpeed);
             m_WaterMaterial.SetFloat(WaveFrequencyProp, m_WaveFrequency);
             m_WaterMaterial.SetFloat(WaveAmplitudeProp, m_WaveAmplitude);
@@ -205,8 +216,8 @@ namespace PixelGame
             Vector3 viewportPos = m_WorldCamera.WorldToViewportPoint(worldPos);
             Vector2 uv = new Vector2(viewportPos.x, viewportPos.y);
 
-            // Sadece su bölgesinde olan dalgaları kabul et (ekranın orta lagün alanı)
-            if (uv.y < 0.28f || uv.y > 0.68f) return;
+            // Sadece su bölgesinde olan dalgaları kabul et (yeni arkaplanın lagün ve alt kuyruk alanı)
+            if (uv.y < 0.04f || uv.y > 0.88f) return;
 
             if (m_Ripples.Count >= 4)
             {

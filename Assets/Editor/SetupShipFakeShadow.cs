@@ -12,12 +12,16 @@ namespace PixelGame.Editor
 
         static SetupShipFakeShadow()
         {
+            // Otomatik tetikleme kapatıldı: Unity veya PC yeniden başladığında sahneyi habersiz değiştirmemesi için.
+            // Gerekirse Tools menüsünden elle çalıştırılır.
+            /*
             EditorApplication.delayCall += () =>
             {
                 if (SessionState.GetBool(RunKey, false)) return;
                 SessionState.SetBool(RunKey, true);
                 ApplyToPrefab();
             };
+            */
         }
 
         [MenuItem("Tools/PixelGame/🌑 Gemi Prefabına Fake Shadow Ekle")]

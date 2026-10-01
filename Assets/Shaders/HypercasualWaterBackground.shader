@@ -6,13 +6,13 @@ Shader "PixelGame/HypercasualWaterBackground"
         _Color ("Tint", Color) = (1,1,1,1)
 
         [Header(Water Area Settings)]
-        _WaterMinV ("Water Min V (Bottom Shore)", Range(0.1, 0.5)) = 0.30
-        _WaterMaxV ("Water Max V (Top Shore)", Range(0.5, 0.9)) = 0.65
-        _WaterTransitionSmooth ("Water Transition Softness", Range(0.01, 0.15)) = 0.04
-        _WaterBlueDominance ("Water Blue Detection Factor", Range(0.0, 0.5)) = 0.08
-        _WaterDarkness ("Water Darkness / Deep Tint Blend", Range(0.0, 1.0)) = 0.20
-        _WaterBrightness ("Water Brightness Multiplier", Range(0.3, 1.5)) = 0.90
-        _WaterDeepTint ("Water Deep Ocean Color Tint", Color) = (0.04, 0.38, 0.75, 1.0)
+        _WaterMinV ("Water Min V (Bottom Shore)", Range(0.0, 0.4)) = 0.01
+        _WaterMaxV ("Water Max V (Top Shore)", Range(0.5, 1.0)) = 0.88
+        _WaterTransitionSmooth ("Water Transition Softness", Range(0.01, 0.15)) = 0.03
+        _WaterBlueDominance ("Water Blue Detection Factor", Range(-0.05, 0.2)) = 0.02
+        _WaterDarkness ("Water Darkness / Deep Tint Blend", Range(0.0, 1.0)) = 0.15
+        _WaterBrightness ("Water Brightness Multiplier", Range(0.3, 1.5)) = 1.0
+        _WaterDeepTint ("Water Deep Ocean Color Tint", Color) = (0.04, 0.40, 0.78, 1.0)
 
         [Header(Sand Beach Settings)]
         _SandBrightness ("Sand Brightness", Range(0.8, 1.8)) = 1.0
@@ -20,18 +20,18 @@ Shader "PixelGame/HypercasualWaterBackground"
 
         [Header(Gentle Wave Undulation)]
         _WaveSpeed ("Wave Speed", Range(0.2, 4.0)) = 1.25
-        _WaveFrequency ("Wave Frequency", Range(4.0, 35.0)) = 16.0
-        _WaveAmplitude ("Wave Amplitude", Range(0.001, 0.025)) = 0.006
+        _WaveFrequency ("Wave Frequency", Range(4.0, 35.0)) = 14.0
+        _WaveAmplitude ("Wave Amplitude", Range(0.001, 0.025)) = 0.0055
 
         [Header(Sunlight Caustics and Shimmer)]
-        _ShimmerSpeed ("Shimmer Speed", Range(0.2, 4.0)) = 1.5
-        _ShimmerScale ("Shimmer Scale", Range(4.0, 30.0)) = 15.0
-        _ShimmerIntensity ("Shimmer Intensity", Range(0.0, 0.6)) = 0.20
+        _ShimmerSpeed ("Shimmer Speed", Range(0.2, 4.0)) = 1.3
+        _ShimmerScale ("Shimmer Scale", Range(4.0, 30.0)) = 16.0
+        _ShimmerIntensity ("Shimmer Intensity", Range(0.0, 0.6)) = 0.22
         _ShimmerColor ("Shimmer Color", Color) = (0.75, 0.96, 1.0, 1.0)
 
         [Header(Shoreline Wave Lapping)]
-        _TideSpeed ("Shore Tide Speed", Range(0.3, 3.0)) = 1.2
-        _TideHeight ("Shore Tide Height", Range(0.001, 0.02)) = 0.005
+        _TideSpeed ("Shore Tide Speed", Range(0.3, 3.0)) = 1.1
+        _TideHeight ("Shore Tide Height", Range(0.001, 0.02)) = 0.004
 
         // UI Canvas masking properties
         _StencilComp ("Stencil Comparison", Float) = 8

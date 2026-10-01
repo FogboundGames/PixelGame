@@ -20,7 +20,9 @@ namespace PixelGame.Editor
 
         static SetupGemiTopHUD()
         {
-            EditorApplication.delayCall += AutoRunIfNeeded;
+            // Otomatik tetikleme kapatıldı: Unity veya PC yeniden başladığında sahneyi habersiz değiştirmemesi için.
+            // Gerekirse PixelGame menüsünden elle çalıştırılır.
+            // EditorApplication.delayCall += AutoRunIfNeeded;
         }
 
         /// <summary>Artık otomatik çağrılmıyor; bkz. statik kurucu.</summary>

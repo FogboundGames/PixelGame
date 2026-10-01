@@ -19,7 +19,9 @@ namespace PixelGame.Editor
 
         static SetupGemiCubeGrid()
         {
-            EditorApplication.delayCall += AutoRunIfNeeded;
+            // Otomatik tetikleme kapatıldı: Unity veya PC yeniden başladığında sahneyi habersiz değiştirmemesi için.
+            // Gerekirse PixelGame menüsünden elle çalıştırılır.
+            // EditorApplication.delayCall += AutoRunIfNeeded;
         }
 
         private static void AutoRunIfNeeded()
@@ -67,8 +69,21 @@ namespace PixelGame.Editor
             {
                 const float step = 0.25988f; // Tam matematiksel ızgara adımı
                 const float cubeScale = 0.2605f; // Arka planın hiçbir açıdan sızmasını engelleyen snug temas
-                const float centerX = 0.046555f;
-                const float centerY = -0.23938f;
+                const float centerX = 0.0f; // Kum tümseğinin tam ortası
+                const float centerY = 0.0f; // Kum tümseğinin tam ortası
+
+                int minGx = int.MaxValue, maxGx = int.MinValue;
+                int minGy = int.MaxValue, maxGy = int.MinValue;
+                foreach (var cube in cubes)
+                {
+                    minGx = Mathf.Min(minGx, cube.GridX);
+                    maxGx = Mathf.Max(maxGx, cube.GridX);
+                    minGy = Mathf.Min(minGy, cube.GridY);
+                    maxGy = Mathf.Max(maxGy, cube.GridY);
+                }
+
+                float centerGx = (minGx + maxGx) * 0.5f;
+                float centerGy = (minGy + maxGy) * 0.5f;
 
                 foreach (var cube in cubes)
                 {
@@ -76,15 +91,15 @@ namespace PixelGame.Editor
                     int gx = cube.GridX;
                     int gy = cube.GridY;
 
-                    float targetX = centerX + (gx - 11.5f) * step;
-                    float targetY = centerY + (gy - 11.5f) * step;
+                    float targetX = centerX + (gx - centerGx) * step;
+                    float targetY = centerY + (gy - centerGy) * step;
 
                     cube.transform.localPosition = new Vector3(targetX, targetY, cube.transform.localPosition.z);
                     cube.transform.localScale = new Vector3(cubeScale, cubeScale, cubeScale);
                     EditorUtility.SetDirty(cube.transform);
                 }
 
-                Debug.Log($"<color=#00FFAA><b>[SetupGemiCubeGrid]</b></color> {cubes.Length} adet küp homojen ve aralıksız (snug) ızgaraya oturtuldu.");
+                Debug.Log($"<color=#00FFAA><b>[SetupGemiCubeGrid]</b></color> {cubes.Length} adet küp merkez ({centerGx:F1}, {centerGy:F1}) baz alınarak kum tümseğine ortalandı.");
             }
 
             EditorSceneManager.SaveOpenScenes();

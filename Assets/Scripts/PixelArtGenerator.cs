@@ -414,6 +414,12 @@ namespace PixelGame
 
             GeneratePixelArt();
 
+            LevelManager lm = GetComponent<LevelManager>() ?? Object.FindFirstObjectByType<LevelManager>();
+            if (lm != null)
+            {
+                lm.SyncActiveLevel(levelData);
+            }
+
             // Bölüme bağlı sistemler (kamyon kuyruğu gibi) kendilerini yenilesin
             LevelLoaded?.Invoke(levelData);
         }
@@ -517,6 +523,12 @@ namespace PixelGame
             if (m_EnableBoardShadow)
             {
                 UpdateBoardShadowLive();
+            }
+
+            LevelManager lm = GetComponent<LevelManager>() ?? Object.FindFirstObjectByType<LevelManager>();
+            if (lm != null)
+            {
+                lm.SyncActiveLevel(levelData);
             }
 
             LevelLoaded?.Invoke(levelData);
