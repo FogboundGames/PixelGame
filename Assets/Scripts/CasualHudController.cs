@@ -129,6 +129,9 @@ namespace PixelGame
             SetLives(m_StartingLives);
             SetCoins(PlayerPrefs.HasKey(CoinsPrefKey) ? PlayerPrefs.GetInt(CoinsPrefKey) : m_StartingCoins);
             RefreshLevelFromScene();
+            m_SoundEnabled = PlayerPrefs.GetInt(SoundPrefKey, 1) == 1;
+            m_HapticsEnabled = PlayerPrefs.GetInt(HapticsPrefKey, 1) == 1;
+            ApplyAudioState();
             UpdateSoundVisual();
             UpdateHapticsVisual();
             WireExistingFailPopupButtons();
@@ -319,6 +322,16 @@ namespace PixelGame
 
         public void ShowLevelFailPopup()
         {
+            HideLevelFailPopup();
+
+            // Kullanıcı isteği: "fail ekranında da o ayarladığımız loading ekranı gelsin ama fail level desin yani öyle ayarla onu"
+            LandFlowLoadingScreen screen = LandFlowLoadingScreen.Instance ?? LandFlowLoadingScreen.EnsureInstance();
+            if (screen != null)
+            {
+                screen.ShowFailLevelAndRestart();
+                return;
+            }
+
             EnsureFailPopup();
             if (m_LevelFailPopup != null)
             {
@@ -589,16 +602,45 @@ namespace PixelGame
             HideLevelFailPopup();
             Time.timeScale = 1.0f;
             Debug.Log("<color=#FF4444><b>[CasualHUD]</b></color> Seviye yeniden başlatılıyor...");
-            var activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
-            UnityEngine.SceneManagement.SceneManager.LoadScene(activeScene.buildIndex);
+
+            bool isFailed = (ShipDispatcher.Instance != null && ShipDispatcher.Instance.IsLevelFailed);
+
+            LandFlowLoadingScreen screen = LandFlowLoadingScreen.Instance ?? LandFlowLoadingScreen.EnsureInstance();
+            if (screen != null)
+            {
+                if (isFailed)
+                {
+                    screen.ShowFailLevelAndRestart();
+                }
+                else
+                {
+                    screen.RestartCurrentScene();
+                }
+            }
+            else
+            {
+                var activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+                UnityEngine.SceneManagement.SceneManager.LoadScene(activeScene.buildIndex);
+            }
         }
+
+        private const string SoundPrefKey = "PixelGame_SoundEnabled";
+        private const string HapticsPrefKey = "PixelGame_HapticsEnabled";
 
         public void ToggleSound()
         {
             m_SoundEnabled = !m_SoundEnabled;
-            AudioListener.pause = !m_SoundEnabled;
+            PlayerPrefs.SetInt(SoundPrefKey, m_SoundEnabled ? 1 : 0);
+            PlayerPrefs.Save();
+            ApplyAudioState();
             UpdateSoundVisual();
             Debug.Log($"<color=#44FF44><b>[CasualHUD]</b></color> Ses: {(m_SoundEnabled ? "Açık" : "Kapalı")}");
+        }
+
+        private void ApplyAudioState()
+        {
+            AudioListener.pause = !m_SoundEnabled;
+            AudioListener.volume = m_SoundEnabled ? 1f : 0f;
         }
 
         private void UpdateSoundVisual()
@@ -619,8 +661,22 @@ namespace PixelGame
         public void ToggleHaptics()
         {
             m_HapticsEnabled = !m_HapticsEnabled;
+            PlayerPrefs.SetInt(HapticsPrefKey, m_HapticsEnabled ? 1 : 0);
+            PlayerPrefs.Save();
             UpdateHapticsVisual();
+            if (m_HapticsEnabled)
+            {
+                TriggerHaptic();
+            }
             Debug.Log($"<color=#44FF44><b>[CasualHUD]</b></color> Titreşim/Haptic: {(m_HapticsEnabled ? "Açık" : "Engelli")}");
+        }
+
+        public void TriggerHaptic()
+        {
+            if (!m_HapticsEnabled) return;
+            #if UNITY_ANDROID || UNITY_IOS
+            Handheld.Vibrate();
+            #endif
         }
 
         private void UpdateHapticsVisual()
@@ -686,25 +742,29 @@ namespace PixelGame
         /// </summary>
         public void ShowLevelCompletePopup(int reward, System.Action onContinue)
         {
-            EnsureLevelCompletePopup();
-            m_PendingReward = reward;
-            m_OnLevelCompleteContinue = onContinue;
-            if (m_RewardText != null) m_RewardText.text = "+" + reward + " ALTIN";
+            HideLevelCompletePopup();
+            AddCoins(reward);
 
-            m_LevelCompletePopup.SetActive(true);
-            Transform card = m_LevelCompletePopup.transform.Find("Complete_Card");
-            if (card != null)
+            // Kullanıcı isteği: "bu ekranda olmasın yine ayarladığımız loading ekranı gibi gelsin ama yazıları belirle"
+            // Eski pembe pop-up gösterilmez, doğrudan LandFlowLoadingScreen ile sonraki bölüme geçilir.
+            onContinue?.Invoke();
+        }
+
+        public void HideLevelCompletePopup()
+        {
+            if (m_LevelCompletePopup != null && m_LevelCompletePopup.activeSelf)
             {
-                card.DOKill(true);
-                card.localScale = Vector3.zero;
-                card.DOScale(Vector3.one, 0.42f).SetEase(Ease.OutBack).SetUpdate(true);
-
-                Transform reward_ = card.Find("Reward");
-                if (reward_ != null)
+                Transform card = m_LevelCompletePopup.transform.Find("Complete_Card");
+                if (card != null)
                 {
-                    reward_.DOKill(true);
-                    reward_.localScale = Vector3.one;
-                    reward_.DOScale(Vector3.one * 1.08f, 0.55f).SetLoops(-1, LoopType.Yoyo).SetEase(Ease.InOutSine).SetUpdate(true);
+                    card.DOKill(true);
+                    foreach (Transform c in card) c.DOKill(true);
+                    card.DOScale(Vector3.zero, 0.2f).SetEase(Ease.InBack).SetUpdate(true)
+                        .OnComplete(() => m_LevelCompletePopup.SetActive(false));
+                }
+                else
+                {
+                    m_LevelCompletePopup.SetActive(false);
                 }
             }
         }
@@ -718,19 +778,7 @@ namespace PixelGame
             System.Action next = m_OnLevelCompleteContinue;
             m_OnLevelCompleteContinue = null;
 
-            Transform card = m_LevelCompletePopup.transform.Find("Complete_Card");
-            if (card != null)
-            {
-                card.DOKill(true);
-                foreach (Transform c in card) c.DOKill(true);
-                card.DOScale(Vector3.zero, 0.2f).SetEase(Ease.InBack).SetUpdate(true)
-                    .OnComplete(() => m_LevelCompletePopup.SetActive(false));
-            }
-            else
-            {
-                m_LevelCompletePopup.SetActive(false);
-            }
-
+            HideLevelCompletePopup();
             AddCoins(reward);
             next?.Invoke();
         }

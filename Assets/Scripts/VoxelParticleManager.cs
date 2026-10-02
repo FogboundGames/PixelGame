@@ -354,6 +354,12 @@ namespace PixelGame
 
         private void PlayPopSound()
         {
+            if (CasualHudController.Instance != null)
+            {
+                CasualHudController.Instance.TriggerHaptic();
+                if (!CasualHudController.Instance.SoundEnabled) return;
+            }
+
             if (!m_EnablePopSound || m_AudioSource == null || m_PopAudioClip == null) return;
 
             // Her tıklamada rastgele ton değişimi (tatmin edici klik)
@@ -367,6 +373,7 @@ namespace PixelGame
         /// </summary>
         public void PlayGlassShatterSound(float pitch = 1.0f)
         {
+            if (CasualHudController.Instance != null && !CasualHudController.Instance.SoundEnabled) return;
             if (!m_EnablePopSound || m_AudioSource == null) return;
             if (m_GlassShatterClip == null) m_GlassShatterClip = CreateProceduralGlassClip();
             if (m_GlassShatterClip == null) return;

@@ -117,102 +117,196 @@ namespace PixelGame
         };
 
         /// <summary>
-        /// İki kolu sıralar (her kol baştan kuyruğa). Toplam küp sayısı <paramref name="maxCount"/>'u aşmaz.
+        /// Gemi slotuna oturduğu anda üzerinde yazan sayı kadar (veya tahtada kalan tüm eşleşen)
+        /// küpü dıştan içe doğru katman sırasıyla seçer ve iki kola kesintisiz yılan (snake) zinciri olarak paylaştırır.
         /// </summary>
-        public static void BuildArms(List<PixelCube> exposed, HashSet<(int, int)> outsideAir,
+        public static void BuildArms(List<PixelCube> matchingCubes, HashSet<(int, int)> outsideAir,
                                      CubeGridFrame frame, Vector3 shoreTarget, int maxCount,
                                      List<PixelCube> leftArm, List<PixelCube> rightArm)
         {
             leftArm.Clear();
             rightArm.Clear();
-            if (exposed == null || exposed.Count == 0 || maxCount <= 0) return;
+            if (matchingCubes == null || matchingCubes.Count == 0 || maxCount <= 0) return;
 
-            var pool = new Dictionary<(int, int), PixelCube>(exposed.Count);
-            foreach (var c in exposed) pool[(c.GridX, c.GridY)] = c;
+            int targetCount = Mathf.Min(maxCount, matchingCubes.Count);
 
-            // Başlangıç: gemiye (kıyıya) en yakın kenar küpü
-            PixelCube start = null;
-            float bestSq = float.MaxValue;
-            foreach (var c in exposed)
+            // 1. Dış havaya olan katman derinliğini (peel depth) BFS ile hesapla
+            var depthMap = new Dictionary<PixelCube, int>(matchingCubes.Count);
+            var queue = new Queue<PixelCube>();
+            var inQueue = new HashSet<PixelCube>();
+
+            // Katman 0: Dış havaya doğrudan 4 yönde temas eden küpler
+            foreach (var cube in matchingCubes)
             {
-                Vector3 d = c.transform.position - shoreTarget;
-                d.z = 0f;
-                float sq = d.sqrMagnitude;
-                if (sq < bestSq) { bestSq = sq; start = c; }
-            }
-
-            var visited = new HashSet<(int, int)> { (start.GridX, start.GridY) };
-            leftArm.Add(start);
-            int total = 1;
-
-            (int, int) dirL = (-1, 0);
-            (int, int) dirR = (1, 0);
-            bool leftStuck = false, rightStuck = false;
-
-            // Kolları sırayla birer küp uzat ki iki taraf dengeli dolsun
-            while (total < maxCount && (!leftStuck || !rightStuck))
-            {
-                if (!leftStuck)
+                int x = cube.GridX, y = cube.GridY;
+                if (outsideAir.Contains((x - 1, y)) || outsideAir.Contains((x + 1, y)) ||
+                    outsideAir.Contains((x, y - 1)) || outsideAir.Contains((x, y + 1)))
                 {
-                    if (TryGrow(leftArm, start, ref dirL, pool, visited, outsideAir)) total++;
-                    else leftStuck = true;
-                }
-                if (total >= maxCount) break;
-                if (!rightStuck)
-                {
-                    if (TryGrow(rightArm, start, ref dirR, pool, visited, outsideAir)) total++;
-                    else rightStuck = true;
+                    depthMap[cube] = 0;
+                    queue.Enqueue(cube);
+                    inQueue.Add(cube);
                 }
             }
+
+            // Eğer 4 yönde temas eden yoksa 8 yönde temas edenleri dene
+            if (inQueue.Count == 0)
+            {
+                foreach (var cube in matchingCubes)
+                {
+                    int x = cube.GridX, y = cube.GridY;
+                    foreach (var (dx, dy) in s_Neighbors8)
+                    {
+                        if (outsideAir.Contains((x + dx, y + dy)))
+                        {
+                            depthMap[cube] = 0;
+                            queue.Enqueue(cube);
+                            inQueue.Add(cube);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (inQueue.Count == 0) return;
+
+            // BFS ile derinlikleri yay
+            var cubeByCoord = new Dictionary<(int, int), PixelCube>(matchingCubes.Count);
+            foreach (var c in matchingCubes) cubeByCoord[(c.GridX, c.GridY)] = c;
+
+            while (queue.Count > 0)
+            {
+                var cur = queue.Dequeue();
+                int curDepth = depthMap[cur];
+                int cx = cur.GridX, cy = cur.GridY;
+
+                foreach (var (dx, dy) in s_Neighbors4)
+                {
+                    var nCoord = (cx + dx, cy + dy);
+                    if (cubeByCoord.TryGetValue(nCoord, out PixelCube neighbor) && !inQueue.Contains(neighbor))
+                    {
+                        depthMap[neighbor] = curDepth + 1;
+                        queue.Enqueue(neighbor);
+                        inQueue.Add(neighbor);
+                    }
+                }
+            }
+
+            foreach (var cube in matchingCubes)
+            {
+                if (!depthMap.ContainsKey(cube)) depthMap[cube] = 99;
+            }
+
+            // 2. Dış katmandan içe ve çıkışa/aşağıya yakın olana göre sırala
+            var sortedCandidates = new List<PixelCube>(matchingCubes);
+            sortedCandidates.Sort((a, b) =>
+            {
+                int da = depthMap[a], db = depthMap[b];
+                if (da != db) return da.CompareTo(db);
+
+                float distA = (a.transform.position - shoreTarget).sqrMagnitude;
+                float distB = (b.transform.position - shoreTarget).sqrMagnitude;
+                return distA.CompareTo(distB);
+            });
+
+            var selected = new List<PixelCube>(targetCount);
+            for (int i = 0; i < targetCount; i++)
+            {
+                selected.Add(sortedCandidates[i]);
+            }
+
+            // 3. Seçilen küpleri Sol ve Sağ kollara paylaştır
+            float midX = 0f;
+            foreach (var c in selected) midX += c.GridX;
+            midX /= selected.Count;
+
+            var leftList = new List<PixelCube>();
+            var rightList = new List<PixelCube>();
+
+            foreach (var c in selected)
+            {
+                if (c.GridX <= midX) leftList.Add(c);
+                else rightList.Add(c);
+            }
+
+            // Tek tarafta hiç küp kalmadıysa yarı yarıya böl
+            if (leftList.Count == 0 && rightList.Count > 1)
+            {
+                int half = rightList.Count / 2;
+                leftList.AddRange(rightList.GetRange(0, half));
+                rightList.RemoveRange(0, half);
+            }
+            else if (rightList.Count == 0 && leftList.Count > 1)
+            {
+                int half = leftList.Count / 2;
+                rightList.AddRange(leftList.GetRange(0, half));
+                leftList.RemoveRange(0, half);
+            }
+
+            // 4. Her iki kolu başından kuyruğuna kesintisiz yılan (snake) zinciri olarak diz
+            BuildArmChain(leftList, shoreTarget, outsideAir, leftArm);
+            BuildArmChain(rightList, shoreTarget, outsideAir, rightArm);
         }
 
-        /// <summary>
-        /// Kolun ucuna kenarı takip eden bir sonraki komşu küpü ekler. Tercih sırası:
-        /// kenar komşusu (köşegen değil) → dış havaya daha çok değen (daha dışta) → aynı yönde devam.
-        /// </summary>
-        private static bool TryGrow(List<PixelCube> arm, PixelCube start, ref (int, int) dir,
-                                    Dictionary<(int, int), PixelCube> pool,
-                                    HashSet<(int, int)> visited, HashSet<(int, int)> outsideAir)
+        private static void BuildArmChain(List<PixelCube> cubes, Vector3 shoreTarget, HashSet<(int, int)> outsideAir, List<PixelCube> arm)
         {
-            PixelCube tip = arm.Count > 0 ? arm[arm.Count - 1] : start;
-            int tx = tip.GridX, ty = tip.GridY;
+            arm.Clear();
+            if (cubes == null || cubes.Count == 0) return;
 
-            PixelCube best = null;
-            (int, int) bestDir = dir;
-            float bestScore = float.MinValue;
-
-            foreach (var (dx, dy) in s_Neighbors8)
+            // arm[0] (HEAD) seçimi: Dış havaya temas eden küpler arasından shoreTarget'a en yakın olan
+            PixelCube head = null;
+            float bestHeadDist = float.MaxValue;
+            foreach (var c in cubes)
             {
-                var cell = (tx + dx, ty + dy);
-                if (visited.Contains(cell) || !pool.TryGetValue(cell, out PixelCube cand)) continue;
+                int x = c.GridX, y = c.GridY;
+                bool touchesAir = outsideAir.Contains((x - 1, y)) || outsideAir.Contains((x + 1, y)) ||
+                                  outsideAir.Contains((x, y - 1)) || outsideAir.Contains((x, y + 1));
+                float d = (c.transform.position - shoreTarget).sqrMagnitude;
+                if (touchesAir) d -= 1000f;
 
-                bool diagonal = dx != 0 && dy != 0;
-                float score = diagonal ? 0f : 4f;
-
-                int airCount = 0;
-                foreach (var (ax, ay) in s_Neighbors4)
+                if (d < bestHeadDist)
                 {
-                    if (outsideAir.Contains((cell.Item1 + ax, cell.Item2 + ay))) airCount++;
-                }
-                score += airCount * 0.75f;
-
-                float dot = dx * dir.Item1 + dy * dir.Item2;
-                score += dot * 0.5f;
-
-                if (score > bestScore)
-                {
-                    bestScore = score;
-                    best = cand;
-                    bestDir = (dx, dy);
+                    bestHeadDist = d;
+                    head = c;
                 }
             }
 
-            if (best == null) return false;
+            if (head == null) head = cubes[0];
 
-            visited.Add((best.GridX, best.GridY));
-            arm.Add(best);
-            dir = bestDir;
-            return true;
+            arm.Add(head);
+            var remaining = new HashSet<PixelCube>(cubes);
+            remaining.Remove(head);
+
+            // Kuyruk oluşturma: Zincirdeki son küpe en yakın komşu küpü ekleyerek kesintisiz akış kur
+            while (remaining.Count > 0)
+            {
+                PixelCube tip = arm[arm.Count - 1];
+                int tx = tip.GridX, ty = tip.GridY;
+
+                PixelCube bestNext = null;
+                float bestDist = float.MaxValue;
+
+                foreach (var cand in remaining)
+                {
+                    int dx = Mathf.Abs(cand.GridX - tx);
+                    int dy = Mathf.Abs(cand.GridY - ty);
+
+                    float dist;
+                    if (dx + dy == 1) dist = 1.0f; // 4-komşu
+                    else if (dx == 1 && dy == 1) dist = 1.414f; // 8-komşu
+                    else dist = Mathf.Sqrt(dx * dx + dy * dy) + 5.0f;
+
+                    if (dist < bestDist)
+                    {
+                        bestDist = dist;
+                        bestNext = cand;
+                    }
+                }
+
+                if (bestNext == null) break;
+
+                arm.Add(bestNext);
+                remaining.Remove(bestNext);
+            }
         }
 
         /// <summary>
@@ -233,6 +327,19 @@ namespace PixelGame
                 {
                     cameFrom[n] = head;
                     queue.Enqueue(n);
+                }
+            }
+
+            if (queue.Count == 0)
+            {
+                foreach (var (dx, dy) in s_Neighbors8)
+                {
+                    var n = (head.Item1 + dx, head.Item2 + dy);
+                    if (outsideAir.Contains(n) && !cameFrom.ContainsKey(n))
+                    {
+                        cameFrom[n] = head;
+                        queue.Enqueue(n);
+                    }
                 }
             }
 

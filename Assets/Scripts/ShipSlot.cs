@@ -16,10 +16,23 @@ namespace PixelGame
         [SerializeField] private ShipController m_DockedShip;
         [SerializeField] private Transform m_IndicatorTransform;
 
+        private static readonly System.Collections.Generic.List<ShipSlot> s_ActiveSlots = new System.Collections.Generic.List<ShipSlot>(8);
+        public static System.Collections.Generic.IReadOnlyList<ShipSlot> ActiveSlots => s_ActiveSlots;
+
         public int SlotIndex { get => m_SlotIndex; set => m_SlotIndex = value; }
         public ShipController DockedShip => m_DockedShip;
         public bool IsEmpty => m_DockedShip == null;
         public Transform IndicatorTransform => m_IndicatorTransform;
+
+        private void OnEnable()
+        {
+            if (!s_ActiveSlots.Contains(this)) s_ActiveSlots.Add(this);
+        }
+
+        private void OnDisable()
+        {
+            s_ActiveSlots.Remove(this);
+        }
 
         private void Awake()
         {

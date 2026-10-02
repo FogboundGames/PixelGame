@@ -16,19 +16,19 @@ namespace PixelGame
         [Header("⚓ Slot Boyutları (Width & Length / Height)")]
         [Tooltip("Slotların yatay genişliği (Width / En - X ekseni).")]
         [Range(0.3f, 3.5f)]
-        [SerializeField] private float m_SlotWidth = 1.08f;
+        [SerializeField] private float m_SlotWidth = 1.27f;
 
         [Tooltip("Slotların boyu / uzunluğu (Length / Height - Z ekseni).")]
         [Range(0.3f, 3.5f)]
-        [SerializeField] private float m_SlotLength = 1.55f;
+        [SerializeField] private float m_SlotLength = 1.82f;
 
         // Geriye dönük uyumluluk için
-        [SerializeField, HideInInspector] private float m_SlotScale = 1.08f;
+        [SerializeField, HideInInspector] private float m_SlotScale = 1.27f;
 
         [Header("📏 Slotlar Arası Mesafe (Aralık)")]
         [Tooltip("Slotların birbirine olan yatay mesafesi.")]
         [Range(0.6f, 2.5f)]
-        [SerializeField] private float m_SlotSpacing = 1.48f;
+        [SerializeField] private float m_SlotSpacing = 1.68f;
 
         [Header("📐 Yanaşma Açısı")]
         [Tooltip("Slotların ve gemilerin yanaşma açısı (Referans: 0 derece, düz yatay).")]
@@ -236,10 +236,10 @@ namespace PixelGame
         private void Reset()
         {
             m_SlotCount = 5;
-            m_SlotWidth = 1.08f;
-            m_SlotLength = 1.55f;
-            m_SlotScale = 1.08f;
-            m_SlotSpacing = 1.48f;
+            m_SlotWidth = 1.27f;
+            m_SlotLength = 1.82f;
+            m_SlotScale = 1.27f;
+            m_SlotSpacing = 1.68f;
             m_SlotAngle = 0f;
             m_WaterTiltX = -28f;
             m_OffsetY = -2.20f;

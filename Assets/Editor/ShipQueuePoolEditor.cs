@@ -168,11 +168,11 @@ namespace PixelGame.Editor
             {
                 ShipQueuePool pool = (ShipQueuePool)target;
                 pool.ColumnPresets.Clear();
-                pool.ColumnPresets.Add(new ColumnLayoutPreset(2, 0.24f, 1.60f, 1.35f, -4.95f));
-                pool.ColumnPresets.Add(new ColumnLayoutPreset(3, 0.23f, 1.40f, 1.30f, -4.95f));
-                pool.ColumnPresets.Add(new ColumnLayoutPreset(4, 0.21f, 1.20f, 1.25f, -4.95f));
-                pool.ColumnPresets.Add(new ColumnLayoutPreset(5, 0.18f, 1.05f, 1.20f, -4.95f));
-                pool.ColumnPresets.Add(new ColumnLayoutPreset(6, 0.16f, 0.90f, 1.15f, -4.95f));
+                pool.ColumnPresets.Add(new ColumnLayoutPreset(2, 0.472f, 1.25f, 2.60f, -6.88f));
+                pool.ColumnPresets.Add(new ColumnLayoutPreset(3, 0.354f, 1.18f, 2.00f, -7.40f));
+                pool.ColumnPresets.Add(new ColumnLayoutPreset(4, 0.330f, 0.96f, 2.00f, -6.88f));
+                pool.ColumnPresets.Add(new ColumnLayoutPreset(5, 0.295f, 0.729f, 2.48f, -8.15f));
+                pool.ColumnPresets.Add(new ColumnLayoutPreset(6, 0.278f, 0.58f, 2.00f, -6.88f));
                 pool.ApplyPresetForColumns(colsProp.intValue);
                 pool.ApplyLiveSettings();
                 EditorUtility.SetDirty(pool);

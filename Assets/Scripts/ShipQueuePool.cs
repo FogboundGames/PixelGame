@@ -58,21 +58,21 @@ namespace PixelGame
         [SerializeField] private int m_Rows = 2;
 
         [Header("📏 Gemi Boyutu & Aralıkları (Canlı Ayarlanabilir)")]
-        [Tooltip("Gemilerin boyutu/ölçeği (Varsayılan: 0.21).")]
-        [Range(0.12f, 0.40f)]
-        [SerializeField] private float m_ShipScale = 0.21f;
+        [Tooltip("Gemilerin boyutu/ölçeği (Varsayılan: 0.295 - %18 büyütülmüş dolgun gemiler).")]
+        [Range(0.12f, 0.50f)]
+        [SerializeField] private float m_ShipScale = 0.295f;
 
         [Tooltip("Gemiler arasındaki yatay aralık (X ekseni). Kumsala taşmaması için slider ile anında ayarlayabilirsiniz.")]
-        [Range(0.6f, 2.5f)]
-        [SerializeField] private float m_SpacingX = 1.20f;
+        [Range(0.4f, 2.5f)]
+        [SerializeField] private float m_SpacingX = 1.48f;
 
         [Tooltip("Ön ve arka sıralar arasındaki dikey aralık (Y ekseni). Gemilerin iç içe girmemesi için slider ile ayarlayabilirsiniz.")]
-        [Range(0.6f, 2.5f)]
-        [SerializeField] private float m_SpacingY = 1.80f;
+        [Range(0.6f, 3.0f)]
+        [SerializeField] private float m_SpacingY = 2.30f;
 
         [Tooltip("Tüm gemi havuzunun dikey konumu (Yüksekliği).")]
-        [Range(-8f, 0f)]
-        [SerializeField] private float m_OffsetY = -5.35f;
+        [Range(-10f, 0f)]
+        [SerializeField] private float m_OffsetY = -7.40f;
 
         [Header("🎛️ Sütun Sayısına Göre Özel Profiller (Presets)")]
         [Tooltip("Açık olduğunda sütun sayısına (2, 3, 4, 5, 6) göre aşağıdaki profil ayarları otomatik uygulanır.")]
@@ -80,11 +80,11 @@ namespace PixelGame
 
         [SerializeField] private List<ColumnLayoutPreset> m_ColumnPresets = new List<ColumnLayoutPreset>()
         {
-            new ColumnLayoutPreset(2, 0.24f, 1.60f, 1.85f, -5.35f),
-            new ColumnLayoutPreset(3, 0.3003f, 1.093f, 1.80f, -5.35f),
-            new ColumnLayoutPreset(4, 0.21f, 1.20f, 1.65f, -5.35f),
-            new ColumnLayoutPreset(5, 0.18f, 1.05f, 1.55f, -5.35f),
-            new ColumnLayoutPreset(6, 0.16f, 0.90f, 1.45f, -5.35f)
+            new ColumnLayoutPreset(2, 0.472f, 1.55f, 2.60f, -6.88f),
+            new ColumnLayoutPreset(3, 0.354f, 1.48f, 2.30f, -7.40f),
+            new ColumnLayoutPreset(4, 0.330f, 1.08f, 2.20f, -6.88f),
+            new ColumnLayoutPreset(5, 0.295f, 0.82f, 2.48f, -8.15f),
+            new ColumnLayoutPreset(6, 0.278f, 0.68f, 2.20f, -6.88f)
         };
 
         // Geriye dönük uyumluluk
@@ -297,8 +297,8 @@ namespace PixelGame
             {
                 if (s != null)
                 {
-                    s.transform.localScale = Vector3.one * m_ShipScale;
                     s.SetBaseScale(Vector3.one * m_ShipScale);
+                    s.transform.localScale = s.GetLocalScaleForBaseWorldScale();
                 }
             }
 
@@ -701,9 +701,10 @@ namespace PixelGame
             }
 
             // Sahnedeki diğer aktif gemiler (hareket halindekiler dahil)
-            ShipController[] sceneShips = UnityEngine.Object.FindObjectsByType<ShipController>(FindObjectsSortMode.None);
-            foreach (var s in sceneShips)
+            var sceneShips = ShipController.ActiveShips;
+            for (int i = 0; i < sceneShips.Count; i++)
             {
+                var s = sceneShips[i];
                 if (s != null && s.LinkId > 0 && s.gameObject.activeInHierarchy && !s.IsDeparting && !activeShips.Contains(s))
                 {
                     activeShips.Add(s);

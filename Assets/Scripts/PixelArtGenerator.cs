@@ -79,13 +79,13 @@ namespace PixelGame
         [SerializeField] private bool m_UseFixedSandArea = true;
 
         [Tooltip("Piksel sanatının sahile tam oturacağı sabit dünya merkezi.")]
-        [SerializeField] private Vector3 m_FixedSandCenter = new Vector3(0f, 2.85f, 0.26f);
+        [SerializeField] private Vector3 m_FixedSandCenter = new Vector3(0f, 3.90f, 0.26f);
 
         [Tooltip("Piksel sanatının sahile taşmadan tam oturacağı maksimum dünya genişliği.")]
-        [SerializeField] private float m_FixedSandWidth = 5.20f;
+        [SerializeField] private float m_FixedSandWidth = 5.35f;
 
         [Tooltip("Piksel sanatının sahile taşmadan tam oturacağı maksimum dünya yüksekliği.")]
-        [SerializeField] private float m_FixedSandHeight = 4.68f;
+        [SerializeField] private float m_FixedSandHeight = 7.50f;
 
         [Header("🔲 Izgara & Küp Yerleşimi")]
         [Tooltip("Küpler arasındaki DİKEY (satırlar/önler, Y ekseni) fiziksel boşluk oranı (0 = bitişik, 0.1 = %10 boşluk, negatif = üst üste biner)")]
@@ -134,26 +134,26 @@ namespace PixelGame
         [Tooltip("Her bir piksel küpünün altına 360 derece çevreleyen yumuşak sahte gölge yerleştir")]
         [SerializeField] private bool m_EnableCubeShadows = false;
         [SerializeField] private Material m_CubeShadowMaterial;
-        [SerializeField] private Vector2 m_ShadowOffset = new Vector2(0.04f, -0.08f); // Sağa ve aşağı düşen belirgin, doğal sahte gölge
-        [SerializeField] private float m_ShadowScale = 1.34f;                     // Küpün altından ve kenarlarından taşarak 3D derinlik katan gölge boyutu
-        [SerializeField] private Color m_ShadowColor = new Color(0.04f, 0.06f, 0.14f, 0.75f); // Belirgin, tok ve estetik sahte gölge tonu
+        [SerializeField] private Vector2 m_ShadowOffset = new Vector2(0.04f, -0.06f); // Sağa ve aşağı düşen belirgin, doğal sahte gölge
+        [SerializeField] private float m_ShadowScale = 1.25f; // Küpün altından ve kenarlarından taşarak 3D derinlik katan gölge boyutu
+        [SerializeField] private Color m_ShadowColor = new Color(0.04f, 0.06f, 0.14f, 0.65f); // Belirgin, tok ve estetik sahte gölge tonu
 
         [Header("🌑 Şekil Çevresi Kontur Gölgesi (Figure Contour Shadow)")]
-        [Tooltip("Tüm piksel figürünün arkasını kaplayan genel siluet gölgesi (Küp patlayınca arkada iz kalmaması için varsayılan kapalı)")]
+        [Tooltip("Tüm piksel figürünün arkasını kaplayan genel siluet gölgesi")]
         [SerializeField] private bool m_EnableFigureContourShadow = false;
-        [SerializeField] [Range(0f, 1f)] private float m_FigureShadowOpacity = 0.95f;
-        [SerializeField] private Vector2 m_FigureShadowOffset = new Vector2(0f, 0f);
+        [SerializeField] [Range(0f, 1f)] private float m_FigureShadowOpacity = 0.70f;
+        [SerializeField] private Vector2 m_FigureShadowOffset = new Vector2(0.05f, -0.09f);
         [SerializeField] [Range(0.9f, 1.4f)] private float m_FigureShadowScale = 1.05f;
         [SerializeField] private Texture2D m_CustomFigureShadowTexture;
 
         [Header("🖼️ Pano Çevresi Sahte Gölge (Board Frame Shadow)")]
-        [Tooltip("Piksel panosunun 4 kenarını çevreleyen yumuşak sahte gölge (Görselde kırmızı çizilen çerçeve gölgesi)")]
+        [Tooltip("Piksel panosunun 4 kenarını çevreleyen yumuşak sahte gölge")]
         [SerializeField] private bool m_EnableBoardShadow = false;
         [SerializeField] private Material m_BoardShadowMaterial;
-        [SerializeField] private Vector2 m_BoardShadowOffset = new Vector2(0.04f, -0.06f);
-        [SerializeField] [Range(1.0f, 1.35f)] private float m_BoardShadowScale = 1.12f;
-        [SerializeField] [Range(0f, 1f)] private float m_BoardShadowOpacity = 0.85f;
-        [SerializeField] private Color m_BoardShadowColor = new Color(0.04f, 0.06f, 0.14f, 0.85f);
+        [SerializeField] private Vector2 m_BoardShadowOffset = new Vector2(0.05f, -0.09f);
+        [SerializeField] [Range(1.0f, 1.35f)] private float m_BoardShadowScale = 1.08f;
+        [SerializeField] [Range(0f, 1f)] private float m_BoardShadowOpacity = 0.65f;
+        [SerializeField] private Color m_BoardShadowColor = new Color(0.04f, 0.06f, 0.14f, 0.70f);
 
         [Header("📂 Kapsayıcı (Container)")]
         [SerializeField] private Transform m_CubesContainer;
@@ -236,6 +236,7 @@ namespace PixelGame
         private void Awake()
         {
             EnsureInteractionComponents();
+            if (m_EnableCubeShadows) ApplyShadowsToAllExistingCubes();
             if (!m_EnableBoardShadow) EnsureBoardShadowDisabled();
             if (!m_EnableFigureContourShadow) EnsureFigureContourShadowDisabled();
         }
@@ -288,20 +289,7 @@ namespace PixelGame
 
             if (Application.isPlaying)
             {
-                // Sahne koruması: Sahnede mevcut küpler varsa veya m_PreserveSceneEdits açıksa,
-                // kullanıcının sahnede ayarladığı hiçbir konuma, boyuta ve rotasyona KODLA DOKUNMA!
-                // Sadece küplerin canlı renklerini uygula.
-                if (m_PreserveSceneEdits || (CubesContainer != null && CubesContainer.childCount > 0))
-                {
-                    if (!m_EnableBoardShadow) EnsureBoardShadowDisabled();
-                    if (!m_EnableFigureContourShadow) EnsureFigureContourShadowDisabled();
-                    UpdateExistingCubesLive();
-                    return;
-                }
-
-                if (!m_EnableBoardShadow) EnsureBoardShadowDisabled();
-                if (!m_EnableFigureContourShadow) EnsureFigureContourShadowDisabled();
-                if (!m_EnableCubeShadows) ApplyShadowsToAllExistingCubes();
+                UpdateExistingCubesLive();
 
                 if (m_GenerateOnStart && (CubesContainer == null || CubesContainer.childCount == 0))
                 {
@@ -309,7 +297,6 @@ namespace PixelGame
                 }
                 else
                 {
-                    UpdateExistingCubesLive();
                     if (m_EnableCubeShadows)
                     {
                         ApplyShadowsToAllExistingCubes();
@@ -657,33 +644,44 @@ namespace PixelGame
                 float visCenterX = (minX + maxX) * 0.5f;
                 float visCenterY = (minY + maxY) * 0.5f;
 
-                float visCellSizeX = worldWidth / visW;
-                float visCellSizeY = worldHeight / visH;
+                float stepFactorX = 1f + m_CubeSpacingX;
+                float stepFactorY = 1f + m_CubeSpacing;
+                float visCellSizeX = worldWidth / (visW * stepFactorX);
+                float visCellSizeY = worldHeight / (visH * stepFactorY);
                 cellSize = Mathf.Min(visCellSizeX, visCellSizeY);
 
-                stepX = cellSize * (1f + m_CubeSpacingX);
-                stepY = cellSize * (1f + m_CubeSpacing);
+                stepX = cellSize * stepFactorX;
+                stepY = cellSize * stepFactorY;
+                float totalHeight = visH * stepY;
+
+                float slack = Mathf.Max(0f, worldHeight - totalHeight);
+                float effectiveCenterY = worldCenter.y + slack * 0.35f;
 
                 startPos = new Vector3(
                     worldCenter.x - visCenterX * stepX,
-                    worldCenter.y - visCenterY * stepY,
+                    effectiveCenterY - visCenterY * stepY,
                     worldCenter.z + m_TargetZ
                 );
             }
             else
             {
-                float cellSizeX = worldWidth / cols;
-                float cellSizeY = worldHeight / rows;
+                float stepFactorX = 1f + m_CubeSpacingX;
+                float stepFactorY = 1f + m_CubeSpacing;
+                float cellSizeX = worldWidth / (cols * stepFactorX);
+                float cellSizeY = worldHeight / (rows * stepFactorY);
                 cellSize = Mathf.Min(cellSizeX, cellSizeY);
 
-                stepX = cellSize * (1f + m_CubeSpacingX);
-                stepY = cellSize * (1f + m_CubeSpacing);
+                stepX = cellSize * stepFactorX;
+                stepY = cellSize * stepFactorY;
                 float totalWidth = (cols - 1) * stepX;
                 float totalHeight = (rows - 1) * stepY;
 
+                float slack = Mathf.Max(0f, worldHeight - (rows * stepY));
+                float effectiveCenterY = worldCenter.y + slack * 0.35f;
+
                 startPos = new Vector3(
                     worldCenter.x - totalWidth * 0.5f,
-                    worldCenter.y - totalHeight * 0.5f,
+                    effectiveCenterY - totalHeight * 0.5f,
                     worldCenter.z + m_TargetZ
                 );
             }
@@ -704,7 +702,13 @@ namespace PixelGame
                 Vector3 pos = startPos + new Vector3(cube.GridX * stepX, cube.GridY * stepY, 0f) + cube.GridY * m_CubeRowStepOffset;
                 cube.transform.position = pos;
                 cube.transform.rotation = tiltedRot;
-                cube.transform.localScale = cubeScale;
+
+                Vector3 parentScale = cube.transform.parent != null ? cube.transform.parent.lossyScale : Vector3.one;
+                cube.transform.localScale = new Vector3(
+                    parentScale.x > 0.001f ? cubeScale.x / parentScale.x : cubeScale.x,
+                    parentScale.y > 0.001f ? cubeScale.y / parentScale.y : cubeScale.y,
+                    parentScale.z > 0.001f ? cubeScale.z / parentScale.z : cubeScale.z
+                );
             }
         }
 
@@ -717,28 +721,7 @@ namespace PixelGame
         /// </summary>
         public bool EvaluateShadowMode()
         {
-            if (!m_EnableCubeShadows) return false;
-
-            Light mainLight = RenderSettings.sun;
-            if (mainLight == null)
-            {
-                Light[] lights = Object.FindObjectsByType<Light>(FindObjectsSortMode.None);
-                foreach (var l in lights)
-                {
-                    if (l.type == LightType.Directional && l.enabled)
-                    {
-                        mainLight = l;
-                        break;
-                    }
-                }
-            }
-
-            if (mainLight != null && mainLight.shadows != LightShadows.None && mainLight.shadowStrength > 0.1f)
-            {
-                return false; // Real-time URP shadow active -> disable fake shadow quads to avoid overdraw!
-            }
-
-            return true; // Real-time shadow off -> enable fake shadow quads
+            return m_EnableCubeShadows;
         }
 
         /// <summary>
@@ -850,37 +833,47 @@ namespace PixelGame
                 float visCenterX = (minX + maxX) * 0.5f;
                 float visCenterY = (minY + maxY) * 0.5f;
 
-                float visCellSizeX = worldWidth / visW;
-                float visCellSizeY = worldHeight / visH;
+                float stepFactorX = 1f + m_CubeSpacingX;
+                float stepFactorY = 1f + m_CubeSpacing;
+                float visCellSizeX = worldWidth / (visW * stepFactorX);
+                float visCellSizeY = worldHeight / (visH * stepFactorY);
                 cellSize = Mathf.Min(visCellSizeX, visCellSizeY);
 
-                stepX = cellSize * (1f + m_CubeSpacingX);
-                stepY = cellSize * (1f + m_CubeSpacing);
+                stepX = cellSize * stepFactorX;
+                stepY = cellSize * stepFactorY;
                 totalWidth = visW * stepX;
                 totalHeight = visH * stepY;
 
-                // Figürün geometrik merkezini hedef çerçevenin tam ortasına (worldCenter) oturt
+                float slack = Mathf.Max(0f, worldHeight - totalHeight);
+                float effectiveCenterY = worldCenter.y + slack * 0.35f;
+
+                // Figürün geometrik merkezini hedef kum alanına (effectiveCenterY) oturt
                 startPos = new Vector3(
                     worldCenter.x - visCenterX * stepX,
-                    worldCenter.y - visCenterY * stepY,
+                    effectiveCenterY - visCenterY * stepY,
                     worldCenter.z + m_TargetZ
                 );
             }
             else
             {
                 // Tam dolu kare veya opak görseller için standart matris yerleşimi
-                float cellSizeX = worldWidth / cols;
-                float cellSizeY = worldHeight / rows;
+                float stepFactorX = 1f + m_CubeSpacingX;
+                float stepFactorY = 1f + m_CubeSpacing;
+                float cellSizeX = worldWidth / (cols * stepFactorX);
+                float cellSizeY = worldHeight / (rows * stepFactorY);
                 cellSize = Mathf.Min(cellSizeX, cellSizeY);
 
-                stepX = cellSize * (1f + m_CubeSpacingX);
-                stepY = cellSize * (1f + m_CubeSpacing);
+                stepX = cellSize * stepFactorX;
+                stepY = cellSize * stepFactorY;
                 totalWidth = cols * stepX;
                 totalHeight = rows * stepY;
 
+                float slack = Mathf.Max(0f, worldHeight - totalHeight);
+                float effectiveCenterY = worldCenter.y + slack * 0.35f;
+
                 startPos = new Vector3(
                     worldCenter.x - totalWidth * 0.5f + stepX * 0.5f,
-                    worldCenter.y - totalHeight * 0.5f + stepY * 0.5f,
+                    effectiveCenterY - totalHeight * 0.5f + stepY * 0.5f,
                     worldCenter.z + m_TargetZ
                 );
             }
@@ -917,6 +910,13 @@ namespace PixelGame
                     Vector3 pos = startPos + new Vector3(x * stepX, y * stepY, 0f) + y * m_CubeRowStepOffset;
                     Quaternion rot = Quaternion.Euler(m_CubeFrontTiltAngle, 0f, 0f);
 
+                    Vector3 parentScale = m_CubesContainer != null ? m_CubesContainer.lossyScale : Vector3.one;
+                    Vector3 effectiveCubeScale = new Vector3(
+                        parentScale.x > 0.001f ? cubeScale.x / parentScale.x : cubeScale.x,
+                        parentScale.y > 0.001f ? cubeScale.y / parentScale.y : cubeScale.y,
+                        parentScale.z > 0.001f ? cubeScale.z / parentScale.z : cubeScale.z
+                    );
+
                     GameObject cubeObj;
                     #if UNITY_EDITOR
                     if (!Application.isPlaying)
@@ -924,7 +924,7 @@ namespace PixelGame
                         cubeObj = (GameObject)PrefabUtility.InstantiatePrefab(m_CubePrefab, m_CubesContainer);
                         cubeObj.transform.position = pos;
                         cubeObj.transform.rotation = rot;
-                        cubeObj.transform.localScale = cubeScale;
+                        cubeObj.transform.localScale = effectiveCubeScale;
                         cubeObj.name = $"Pixel_{x}_{y}";
                         Undo.RegisterCreatedObjectUndo(cubeObj, "Generate Pixel Cube");
                     }
@@ -932,7 +932,7 @@ namespace PixelGame
                     #endif
                     {
                         cubeObj = Instantiate(m_CubePrefab, pos, rot, m_CubesContainer);
-                        cubeObj.transform.localScale = cubeScale;
+                        cubeObj.transform.localScale = effectiveCubeScale;
                         cubeObj.name = $"Pixel_{x}_{y}";
                     }
 
@@ -1135,33 +1135,43 @@ namespace PixelGame
             }
 
             float cellSize, stepX, stepY;
+            float stepFactorX = 1f + m_CubeSpacingX;
+            float stepFactorY = 1f + m_CubeSpacing;
+            float slack;
+            float effectiveCenterY;
 
             if (m_SkipTransparent && maxX >= minX && maxY >= minY)
             {
                 int visW = maxX - minX + 1;
                 int visH = maxY - minY + 1;
-                float visCellSizeX = (worldWidth * 0.88f) / visW;
-                float visCellSizeY = (worldHeight * 0.88f) / visH;
+                float visCellSizeX = worldWidth / (visW * stepFactorX);
+                float visCellSizeY = worldHeight / (visH * stepFactorY);
                 cellSize = Mathf.Min(visCellSizeX, visCellSizeY);
 
-                stepX = cellSize * (1f + m_CubeSpacingX);
-                stepY = cellSize * (1f + m_CubeSpacing);
+                stepX = cellSize * stepFactorX;
+                stepY = cellSize * stepFactorY;
                 totalWidth = visW * stepX;
                 totalHeight = visH * stepY;
+
+                slack = Mathf.Max(0f, worldHeight - totalHeight);
+                effectiveCenterY = worldCenter.y + slack * 0.35f;
             }
             else
             {
-                float cellSizeX = worldWidth / cols;
-                float cellSizeY = worldHeight / rows;
+                float cellSizeX = worldWidth / (cols * stepFactorX);
+                float cellSizeY = worldHeight / (rows * stepFactorY);
                 cellSize = Mathf.Min(cellSizeX, cellSizeY);
 
-                stepX = cellSize * (1f + m_CubeSpacingX);
-                stepY = cellSize * (1f + m_CubeSpacing);
+                stepX = cellSize * stepFactorX;
+                stepY = cellSize * stepFactorY;
                 totalWidth = cols * stepX;
                 totalHeight = rows * stepY;
+
+                slack = Mathf.Max(0f, worldHeight - totalHeight);
+                effectiveCenterY = worldCenter.y + slack * 0.35f;
             }
 
-            visualCenter = worldCenter;
+            visualCenter = new Vector3(worldCenter.x, effectiveCenterY, worldCenter.z);
             return true;
         }
 
@@ -1928,20 +1938,7 @@ namespace PixelGame
             // 1. Sabit Sahil Kum Oyun Alanı (Beach Sand Target Area) - Yeni arkaplan ile tam senkron
             if (m_UseFixedSandArea)
             {
-                Transform sandZone = transform.parent != null && transform.parent.name == "[Zone_Sand_PlayArea]"
-                    ? transform.parent
-                    : GameObject.Find("[Zone_Sand_PlayArea]")?.transform;
-
-                if (sandZone != null)
-                {
-                    // sandZone.position.y (4.33f) üzerindeki -1.48f ofset, sahildeki tam kum merkezini (2.85f) verir
-                    worldCenter = new Vector3(sandZone.position.x, sandZone.position.y - 1.48f, sandZone.position.z);
-                }
-                else
-                {
-                    worldCenter = m_FixedSandCenter;
-                }
-
+                worldCenter = m_FixedSandCenter;
                 worldWidth = m_FixedSandWidth;
                 worldHeight = m_FixedSandHeight;
                 return true;

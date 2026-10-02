@@ -278,11 +278,12 @@ namespace PixelGame
         {
             if (Time.time - m_LastWakeTime < 0.14f) return;
 
-            var ships = Object.FindObjectsByType<ShipController>(FindObjectsSortMode.None);
+            var ships = ShipController.ActiveShips;
             bool spawnedAny = false;
 
-            foreach (var ship in ships)
+            for (int i = 0; i < ships.Count; i++)
             {
+                var ship = ships[i];
                 if (ship != null && ship.IsMoving)
                 {
                     AddRippleInternal(ship.transform.position, 0.45f, 0.14f);

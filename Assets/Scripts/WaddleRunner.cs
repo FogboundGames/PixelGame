@@ -50,6 +50,8 @@ namespace PixelGame
         private Quaternion m_LegLRestRotation = Quaternion.identity;
         private Quaternion m_LegRRestRotation = Quaternion.identity;
         private Vector3 m_LegsRest;
+        private bool m_IsAirborne;
+        public bool IsAirborne { get => m_IsAirborne; set => m_IsAirborne = value; }
 
         private void Awake()
         {
@@ -92,6 +94,30 @@ namespace PixelGame
 
         private void LateUpdate()
         {
+            if (m_IsAirborne)
+            {
+                if (m_Body != null)
+                {
+                    m_Body.localRotation = Quaternion.identity;
+                    m_Body.localPosition = Vector3.zero;
+                }
+                if (m_Legs != null)
+                {
+                    m_Legs.localPosition = m_LegsRest;
+                }
+                if (m_LegL != null)
+                {
+                    m_LegL.localRotation = m_LegLRestRotation * Quaternion.Euler(-25f, 0f, -12f);
+                    m_LegL.localPosition = m_LegLRest + new Vector3(0f, 0.06f, 0.02f);
+                }
+                if (m_LegR != null)
+                {
+                    m_LegR.localRotation = m_LegRRestRotation * Quaternion.Euler(-25f, 0f, 12f);
+                    m_LegR.localPosition = m_LegRRest + new Vector3(0f, 0.06f, 0.02f);
+                }
+                return;
+            }
+
             float size = Mathf.Max(1e-4f, transform.lossyScale.x);
             Vector3 delta = transform.position - m_LastPosition;
             m_LastPosition = transform.position;

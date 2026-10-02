@@ -90,12 +90,29 @@ namespace PixelGame
             }
         }
 
+        private static readonly System.Collections.Generic.List<PixelCube> s_ActiveCubes = new System.Collections.Generic.List<PixelCube>(512);
+        public static System.Collections.Generic.IReadOnlyList<PixelCube> ActiveCubes => s_ActiveCubes;
+
         private void OnEnable()
         {
+            if (!s_ActiveCubes.Contains(this))
+            {
+                s_ActiveCubes.Add(this);
+            }
             if (m_CurrentColor != Color.white || m_OriginalColor != Color.white)
             {
                 ApplyColor(m_CurrentColor != Color.white ? m_CurrentColor : m_OriginalColor);
             }
+        }
+
+        private void OnDisable()
+        {
+            s_ActiveCubes.Remove(this);
+        }
+
+        private void OnDestroy()
+        {
+            s_ActiveCubes.Remove(this);
         }
 
         public void EnsureShadowReferences()

@@ -20,9 +20,8 @@ namespace PixelGame.Editor
 
         static SetupGemiTopHUD()
         {
-            // Otomatik tetikleme kapatıldı: Unity veya PC yeniden başladığında sahneyi habersiz değiştirmemesi için.
-            // Gerekirse PixelGame menüsünden elle çalıştırılır.
-            // EditorApplication.delayCall += AutoRunIfNeeded;
+            // İstenildiğinde menüden çağrılabilir: PixelGame/🎯 Setup Gemi Top HUD (Image 1 Style)
+            // EditorApplication.delayCall += BuildTopHUD;
         }
 
         /// <summary>Artık otomatik çağrılmıyor; bkz. statik kurucu.</summary>
@@ -187,23 +186,25 @@ namespace PixelGame.Editor
             soundImg.preserveAspect = true;
             soundGo.AddComponent<CasualUIButtonJuice>();
 
-            // 7b. Ayarlar Butonu
-            GameObject settingsGo = new GameObject("SettingsButton", typeof(RectTransform), typeof(Image), typeof(Button));
-            settingsGo.transform.SetParent(topUIGo.transform, false);
+            // 7b. Titreşim (Haptics) Butonu (Settings yerine)
+            GameObject hapticsGo = new GameObject("HapticsButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            hapticsGo.transform.SetParent(topUIGo.transform, false);
 
-            RectTransform setRt = settingsGo.GetComponent<RectTransform>();
-            setRt.anchorMin = new Vector2(1f, 1f);
-            setRt.anchorMax = new Vector2(1f, 1f);
-            setRt.pivot = new Vector2(1f, 1f);
-            setRt.anchoredPosition = new Vector2(-30f, -22f);
-            setRt.sizeDelta = new Vector2(96f, 96f);
+            RectTransform hapRt = hapticsGo.GetComponent<RectTransform>();
+            hapRt.anchorMin = new Vector2(1f, 1f);
+            hapRt.anchorMax = new Vector2(1f, 1f);
+            hapRt.pivot = new Vector2(1f, 1f);
+            hapRt.anchoredPosition = new Vector2(-30f, -22f);
+            hapRt.sizeDelta = new Vector2(96f, 96f);
 
-            Image setImg = settingsGo.GetComponent<Image>();
-            Sprite setSprite = LoadSprite("btn_settings_ref");
-            if (setSprite == null) setSprite = LoadSprite("btn_settings");
-            if (setSprite != null) setImg.sprite = setSprite;
-            setImg.preserveAspect = true;
-            settingsGo.AddComponent<CasualUIButtonJuice>();
+            Image hapImg = hapticsGo.GetComponent<Image>();
+            Sprite hapticOnSprite = LoadSprite("btn_haptic_ref");
+            if (hapticOnSprite == null) hapticOnSprite = LoadSprite("btn_haptic");
+            Sprite hapticOffSprite = LoadSprite("btn_haptic_off_ref");
+            if (hapticOffSprite == null) hapticOffSprite = LoadSprite("btn_haptic_off");
+            if (hapticOnSprite != null) hapImg.sprite = hapticOnSprite;
+            hapImg.preserveAspect = true;
+            hapticsGo.AddComponent<CasualUIButtonJuice>();
 
             // Controller bağlantıları
             CasualHudController ctrl = canvasGo.GetComponent<CasualHudController>();
@@ -213,11 +214,20 @@ namespace PixelGame.Editor
             ctrl.SoundButtonImage = soundImg;
             ctrl.SoundOnSprite = soundOnSprite;
             ctrl.SoundOffSprite = soundOffSprite;
+            ctrl.HapticsButtonImage = hapImg;
+            ctrl.HapticsOnSprite = hapticOnSprite;
+            ctrl.HapticsOffSprite = hapticOffSprite;
 
             Button soundBtn = soundGo.GetComponent<Button>();
             if (soundBtn != null)
             {
                 UnityEditor.Events.UnityEventTools.AddPersistentListener(soundBtn.onClick, ctrl.ToggleSound);
+            }
+
+            Button hapBtn = hapticsGo.GetComponent<Button>();
+            if (hapBtn != null)
+            {
+                UnityEditor.Events.UnityEventTools.AddPersistentListener(hapBtn.onClick, ctrl.ToggleHaptics);
             }
 
             // 8. İkinci çubuğu (SubHeader) temizle (tek sıra şık referans düzeni)

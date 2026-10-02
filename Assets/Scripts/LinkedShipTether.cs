@@ -20,7 +20,7 @@ namespace PixelGame
         [Header("🪢 Halat / Zincir Görsel Ayarları")]
         [SerializeField] private int m_SegmentCount = 16;
         [SerializeField] private float m_SagAmount = 0.09f; // Suya doğru doğal ve estetik sarkma miktarı
-        [SerializeField] private float m_LineWidth = 0.22f; // Kullanıcı isteği: daha belirgin ve hafif kalın halat
+        [SerializeField] private float m_LineWidth = 0.26f; // Gemi ölçeğine orantılı (%18 büyütülmüş) estetik halat kalınlığı
         [SerializeField] private Color m_RopeColor = new Color(0.85f, 0.65f, 0.35f, 1f);
 
         private LineRenderer m_LineRenderer;

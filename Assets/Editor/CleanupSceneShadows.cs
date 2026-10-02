@@ -16,18 +16,16 @@ namespace PixelGame.Editor
 
         static CleanupSceneShadows()
         {
-            // Otomatik tetikleme kapatıldı: proje her açıldığında sahneyi elle onay
-            // almadan değiştirip kaydediyordu. Gerekirse Tools menüsünden elle çalıştırılır.
+            // İstenildiğinde Tools menüsünden elle çalıştırılabilir
             // EditorApplication.delayCall += RunPurge;
         }
 
-        // [MenuItem("Tools/PixelGame/🧹 Pano ve Obje Arkasındaki Gölgeleri Tamamen Temizle", priority = 20)]
+        [MenuItem("Tools/PixelGame/🧹 Pano ve Obje Arkasındaki Gölgeleri Tamamen Temizle", priority = 20)]
         public static void ForcePurgeMenu()
         {
-            SessionState.SetBool(CleanedSessionKey, false);
             RunPurge();
             EditorUtility.DisplayDialog("Gölgeler Temizlendi", 
-                "Obje arkasındaki tüm pano gölgeleri (BoardGridShadow, FigureContourShadow) sahneden ve prefab'lardan tamamen kaldırıldı!", "Harika");
+                "Obje arkasındaki tüm pano gölgeleri (BoardGridShadow, FigureContourShadow, CubeShadow) sahneden ve prefab'lardan tamamen kaldırıldı!", "Tamam");
         }
 
         public static void RunPurge()
@@ -75,6 +73,15 @@ namespace PixelGame.Editor
             PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
             if (gen != null)
             {
+                SerializedObject soGen = new SerializedObject(gen);
+                var spCubeShadow = soGen.FindProperty("m_EnableCubeShadows");
+                var spFigShadow = soGen.FindProperty("m_EnableFigureContourShadow");
+                var spBoardShadow = soGen.FindProperty("m_EnableBoardShadow");
+                if (spCubeShadow != null) spCubeShadow.boolValue = false;
+                if (spFigShadow != null) spFigShadow.boolValue = false;
+                if (spBoardShadow != null) spBoardShadow.boolValue = false;
+                soGen.ApplyModifiedProperties();
+
                 gen.EnableBoardShadow = false;
                 gen.EnableFigureContourShadow = false;
                 gen.EnableCubeShadows = false;
@@ -83,7 +90,22 @@ namespace PixelGame.Editor
                 sceneModified = true;
             }
 
-            // 3. Sahnedeki küplerde kalan CubeShadow nesnelerini temizle
+            // 3. Sahnedeki ShipDispatcher ayarlarını (hız ve zıplama) orijinal haline döndür
+            ShipDispatcher dispatcher = Object.FindFirstObjectByType<ShipDispatcher>();
+            if (dispatcher != null)
+            {
+                SerializedObject soDisp = new SerializedObject(dispatcher);
+                SerializedProperty spSpeed = soDisp.FindProperty("m_RopeSpeed");
+                SerializedProperty spDur = soDisp.FindProperty("m_HopDuration");
+                SerializedProperty spArc = soDisp.FindProperty("m_HopArcHeight");
+                if (spSpeed != null) spSpeed.floatValue = 1.25f;
+                if (spDur != null) spDur.floatValue = 0.3f;
+                if (spArc != null) spArc.floatValue = 0.6f;
+                soDisp.ApplyModifiedProperties();
+                sceneModified = true;
+            }
+
+            // 4. Sahnedeki küplerde kalan CubeShadow nesnelerini temizle
             PixelCube[] sceneCubes = Object.FindObjectsByType<PixelCube>(FindObjectsSortMode.None);
             foreach (var cube in sceneCubes)
             {
