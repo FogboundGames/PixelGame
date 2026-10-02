@@ -3311,6 +3311,9 @@ namespace PixelGame.Editor
             DrawSceneToolCard("🎯 HUD, Arayüz & Testler", new (string, string, System.Action)[]
             {
                 ("📱 Gemi Sahnesi Üst HUD'ını Kur (Image 1)", "Gemi sahnesine ayarlar düğmesi, LEVEL 1, can ve altın şeridini kurar.", () => SetupGemiTopHUD.BuildTopHUD()),
+                ("🏆 Win & Fail Panellerini Sahneye Ekle / Güncelle", "HUD_Canvas altına Win ve Fail popup nesnelerini fiziksel olarak ekler ve bağlar.", () => SetupGemiWinLosePopups.SetupModalsInScene()),
+                ("👁️ Win (Complete) Panelini Aç / Kapat", "Sahnede Win modalının görünürlüğünü açıp kapatır.", () => SetupGemiWinLosePopups.ToggleWinPanel()),
+                ("👁️ Fail (Yenilgi) Panelini Aç / Kapat", "Sahnede Fail modalının görünürlüğünü açıp kapatır.", () => SetupGemiWinLosePopups.ToggleFailPanel()),
                 ("🎯 Köşe Sayacını & Üst HUD'ı Düzenle", "LilitaOne fontu ve şık sayaç ile üst arayüzü yapılandırır.", () => SetupCleanCornerCounter.ApplyCleanCorner()),
                 ("🖼️ Casual HUD & Arkaplan Kur", "Casual HUD panellerini ve renkli arka planı yapılandırır.", () => SetupCasualHud.Apply()),
                 ("🧪 Gemi Kalkış Testi (Ship Departure Test)", "Bölüm tamamlandığında geminin kalkış animasyonunu canlı test eder.", () => TestShipDeparture.RunTest()),

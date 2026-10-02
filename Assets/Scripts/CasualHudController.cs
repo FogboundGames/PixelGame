@@ -84,6 +84,14 @@ namespace PixelGame
         public Sprite HapticsOnSprite { get => m_HapticsOnSprite; set => m_HapticsOnSprite = value; }
         public Sprite HapticsOffSprite { get => m_HapticsOffSprite; set => m_HapticsOffSprite = value; }
 
+        public GameObject LevelFailPopup { get => m_LevelFailPopup; set => m_LevelFailPopup = value; }
+        public GameObject LevelCompletePopup { get => m_LevelCompletePopup; set => m_LevelCompletePopup = value; }
+        public Sprite FailPanelSprite { get => m_FailPanelSprite; set => m_FailPanelSprite = value; }
+        public Sprite FailRetrySprite { get => m_FailRetrySprite; set => m_FailRetrySprite = value; }
+        public Sprite CompletePanelSprite { get => m_CompletePanelSprite; set => m_CompletePanelSprite = value; }
+        public Sprite CompleteRewardSprite { get => m_CompleteRewardSprite; set => m_CompleteRewardSprite = value; }
+        public Sprite CompleteContinueSprite { get => m_CompleteContinueSprite; set => m_CompleteContinueSprite = value; }
+
         public int CurrentLives => m_CurrentLives;
         public int CurrentCoins => m_CurrentCoins;
         public bool SoundEnabled => m_SoundEnabled;
@@ -94,6 +102,8 @@ namespace PixelGame
         {
             Instance = this;
             Time.timeScale = 1.0f;
+            WireExistingFailPopupButtons();
+            WireExistingCompletePopupButtons();
         }
 
         private void OnDestroy()
@@ -121,6 +131,8 @@ namespace PixelGame
             RefreshLevelFromScene();
             UpdateSoundVisual();
             UpdateHapticsVisual();
+            WireExistingFailPopupButtons();
+            WireExistingCompletePopupButtons();
         }
 
         private void RefreshLevelFromScene()
@@ -374,7 +386,11 @@ namespace PixelGame
 
         private void EnsureFailPopup()
         {
-            if (m_LevelFailPopup != null) return;
+            if (m_LevelFailPopup != null)
+            {
+                WireExistingFailPopupButtons();
+                return;
+            }
 
             if (m_FailPanelSprite != null && m_FailRetrySprite != null)
             {
@@ -721,7 +737,11 @@ namespace PixelGame
 
         private void EnsureLevelCompletePopup()
         {
-            if (m_LevelCompletePopup != null) return;
+            if (m_LevelCompletePopup != null)
+            {
+                WireExistingCompletePopupButtons();
+                return;
+            }
 
             if (m_CompletePanelSprite != null && m_CompleteRewardSprite != null && m_CompleteContinueSprite != null)
             {
@@ -940,6 +960,80 @@ namespace PixelGame
             tmp.raycastTarget = false;
             if (font != null) tmp.font = font;
             return tmp;
+        }
+
+        public void WireExistingFailPopupButtons()
+        {
+            if (m_LevelFailPopup == null) return;
+            Transform card = m_LevelFailPopup.transform.Find("Fail_Card");
+            Transform btnTr = card != null ? card.Find("Btn_Retry_Modal") : m_LevelFailPopup.transform.Find("Btn_Retry_Modal");
+            if (btnTr == null)
+            {
+                var btnComp = m_LevelFailPopup.GetComponentInChildren<UnityEngine.UI.Button>(true);
+                if (btnComp != null) btnTr = btnComp.transform;
+            }
+
+            if (btnTr != null)
+            {
+                var btn = btnTr.GetComponent<UnityEngine.UI.Button>();
+                if (btn != null)
+                {
+                    btn.onClick.RemoveListener(HandleFailRetryClick);
+                    btn.onClick.AddListener(HandleFailRetryClick);
+                }
+            }
+        }
+
+        private void HandleFailRetryClick()
+        {
+            Transform card = m_LevelFailPopup != null ? m_LevelFailPopup.transform.Find("Fail_Card") : null;
+            Transform btnTr = card != null ? card.Find("Btn_Retry_Modal") : null;
+            if (btnTr != null)
+            {
+                btnTr.DOKill(true);
+                btnTr.DOPunchScale(Vector3.one * -0.08f, 0.15f).SetUpdate(true).OnComplete(RestartLevel);
+            }
+            else
+            {
+                RestartLevel();
+            }
+        }
+
+        public void WireExistingCompletePopupButtons()
+        {
+            if (m_LevelCompletePopup == null) return;
+            Transform card = m_LevelCompletePopup.transform.Find("Complete_Card");
+            Transform btnTr = card != null ? card.Find("Btn_Continue") : m_LevelCompletePopup.transform.Find("Btn_Continue");
+            if (btnTr == null)
+            {
+                var btnComp = m_LevelCompletePopup.GetComponentInChildren<UnityEngine.UI.Button>(true);
+                if (btnComp != null) btnTr = btnComp.transform;
+            }
+
+            if (btnTr != null)
+            {
+                var btn = btnTr.GetComponent<UnityEngine.UI.Button>();
+                if (btn != null)
+                {
+                    btn.onClick.RemoveListener(HandleContinueClick);
+                    btn.onClick.AddListener(HandleContinueClick);
+                }
+            }
+        }
+
+        private void HandleContinueClick()
+        {
+            Transform card = m_LevelCompletePopup != null ? m_LevelCompletePopup.transform.Find("Complete_Card") : null;
+            Transform btnTr = card != null ? card.Find("Btn_Continue") : null;
+            if (btnTr != null)
+            {
+                btnTr.DOKill(true);
+                btnTr.DOPunchScale(Vector3.one * -0.08f, 0.15f).SetUpdate(true).OnComplete(OnLevelCompleteContinueClicked);
+            }
+            else
+            {
+                OnLevelCompleteContinueClicked();
+            }
         }
 
         /// <summary>1000 üstü değerleri "22K" gibi kısaltır; casual HUD'larda yaygın gösterimdir.</summary>
