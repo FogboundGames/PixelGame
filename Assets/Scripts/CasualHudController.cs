@@ -30,6 +30,10 @@ namespace PixelGame
 
         [Header("❌ Seviye Başarısız (Fail) Modal")]
         [SerializeField] private GameObject m_LevelFailPopup;
+        [Tooltip("Pano görseli (başlık, açıklama ve ikon görselin içinde).")]
+        [SerializeField] private Sprite m_FailPanelSprite;
+        [Tooltip("TEKRAR DENE butonu görseli (yazı görselin içinde).")]
+        [SerializeField] private Sprite m_FailRetrySprite;
 
         [Header("🏆 Seviye Tamamlandı Modal")]
         [SerializeField] private GameObject m_LevelCompletePopup;
@@ -371,6 +375,12 @@ namespace PixelGame
         private void EnsureFailPopup()
         {
             if (m_LevelFailPopup != null) return;
+
+            if (m_FailPanelSprite != null && m_FailRetrySprite != null)
+            {
+                BuildSpriteFailPopup();
+                return;
+            }
 
             Sprite pillSprite = FindSpriteByName("ui_pill");
             Sprite restartSprite = FindSpriteByName("btn_restart");
@@ -848,6 +858,46 @@ namespace PixelGame
             m_RewardText = null; // ödül miktarı görselin içinde
             m_LevelCompletePopup = popupRoot;
             m_LevelCompletePopup.SetActive(false);
+        }
+
+        /// <summary>
+        /// Piksel art görsellerle kurulan başarısız penceresi: pano (başlık, açıklama, ikon görselde)
+        /// ve TEKRAR DENE butonu. Adlar ShowLevelFailPopup animasyonlarıyla uyumludur.
+        /// </summary>
+        private void BuildSpriteFailPopup()
+        {
+            const float panelWidth = 780f;
+
+            GameObject popupRoot = new GameObject("LevelFail_Popup");
+            popupRoot.transform.SetParent(transform, false);
+            RectTransform rootRect = popupRoot.AddComponent<RectTransform>();
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.sizeDelta = Vector2.zero;
+            UnityEngine.UI.Image overlay = popupRoot.AddComponent<UnityEngine.UI.Image>();
+            overlay.color = new Color(0.03f, 0.06f, 0.12f, 0.6f);
+            overlay.raycastTarget = true;
+
+            Vector2 panelSize = SpriteSize(m_FailPanelSprite, panelWidth);
+            GameObject card = CreateSpriteImage(popupRoot.transform, "Fail_Card", m_FailPanelSprite, panelSize, new Vector2(0f, 40f));
+            card.GetComponent<UnityEngine.UI.Image>().raycastTarget = true;
+
+            // Referansta buton panonun ~%71'i genişliğinde, alt kenara yakın
+            GameObject btnObj = CreateSpriteImage(card.transform, "Btn_Retry_Modal", m_FailRetrySprite,
+                SpriteSize(m_FailRetrySprite, panelWidth * 0.71f), new Vector2(0f, -panelSize.y * 0.31f));
+            UnityEngine.UI.Image btnImg = btnObj.GetComponent<UnityEngine.UI.Image>();
+            btnImg.raycastTarget = true;
+            UnityEngine.UI.Button btn = btnObj.AddComponent<UnityEngine.UI.Button>();
+            btn.targetGraphic = btnImg;
+            btn.transition = UnityEngine.UI.Selectable.Transition.None;
+            btn.onClick.AddListener(() =>
+            {
+                btnObj.transform.DOKill(true);
+                btnObj.transform.DOPunchScale(Vector3.one * -0.08f, 0.15f).SetUpdate(true).OnComplete(RestartLevel);
+            });
+
+            m_LevelFailPopup = popupRoot;
+            m_LevelFailPopup.SetActive(false);
         }
 
         private static Vector2 SpriteSize(Sprite sprite, float width)
