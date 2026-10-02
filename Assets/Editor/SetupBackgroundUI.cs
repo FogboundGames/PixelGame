@@ -6,25 +6,8 @@ using UnityEditor.SceneManagement;
 
 namespace PixelGame.Editor
 {
-    [InitializeOnLoad]
     public static class SetupBackgroundUI
     {
-        private const string SessionKey = "SetupBackgroundUI_AutoRunDone_v2";
-
-        static SetupBackgroundUI()
-        {
-            // Auto-run devre dışı bırakıldı (Mavi çerçeve ve küplerin üzerine gölge binmesini engellemek için)
-            // EditorApplication.delayCall += OnEditorReady;
-        }
-
-        private static void OnEditorReady()
-        {
-            if (SessionState.GetBool(SessionKey, false))
-                return;
-
-            SessionState.SetBool(SessionKey, true);
-            ExecuteSetup(isAuto: true);
-        }
 
         // [MenuItem("Tools/PixelGame/Arka Planı ve Fake Shadow'u Otomatik Kur")]
         public static void SetupManual()

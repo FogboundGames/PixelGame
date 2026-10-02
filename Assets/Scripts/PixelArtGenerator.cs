@@ -1897,8 +1897,6 @@ namespace PixelGame
         [ContextMenu("Küpleri Temizle")]
         public void ClearCubes()
         {
-            Miner.InvalidateLayoutCache();
-
             if (m_CubesContainer == null) return;
 
             #if UNITY_EDITOR
@@ -2022,23 +2020,7 @@ namespace PixelGame
                 }
             }
 
-            // 2. Mavi ray çerçevesi varsa onun tam ortasına ve içine hizala
-            TruckDispatcher dispatcher = Object.FindFirstObjectByType<TruckDispatcher>();
-            if (dispatcher != null && dispatcher.TryGetExistingRailBounds(out Vector3 railCenter, out float railW, out float railH, out _, out _))
-            {
-                worldCenter = railCenter;
-                worldCenter.z = m_TargetZ;
-                float trackPadding = dispatcher.ModularTrackScale * 0.90f;
-                float innerW = Mathf.Max(0.5f, railW - trackPadding * 2f);
-                float innerH = Mathf.Max(0.5f, railH - trackPadding * 2f);
-                float padX = innerW * m_InnerPadding;
-                float padY = innerH * m_InnerPadding;
-                worldWidth = Mathf.Max(0.1f, innerW - padX * 2f);
-                worldHeight = Mathf.Max(0.1f, innerH - padY * 2f);
-                return true;
-            }
-
-            // 3. Sahnede mevcut küpler varsa doğrudan 3D dünya sınırlarını hesapla
+            // 2. Sahnede mevcut küpler varsa doğrudan 3D dünya sınırlarını hesapla
             // (TruckDispatcher, Miner ve Scene Frame ile %100 senkron ve hatasız yöntem)
             if (m_CubesContainer == null) EnsureContainer();
             if (m_CubesContainer != null && m_CubesContainer.childCount > 0)
@@ -2570,22 +2552,6 @@ namespace PixelGame
                 #endif
             }
 
-            TruckDispatcher dispatcher = Object.FindFirstObjectByType<TruckDispatcher>();
-            if (dispatcher != null)
-            {
-                dispatcher.SetupPerimeterLoop();
-                Transform wagonsRootTrans = dispatcher.WagonsRoot;
-                if (wagonsRootTrans == null)
-                {
-                    GameObject wr = GameObject.Find("[PerimeterWagonsRoot]");
-                    if (wr != null) wagonsRootTrans = wr.transform;
-                }
-                if (wagonsRootTrans != null && wagonsRootTrans.Find("PerimeterRails") != null)
-                {
-                    dispatcher.GeneratePerimeterRails();
-                }
-            }
-
             #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(gameObject);
             #endif
@@ -2593,29 +2559,13 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Tüm sahne tasarımını (küpler, çerçeve, raylar) verilen delta miktarı kadar kaydırır.
+        /// Tüm sahne tasarımını (küpler, çerçeve, gemi rıhtımı) verilen delta miktarı kadar kaydırır.
         /// </summary>
         public void ShiftEntireScene(Vector3 delta)
         {
             OrganizeSceneHierarchy();
             transform.position += delta;
             EnsureWorldFramePreview(false);
-
-            TruckDispatcher dispatcher = Object.FindFirstObjectByType<TruckDispatcher>();
-            if (dispatcher != null)
-            {
-                dispatcher.SetupPerimeterLoop();
-                Transform wagonsRootTrans = dispatcher.WagonsRoot;
-                if (wagonsRootTrans == null)
-                {
-                    GameObject wr = GameObject.Find("[PerimeterWagonsRoot]");
-                    if (wr != null) wagonsRootTrans = wr.transform;
-                }
-                if (wagonsRootTrans != null && wagonsRootTrans.Find("PerimeterRails") != null)
-                {
-                    dispatcher.GeneratePerimeterRails();
-                }
-            }
 
             #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(gameObject);
@@ -2630,22 +2580,6 @@ namespace PixelGame
             OrganizeSceneHierarchy();
             transform.position = targetCenter;
             EnsureWorldFramePreview(false);
-
-            TruckDispatcher dispatcher = Object.FindFirstObjectByType<TruckDispatcher>();
-            if (dispatcher != null)
-            {
-                dispatcher.SetupPerimeterLoop();
-                Transform wagonsRootTrans = dispatcher.WagonsRoot;
-                if (wagonsRootTrans == null)
-                {
-                    GameObject wr = GameObject.Find("[PerimeterWagonsRoot]");
-                    if (wr != null) wagonsRootTrans = wr.transform;
-                }
-                if (wagonsRootTrans != null && wagonsRootTrans.Find("PerimeterRails") != null)
-                {
-                    dispatcher.GeneratePerimeterRails();
-                }
-            }
 
             #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(gameObject);

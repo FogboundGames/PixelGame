@@ -478,16 +478,6 @@ namespace PixelGame.Editor
         public void ApplyThemeToSceneLive(LevelColorTheme theme)
         {
             if (theme == null) return;
-
-            TruckPaint[] paints = UnityEngine.Object.FindObjectsByType<TruckPaint>(FindObjectsSortMode.None);
-            foreach (var paint in paints)
-            {
-                if (paint != null)
-                {
-                    paint.ApplyTheme(theme, m_TestColor);
-                }
-            }
-
             SceneView.RepaintAll();
         }
     }

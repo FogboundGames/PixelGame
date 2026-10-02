@@ -7,24 +7,8 @@ namespace PixelGame.Editor
     /// FreeLowpolyScifiObjects paketindeki malzemeleri Built-in Standard shader'dan
     /// Universal Render Pipeline (URP/Lit) shader'ına yükselterek mor (magenta) görünümünü düzeltir.
     /// </summary>
-    [InitializeOnLoad]
     public static class UpgradeScifiMaterialsToURP
     {
-        private const string SessionKey = "UpgradeScifiMaterialsToURP_Done_v1";
-
-        static UpgradeScifiMaterialsToURP()
-        {
-            // Otomatik tetikleme kapatıldı: proje her açıldığında sahneyi elle onay
-            // almadan değiştirip kaydediyordu. Gerekirse elle çalıştırılır.
-            // EditorApplication.delayCall += UpgradeMaterialsDelayed;
-        }
-
-        private static void UpgradeMaterialsDelayed()
-        {
-            if (SessionState.GetBool(SessionKey, false)) return;
-            SessionState.SetBool(SessionKey, true);
-            UpgradeMaterials(silent: true);
-        }
 
         // [MenuItem("Tools/PixelGame/🔧 Mor Kaplamaları Düzelt (Fix Scifi URP Materials)", priority = 30)]
         public static void MenuUpgradeMaterials()

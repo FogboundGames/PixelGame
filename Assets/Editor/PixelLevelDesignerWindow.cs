@@ -3266,15 +3266,12 @@ namespace PixelGame.Editor
 
             EditorGUILayout.Space(6);
 
-            // 1. 🏝️ GEMİ SAHNESİ & RAY YÖNETİMİ
-            DrawSceneToolCard("🏝️ Gemi Sahnesi & Ray Yönetimi", new (string, string, System.Action)[]
+            // 1. 🏝️ GEMİ SAHNESİ YÖNETİMİ
+            DrawSceneToolCard("🏝️ Gemi Sahnesi Yönetimi", new (string, string, System.Action)[]
             {
                 ("⚓ Konsept 2: Yüzen Şamandıra & Su Üstü Zincir Izgarasını Kur", "Slotlara kırmızı-beyaz yüzen şamandıraları, deniz zincirlerini ve ahşap numara tabelalarını kurar.", () => SetupMarinaDockSlots.SetupMarinaSlots()),
                 ("🏝️ Gemi Sahnesini Sıfırdan Kur & Tüm Öğeleri Getir", "Gemi sahnesini, slotları, kum çerçevesini ve piksel sanatını kurar.", () => GemiSceneSetup.SetupGemiSceneMenu()),
                 ("🎨 Kum Alanındaki Piksel Resmi Yenile (Regenerate)", "Kum alanındaki mevcut piksel sanatını ve gölgeleri anında yeniden üretir.", () => GemiSceneSetup.RegeneratePixelArtMenu()),
-                ("🛤️ Vagon Döngüsünü Kur (Ray + Havuz)", "Slot şeridi, alt havuz ve ray vagon döngüsünü sahneye kurar.", () => SetupTruckSlots.Setup()),
-                ("🛤️ Çevresel Rayları Döşe (Mavi Çerçeve)", "Mavi resim çerçevesinin etrafına çevresel rayları otomatik döşer.", () => TrackSystemSetup.BuildSceneRails()),
-                ("🗑️ Vagon Döngüsünü / Rayları Kaldır", "Sahnedeki vagon döngüsünü ve rayları temizler.", () => SetupTruckSlots.Remove()),
                 ("➡️ Sonraki Seviyeyi Yükle", "Bir sonraki seviyeyi sahneye çağırır.", () => GemiSceneSetup.NextLevelMenu()),
                 ("⬅️ Önceki Seviyeyi Yükle", "Bir önceki seviyeyi sahneye çağırır.", () => GemiSceneSetup.PrevLevelMenu())
             });
@@ -3284,25 +3281,20 @@ namespace PixelGame.Editor
             // 2. 🎨 GÖRSEL, IŞIK & SHADER DÖNÜŞÜMÜ
             DrawSceneToolCard("🎨 Görsel, Işık & Shader Dönüşümü", new (string, string, System.Action)[]
             {
-                ("✨ Komple Görsel Dönüşümü Uygula", "Tüm oyun görsellerini, 9-slice panoları ve arayüzü en son casual tasarıma dönüştürür.", () => SetupVisualOverhaul.ApplyOverhaul()),
-                ("🌟 Hypercasual Parlak Işıklandırma & Renkler", "Sahne ışıklarını ve karakter materyallerini parlak casual stile geçirir.", () => SetupHypercasualLightingAndMaterials.ApplyHypercasualOverhaul()),
                 ("🎨 Cartoon Shader'a Geçir", "Ana küp materyaline toon/cartoon cel-shader'ı uygular.", () => SetupCartoonShader.Apply()),
                 ("🔧 Mor Kaplamaları Düzelt (Fix Scifi URP Materials)", "URP'de mor görünen eski materyalleri otomatik onarır.", () => UpgradeScifiMaterialsToURP.UpgradeMaterials(false)),
-                ("🌑 Havuz Slot Sahte Gölgelerini Kur", "Alt havuzdaki vagon slotlarının altına yumuşak fake shadow uygular.", () => SetupPoolSlotShadows.ApplyPoolShadows()),
-                ("🌑 Mavi Ray Sahte Gölgesini Güncelle", "Mavi çevresel rayların altındaki zemin sahte gölgesini günceller.", () => TrackFakeShadow.CreateOrUpdateShadowMenu()),
+                ("🛥️ Gemi Sahte Gölgelerini Kur", "Gemi prefabına pürüzsüz sahte gölge oluşturur.", () => SetupShipFakeShadow.ApplyToPrefab()),
                 ("🧹 Pano ve Obje Arkasındaki Gölgeleri Temizle", "Eski artık pano ve obje arkası gölgelerini sahneden temizler.", () => CleanupSceneShadows.RunPurge())
             });
 
             EditorGUILayout.Space(6);
 
-            // 3. 🤖 VAGON & MODEL STİLİ SEÇİMİ
-            DrawSceneToolCard("🤖 Vagon & Model Stili Seçimi", new (string, string, System.Action)[]
+            // 3. ⚓ GEMİ & RİHTIM DÜZENİ
+            DrawSceneToolCard("⚓ Gemi & Rıhtım Araçları", new (string, string, System.Action)[]
             {
-                ("🤖 CyberCube Modelini Kur & Aktif Et", "Fütüristik robotik CyberCube vagon modelini sahneye kurar.", () => SetupCyberCubeWagon.ExecuteSetup(false)),
-                ("🐱 KawaiiCube Modelini Kur & Aktif Et", "Sevimli kedi KawaiiCube vagon modelini sahneye kurar.", () => SetupKawaiiCubeWagon.ExecuteSetup(false)),
-                ("🚀 Vakum Topu Vagonunu Kur (object_005)", "Vakum topu / topçu vagon modelini aktif eder.", () => SetupVacuumCannonWagon.SetupManual()),
-                ("⛏️ Mecha Miner Karakterini Kur", "Kazıcı robot karakter modelini ve animatörünü sahneye ekler.", () => MechaMinerSetup.Setup()),
-                ("🧹 Sahnedeki Gizli Önizleme Robotlarını Temizle", "Model stüdyosundan sahnede kalan hayalet önizleme objelerini temizler.", () => PurgeStrayStudioPreview.ExecutePurge())
+                ("⚓ Marina İskele & Slotlarını Kur", "Marina rıhtımını ve su slotlarını kurar.", () => SetupMarinaDockSlots.SetupMarinaSlots()),
+                ("🛥️ Gemi Sahte Gölgelerini Yenile", "Gemi prefabına pürüzsüz su gölgesi uygular.", () => SetupShipFakeShadow.ApplyToPrefab()),
+                ("🌊 Su Efektini Yapılandır", "Hypercasual deniz ve su materyalini yapılandırır.", () => WaterSlotFoamSetup.SpreadFoamToAll5Slots())
             });
 
             EditorGUILayout.Space(6);
@@ -3314,7 +3306,6 @@ namespace PixelGame.Editor
                 ("🏆 Win & Fail Panellerini Sahneye Ekle / Güncelle", "HUD_Canvas altına Win ve Fail popup nesnelerini fiziksel olarak ekler ve bağlar.", () => SetupGemiWinLosePopups.SetupModalsInScene()),
                 ("👁️ Win (Complete) Panelini Aç / Kapat", "Sahnede Win modalının görünürlüğünü açıp kapatır.", () => SetupGemiWinLosePopups.ToggleWinPanel()),
                 ("👁️ Fail (Yenilgi) Panelini Aç / Kapat", "Sahnede Fail modalının görünürlüğünü açıp kapatır.", () => SetupGemiWinLosePopups.ToggleFailPanel()),
-                ("🎯 Köşe Sayacını & Üst HUD'ı Düzenle", "LilitaOne fontu ve şık sayaç ile üst arayüzü yapılandırır.", () => SetupCleanCornerCounter.ApplyCleanCorner()),
                 ("🖼️ Casual HUD & Arkaplan Kur", "Casual HUD panellerini ve renkli arka planı yapılandırır.", () => SetupCasualHud.Apply()),
                 ("🧪 Gemi Kalkış Testi (Ship Departure Test)", "Bölüm tamamlandığında geminin kalkış animasyonunu canlı test eder.", () => TestShipDeparture.RunTest()),
                 ("📸 9:16 Ekran Görüntüsü Al (Capture Screenshot)", "Game görünümünden tam 1080x1920 dikey ekran görüntüsü alır.", () => CaptureGameViewScreenshot.Capture())
@@ -3543,14 +3534,6 @@ namespace PixelGame.Editor
                 gen.UpdateExistingCubesLive();
             }
 
-            // Sahnedeki TruckPool'u ve önizleme karolarını anında senkronize et
-            TruckPool pool = Object.FindFirstObjectByType<TruckPool>();
-            if (pool != null && m_SelectedLevel != null)
-            {
-                pool.RebuildPlaces(m_SelectedLevel.PoolColumns, m_SelectedLevel.PoolRows);
-                pool.RefreshEditorPreview();
-            }
-
             // Sahnedeki ShipQueuePool'u anında senkronize et
             ShipQueuePool shipPool = Object.FindFirstObjectByType<ShipQueuePool>();
             if (shipPool != null && m_SelectedLevel != null)
@@ -3572,16 +3555,6 @@ namespace PixelGame.Editor
                 if (dispatcher != null)
                 {
                     dispatcher.EnsureReferences();
-                }
-            }
-
-            // Sahnedeki vagon veya parçaların rengini anında güncelle
-            TruckPaint[] paints = Object.FindObjectsByType<TruckPaint>(FindObjectsSortMode.None);
-            foreach (var paint in paints)
-            {
-                if (paint != null && m_SelectedLevel != null && m_SelectedLevel.ColorTheme != null)
-                {
-                    paint.ApplyTheme(m_SelectedLevel.ColorTheme, m_PreviewBlockColor);
                 }
             }
 

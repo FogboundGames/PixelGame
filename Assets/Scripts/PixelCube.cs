@@ -508,20 +508,10 @@ namespace PixelGame
             // Gemi sahnesinde küpler elle patlatılmaz; gemi yanaşınca kargo treniyle kendisi çeker.
             if (ShipDispatcher.Instance != null) return;
 
-            // 0. Kamyon kuralı: rengine uyan bir kamyon slotta yoksa patlamaz.
-            TruckDispatcher truckDispatcher = TruckDispatcher.Instance;
-            if (truckDispatcher != null && !truckDispatcher.CanPop(m_CurrentColor)) return;
-
             // 1. Kendi renginde 3D mini vokseller aşağıya doğru dökülsün
             if (VoxelParticleManager.Instance != null)
             {
                 VoxelParticleManager.Instance.SpawnVoxelBurst(transform.position, transform.lossyScale, m_CurrentColor);
-            }
-
-            // 2. Küpü rengine uyan kamyona yükle
-            if (truckDispatcher != null)
-            {
-                truckDispatcher.NotifyCubePopped(m_CurrentColor, transform.position, m_CurrentColor, transform.lossyScale, transform.rotation);
             }
 
             // 3. Etkileşim yöneticisine bildir

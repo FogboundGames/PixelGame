@@ -57,6 +57,26 @@ namespace PixelGame
         }
     }
 
+    public enum TruckPart
+    {
+        Tires,
+        Rims,
+        Glass,
+        Headlights,
+        Taillights,
+        Chassis,
+        Cabin,
+        Cargo,
+        Stone,
+        Wood,
+        Dark,
+        StoneDark,
+        MechaBody,
+        Helmet,
+        HelmetDark,
+        Lamp
+    }
+
     [Serializable]
     public class TruckPartColorSetting
     {
@@ -503,6 +523,12 @@ namespace PixelGame
             return sum;
         }
 
+        /// <summary>İki renk arasındaki basit RGB uzaklığı (0 = aynı).</summary>
+        public static float ColorDistance(Color a, Color b)
+        {
+            return (Mathf.Abs(a.r - b.r) + Mathf.Abs(a.g - b.g) + Mathf.Abs(a.b - b.b)) / 3f;
+        }
+
         /// <summary>Belirtilen renge atanmış vagonların toplam taşıma kapasitesi.</summary>
         public int GetTotalAssignedCapacityForColor(Color targetColor, float threshold = 0.05f)
         {
@@ -511,7 +537,7 @@ namespace PixelGame
             foreach (var wagon in m_WagonSequence)
             {
                 if (wagon == null) continue;
-                if (TruckCargo.ColorDistance(wagon.wagonColor, targetColor) <= threshold)
+                if (ColorDistance(wagon.wagonColor, targetColor) <= threshold)
                 {
                     sum += wagon.capacity;
                 }

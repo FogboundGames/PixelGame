@@ -66,13 +66,6 @@ namespace PixelGame.Editor
             }
         }
 
-        public static void CaptureBatch()
-        {
-            UnityEditor.SceneManagement.EditorSceneManager.OpenScene("Assets/Scenes/SampleScene.unity");
-            SetupVisualOverhaul.ApplyOverhaul();
-            Capture();
-        }
-
         [MenuItem("PixelGame/📸 9:16 Ekran Görüntüsü Al (Capture Screenshot)")]
         public static void Capture()
         {
@@ -99,12 +92,6 @@ namespace PixelGame.Editor
                 try
                 {
                     EnsureRoundedToyCubesApplied();
-
-                    TrackFakeShadow shadow = TrackFakeShadow.EnsureShadow(null);
-                    if (shadow != null)
-                    {
-                        shadow.RebuildMesh();
-                    }
 
                     cam.targetTexture = rt;
                     cam.Render();
