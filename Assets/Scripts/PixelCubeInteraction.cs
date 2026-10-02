@@ -90,6 +90,9 @@ namespace PixelGame
 
         private void HandleInput()
         {
+            // Gemi sahnesinde küplere tıklanmaz; gemi yanaşınca kargo treniyle kendisi çeker.
+            if (ShipDispatcher.Instance != null) return;
+
             Vector2 screenPos;
             bool isPressed;
             bool isDown;

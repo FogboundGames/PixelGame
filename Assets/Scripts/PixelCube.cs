@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
-using DG.Tweening;
 
 namespace PixelGame
 {
@@ -40,6 +39,13 @@ namespace PixelGame
         private int m_BodyRenderersChildCount = -1;
         private Collider m_CubeCollider;
         private bool m_IsPopped = false;
+        // Panodan ayrılıp kendi bacaklarıyla gemiye yürüyen küp: oyun mantığı için panoda değildir
+        // (IsPopped), ama görünür kalır. Resim sıfırlanınca eski yerine dönebilsin diye yeri saklanır.
+        private bool m_IsLeaving = false;
+        private Vector3 m_HomePosition;
+        private Quaternion m_HomeRotation;
+        // Yürürken gerçek gölge kapatılır (kumda küpten kopuk lekeler oluşuyordu); geri dönüşte eski haline gelir.
+        private UnityEngine.Rendering.ShadowCastingMode[] m_HomeShadowModes;
 
         private void Awake()
         {
@@ -128,6 +134,7 @@ namespace PixelGame
         public GameObject ShadowObject => m_ShadowObject;
         public GameObject ShadowBottomObject => m_ShadowBottomObject;
         public bool IsPopped => m_IsPopped;
+        public bool IsLeaving => m_IsLeaving;
         public bool KeepShadowPermanent
         {
             get => m_KeepShadowPermanent;
@@ -386,7 +393,64 @@ namespace PixelGame
             }
         }
 
-        public void SetPoppedVisualState(bool popped)
+        /// <summary>
+        /// Küp panodan ayrılır ve kendisi yürüyerek gider: oyun mantığı için artık panoda değildir
+        /// (IsPopped), ama gövdesi ve bacakları görünür kalır. Tıklanamaz, sahte gölgesi gizlenir.
+        /// </summary>
+        public void BeginLeaving(bool regenerateContourShadow = true)
+        {
+            if (m_IsPopped) return;
+
+            m_HomePosition = transform.position;
+            m_HomeRotation = transform.rotation;
+            m_IsLeaving = true;
+            m_IsPopped = true;
+
+            if (m_CubeCollider == null) m_CubeCollider = GetComponent<Collider>();
+            if (m_CubeCollider != null) m_CubeCollider.enabled = false;
+            EnsureShadowReferences();
+            HideShadows();
+
+            MeshRenderer[] body = GetBodyRenderers();
+            m_HomeShadowModes = new UnityEngine.Rendering.ShadowCastingMode[body.Length];
+            for (int i = 0; i < body.Length; i++)
+            {
+                if (body[i] == null) continue;
+                m_HomeShadowModes[i] = body[i].shadowCastingMode;
+                body[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+
+            if (Application.isPlaying && regenerateContourShadow)
+            {
+                PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
+                if (gen != null) gen.RegenerateContourShadowFromLiveCubeState();
+            }
+        }
+
+        /// <summary>Yürüyerek ayrılan küp gemiye indiğinde gizlenir.</summary>
+        public void FinishLeaving()
+        {
+            gameObject.SetActive(false);
+        }
+
+        private void HideShadows()
+        {
+            // Küpün kendi gölgelerinin tamamı gizlenir (Arkada hiçbir şey kalmaz!)
+            if (m_ShadowObject != null) m_ShadowObject.SetActive(false);
+            if (m_ShadowBottomObject != null) m_ShadowBottomObject.SetActive(false);
+
+            // Garanti olsun diye çocuk objelerdeki tüm gölge nesnelerini devre dışı bırak
+            for (int i = 0; i < transform.childCount; i++)
+            {
+                Transform child = transform.GetChild(i);
+                if (child.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    child.gameObject.SetActive(false);
+                }
+            }
+        }
+
+        public void SetPoppedVisualState(bool popped, bool regenerateContourShadow = true)
         {
             m_IsPopped = popped;
 
@@ -399,45 +463,36 @@ namespace PixelGame
                 // Sadece küpün kendisini (gövde + bacaklar) gizle ve tıklanamaz yap
                 SetBodyRenderersEnabled(false);
                 if (m_CubeCollider != null) m_CubeCollider.enabled = false;
-
-                // Küp patladığında kendi gölgelerinin tamamı gizlenir (Arkada hiçbir şey kalmaz!)
-                if (m_ShadowObject != null) m_ShadowObject.SetActive(false);
-                if (m_ShadowBottomObject != null) m_ShadowBottomObject.SetActive(false);
-
-                // Garanti olsun diye çocuk objelerdeki tüm gölge nesnelerini devre dışı bırak
-                for (int i = 0; i < transform.childCount; i++)
-                {
-                    Transform child = transform.GetChild(i);
-                    if (child.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        child.gameObject.SetActive(false);
-                    }
-                }
+                HideShadows();
             }
             else
             {
-                // Yeniden görünür yap (Reset)
+                // Yeniden görünür yap (Reset). Yürüyerek ayrılmış küp eski yerine döner.
+                if (m_IsLeaving)
+                {
+                    m_IsLeaving = false;
+                    transform.SetPositionAndRotation(m_HomePosition, m_HomeRotation);
+                    MeshRenderer[] body = GetBodyRenderers();
+                    if (m_HomeShadowModes != null)
+                    {
+                        for (int i = 0; i < body.Length && i < m_HomeShadowModes.Length; i++)
+                        {
+                            if (body[i] != null) body[i].shadowCastingMode = m_HomeShadowModes[i];
+                        }
+                    }
+                }
                 SetBodyRenderersEnabled(true);
                 if (m_CubeCollider != null) m_CubeCollider.enabled = true;
                 if (m_ShadowObject != null) m_ShadowObject.SetActive(true);
             }
 
             // Kontur gölgesi de küplerle birlikte parça parça küçülsün/geri büyüsün diye canlı yeniden üret.
-            if (Application.isPlaying)
+            // Toplu koparmada (kargo treni) çağıran taraf bunu tek seferde yapar.
+            if (Application.isPlaying && regenerateContourShadow)
             {
                 PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
                 if (gen != null) gen.RegenerateContourShadowFromLiveCubeState();
             }
-        }
-
-        /// <summary>
-        /// Küp ortada/içte kilitliyken tıklandığında hafifçe sallanarak kilitli olduğunu hissettirir.
-        /// </summary>
-        public void PlayBlockedWobble()
-        {
-            if (!Application.isPlaying || m_IsPopped) return;
-            transform.DOKill(true);
-            transform.DOShakeRotation(0.25f, new Vector3(0f, 0f, 12f), 10, 90f, true);
         }
 
         /// <summary>
@@ -450,10 +505,10 @@ namespace PixelGame
             if (!Application.isPlaying) return;
             if (m_IsPopped || !gameObject.activeSelf) return;
 
-            // 0. Gemi veya Kamyon kuralı: rengine uyan bir gemi/kamyon slotta yoksa veya küp dışta değilse patlamaz.
-            ShipDispatcher shipDispatcher = ShipDispatcher.Instance;
-            if (shipDispatcher != null && !shipDispatcher.CanPop(this)) return;
+            // Gemi sahnesinde küpler elle patlatılmaz; gemi yanaşınca kargo treniyle kendisi çeker.
+            if (ShipDispatcher.Instance != null) return;
 
+            // 0. Kamyon kuralı: rengine uyan bir kamyon slotta yoksa patlamaz.
             TruckDispatcher truckDispatcher = TruckDispatcher.Instance;
             if (truckDispatcher != null && !truckDispatcher.CanPop(m_CurrentColor)) return;
 
@@ -463,12 +518,8 @@ namespace PixelGame
                 VoxelParticleManager.Instance.SpawnVoxelBurst(transform.position, transform.lossyScale, m_CurrentColor);
             }
 
-            // 2. Küpü rengine uyan gemiye veya kamyona yükle
-            if (shipDispatcher != null)
-            {
-                shipDispatcher.NotifyCubePopped(m_CurrentColor, transform.position, m_CurrentColor, transform.lossyScale, transform.rotation, this);
-            }
-            else if (truckDispatcher != null)
+            // 2. Küpü rengine uyan kamyona yükle
+            if (truckDispatcher != null)
             {
                 truckDispatcher.NotifyCubePopped(m_CurrentColor, transform.position, m_CurrentColor, transform.lossyScale, transform.rotation);
             }

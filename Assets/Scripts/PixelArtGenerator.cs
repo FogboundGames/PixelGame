@@ -113,6 +113,10 @@ namespace PixelGame
         [Range(-180f, 180f)]
         [SerializeField] private float m_CubeFrontTiltAngle = 25f;
 
+        [Tooltip("Açıksa bölüm dosyasındaki küp eğimi yok sayılır, aşağıdaki açı kullanılır. Eğik görünümü kamerayla veren sahneler (küpler düz durur) bölüm dosyalarına dokunmadan bunu kullanır.")]
+        [SerializeField] private bool m_OverrideLevelCubeTilt = false;
+        [SerializeField] private float m_CubeTiltOverride = 0f;
+
         [Tooltip("Her satır (GridY arttıkça) küpün konumuna eklenen serbest X/Y/Z kademesi. Örn. Z=0.12 verirsen her üst satır bir öncekinden 0.12 birim daha ileri/geri kayar; X veya Y'ye değer verirsen satırlar yana/yukarı da kayabilir. Sahnede canlı görmek için 'Preserve Scene Edits' kapalı olmalı.")]
         [SerializeField] private Vector3 m_CubeRowStepOffset = Vector3.zero;
 
@@ -413,7 +417,7 @@ namespace PixelGame
             m_CubeSpacing = levelData.CubeSpacing;
             m_CubeSpacingX = levelData.CubeSpacingX;
             m_CubeDepth = levelData.CubeDepth;
-            m_CubeFrontTiltAngle = levelData.CubeFrontTiltAngle;
+            m_CubeFrontTiltAngle = m_OverrideLevelCubeTilt ? m_CubeTiltOverride : levelData.CubeFrontTiltAngle;
             m_TargetZ = levelData.TargetZ;
             m_CubeRowStepOffset = levelData.CubeRowStepOffset;
             m_InnerPadding = levelData.InnerPadding;
@@ -457,7 +461,8 @@ namespace PixelGame
             m_ActiveLevelData.CubeSpacing = m_CubeSpacing;
             m_ActiveLevelData.CubeSpacingX = m_CubeSpacingX;
             m_ActiveLevelData.CubeDepth = m_CubeDepth;
-            m_ActiveLevelData.CubeFrontTiltAngle = m_CubeFrontTiltAngle;
+            // Sahneye özel eğim bölüm dosyasına yazılmaz
+            if (!m_OverrideLevelCubeTilt) m_ActiveLevelData.CubeFrontTiltAngle = m_CubeFrontTiltAngle;
             m_ActiveLevelData.TargetZ = m_TargetZ;
             m_ActiveLevelData.CubeRowStepOffset = m_CubeRowStepOffset;
             m_ActiveLevelData.InnerPadding = m_InnerPadding;
@@ -489,7 +494,7 @@ namespace PixelGame
                 || !Mathf.Approximately(m_ActiveLevelData.CubeSpacing, m_CubeSpacing)
                 || !Mathf.Approximately(m_ActiveLevelData.CubeSpacingX, m_CubeSpacingX)
                 || !Mathf.Approximately(m_ActiveLevelData.CubeDepth, m_CubeDepth)
-                || !Mathf.Approximately(m_ActiveLevelData.CubeFrontTiltAngle, m_CubeFrontTiltAngle)
+                || (!m_OverrideLevelCubeTilt && !Mathf.Approximately(m_ActiveLevelData.CubeFrontTiltAngle, m_CubeFrontTiltAngle))
                 || !Mathf.Approximately(m_ActiveLevelData.TargetZ, m_TargetZ)
                 || m_ActiveLevelData.CubeRowStepOffset != m_CubeRowStepOffset
                 || !Mathf.Approximately(m_ActiveLevelData.InnerPadding, m_InnerPadding)
@@ -517,7 +522,7 @@ namespace PixelGame
             m_CubeSpacing = levelData.CubeSpacing;
             m_CubeSpacingX = levelData.CubeSpacingX;
             m_CubeDepth = levelData.CubeDepth;
-            m_CubeFrontTiltAngle = levelData.CubeFrontTiltAngle;
+            m_CubeFrontTiltAngle = m_OverrideLevelCubeTilt ? m_CubeTiltOverride : levelData.CubeFrontTiltAngle;
             m_CubeRowStepOffset = levelData.CubeRowStepOffset;
             m_TargetZ = levelData.TargetZ;
 

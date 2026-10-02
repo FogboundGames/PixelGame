@@ -31,6 +31,15 @@ namespace PixelGame
         [Header("❌ Seviye Başarısız (Fail) Modal")]
         [SerializeField] private GameObject m_LevelFailPopup;
 
+        [Header("🏆 Seviye Tamamlandı Modal")]
+        [SerializeField] private GameObject m_LevelCompletePopup;
+        [Tooltip("Pano görseli (başlık ve açıklama yazısı görselin içinde).")]
+        [SerializeField] private Sprite m_CompletePanelSprite;
+        [Tooltip("Altın ödülü pill'i (coin ve '+20' görselin içinde).")]
+        [SerializeField] private Sprite m_CompleteRewardSprite;
+        [Tooltip("DEVAM butonu görseli (yazı görselin içinde).")]
+        [SerializeField] private Sprite m_CompleteContinueSprite;
+
         [Header("🎛️ Buton Görselleri & Durumlar")]
         [SerializeField] private UnityEngine.UI.Image m_SoundButtonImage;
         [SerializeField] private Sprite m_SoundOnSprite;
@@ -39,13 +48,18 @@ namespace PixelGame
         [SerializeField] private Sprite m_HapticsOnSprite;
         [SerializeField] private Sprite m_HapticsOffSprite;
 
-        [Header("🧪 Başlangıç Değerleri (ekonomi sistemi gelene kadar)")]
+        [Header("🧪 Başlangıç Değerleri")]
         [SerializeField] private int m_StartingLives = 3;
+        [Tooltip("Oyuncunun hiç kaydı yokken (ilk açılış) başlayacağı altın. Sonrasında altın cihazda kayıtlıdır.")]
         [SerializeField] private int m_StartingCoins = 250;
         [SerializeField] private bool m_IsHardLevel = false;
 
         private int m_CurrentLives;
         private int m_CurrentCoins;
+        private const string CoinsPrefKey = "PixelGame_Coins";
+        private System.Action m_OnLevelCompleteContinue;
+        private int m_PendingReward;
+        private TextMeshProUGUI m_RewardText;
         private bool m_SoundEnabled = true;
         private bool m_MusicEnabled = true;
         private bool m_HapticsEnabled = true;
@@ -99,7 +113,7 @@ namespace PixelGame
         {
             EnsureRabbitMascot();
             SetLives(m_StartingLives);
-            SetCoins(m_StartingCoins);
+            SetCoins(PlayerPrefs.HasKey(CoinsPrefKey) ? PlayerPrefs.GetInt(CoinsPrefKey) : m_StartingCoins);
             RefreshLevelFromScene();
             UpdateSoundVisual();
             UpdateHapticsVisual();
@@ -602,6 +616,280 @@ namespace PixelGame
         {
             m_CurrentCoins = Mathf.Max(0, count);
             if (m_CoinsText != null) m_CoinsText.text = FormatCoins(m_CurrentCoins);
+            PlayerPrefs.SetInt(CoinsPrefKey, m_CurrentCoins);
+        }
+
+        /// <summary>
+        /// Altın ekler, cihaza kaydeder; sayaç hafifçe zıplar ve üstünde "+N" yazısı yükselip söner.
+        /// </summary>
+        public void AddCoins(int amount)
+        {
+            if (amount == 0) return;
+            SetCoins(m_CurrentCoins + amount);
+            PlayerPrefs.Save();
+
+            if (m_CoinsText == null) return;
+            Transform pill = m_CoinsText.transform.parent != null ? m_CoinsText.transform.parent : m_CoinsText.transform;
+            pill.DOKill(true);
+            pill.DOPunchScale(Vector3.one * 0.18f, 0.35f, 6, 0.6f).SetUpdate(true);
+
+            GameObject floatObj = new GameObject("CoinGain");
+            floatObj.transform.SetParent(m_CoinsText.transform, false);
+            RectTransform fr = floatObj.AddComponent<RectTransform>();
+            fr.anchorMin = fr.anchorMax = new Vector2(0.5f, 0f);
+            fr.sizeDelta = new Vector2(200f, 60f);
+            fr.anchoredPosition = new Vector2(0f, -10f);
+            TextMeshProUGUI tmp = floatObj.AddComponent<TextMeshProUGUI>();
+            tmp.text = (amount > 0 ? "+" : "") + amount;
+            tmp.fontSize = 40;
+            tmp.fontStyle = FontStyles.Bold;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.color = new Color(1f, 0.85f, 0.25f, 1f);
+            tmp.raycastTarget = false;
+            if (m_CoinsText.font != null) tmp.font = m_CoinsText.font;
+            tmp.outlineWidth = 0.2f;
+            tmp.outlineColor = new Color32(90, 50, 0, 255);
+
+            fr.DOAnchorPosY(-90f, 0.8f).SetEase(Ease.OutCubic).SetUpdate(true);
+            tmp.DOFade(0f, 0.8f).SetDelay(0.25f).SetUpdate(true).OnComplete(() => Destroy(floatObj));
+        }
+
+        /// <summary>
+        /// Resim tamamlanınca gösterilir: kazanılan altını gösterir; "DEVAM"a basılınca altın eklenir,
+        /// pencere kapanır ve <paramref name="onContinue"/> (bir sonraki seviyeye geçiş) çağrılır.
+        /// </summary>
+        public void ShowLevelCompletePopup(int reward, System.Action onContinue)
+        {
+            EnsureLevelCompletePopup();
+            m_PendingReward = reward;
+            m_OnLevelCompleteContinue = onContinue;
+            if (m_RewardText != null) m_RewardText.text = "+" + reward + " ALTIN";
+
+            m_LevelCompletePopup.SetActive(true);
+            Transform card = m_LevelCompletePopup.transform.Find("Complete_Card");
+            if (card != null)
+            {
+                card.DOKill(true);
+                card.localScale = Vector3.zero;
+                card.DOScale(Vector3.one, 0.42f).SetEase(Ease.OutBack).SetUpdate(true);
+
+                Transform reward_ = card.Find("Reward");
+                if (reward_ != null)
+                {
+                    reward_.DOKill(true);
+                    reward_.localScale = Vector3.one;
+                    reward_.DOScale(Vector3.one * 1.08f, 0.55f).SetLoops(-1, LoopType.Yoyo).SetEase(Ease.InOutSine).SetUpdate(true);
+                }
+            }
+        }
+
+        private void OnLevelCompleteContinueClicked()
+        {
+            if (m_LevelCompletePopup == null || !m_LevelCompletePopup.activeSelf) return;
+
+            int reward = m_PendingReward;
+            m_PendingReward = 0;
+            System.Action next = m_OnLevelCompleteContinue;
+            m_OnLevelCompleteContinue = null;
+
+            Transform card = m_LevelCompletePopup.transform.Find("Complete_Card");
+            if (card != null)
+            {
+                card.DOKill(true);
+                foreach (Transform c in card) c.DOKill(true);
+                card.DOScale(Vector3.zero, 0.2f).SetEase(Ease.InBack).SetUpdate(true)
+                    .OnComplete(() => m_LevelCompletePopup.SetActive(false));
+            }
+            else
+            {
+                m_LevelCompletePopup.SetActive(false);
+            }
+
+            AddCoins(reward);
+            next?.Invoke();
+        }
+
+        private void EnsureLevelCompletePopup()
+        {
+            if (m_LevelCompletePopup != null) return;
+
+            if (m_CompletePanelSprite != null && m_CompleteRewardSprite != null && m_CompleteContinueSprite != null)
+            {
+                BuildSpriteLevelCompletePopup();
+                return;
+            }
+
+            Sprite pillSprite = FindSpriteByName("ui_pill");
+            TMP_FontAsset font = (m_LevelText != null) ? m_LevelText.font : null;
+
+            GameObject popupRoot = new GameObject("LevelComplete_Popup");
+            popupRoot.transform.SetParent(transform, false);
+            RectTransform rootRect = popupRoot.AddComponent<RectTransform>();
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.sizeDelta = Vector2.zero;
+            UnityEngine.UI.Image overlay = popupRoot.AddComponent<UnityEngine.UI.Image>();
+            overlay.color = new Color(0.03f, 0.08f, 0.12f, 0.75f);
+            overlay.raycastTarget = true;
+
+            GameObject cardObj = new GameObject("Complete_Card");
+            cardObj.transform.SetParent(popupRoot.transform, false);
+            RectTransform cardRect = cardObj.AddComponent<RectTransform>();
+            cardRect.anchorMin = cardRect.anchorMax = new Vector2(0.5f, 0.5f);
+            cardRect.sizeDelta = new Vector2(560f, 460f);
+            cardRect.anchoredPosition = new Vector2(0f, 30f);
+            UnityEngine.UI.Image cardImg = cardObj.AddComponent<UnityEngine.UI.Image>();
+            if (pillSprite != null) { cardImg.sprite = pillSprite; cardImg.type = UnityEngine.UI.Image.Type.Sliced; }
+            cardImg.color = new Color(0.10f, 0.20f, 0.30f, 0.98f);
+            UnityEngine.UI.Outline cardOutline = cardObj.AddComponent<UnityEngine.UI.Outline>();
+            cardOutline.effectColor = new Color(0.35f, 0.85f, 0.55f, 0.65f);
+            cardOutline.effectDistance = new Vector2(3f, -3f);
+
+            // Başlık
+            GameObject headerObj = new GameObject("Header_Badge");
+            headerObj.transform.SetParent(cardObj.transform, false);
+            RectTransform headerRect = headerObj.AddComponent<RectTransform>();
+            headerRect.anchorMin = headerRect.anchorMax = new Vector2(0.5f, 1f);
+            headerRect.sizeDelta = new Vector2(400f, 70f);
+            UnityEngine.UI.Image headerBg = headerObj.AddComponent<UnityEngine.UI.Image>();
+            if (pillSprite != null) { headerBg.sprite = pillSprite; headerBg.type = UnityEngine.UI.Image.Type.Sliced; }
+            headerBg.color = new Color(0.18f, 0.72f, 0.42f, 1f);
+            UnityEngine.UI.Outline headerOutline = headerObj.AddComponent<UnityEngine.UI.Outline>();
+            headerOutline.effectColor = new Color(0.06f, 0.35f, 0.18f, 0.95f);
+            headerOutline.effectDistance = new Vector2(2f, -3f);
+            CreatePopupText(headerObj.transform, "HeaderText", "TAMAMLANDI!", 34, Color.white, font, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+
+            // Açıklama
+            CreatePopupText(cardObj.transform, "Complete_Desc", "Resmin tamamı\ngemilere yüklendi!", 26,
+                new Color(0.88f, 0.94f, 0.98f, 0.95f), font,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -135f), new Vector2(480f, 90f));
+
+            // Ödül
+            GameObject rewardObj = new GameObject("Reward");
+            rewardObj.transform.SetParent(cardObj.transform, false);
+            RectTransform rewardRect = rewardObj.AddComponent<RectTransform>();
+            rewardRect.anchorMin = rewardRect.anchorMax = new Vector2(0.5f, 0.5f);
+            rewardRect.anchoredPosition = new Vector2(0f, -25f);
+            rewardRect.sizeDelta = new Vector2(360f, 80f);
+            UnityEngine.UI.Image rewardBg = rewardObj.AddComponent<UnityEngine.UI.Image>();
+            if (pillSprite != null) { rewardBg.sprite = pillSprite; rewardBg.type = UnityEngine.UI.Image.Type.Sliced; }
+            rewardBg.color = new Color(0.05f, 0.10f, 0.16f, 0.9f);
+            m_RewardText = CreatePopupText(rewardObj.transform, "RewardText", "+0 ALTIN", 38,
+                new Color(1f, 0.85f, 0.25f, 1f), font, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+
+            // Devam butonu
+            GameObject btnObj = new GameObject("Btn_Continue");
+            btnObj.transform.SetParent(cardObj.transform, false);
+            RectTransform btnRect = btnObj.AddComponent<RectTransform>();
+            btnRect.anchorMin = btnRect.anchorMax = new Vector2(0.5f, 0f);
+            btnRect.pivot = new Vector2(0.5f, 0f);
+            btnRect.anchoredPosition = new Vector2(0f, 40f);
+            btnRect.sizeDelta = new Vector2(380f, 84f);
+            UnityEngine.UI.Image btnImg = btnObj.AddComponent<UnityEngine.UI.Image>();
+            if (pillSprite != null) { btnImg.sprite = pillSprite; btnImg.type = UnityEngine.UI.Image.Type.Sliced; }
+            btnImg.color = new Color(0.18f, 0.80f, 0.44f, 1f);
+            UnityEngine.UI.Outline btnOutline = btnObj.AddComponent<UnityEngine.UI.Outline>();
+            btnOutline.effectColor = new Color(0.08f, 0.45f, 0.22f, 0.95f);
+            btnOutline.effectDistance = new Vector2(2f, -3f);
+            UnityEngine.UI.Button btn = btnObj.AddComponent<UnityEngine.UI.Button>();
+            btn.targetGraphic = btnImg;
+            btn.onClick.AddListener(() =>
+            {
+                btnObj.transform.DOPunchScale(Vector3.one * -0.08f, 0.15f).SetUpdate(true)
+                    .OnComplete(OnLevelCompleteContinueClicked);
+            });
+            CreatePopupText(btnObj.transform, "Text", "DEVAM", 30, Color.white, font, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+
+            m_LevelCompletePopup = popupRoot;
+            m_LevelCompletePopup.SetActive(false);
+        }
+
+        /// <summary>
+        /// Piksel art görsellerle kurulan pencere: pano (başlık + açıklama görselde), altın pill'i ve
+        /// DEVAM butonu. Yerleşim referans tasarıma göre pano genişliğine orantılıdır.
+        /// </summary>
+        private void BuildSpriteLevelCompletePopup()
+        {
+            const float panelWidth = 780f;
+
+            GameObject popupRoot = new GameObject("LevelComplete_Popup");
+            popupRoot.transform.SetParent(transform, false);
+            RectTransform rootRect = popupRoot.AddComponent<RectTransform>();
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.sizeDelta = Vector2.zero;
+            UnityEngine.UI.Image overlay = popupRoot.AddComponent<UnityEngine.UI.Image>();
+            overlay.color = new Color(0.03f, 0.08f, 0.12f, 0.6f);
+            overlay.raycastTarget = true;
+
+            Vector2 panelSize = SpriteSize(m_CompletePanelSprite, panelWidth);
+            GameObject card = CreateSpriteImage(popupRoot.transform, "Complete_Card", m_CompletePanelSprite, panelSize, new Vector2(0f, 40f));
+            card.GetComponent<UnityEngine.UI.Image>().raycastTarget = true;
+
+            // Referansta: ödül pill'i panonun ~%58'i genişliğinde, merkezin biraz altında;
+            // buton ~%71 genişliğinde, alt kenara yakın.
+            CreateSpriteImage(card.transform, "Reward", m_CompleteRewardSprite,
+                SpriteSize(m_CompleteRewardSprite, panelWidth * 0.58f), new Vector2(0f, -panelSize.y * 0.03f));
+
+            GameObject btnObj = CreateSpriteImage(card.transform, "Btn_Continue", m_CompleteContinueSprite,
+                SpriteSize(m_CompleteContinueSprite, panelWidth * 0.71f), new Vector2(0f, -panelSize.y * 0.29f));
+            UnityEngine.UI.Image btnImg = btnObj.GetComponent<UnityEngine.UI.Image>();
+            btnImg.raycastTarget = true;
+            UnityEngine.UI.Button btn = btnObj.AddComponent<UnityEngine.UI.Button>();
+            btn.targetGraphic = btnImg;
+            btn.transition = UnityEngine.UI.Selectable.Transition.None;
+            btn.onClick.AddListener(() =>
+            {
+                btnObj.transform.DOKill(true);
+                btnObj.transform.DOPunchScale(Vector3.one * -0.08f, 0.15f).SetUpdate(true)
+                    .OnComplete(OnLevelCompleteContinueClicked);
+            });
+
+            m_RewardText = null; // ödül miktarı görselin içinde
+            m_LevelCompletePopup = popupRoot;
+            m_LevelCompletePopup.SetActive(false);
+        }
+
+        private static Vector2 SpriteSize(Sprite sprite, float width)
+        {
+            return new Vector2(width, width * sprite.rect.height / Mathf.Max(1f, sprite.rect.width));
+        }
+
+        private static GameObject CreateSpriteImage(Transform parent, string name, Sprite sprite, Vector2 size, Vector2 pos)
+        {
+            GameObject obj = new GameObject(name);
+            obj.transform.SetParent(parent, false);
+            RectTransform rt = obj.AddComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = size;
+            rt.anchoredPosition = pos;
+            UnityEngine.UI.Image img = obj.AddComponent<UnityEngine.UI.Image>();
+            img.sprite = sprite;
+            img.preserveAspect = true;
+            img.raycastTarget = false;
+            return obj;
+        }
+
+        private static TextMeshProUGUI CreatePopupText(Transform parent, string name, string text, float size, Color color,
+                                                       TMP_FontAsset font, Vector2 anchorMin, Vector2 anchorMax,
+                                                       Vector2 anchoredPos, Vector2 sizeDelta)
+        {
+            GameObject obj = new GameObject(name);
+            obj.transform.SetParent(parent, false);
+            RectTransform rt = obj.AddComponent<RectTransform>();
+            rt.anchorMin = anchorMin;
+            rt.anchorMax = anchorMax;
+            rt.anchoredPosition = anchoredPos;
+            rt.sizeDelta = sizeDelta;
+            TextMeshProUGUI tmp = obj.AddComponent<TextMeshProUGUI>();
+            tmp.text = text;
+            tmp.fontSize = size;
+            tmp.fontStyle = FontStyles.Bold;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.color = color;
+            tmp.raycastTarget = false;
+            if (font != null) tmp.font = font;
+            return tmp;
         }
 
         /// <summary>1000 üstü değerleri "22K" gibi kısaltır; casual HUD'larda yaygın gösterimdir.</summary>

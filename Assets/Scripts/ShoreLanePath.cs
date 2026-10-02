@@ -198,6 +198,15 @@ namespace PixelGame
                 + (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
         }
 
+        /// <summary>
+        /// Örnek noktasının şerit başından uzaklığı. <see cref="BuildThrough"/> ile kurulan
+        /// şeritte i. ara nokta, i * samplesPerSegment indeksinde durur.
+        /// </summary>
+        public float DistanceAtIndex(int index)
+        {
+            return m_Cumulative[Mathf.Clamp(index, 0, m_Cumulative.Length - 1)];
+        }
+
         /// <summary>Şerit başından <paramref name="distance"/> kadar ileride olan nokta.</summary>
         public Vector3 PointAtDistance(float distance)
         {

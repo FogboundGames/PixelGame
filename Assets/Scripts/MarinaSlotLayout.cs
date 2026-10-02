@@ -305,7 +305,10 @@ namespace PixelGame
                     Vector3 circleComp = Vector3.one;
                     if (visualTr == lifebuoy)
                     {
-                        float tiltFactor = Mathf.Sin(Mathf.Abs(m_WaterTiltX) * Mathf.Deg2Rad);
+                        // Kameraya göre görünen eğim: eğik kamerada (ör. 40°) slot eğiminin bir kısmını kamera verir
+                        Camera cam = Camera.main;
+                        float camPitch = cam != null ? Mathf.DeltaAngle(0f, cam.transform.eulerAngles.x) : 0f;
+                        float tiltFactor = Mathf.Sin(Mathf.Abs(m_WaterTiltX - camPitch) * Mathf.Deg2Rad);
                         if (tiltFactor < 0.05f) tiltFactor = 0.47f;
                         // Kullanıcı referans görselindeki dolgunluk ve 0.90 dairesel en/boy oranı
                         float targetScreenAspect = 0.90f;

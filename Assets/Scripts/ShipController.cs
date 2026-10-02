@@ -1028,6 +1028,7 @@ namespace PixelGame
             if (IsFull && !m_IsDeparting)
             {
                 OnCargoFilled?.Invoke(this);
+                if (ShipDispatcher.Instance != null) ShipDispatcher.Instance.OnShipFilled(this);
                 DepartAndFreeSlot();
             }
         }
