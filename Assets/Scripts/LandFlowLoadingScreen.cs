@@ -195,6 +195,8 @@ namespace PixelGame
                 #if UNITY_EDITOR
                 m_Font = UnityEditor.AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/Fonts/LilitaOne-Regular SDF.asset");
                 #endif
+                // Build'de AssetDatabase yok: font Resources'taki tema ayarlarından gelir
+                if (m_Font == null) m_Font = GameThemeSettings.MainFont;
             }
 
             GameObject textObj = new GameObject("LoadingText");

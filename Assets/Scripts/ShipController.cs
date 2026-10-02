@@ -1540,6 +1540,12 @@ namespace PixelGame
                 Shader rippleShader = Shader.Find("PixelGame/WaterRippleRing");
                 if (rippleShader == null) rippleShader = Shader.Find("Universal Render Pipeline/Unlit");
                 if (rippleShader == null) rippleShader = Shader.Find("Unlit/Transparent");
+                // Build'de shader bulunamazsa efekti atla: istisna, çağıran gemi hareketini yarıda kesiyordu
+                if (rippleShader == null)
+                {
+                    Destroy(ripple);
+                    return;
+                }
 
                 Material mat = new Material(rippleShader);
                 Color foamColor = new Color(0.85f, 0.96f, 1f, 0.85f);
@@ -1604,6 +1610,12 @@ namespace PixelGame
                     Shader smokeShader = Shader.Find("PixelGame/CartoonSmokePuff");
                     if (smokeShader == null) smokeShader = Shader.Find("Universal Render Pipeline/Unlit");
                     if (smokeShader == null) smokeShader = Shader.Find("Unlit/Transparent");
+                    // Build'de shader bulunamazsa efekti atla: istisna, çağıran gemi hareketini yarıda kesiyordu
+                    if (smokeShader == null)
+                    {
+                        Destroy(puff);
+                        return;
+                    }
                     s_SmokePuffSharedMaterial = new Material(smokeShader);
                     s_SmokePuffSharedMaterial.SetColor("_BaseColor", new Color(1f, 1f, 1f, 0.90f));
                 }
@@ -2510,6 +2522,8 @@ namespace PixelGame
 #if UNITY_EDITOR
             tmpFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
 #endif
+            // Build'de AssetDatabase yok: font Resources'taki tema ayarlarından gelir
+            if (tmpFont == null) tmpFont = GameThemeSettings.MainFont;
             if (tmpFont == null) tmpFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/LilitaOne-Regular SDF");
             if (tmpFont == null) tmpFont = Resources.Load<TMP_FontAsset>("Fonts/LilitaOne-Regular SDF");
             if (tmpFont == null) tmpFont = Resources.Load<TMP_FontAsset>("LilitaOne-Regular SDF");

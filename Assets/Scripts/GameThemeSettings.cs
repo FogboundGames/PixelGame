@@ -22,6 +22,13 @@ namespace PixelGame
         [Header("🎨 Genel Vagon, Madenci & Çevre Renk Teması")]
         [SerializeField] private LevelColorTheme m_Theme = new LevelColorTheme();
 
+        [Header("🔤 Oyun Fontu")]
+        [Tooltip("Oyun sırasında kodla oluşturulan yazıların (gemi rozetleri, yükleme ekranı) fontu. Bu dosya Resources'ta olduğu için build'de de bulunur.")]
+        [SerializeField] private TMPro.TMP_FontAsset m_MainFont;
+
+        /// <summary>Kodla oluşturulan yazıların fontu (build'de AssetDatabase olmadığı için buradan okunur).</summary>
+        public static TMPro.TMP_FontAsset MainFont => Instance != null ? Instance.m_MainFont : null;
+
         [Header("🧪 Editör Test Rengi")]
         [SerializeField] private Color m_PreviewBlockColor = new Color32(230, 40, 40, 255);
 

@@ -97,6 +97,8 @@ namespace PixelGame
         public float rightSize { get => m_RightSize; set { m_RightSize = Mathf.Max(0f, value); SetVerticesDirty(); } }
         public float falloff { get => m_Falloff; set { m_Falloff = Mathf.Max(0.1f, value); SetVerticesDirty(); } }
 
+#if UNITY_EDITOR
+        // UIBehaviour'da Reset/OnValidate sadece editörde var; build'de ezilemez.
         protected override void Reset()
         {
             base.Reset();
@@ -109,6 +111,7 @@ namespace PixelGame
             SetVerticesDirty();
             SetMaterialDirty();
         }
+#endif
 
         /// <summary>
         /// Unity Simulator veya cihaz ekranının güvenli alanından (Safe Area) çentik ve köşe ölçülerini otomatik hesaplar.
