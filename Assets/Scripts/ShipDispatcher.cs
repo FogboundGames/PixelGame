@@ -38,6 +38,10 @@ namespace PixelGame
         [SerializeField] private float m_ShoreY = -2.88f;
         [Tooltip("Kıyı noktasının dünya Z'si (ship == null durumunda yedek).")]
         [SerializeField] private float m_ShoreZ = 0.07f;
+        [Tooltip("Kumun suya değdiği kıyı çizgisi (dünya X,Y). Küpler bu çizgide, geminin en yakın noktasına kadar yürür ve oradan gemiye zıplar. Boşsa geminin hemen önü kullanılır.")]
+        [SerializeField] private List<Vector2> m_Shoreline = new List<Vector2>();
+        [Tooltip("Kıyı noktasının kum tarafına (geminin tersine) ne kadar içeride olacağı (dünya birimi).")]
+        [SerializeField] private float m_ShorelineInset = 0.15f;
         [Tooltip("Boşsa panodaki küpün kendisi yürür. Bir prefab atanırsa (ör. Mixamo koşucusu MainCube_Running) küp yerinde gizlenir, yerine bu prefab küpün renginde yürür.")]
         [SerializeField] private GameObject m_CargoStandInPrefab;
 
@@ -951,6 +955,25 @@ namespace PixelGame
             if (ship != null)
             {
                 Vector3 shipPos = ship.transform.position;
+                if (m_Shoreline != null && m_Shoreline.Count >= 2)
+                {
+                    // Kıyı çizgisinde gemiye en yakın nokta; biraz kum tarafına çekilir ki küpler suya basmasın
+                    Vector2 ship2 = new Vector2(shipPos.x, shipPos.y);
+                    Vector2 best = m_Shoreline[0];
+                    float bestSq = float.MaxValue;
+                    for (int i = 0; i < m_Shoreline.Count - 1; i++)
+                    {
+                        Vector2 a = m_Shoreline[i], b = m_Shoreline[i + 1];
+                        Vector2 ab = b - a;
+                        float t = ab.sqrMagnitude > 1e-6f ? Mathf.Clamp01(Vector2.Dot(ship2 - a, ab) / ab.sqrMagnitude) : 0f;
+                        Vector2 q = a + ab * t;
+                        float sq = (q - ship2).sqrMagnitude;
+                        if (sq < bestSq) { bestSq = sq; best = q; }
+                    }
+                    Vector2 inward = best - ship2;
+                    if (inward.sqrMagnitude > 1e-6f) best += inward.normalized * m_ShorelineInset;
+                    return new Vector3(best.x, best.y, 0.22f);
+                }
                 // Sahil kenarı: Kum alanının bittiği, suyun başladığı kıyı eşiği (Y ≈ shipPos.y + 0.95f, Z = 0.22f)
                 return new Vector3(shipPos.x, shipPos.y + 0.95f, 0.22f);
             }
