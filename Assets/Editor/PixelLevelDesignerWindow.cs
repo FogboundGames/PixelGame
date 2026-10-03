@@ -2386,7 +2386,28 @@ namespace PixelGame.Editor
                     fontSize = 10,
                     normal = { textColor = (wc.grayscale > 0.55f) ? Color.black : Color.white }
                 };
-                GUI.Label(new Rect(topRect.x + 4, topRect.y + 1, topRect.width - 24, 18), $"#{slotIndex + 1} {cDisplayName}", numStyle);
+                GUI.Label(new Rect(topRect.x + 4, topRect.y + 1, topRect.width - 44, 18), $"#{slotIndex + 1} {cDisplayName}", numStyle);
+
+                // ❓ Gizli Gemi: En ön sıraya gelene kadar renk ve yazı '?' desenli örtüyle saklanır
+                GUI.backgroundColor = wagon.isHidden ? new Color(0.35f, 0.32f, 0.9f) : Color.white;
+                if (GUI.Button(new Rect(topRect.xMax - 38, topRect.y + 1, 18, 16),
+                    new GUIContent("?", wagon.isHidden
+                        ? "Gizli gemi (açık): en ön sıraya gelene kadar rengi ve yazısı saklanır. Kapatmak için tıkla."
+                        : "Gizli gemi yap: en ön sıraya gelene kadar rengi ve yazısı '?' örtüsüyle saklanır."),
+                    EditorStyles.miniButton))
+                {
+                    Undo.RecordObject(m_SelectedLevel, "Toggle Hidden Ship");
+                    wagon.isHidden = !wagon.isHidden;
+                    m_SelectedLevel.UseCustomWagonSequence = true;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+                GUI.backgroundColor = Color.white;
+                if (wagon.isHidden)
+                {
+                    // Renk şeridinin altında lacivert çizgi: gizli geminin bir bakışta fark edilmesi için
+                    EditorGUI.DrawRect(new Rect(topRect.x, topRect.yMax - 3, topRect.width - 40, 3), new Color(0.13f, 0.12f, 0.31f));
+                }
 
                 // Silme [✕] (Slotu boşaltır)
                 if (GUI.Button(new Rect(topRect.xMax - 18, topRect.y + 1, 16, 16), "✕", EditorStyles.miniButton))

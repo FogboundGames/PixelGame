@@ -17,20 +17,125 @@ namespace PixelGame.Editor
         private const string UIRoot = "Assets/UI/CasualUI/";
         private const string FontPath = "Assets/Fonts/LilitaOne-Regular SDF.asset";
         private const string AutoRunKey = "GemiTopHUD_Installed_v5";
+        private const string RemoveCoinsKey = "PixelGame_CoinRemoved_v1";
+        private const string RetryButtonKey = "PixelGame_RetryButtonInstalled_v2";
 
         static SetupGemiTopHUD()
         {
-            // İstenildiğinde menüden çağrılabilir: PixelGame/🎯 Setup Gemi Top HUD (Image 1 Style)
-            // EditorApplication.delayCall += BuildTopHUD;
+            EditorApplication.delayCall += AutoRemoveCoinsIfNeeded;
+            EditorApplication.delayCall += AutoSetupRetryButtonIfNeeded;
         }
 
-        /// <summary>Artık otomatik çağrılmıyor; bkz. statik kurucu.</summary>
-        private static void AutoRunIfNeeded()
+        private static void AutoRemoveCoinsIfNeeded()
         {
             if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;
-            if (SessionState.GetBool(AutoRunKey, false)) return;
-            SessionState.SetBool(AutoRunKey, true);
-            BuildTopHUD();
+            if (SessionState.GetBool(RemoveCoinsKey, false)) return;
+            SessionState.SetBool(RemoveCoinsKey, true);
+            RemoveCoinsFromScene();
+        }
+
+        private static void AutoSetupRetryButtonIfNeeded()
+        {
+            if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;
+            if (SessionState.GetBool(RetryButtonKey, false)) return;
+            SessionState.SetBool(RetryButtonKey, true);
+            EnsureRetryButtonInScene();
+        }
+
+        [MenuItem("PixelGame/🔄 Sahneye Retry Butonu Ekle (Ensure Retry Button)")]
+        public static void EnsureRetryButtonInScene()
+        {
+            var activeScene = EditorSceneManager.GetActiveScene();
+            if (activeScene.path != ScenePath && System.IO.File.Exists(ScenePath))
+            {
+                EditorSceneManager.OpenScene(ScenePath);
+            }
+
+            GameObject canvasGo = GameObject.Find("HUD_Canvas");
+            if (canvasGo == null) return;
+
+            Transform topUIGo = canvasGo.transform.Find("TopUI");
+            if (topUIGo == null) return;
+
+            CasualHudController ctrl = canvasGo.GetComponent<CasualHudController>();
+
+            Transform existingRetry = topUIGo.Find("RetryButton");
+            GameObject retryGo;
+            if (existingRetry != null)
+            {
+                retryGo = existingRetry.gameObject;
+            }
+            else
+            {
+                retryGo = new GameObject("RetryButton", typeof(RectTransform), typeof(Image), typeof(Button));
+                Undo.RegisterCreatedObjectUndo(retryGo, "Create RetryButton");
+                retryGo.transform.SetParent(topUIGo, false);
+            }
+
+            RectTransform retryRt = retryGo.GetComponent<RectTransform>();
+            retryRt.anchorMin = new Vector2(0f, 1f);
+            retryRt.anchorMax = new Vector2(0f, 1f);
+            retryRt.pivot = new Vector2(0f, 1f);
+            retryRt.anchoredPosition = new Vector2(30f, -80f);
+            retryRt.sizeDelta = new Vector2(96f, 96f);
+            retryRt.localScale = Vector3.one * 1.1f;
+
+            Image retryImg = retryGo.GetComponent<Image>();
+            Sprite retrySprite = LoadSprite("btn_retry_ref");
+            if (retrySprite == null) retrySprite = LoadSprite("btn_restart");
+            if (retrySprite != null) retryImg.sprite = retrySprite;
+            retryImg.preserveAspect = true;
+
+            CasualUIButtonJuice juice = retryGo.GetComponent<CasualUIButtonJuice>();
+            if (juice == null) juice = retryGo.AddComponent<CasualUIButtonJuice>();
+
+            Button retryBtn = retryGo.GetComponent<Button>();
+            if (retryBtn != null && ctrl != null)
+            {
+                UnityEditor.Events.UnityEventTools.RemovePersistentListener(retryBtn.onClick, ctrl.RestartLevel);
+                UnityEditor.Events.UnityEventTools.AddPersistentListener(retryBtn.onClick, ctrl.RestartLevel);
+                ctrl.RetryButton = retryBtn;
+                EditorUtility.SetDirty(ctrl);
+            }
+
+            EditorUtility.SetDirty(retryGo);
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+            AssetDatabase.SaveAssets();
+
+            Debug.Log("<color=#00FFAA><b>[SetupGemiTopHUD]</b></color> 🔄 Sol köşeye RetryButton başarıyla eklendi ve bağlandı!");
+        }
+
+        [MenuItem("PixelGame/🪙 Sahnedeki Coin Sistemini Kaldır (Remove Coin System)")]
+        public static void RemoveCoinsFromScene()
+        {
+            var activeScene = EditorSceneManager.GetActiveScene();
+            if (activeScene.path != ScenePath && System.IO.File.Exists(ScenePath))
+            {
+                EditorSceneManager.OpenScene(ScenePath);
+            }
+
+            GameObject coinPill = GameObject.Find("CoinPill");
+            if (coinPill != null)
+            {
+                Undo.DestroyObjectImmediate(coinPill);
+                Debug.Log("<color=#00FFAA><b>[SetupGemiTopHUD]</b></color> 🪙 CoinPill sahneden tamamen silindi.");
+            }
+
+            GameObject canvasGo = GameObject.Find("HUD_Canvas");
+            if (canvasGo != null)
+            {
+                CasualHudController ctrl = canvasGo.GetComponent<CasualHudController>();
+                if (ctrl != null)
+                {
+                    ctrl.CoinsText = null;
+                    EditorUtility.SetDirty(ctrl);
+                }
+            }
+
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+            AssetDatabase.SaveAssets();
         }
 
         [MenuItem("PixelGame/🎯 Setup Gemi Top HUD (Image 1 Style)")]
@@ -93,40 +198,38 @@ namespace PixelGame.Editor
             GameObject bannerGo = new GameObject("TopBanner", typeof(RectTransform));
             bannerGo.transform.SetParent(topUIGo.transform, false);
 
-            // 5. SOL: Altın Hapı (CoinPill - 🪙 250 +)
-            GameObject coinPill = new GameObject("CoinPill", typeof(RectTransform), typeof(Image));
-            coinPill.transform.SetParent(topUIGo.transform, false);
-            RectTransform coinRt = coinPill.GetComponent<RectTransform>();
-            coinRt.anchorMin = new Vector2(0f, 1f);
-            coinRt.anchorMax = new Vector2(0f, 1f);
-            coinRt.pivot = new Vector2(0f, 1f);
-            coinRt.anchoredPosition = new Vector2(30f, -22f);
-            coinRt.sizeDelta = new Vector2(265f, 88f);
+            // 5. SOL: Yeniden Başlat (Retry) Butonu (Kullanıcı isteği: sol işaretlenen köşede retry butonu)
+            Transform oldCoinPill = topUIGo.transform.Find("CoinPill");
+            if (oldCoinPill != null)
+            {
+                Undo.DestroyObjectImmediate(oldCoinPill.gameObject);
+            }
 
-            Image coinImg = coinPill.GetComponent<Image>();
-            Sprite coinSprite = LoadSprite("bg_coin_ref");
-            if (coinSprite == null) coinSprite = LoadSprite("ui_pill");
-            if (coinSprite != null) coinImg.sprite = coinSprite;
-            coinImg.color = Color.white;
-            coinImg.preserveAspect = true;
+            Transform oldRetry = topUIGo.transform.Find("RetryButton");
+            if (oldRetry != null)
+            {
+                Undo.DestroyObjectImmediate(oldRetry.gameObject);
+            }
 
-            // Dinamik Altın Sayısı Text (Opsiyonel sayaç)
-            GameObject coinCountGo = new GameObject("Count", typeof(RectTransform));
-            coinCountGo.transform.SetParent(coinPill.transform, false);
-            RectTransform ccRt = coinCountGo.GetComponent<RectTransform>();
-            ccRt.anchorMin = new Vector2(0.32f, 0f);
-            ccRt.anchorMax = new Vector2(0.80f, 1f);
-            ccRt.offsetMin = Vector2.zero;
-            ccRt.offsetMax = Vector2.zero;
-            TextMeshProUGUI coinTmp = coinCountGo.AddComponent<TextMeshProUGUI>();
-            coinTmp.text = "250";
-            if (font != null) coinTmp.font = font;
-            coinTmp.fontSize = 42f;
-            coinTmp.fontStyle = FontStyles.Bold;
-            coinTmp.alignment = TextAlignmentOptions.Center;
-            coinTmp.color = Color.white;
-            coinTmp.outlineWidth = 0.28f;
-            coinTmp.outlineColor = new Color32(40, 15, 60, 255);
+            GameObject retryGo = new GameObject("RetryButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            retryGo.transform.SetParent(topUIGo.transform, false);
+
+            RectTransform retryRt = retryGo.GetComponent<RectTransform>();
+            retryRt.anchorMin = new Vector2(0f, 1f);
+            retryRt.anchorMax = new Vector2(0f, 1f);
+            retryRt.pivot = new Vector2(0f, 1f);
+            retryRt.anchoredPosition = new Vector2(30f, -80f);
+            retryRt.sizeDelta = new Vector2(96f, 96f);
+            retryRt.localScale = Vector3.one * 1.1f;
+
+            Image retryImg = retryGo.GetComponent<Image>();
+            Sprite retrySprite = LoadSprite("btn_retry_ref");
+            if (retrySprite == null) retrySprite = LoadSprite("btn_restart");
+            if (retrySprite != null) retryImg.sprite = retrySprite;
+            retryImg.preserveAspect = true;
+            retryGo.AddComponent<CasualUIButtonJuice>();
+
+            Button retryBtn = retryGo.GetComponent<Button>();
 
             // 6. ORTA: Seviye Kapsülü (🐚 LEVEL 5 🐚)
             GameObject levelCapsuleGo = new GameObject("LevelCapsule", typeof(RectTransform), typeof(Image));
@@ -136,8 +239,9 @@ namespace PixelGame.Editor
             levelCapRt.anchorMin = new Vector2(0.5f, 1f);
             levelCapRt.anchorMax = new Vector2(0.5f, 1f);
             levelCapRt.pivot = new Vector2(0.5f, 1f);
-            levelCapRt.anchoredPosition = new Vector2(0f, -20f);
+            levelCapRt.anchoredPosition = new Vector2(0f, -80f);
             levelCapRt.sizeDelta = new Vector2(365f, 98f);
+            levelCapRt.localScale = Vector3.one * 1.1f;
 
             Image levelCapImg = levelCapsuleGo.GetComponent<Image>();
             Sprite capSprite = LoadSprite("bg_level_ref");
@@ -175,8 +279,9 @@ namespace PixelGame.Editor
             soundRt.anchorMin = new Vector2(1f, 1f);
             soundRt.anchorMax = new Vector2(1f, 1f);
             soundRt.pivot = new Vector2(1f, 1f);
-            soundRt.anchoredPosition = new Vector2(-138f, -22f);
+            soundRt.anchoredPosition = new Vector2(-150f, -80f);
             soundRt.sizeDelta = new Vector2(96f, 96f);
+            soundRt.localScale = Vector3.one * 1.1f;
 
             Image soundImg = soundGo.GetComponent<Image>();
             Sprite soundOnSprite = LoadSprite("btn_sound_ref");
@@ -194,8 +299,9 @@ namespace PixelGame.Editor
             hapRt.anchorMin = new Vector2(1f, 1f);
             hapRt.anchorMax = new Vector2(1f, 1f);
             hapRt.pivot = new Vector2(1f, 1f);
-            hapRt.anchoredPosition = new Vector2(-30f, -22f);
+            hapRt.anchoredPosition = new Vector2(-30f, -80f);
             hapRt.sizeDelta = new Vector2(96f, 96f);
+            hapRt.localScale = Vector3.one * 1.1f;
 
             Image hapImg = hapticsGo.GetComponent<Image>();
             Sprite hapticOnSprite = LoadSprite("btn_haptic_ref");
@@ -210,13 +316,19 @@ namespace PixelGame.Editor
             CasualHudController ctrl = canvasGo.GetComponent<CasualHudController>();
             if (ctrl == null) ctrl = canvasGo.AddComponent<CasualHudController>();
             ctrl.LevelText = levelTmp;
-            ctrl.CoinsText = coinTmp;
+            ctrl.CoinsText = null;
             ctrl.SoundButtonImage = soundImg;
             ctrl.SoundOnSprite = soundOnSprite;
             ctrl.SoundOffSprite = soundOffSprite;
             ctrl.HapticsButtonImage = hapImg;
             ctrl.HapticsOnSprite = hapticOnSprite;
             ctrl.HapticsOffSprite = hapticOffSprite;
+
+            if (retryBtn != null)
+            {
+                UnityEditor.Events.UnityEventTools.AddPersistentListener(retryBtn.onClick, ctrl.RestartLevel);
+                ctrl.RetryButton = retryBtn;
+            }
 
             Button soundBtn = soundGo.GetComponent<Button>();
             if (soundBtn != null)

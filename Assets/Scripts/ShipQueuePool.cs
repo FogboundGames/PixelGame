@@ -227,8 +227,12 @@ namespace PixelGame
             }
         }
 
+        // Son çekilen sıra girdisinin "gizli gemi" bayrağı (TryGetNextSequenceShip her çağrıda günceller)
+        private bool m_LastSequenceShipHidden = false;
+
         private bool TryGetNextSequenceShip(out Color shipColor, out int capacity, out int linkId)
         {
+            m_LastSequenceShipHidden = false;
             if (m_UsingLevelSequence && m_LevelSequenceQueue != null && m_LevelSequenceQueue.Count > 0)
             {
                 WagonSequenceEntry entry = m_LevelSequenceQueue.Dequeue();
@@ -237,6 +241,7 @@ namespace PixelGame
                     shipColor = entry.wagonColor;
                     capacity = entry.capacity;
                     linkId = entry.linkId;
+                    m_LastSequenceShipHidden = entry.isHidden;
                     return true;
                 }
             }
@@ -509,13 +514,14 @@ namespace PixelGame
                     existingShip.SetBaseScale(Vector3.one * m_ShipScale);
                     existingShip.SetLinkedPartner(null, linkId);
                     existingShip.Configure(shipColor, capacity);
+                    existingShip.SetMysteryHidden(m_LastSequenceShipHidden);
 
                     while (m_WaitingShips.Count <= i) m_WaitingShips.Add(null);
                     m_WaitingShips[i] = existingShip;
                 }
                 else
                 {
-                    SpawnShipAtSpot(i, shipColor, capacity, linkId);
+                    SpawnShipAtSpot(i, shipColor, capacity, linkId, m_LastSequenceShipHidden);
                 }
             }
 
@@ -570,7 +576,7 @@ namespace PixelGame
         /// <summary>
         /// Belirtilen spot indeksinde yeni bir gemi üretir.
         /// </summary>
-        public ShipController SpawnShipAtSpot(int spotIndex, Color shipColor, int capacity, int linkId = 0)
+        public ShipController SpawnShipAtSpot(int spotIndex, Color shipColor, int capacity, int linkId = 0, bool hidden = false)
         {
             if (spotIndex < 0 || spotIndex >= m_QueueSpots.Count) return null;
             if (m_ShipPrefab == null) return null;
@@ -606,6 +612,7 @@ namespace PixelGame
             ship.SetLinkedPartner(null, linkId);
 
             ship.Configure(shipColor, capacity);
+            ship.SetMysteryHidden(hidden);
 
             while (m_WaitingShips.Count <= spotIndex)
             {
@@ -628,7 +635,7 @@ namespace PixelGame
                 linkId = 0;
             }
 
-            return SpawnShipAtSpot(spotIndex, shipColor, capacity, linkId);
+            return SpawnShipAtSpot(spotIndex, shipColor, capacity, linkId, m_LastSequenceShipHidden);
         }
 
         /// <summary>
@@ -1018,6 +1025,7 @@ namespace PixelGame
             ship.SetLinkedPartner(null, linkId);
 
             ship.Configure(shipColor, capacity);
+            ship.SetMysteryHidden(m_LastSequenceShipHidden);
 
             while (m_WaitingShips.Count <= spotIndex)
             {

@@ -121,7 +121,14 @@ namespace PixelGame
             float size = Mathf.Max(1e-4f, transform.lossyScale.x);
             Vector3 delta = transform.position - m_LastPosition;
             m_LastPosition = transform.position;
-            m_Phase += new Vector2(delta.x, delta.y).magnitude / size * m_StepsPerCube * Mathf.PI;
+            float moved = new Vector2(delta.x, delta.y).magnitude;
+            m_Phase += moved / size * m_StepsPerCube * Mathf.PI;
+            if (moved < size * 0.002f)
+            {
+                // Trende öndekini beklerken adım ortasında donup kalmasın: iki ayağını yere basıp dursun
+                float rest = Mathf.Round(m_Phase / Mathf.PI) * Mathf.PI;
+                m_Phase = Mathf.MoveTowards(m_Phase, rest, Time.deltaTime * 6f);
+            }
 
             float step = Mathf.Sin(m_Phase);
             float leftUp = Mathf.Max(0f, step);

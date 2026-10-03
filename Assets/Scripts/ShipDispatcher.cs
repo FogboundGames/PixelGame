@@ -29,7 +29,7 @@ namespace PixelGame
 
         [Header("🚀 Kargo Treni & Sahilden Gemiye Zıplama Ayarları")]
         [Tooltip("Küp treninin kayma hızı (dünya birimi / sn). Referans videoda ~13 küp/sn akıyor (iki kol toplamı).")]
-        [SerializeField] private float m_RopeSpeed = 2.4f;
+        [SerializeField] private float m_RopeSpeed = 1.4f;
         [Tooltip("Sahil kenarından gemiye zıplama süresi (sn).")]
         [SerializeField] private float m_HopDuration = 0.38f;
         [Tooltip("Sahil sonundan gemiye doğru zıplama yayının yüksekliği (parabolik zıplama tepe noktası).")]
@@ -41,7 +41,49 @@ namespace PixelGame
         [Tooltip("Kumun suya değdiği kıyı çizgisi (dünya X,Y). Küpler bu çizgide, geminin en yakın noktasına kadar yürür ve oradan gemiye zıplar. Boşsa geminin hemen önü kullanılır.")]
         [SerializeField] private List<Vector2> m_Shoreline = new List<Vector2>();
         [Tooltip("Kıyı noktasının kum tarafına (geminin tersine) ne kadar içeride olacağı (dünya birimi).")]
-        [SerializeField] private float m_ShorelineInset = 0.15f;
+        [SerializeField] private float m_ShorelineInset = 0.05f;
+
+        // Kullanıcının çizdiği kırmızı sahil şeridine tam uyan 37 adet dünya koordinatı:
+        private static readonly Vector2[] s_DefaultShoreline = new Vector2[]
+        {
+            new Vector2(-9.1525f, 13.0634f),
+            new Vector2(-7.9381f, 9.4827f),
+            new Vector2(-6.9903f, 6.8910f),
+            new Vector2(-6.2194f, 4.9714f),
+            new Vector2(-5.5706f, 3.5289f),
+            new Vector2(-5.0080f, 2.4365f),
+            new Vector2(-4.5074f, 1.6073f),
+            new Vector2(-4.0517f, 0.9796f),
+            new Vector2(-3.6286f, 0.5078f),
+            new Vector2(-3.2292f, 0.1573f),
+            new Vector2(-2.8466f, -0.0991f),
+            new Vector2(-2.4759f, -0.2828f),
+            new Vector2(-2.1132f, -0.4111f),
+            new Vector2(-1.7560f, -0.4981f),
+            new Vector2(-1.4021f, -0.5551f),
+            new Vector2(-1.0504f, -0.5907f),
+            new Vector2(-0.6998f, -0.6115f),
+            new Vector2(-0.3498f, -0.6219f),
+            new Vector2(0.0000f, -0.6242f),
+            new Vector2(0.3498f, -0.6185f),
+            new Vector2(0.7000f, -0.6031f),
+            new Vector2(1.0509f, -0.5741f),
+            new Vector2(1.4035f, -0.5252f),
+            new Vector2(1.7589f, -0.4483f),
+            new Vector2(2.1187f, -0.3326f),
+            new Vector2(2.4854f, -0.1649f),
+            new Vector2(2.8624f, 0.0715f),
+            new Vector2(3.2542f, 0.3969f),
+            new Vector2(3.6668f, 0.8372f),
+            new Vector2(4.1085f, 1.4249f),
+            new Vector2(4.5903f, 2.2028f),
+            new Vector2(5.1274f, 3.2286f),
+            new Vector2(5.7416f, 4.5823f),
+            new Vector2(6.4645f, 6.3801f),
+            new Vector2(7.3442f, 8.7986f),
+            new Vector2(8.4582f, 12.1206f),
+            new Vector2(9.9393f, 16.8323f)
+        };
         [Tooltip("Boşsa panodaki küpün kendisi yürür. Bir prefab atanırsa (ör. Mixamo koşucusu MainCube_Running) küp yerinde gizlenir, yerine bu prefab küpün renginde yürür.")]
         [SerializeField] private GameObject m_CargoStandInPrefab;
 
@@ -49,10 +91,10 @@ namespace PixelGame
         [Tooltip("Bir gemi tam dolunca kazanılan altın.")]
         [SerializeField] private int m_CoinsPerFullShip = 1;
 
-        /// <summary>Gemi tam dolduğunda çağrılır (ödül).</summary>
+        /// <summary>Gemi tam dolduğunda çağrılır.</summary>
         public void OnShipFilled(ShipController ship)
         {
-            if (CasualHudController.Instance != null) CasualHudController.Instance.AddCoins(m_CoinsPerFullShip);
+            // Coin sistemi tamamen kaldırıldı.
         }
         [Tooltip("Resim tamamlanınca kazanılan altın (zor seviyede iki katı).")]
         [SerializeField] private int m_LevelCompleteCoins = 20;
@@ -79,9 +121,25 @@ namespace PixelGame
         public bool IsTurboActive => m_IsTurboActive;
         public bool IsLevelFailed => m_IsLevelFailed;
 
-        // Sol ve sağ kolun kıyıdaki giriş noktaları arası yarım mesafe; küp boyundan (~0.23) biraz dar
-        // tutularak iki kolun yan yana muntazam koridor oluşturması sağlanır.
-        private const float ShoreSideOffset = 0.11f;
+        // Sol ve sağ kolun kıyıdaki giriş noktaları arası yarım mesafe. İki şerit arası (2x) küp boyundan
+        // (~0.26) geniş olmalı; önceki 0.11 (0.22 aralık) yüzünden kollar kıyıda iç içe geçiyordu.
+        private const float ShoreSideOffset = 0.17f;
+
+        // Trende iki küp arası en kısa yol mesafesi (ızgara adımına oranla). 1'in biraz üstü:
+        // virajda kiriş yaydan kısa kaldığı için küpler köşede bile birbirine girmez.
+        private const float RopeSpacingFactor = 1.0f;
+        // Mutlak alt sınır: virajda bile bunun altına inilmez (iç içe geçme olmaz)
+        private const float RopeMinSpacingFactor = 0.92f;
+        // Hız değişimlerinin ivmesi (taban hızın katı / sn): küçük = daha yumuşak hızlanıp yavaşlama
+        private const float RopeAcceleration = 2.2f;
+        // Önündekinden kopmuş (arada boşluk kalmış) küpün yetişmek için çıkabileceği en yüksek hız çarpanı
+        private const float RopeCatchUpMaxMultiplier = 1.25f;
+        // Kullanıcı isteği: "gemiler slotlara yerleşince küpler çok hızlı animasyona giriyor, smooth olsun"
+        // Tren durgun başlar, bu süre boyunca yumuşak eğriyle (ease-in) tam hıza çıkar.
+        private const float RopeStartRampDuration = 0.7f;
+        // Küplerin panodan dış yürüme şeridine hep birlikte çıkış süresi ve zıplama yüksekliği (dünya birimi)
+        private const float RopePopOutDuration = 0.32f;
+        private const float RopePopOutHeight = 0.12f;
 
         /// <summary>Gemi başına kıyıya son varış zamanları — yeni tren eskisinin kuyruğuna binmesin.</summary>
         private class ShipRopeGate
@@ -177,9 +235,19 @@ namespace PixelGame
 
         private void SanitizeSettings()
         {
-            if (m_HopArcHeight < 0.20f) m_HopArcHeight = 0.48f;
-            if (m_HopDuration < 0.20f) m_HopDuration = 0.38f;
-            if (m_RopeSpeed < 1.8f) m_RopeSpeed = 2.4f;
+            if (m_HopArcHeight < 0.20f) m_HopArcHeight = 1.25f;
+            if (m_HopDuration < 0.20f) m_HopDuration = 0.48f;
+            // Kullanıcı isteği: "gemilere giderken çok hızlılar" → sakin, takip edilebilir yürüyüş hızı.
+            // Eski sahnelerde kayıtlı 2.4 gibi yüksek değerler de bu aralığa çekilir.
+            if (m_RopeSpeed < 0.6f || m_RopeSpeed > 1.6f) m_RopeSpeed = 1.4f;
+
+            // Eğer m_Shoreline eski koordinatları taşıyorsa (orta nokta Y <= -0.85f ise veya liste boşsa),
+            // kullanıcının çizdiği kırmızı kıyı çizgisine otomatik güncelle:
+            if (m_Shoreline == null || m_Shoreline.Count < 2 || (m_Shoreline.Count > 10 && m_Shoreline[m_Shoreline.Count / 2].y < -0.85f))
+            {
+                m_Shoreline = new List<Vector2>(s_DefaultShoreline);
+                m_ShorelineInset = 0.05f;
+            }
         }
 
         private void OnEnable()
@@ -667,12 +735,12 @@ namespace PixelGame
             var ropes = new List<CargoRope>(2)
             {
                 CargoRopeBuilder.Build(leftArm, leftExit, shared, -halfPitch, m_GridFrame,
-                    BuildApproach(leftOut, shoreCenter, perp * -ShoreSideOffset), true)
+                    BuildApproach(leftOut, shoreCenter, perp * -ShoreSideOffset), true, outsideAir)
             };
             if (rightExit != null)
             {
                 ropes.Add(CargoRopeBuilder.Build(rightArm, rightExit, shared, halfPitch, m_GridFrame,
-                    BuildApproach(ExitWorldPoint(rightArm[0], rightExit), shoreCenter, perp * ShoreSideOffset), false));
+                    BuildApproach(ExitWorldPoint(rightArm[0], rightExit), shoreCenter, perp * ShoreSideOffset), false, outsideAir));
             }
 
             // İki kol aynı anda kalkar; ama kıyıda bir önceki trenin kuyruğuna binmesin diye
@@ -694,13 +762,15 @@ namespace PixelGame
             }
 
             boardClearTime = startTime;
+            // Yumuşak kalkış (hızlanma rampası) treni yaklaşık rampanın yarısı kadar geciktirir
+            float rampLag = RopeStartRampDuration * 0.5f;
             foreach (var rope in ropes)
             {
                 rope.ShoreAtLaunch = shoreCenter;
-                float tailArrival = startTime + (rope.Path.Length - rope.TailDistance) / speed;
+                float tailArrival = startTime + rampLag + (rope.Path.Length - rope.TailDistance) / speed;
                 if (rope.EntersLeft) gate.LastArrivalLeft = tailArrival; else gate.LastArrivalRight = tailArrival;
 
-                float tailClear = startTime + Mathf.Max(0f, rope.BoardExitDistance - rope.TailDistance) / speed;
+                float tailClear = startTime + rampLag + Mathf.Max(0f, rope.BoardExitDistance - rope.TailDistance) / speed;
                 boardClearTime = Mathf.Max(boardClearTime, tailClear);
 
                 foreach (var cube in rope.Cubes) s_ReservedCubes.Add(cube);
@@ -777,11 +847,64 @@ namespace PixelGame
                 runners[i] = riders[i].cargo != null ? riders[i].cargo.GetComponent<ICargoRunner>() : null;
             }
             int onPath = riders.Count;
-            float travelled = 0f;
+
+            // "Conga" yürüyüşü (referans oyundaki gibi): her küpün yol üzerindeki konumu ayrı tutulur.
+            // Baş küp sabit hızla yürür; arkadakiler önündekine bir küp boyundan fazla yaklaşamaz
+            // (iç içe geçmez), arada boşluk kalmışsa hızlanıp yetişir (zincir kopuk kümeler halinde gitmez).
+            // riders listesi kol kol ve baştan kuyruğa sıralıdır: i-1, aynı koldaki öndeki küptür.
+            var dist = new float[riders.Count];
+            var vel = new float[riders.Count];
+            for (int i = 0; i < riders.Count; i++) dist[i] = riders[i].rope.StartDistances[riders[i].index];
+            // Panoda komşu küpler tam bir ızgara adımı arayla durur; hedef aralık da bu kadardır.
+            // (Daha büyük hedef aralık, kalkışta tüm arkadakileri bekletip sırayla "dalga dalga" kaldırıyordu.)
+            float spacing = m_GridFrame.Pitch * RopeSpacingFactor;
+            float minSpacing = m_GridFrame.Pitch * RopeMinSpacingFactor;
+            float rampElapsed = 0f;
+
+            // Dış şeride çıkış (pop-out) için başlangıç konumları ve "yukarı" (kameraya doğru) yön
+            var homePositions = new Vector3[riders.Count];
+            for (int i = 0; i < riders.Count; i++)
+            {
+                homePositions[i] = riders[i].cargo != null ? riders[i].cargo.transform.position : Vector3.zero;
+            }
+            Camera popCam = ShipController.MainCamera;
+            Vector3 popUp = popCam != null ? -popCam.transform.forward : Vector3.back;
+            float popElapsed = 0f;
 
             while (onPath > 0)
             {
-                travelled += Mathf.Max(0.05f, m_RopeSpeed) * Time.deltaTime;
+                float dt = Time.deltaTime;
+                popElapsed += dt;
+                // Kalkışta ani sıçrama yerine yumuşak hızlanma (0 → tam hız, ease-in-out)
+                rampElapsed += dt;
+                float ramp = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(rampElapsed / RopeStartRampDuration));
+                float baseSpeed = Mathf.Max(0.05f, m_RopeSpeed);
+                float speed = baseSpeed * Mathf.Max(0.04f, ramp);
+                float accel = baseSpeed * RopeAcceleration;
+
+                for (int i = 0; i < riders.Count; i++)
+                {
+                    float desired = speed;
+                    if (riders[i].index > 0)
+                    {
+                        // Tüm tren aynı anda, aynı ortak hızla yürür. Aralık hedeften açıksa hafifçe hızlanır,
+                        // sıkışıksa hafifçe yavaşlar — dur-kalk yok, hız değişimi hep yumuşak.
+                        float gapError = (dist[i - 1] - dist[i] - spacing) / spacing;
+                        desired = speed * Mathf.Clamp(1f + gapError * 0.6f, 0.55f, RopeCatchUpMaxMultiplier);
+                    }
+                    // Hız anında değil, ivmeyle değişir (gerçek yürüyüş gibi)
+                    vel[i] = Mathf.MoveTowards(vel[i], desired, accel * dt);
+                    // Gemiye varmış küplerin sanal konumu da ilerlemeye devam eder ki arkadakiler takılmasın
+                    dist[i] += vel[i] * dt;
+
+                    // Güvenlik: hiçbir koşulda öndekinin içine girmez
+                    if (riders[i].index > 0 && dist[i] > dist[i - 1] - minSpacing)
+                    {
+                        dist[i] = Mathf.Max(dist[i] - vel[i] * dt, dist[i - 1] - minSpacing);
+                        vel[i] = Mathf.Min(vel[i], vel[i - 1]);
+                    }
+                }
+
                 // Gemi yolda kayarsa (slotlar sola toplanınca) yolun kıyı ucu da onunla gelsin
                 Vector3 shoreNow = ship != null ? GetShorePoint(ship) : ropes[0].ShoreAtLaunch;
 
@@ -791,7 +914,7 @@ namespace PixelGame
                     var (rope, index, cargo) = riders[i];
                     if (cargo == null) { arrived[i] = true; onPath--; continue; }
 
-                    float d = rope.StartDistances[index] + travelled;
+                    float d = dist[i];
                     Vector3 shoreShift = shoreNow - rope.ShoreAtLaunch;
                     if (d >= rope.Path.Length)
                     {
@@ -803,6 +926,14 @@ namespace PixelGame
                     else
                     {
                         Vector3 p = rope.PointAt(d, shoreShift);
+                        // Kalkış: küp pano üstündeki yerinden dış şeride küçük bir zıplamayla çıkar.
+                        // Hepsi AYNI ANDA çıkar (sırayla değil), sonra şeritte birlikte yürür.
+                        if (popElapsed < RopePopOutDuration)
+                        {
+                            float pt = Mathf.Clamp01(popElapsed / RopePopOutDuration);
+                            float ease = Mathf.SmoothStep(0f, 1f, pt);
+                            p = Vector3.Lerp(homePositions[i], p, ease) + popUp * (Mathf.Sin(pt * Mathf.PI) * RopePopOutHeight);
+                        }
                         cargo.transform.position = p;
                         // Gittiği yöne kafasını çevirir gibi döner
                         if (runners[i] != null) runners[i].TurnToward(rope.PointAt(d + 0.05f, shoreShift) - p, Time.deltaTime);
@@ -1029,27 +1160,27 @@ namespace PixelGame
             if (ship != null)
             {
                 Vector3 shipPos = ship.transform.position;
-                if (m_Shoreline != null && m_Shoreline.Count >= 2)
+                IList<Vector2> shoreline = (m_Shoreline != null && m_Shoreline.Count >= 2 && m_Shoreline[m_Shoreline.Count / 2].y > -0.85f)
+                    ? (IList<Vector2>)m_Shoreline
+                    : s_DefaultShoreline;
+
+                // Kıyı çizgisinde gemiye en yakın nokta; biraz kum tarafına çekilir ki küpler suya basmasın
+                Vector2 ship2 = new Vector2(shipPos.x, shipPos.y);
+                Vector2 best = shoreline[0];
+                float bestSq = float.MaxValue;
+                for (int i = 0; i < shoreline.Count - 1; i++)
                 {
-                    // Kıyı çizgisinde gemiye en yakın nokta; biraz kum tarafına çekilir ki küpler suya basmasın
-                    Vector2 ship2 = new Vector2(shipPos.x, shipPos.y);
-                    Vector2 best = m_Shoreline[0];
-                    float bestSq = float.MaxValue;
-                    for (int i = 0; i < m_Shoreline.Count - 1; i++)
-                    {
-                        Vector2 a = m_Shoreline[i], b = m_Shoreline[i + 1];
-                        Vector2 ab = b - a;
-                        float t = ab.sqrMagnitude > 1e-6f ? Mathf.Clamp01(Vector2.Dot(ship2 - a, ab) / ab.sqrMagnitude) : 0f;
-                        Vector2 q = a + ab * t;
-                        float sq = (q - ship2).sqrMagnitude;
-                        if (sq < bestSq) { bestSq = sq; best = q; }
-                    }
-                    Vector2 inward = best - ship2;
-                    if (inward.sqrMagnitude > 1e-6f) best += inward.normalized * m_ShorelineInset;
-                    return new Vector3(best.x, best.y, 0.22f);
+                    Vector2 a = shoreline[i], b = shoreline[i + 1];
+                    Vector2 ab = b - a;
+                    float t = ab.sqrMagnitude > 1e-6f ? Mathf.Clamp01(Vector2.Dot(ship2 - a, ab) / ab.sqrMagnitude) : 0f;
+                    Vector2 q = a + ab * t;
+                    float sq = (q - ship2).sqrMagnitude;
+                    if (sq < bestSq) { bestSq = sq; best = q; }
                 }
-                // Sahil kenarı: Kum alanının bittiği, suyun başladığı kıyı eşiği (Y ≈ shipPos.y + 0.95f, Z = 0.22f)
-                return new Vector3(shipPos.x, shipPos.y + 0.95f, 0.22f);
+                Vector2 inward = best - ship2;
+                float inset = (m_ShorelineInset > 0.001f && m_ShorelineInset <= 0.15f) ? m_ShorelineInset : 0.05f;
+                if (inward.sqrMagnitude > 1e-6f) best += inward.normalized * inset;
+                return new Vector3(best.x, best.y, 0.22f);
             }
 
             EnsureBoardBounds();
@@ -1454,12 +1585,7 @@ namespace PixelGame
         /// </summary>
         public static Color NormalizeShipColor(Color c)
         {
-            // Palette birden fazla sarı/amber ton varsa hepsi aynı pastel sarıya dönüşüp ayırt edilemez
-            // hale gelirdi; o durumda gemi kendi gerçek rengini korur.
-            if (s_YellowPaletteEntryCount <= 1 && IsYellowTone(c))
-            {
-                return new Color(0.957f, 0.831f, 0.384f, 1f); // 1. fotodaki gibi mat, yumuşak pastel sarı (#F4D462)
-            }
+            // Küplerle gemilerin rengi birebir aynı olsun — hiçbir ton bozulmadan korunur
             return c;
         }
 
@@ -1959,16 +2085,12 @@ namespace PixelGame
             m_IsAutoPlacing = false;
             Debug.Log("<color=#00FFAA><b>[ShipDispatcher]</b></color> 🚢 Son gemi de sahneyi terk etti — seviye tamamlandı.");
 
-            PixelLevelData level = LevelManager.Instance != null ? LevelManager.Instance.CurrentLevel : null;
-            int reward = m_LevelCompleteCoins * (level != null && level.IsHardLevel ? 2 : 1);
-
             if (CasualHudController.Instance != null)
             {
-                CasualHudController.Instance.AddCoins(reward);
                 CasualHudController.Instance.HideLevelCompletePopup();
             }
 
-            AdvanceToNextLevel(reward);
+            AdvanceToNextLevel();
         }
 
         private void AdvanceToNextLevel(int reward = 0)
@@ -1976,7 +2098,6 @@ namespace PixelGame
             LandFlowLoadingScreen screen = LandFlowLoadingScreen.Instance ?? LandFlowLoadingScreen.EnsureInstance();
             if (screen != null)
             {
-                string rewardText = reward > 0 ? $"+{reward} COINS" : null;
                 screen.ShowLevelCompleteAndLoad(() =>
                 {
                     m_LevelEndPending = false;
@@ -1989,7 +2110,7 @@ namespace PixelGame
                     {
                         m_QueuePool.InitializeQueue();
                     }
-                }, rewardText);
+                }, null);
             }
             else
             {

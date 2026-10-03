@@ -415,14 +415,43 @@ namespace PixelGame
         /// (iç içe değil) akması için dünya biriminde yatay kaydırmadır.
         /// </summary>
         public static CargoRope Build(List<PixelCube> arm, List<(int, int)> exitCells, HashSet<(int, int)> sharedCells,
-                                      float exitShift, CubeGridFrame frame, IList<Vector3> approach, bool entersLeft)
+                                      float exitShift, CubeGridFrame frame, IList<Vector3> approach, bool entersLeft,
+                                      HashSet<(int, int)> walkable = null)
         {
             const int samplesPerSegment = 12;
 
+            // Kolun kendi hücreleri de yürünebilir: küpler boşalttıkları hücrelerin içinden geçer
+            HashSet<(int, int)> armCells = null;
+            if (walkable != null)
+            {
+                armCells = new HashSet<(int, int)>(walkable);
+                foreach (var c in arm) armCells.Add((c.GridX, c.GridY));
+            }
+
             var waypoints = new List<Vector3>(arm.Count + exitCells.Count + approach.Count);
+            var cubeWaypointIndex = new int[arm.Count];
             for (int i = arm.Count - 1; i >= 0; i--)
             {
-                waypoints.Add(arm[i].transform.position);
+                // Zincirde komşu olmayan iki küp arasına düz çizgi çekmek yolu resmin üstünden
+                // geçiriyordu (küpler başka küplerin içinden yürüyordu). Aradaki boş hücrelerden
+                // gerçek bir zemin yolu bulunur ve ara nokta olarak eklenir.
+                if (armCells != null && i < arm.Count - 1)
+                {
+                    var from = (arm[i + 1].GridX, arm[i + 1].GridY);
+                    var to = (arm[i].GridX, arm[i].GridY);
+                    if (Mathf.Abs(from.Item1 - to.Item1) > 1 || Mathf.Abs(from.Item2 - to.Item2) > 1)
+                    {
+                        foreach (var cell in FindGroundLink(from, to, armCells))
+                        {
+                            waypoints.Add(frame.ToWorld(cell.Item1, cell.Item2));
+                        }
+                    }
+                }
+                cubeWaypointIndex[i] = waypoints.Count;
+                // Referans oyundaki gibi tren, küplerin kendi hücreleri üzerinde değil panonun hemen
+                // DIŞINDAKİ ayrı bir şeritte yürür (yoksa her küp öndekinin boşalttığı yere kaydığı için
+                // kenar "yerinde sıra sıra kayıyor" gibi görünüyordu). Küp, açık (hava) tarafa kaydırılır.
+                waypoints.Add(arm[i].transform.position + OutwardOffset(arm[i], walkable, frame));
             }
 
             Vector3 shift = frame.StepX.normalized * exitShift;
@@ -446,11 +475,92 @@ namespace PixelGame
             for (int k = 0; k < arm.Count; k++)
             {
                 rope.Cubes.Add(arm[k]);
-                int waypointIndex = arm.Count - 1 - k;
-                rope.StartDistances[k] = rope.Path.DistanceAtIndex(waypointIndex * samplesPerSegment);
+                rope.StartDistances[k] = rope.Path.DistanceAtIndex(cubeWaypointIndex[k] * samplesPerSegment);
             }
             rope.BoardExitDistance = rope.Path.DistanceAtIndex(boardExitIndex * samplesPerSegment);
             return rope;
+        }
+
+        /// <summary>Yürüme şeridinin pano kenarından dışarı uzaklığı (ızgara adımı cinsinden).</summary>
+        public const float LaneOutwardPitch = 0.8f;
+
+        /// <summary>
+        /// Küpün açık havaya bakan yönü (dört komşudan boş olanların toplamı) × şerit mesafesi.
+        /// Köşe küplerinde iki yön toplanır, şerit köşeyi çapraz döner. Açık komşusu yoksa kaydırma yok.
+        /// </summary>
+        private static Vector3 OutwardOffset(PixelCube cube, HashSet<(int, int)> outsideAir, CubeGridFrame frame)
+        {
+            if (outsideAir == null) return Vector3.zero;
+            int x = cube.GridX, y = cube.GridY;
+            Vector2 dir = Vector2.zero;
+            if (outsideAir.Contains((x - 1, y))) dir.x -= 1f;
+            if (outsideAir.Contains((x + 1, y))) dir.x += 1f;
+            if (outsideAir.Contains((x, y - 1))) dir.y -= 1f;
+            if (outsideAir.Contains((x, y + 1))) dir.y += 1f;
+            if (dir.sqrMagnitude < 1e-4f) return Vector3.zero;
+            dir.Normalize();
+            Vector3 world = frame.StepX.normalized * dir.x + frame.StepY.normalized * dir.y;
+            return world * (frame.Pitch * LaneOutwardPitch);
+        }
+
+        /// <summary>
+        /// İki hücre arasında yalnızca yürünebilir (boş/kolun kendi) hücrelerden geçen en kısa yol.
+        /// Çapraz adım ancak iki yan hücre de boşsa atılır (köşeden küp kesmesin).
+        /// Dönen liste uç hücreleri içermez; yol yoksa boş döner (eski düz bağlantı kullanılır).
+        /// </summary>
+        private static List<(int, int)> FindGroundLink((int, int) from, (int, int) to, HashSet<(int, int)> walkable)
+        {
+            var result = new List<(int, int)>();
+            var cameFrom = new Dictionary<(int, int), (int, int)> { [from] = from };
+            var queue = new Queue<(int, int)>();
+            queue.Enqueue(from);
+            const int maxVisited = 4096;
+
+            bool found = false;
+            while (queue.Count > 0 && cameFrom.Count < maxVisited)
+            {
+                var cur = queue.Dequeue();
+                if (cur == to) { found = true; break; }
+
+                foreach (var (dx, dy) in s_Neighbors8)
+                {
+                    var n = (cur.Item1 + dx, cur.Item2 + dy);
+                    if (cameFrom.ContainsKey(n)) continue;
+                    if (n != to && !walkable.Contains(n)) continue;
+                    if (dx != 0 && dy != 0 &&
+                        (!walkable.Contains((cur.Item1 + dx, cur.Item2)) || !walkable.Contains((cur.Item1, cur.Item2 + dy))))
+                        continue;
+                    cameFrom[n] = cur;
+                    queue.Enqueue(n);
+                }
+            }
+
+            if (!found) return result;
+
+            var step = cameFrom[to];
+            while (step != from)
+            {
+                result.Add(step);
+                step = cameFrom[step];
+            }
+            result.Reverse();
+
+            // Merdiven basamaklarını sadeleştir: düz giden ardışık hücrelerin yalnızca dönüş noktaları kalsın
+            if (result.Count > 2)
+            {
+                var simplified = new List<(int, int)>();
+                var prev = from;
+                for (int i = 0; i < result.Count; i++)
+                {
+                    var next = i + 1 < result.Count ? result[i + 1] : to;
+                    var d1 = (result[i].Item1 - prev.Item1, result[i].Item2 - prev.Item2);
+                    var d2 = (next.Item1 - result[i].Item1, next.Item2 - result[i].Item2);
+                    if (d1 != d2) simplified.Add(result[i]);
+                    prev = result[i];
+                }
+                result = simplified;
+            }
+            return result;
         }
     }
 }

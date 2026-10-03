@@ -45,6 +45,9 @@ namespace PixelGame
         [Tooltip("Eğer bu gemi başka bir gemiye bağlıysa her ikisi aynı pozitif ID'yi taşır (örn: 1, 2, 3...). 0 = Bağımsız gemi.")]
         public int linkId = 0;
 
+        [Tooltip("Gizli gemi: Kuyrukta en ön sıraya gelene kadar rengi ve kapasite yazısı '?' desenli örtüyle saklanır.")]
+        public bool isHidden = false;
+
         public WagonSequenceEntry() { }
 
         public WagonSequenceEntry(Color color, int cap = 16, int palIdx = 0, string lbl = "Vagon", int link = 0)

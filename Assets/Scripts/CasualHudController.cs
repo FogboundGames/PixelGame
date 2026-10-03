@@ -51,6 +51,8 @@ namespace PixelGame
         [SerializeField] private UnityEngine.UI.Image m_HapticsButtonImage;
         [SerializeField] private Sprite m_HapticsOnSprite;
         [SerializeField] private Sprite m_HapticsOffSprite;
+        [Header("🔄 Yeniden Başlat (Retry)")]
+        [SerializeField] private UnityEngine.UI.Button m_RetryButton;
 
         [Header("🧪 Başlangıç Değerleri")]
         [SerializeField] private int m_StartingLives = 3;
@@ -83,6 +85,7 @@ namespace PixelGame
         public UnityEngine.UI.Image HapticsButtonImage { get => m_HapticsButtonImage; set => m_HapticsButtonImage = value; }
         public Sprite HapticsOnSprite { get => m_HapticsOnSprite; set => m_HapticsOnSprite = value; }
         public Sprite HapticsOffSprite { get => m_HapticsOffSprite; set => m_HapticsOffSprite = value; }
+        public UnityEngine.UI.Button RetryButton { get => m_RetryButton; set => m_RetryButton = value; }
 
         public GameObject LevelFailPopup { get => m_LevelFailPopup; set => m_LevelFailPopup = value; }
         public GameObject LevelCompletePopup { get => m_LevelCompletePopup; set => m_LevelCompletePopup = value; }
@@ -102,8 +105,10 @@ namespace PixelGame
         {
             Instance = this;
             Time.timeScale = 1.0f;
+            HideCoinPill();
             WireExistingFailPopupButtons();
             WireExistingCompletePopupButtons();
+            WireRetryButton();
         }
 
         private void OnDestroy()
@@ -127,7 +132,7 @@ namespace PixelGame
         {
             EnsureRabbitMascot();
             SetLives(m_StartingLives);
-            SetCoins(PlayerPrefs.HasKey(CoinsPrefKey) ? PlayerPrefs.GetInt(CoinsPrefKey) : m_StartingCoins);
+            HideCoinPill();
             RefreshLevelFromScene();
             m_SoundEnabled = PlayerPrefs.GetInt(SoundPrefKey, 1) == 1;
             m_HapticsEnabled = PlayerPrefs.GetInt(HapticsPrefKey, 1) == 1;
@@ -136,6 +141,46 @@ namespace PixelGame
             UpdateHapticsVisual();
             WireExistingFailPopupButtons();
             WireExistingCompletePopupButtons();
+            WireRetryButton();
+        }
+
+        public void WireRetryButton()
+        {
+            if (m_RetryButton == null)
+            {
+                Transform btnTr = transform.Find("TopUI/RetryButton");
+                if (btnTr == null) btnTr = transform.Find("RetryButton");
+                if (btnTr != null) m_RetryButton = btnTr.GetComponent<UnityEngine.UI.Button>();
+            }
+            if (m_RetryButton != null)
+            {
+                m_RetryButton.onClick.RemoveListener(RestartLevel);
+                m_RetryButton.onClick.AddListener(RestartLevel);
+            }
+        }
+
+        public void HideCoinPill()
+        {
+            if (m_CoinsText != null)
+            {
+                Transform pill = m_CoinsText.transform.parent != null ? m_CoinsText.transform.parent : m_CoinsText.transform;
+                pill.gameObject.SetActive(false);
+            }
+            Transform topUI = transform.Find("TopUI");
+            if (topUI != null)
+            {
+                Transform coinPillTr = topUI.Find("CoinPill");
+                if (coinPillTr != null) coinPillTr.gameObject.SetActive(false);
+            }
+            Transform directCoinPill = transform.Find("CoinPill");
+            if (directCoinPill != null) directCoinPill.gameObject.SetActive(false);
+
+            if (m_LevelCompletePopup != null)
+            {
+                Transform card = m_LevelCompletePopup.transform.Find("Complete_Card");
+                Transform rewardTr = card != null ? card.Find("Reward") : m_LevelCompletePopup.transform.Find("Reward");
+                if (rewardTr != null) rewardTr.gameObject.SetActive(false);
+            }
         }
 
         private void RefreshLevelFromScene()
@@ -696,55 +741,24 @@ namespace PixelGame
 
         public void SetCoins(int count)
         {
-            m_CurrentCoins = Mathf.Max(0, count);
-            if (m_CoinsText != null) m_CoinsText.text = FormatCoins(m_CurrentCoins);
-            PlayerPrefs.SetInt(CoinsPrefKey, m_CurrentCoins);
+            m_CurrentCoins = 0;
+            HideCoinPill();
         }
 
         /// <summary>
-        /// Altın ekler, cihaza kaydeder; sayaç hafifçe zıplar ve üstünde "+N" yazısı yükselip söner.
+        /// Altın sistemi tamamen kaldırıldı. Bu metot çağrılsa bile hiçbir işlem yapmaz.
         /// </summary>
         public void AddCoins(int amount)
         {
-            if (amount == 0) return;
-            SetCoins(m_CurrentCoins + amount);
-            PlayerPrefs.Save();
-
-            if (m_CoinsText == null) return;
-            Transform pill = m_CoinsText.transform.parent != null ? m_CoinsText.transform.parent : m_CoinsText.transform;
-            pill.DOKill(true);
-            pill.DOPunchScale(Vector3.one * 0.18f, 0.35f, 6, 0.6f).SetUpdate(true);
-
-            GameObject floatObj = new GameObject("CoinGain");
-            floatObj.transform.SetParent(m_CoinsText.transform, false);
-            RectTransform fr = floatObj.AddComponent<RectTransform>();
-            fr.anchorMin = fr.anchorMax = new Vector2(0.5f, 0f);
-            fr.sizeDelta = new Vector2(200f, 60f);
-            fr.anchoredPosition = new Vector2(0f, -10f);
-            TextMeshProUGUI tmp = floatObj.AddComponent<TextMeshProUGUI>();
-            tmp.text = (amount > 0 ? "+" : "") + amount;
-            tmp.fontSize = 40;
-            tmp.fontStyle = FontStyles.Bold;
-            tmp.alignment = TextAlignmentOptions.Center;
-            tmp.color = new Color(1f, 0.85f, 0.25f, 1f);
-            tmp.raycastTarget = false;
-            if (m_CoinsText.font != null) tmp.font = m_CoinsText.font;
-            tmp.outlineWidth = 0.2f;
-            tmp.outlineColor = new Color32(90, 50, 0, 255);
-
-            fr.DOAnchorPosY(-90f, 0.8f).SetEase(Ease.OutCubic).SetUpdate(true);
-            tmp.DOFade(0f, 0.8f).SetDelay(0.25f).SetUpdate(true).OnComplete(() => Destroy(floatObj));
+            // Coin sistemi tamamen kaldırıldı.
         }
 
         /// <summary>
-        /// Resim tamamlanınca gösterilir: kazanılan altını gösterir; "DEVAM"a basılınca altın eklenir,
-        /// pencere kapanır ve <paramref name="onContinue"/> (bir sonraki seviyeye geçiş) çağrılır.
+        /// Resim tamamlanınca sonraki bölüme geçilir (ödül verilmez).
         /// </summary>
         public void ShowLevelCompletePopup(int reward, System.Action onContinue)
         {
             HideLevelCompletePopup();
-            AddCoins(reward);
-
             // Kullanıcı isteği: "bu ekranda olmasın yine ayarladığımız loading ekranı gibi gelsin ama yazıları belirle"
             // Eski pembe pop-up gösterilmez, doğrudan LandFlowLoadingScreen ile sonraki bölüme geçilir.
             onContinue?.Invoke();
@@ -773,13 +787,11 @@ namespace PixelGame
         {
             if (m_LevelCompletePopup == null || !m_LevelCompletePopup.activeSelf) return;
 
-            int reward = m_PendingReward;
             m_PendingReward = 0;
             System.Action next = m_OnLevelCompleteContinue;
             m_OnLevelCompleteContinue = null;
 
             HideLevelCompletePopup();
-            AddCoins(reward);
             next?.Invoke();
         }
 
@@ -842,18 +854,8 @@ namespace PixelGame
                 new Color(0.88f, 0.94f, 0.98f, 0.95f), font,
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -135f), new Vector2(480f, 90f));
 
-            // Ödül
-            GameObject rewardObj = new GameObject("Reward");
-            rewardObj.transform.SetParent(cardObj.transform, false);
-            RectTransform rewardRect = rewardObj.AddComponent<RectTransform>();
-            rewardRect.anchorMin = rewardRect.anchorMax = new Vector2(0.5f, 0.5f);
-            rewardRect.anchoredPosition = new Vector2(0f, -25f);
-            rewardRect.sizeDelta = new Vector2(360f, 80f);
-            UnityEngine.UI.Image rewardBg = rewardObj.AddComponent<UnityEngine.UI.Image>();
-            if (pillSprite != null) { rewardBg.sprite = pillSprite; rewardBg.type = UnityEngine.UI.Image.Type.Sliced; }
-            rewardBg.color = new Color(0.05f, 0.10f, 0.16f, 0.9f);
-            m_RewardText = CreatePopupText(rewardObj.transform, "RewardText", "+0 ALTIN", 38,
-                new Color(1f, 0.85f, 0.25f, 1f), font, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            // Ödül: Coin sistemi kaldırıldığı için eklenmez.
+            m_RewardText = null;
 
             // Devam butonu
             GameObject btnObj = new GameObject("Btn_Continue");
@@ -904,10 +906,7 @@ namespace PixelGame
             GameObject card = CreateSpriteImage(popupRoot.transform, "Complete_Card", m_CompletePanelSprite, panelSize, new Vector2(0f, 40f));
             card.GetComponent<UnityEngine.UI.Image>().raycastTarget = true;
 
-            // Referansta: ödül pill'i panonun ~%58'i genişliğinde, merkezin biraz altında;
-            // buton ~%71 genişliğinde, alt kenara yakın.
-            CreateSpriteImage(card.transform, "Reward", m_CompleteRewardSprite,
-                SpriteSize(m_CompleteRewardSprite, panelWidth * 0.58f), new Vector2(0f, -panelSize.y * 0.03f));
+            // Coin sistemi kaldırıldığı için Reward oluşturulmaz.
 
             GameObject btnObj = CreateSpriteImage(card.transform, "Btn_Continue", m_CompleteContinueSprite,
                 SpriteSize(m_CompleteContinueSprite, panelWidth * 0.71f), new Vector2(0f, -panelSize.y * 0.29f));

@@ -239,6 +239,7 @@ namespace PixelGame
             if (m_EnableCubeShadows) ApplyShadowsToAllExistingCubes();
             if (!m_EnableBoardShadow) EnsureBoardShadowDisabled();
             if (!m_EnableFigureContourShadow) EnsureFigureContourShadowDisabled();
+            SnapGroundShadowCatcherToBoard();
         }
 
         private void OnEnable()
@@ -428,9 +429,49 @@ namespace PixelGame
                 lm.SyncActiveLevel(levelData);
             }
 
+            SnapGroundShadowCatcherToBoard();
+
             // Bölüme bağlı sistemler (kamyon kuyruğu gibi) kendilerini yenilesin
             ShipDispatcher.SetActivePalette(levelData);
             LevelLoaded?.Invoke(levelData);
+        }
+
+        [Header("🌑 Zemin Gölgesi Hizalama")]
+        [Tooltip("Zemin gölge yakalayıcısını (Ground_ShadowCatcher) küplerin arka yüzüne yapıştırır. Aradaki boşluk gölgeyi küplerden koparıp resmi havada gibi gösteriyordu.")]
+        [SerializeField] private bool m_SnapGroundShadowToBoard = true;
+        [Tooltip("Gölge düzleminin küplerin arka yüzünden ne kadar geride duracağı (dünya birimi). 0'a yaklaştıkça gölge küpe daha sıkı yapışır.")]
+        [SerializeField] [Range(0f, 0.2f)] private float m_GroundShadowGap = 0.01f;
+
+        /// <summary>
+        /// Kullanıcı isteği: "piksel art kısmım havada duruyor gibi, zemindeymiş gibi dursun".
+        /// Gerçek zamanlı gölgeyi yakalayan zemin düzlemi (Ground_ShadowCatcher) z=0.5'te, küplerin arka
+        /// yüzünden ~0.37 birim gerideydi; ışık eğik geldiği için gölge küplerin bir küp boyu altına/sağına
+        /// düşüp resmi yerden kalkmış gösteriyordu. Düzlem küplerin en arka yüzünün hemen arkasına alınır.
+        /// </summary>
+        public void SnapGroundShadowCatcherToBoard()
+        {
+            if (!m_SnapGroundShadowToBoard) return;
+            GameObject catcher = GameObject.Find("Ground_ShadowCatcher");
+            if (catcher == null || m_CubesContainer == null) return;
+
+            bool found = false;
+            float backZ = float.MinValue;
+            foreach (PixelCube cube in m_CubesContainer.GetComponentsInChildren<PixelCube>(false))
+            {
+                if (cube == null || cube.IsLeaving) continue;
+                // Sadece gövde (kök renderer); bacaklar ve gölge kartları hariç
+                MeshRenderer body = cube.GetComponent<MeshRenderer>();
+                if (body == null || !body.enabled) continue;
+                backZ = Mathf.Max(backZ, body.bounds.max.z);
+                found = true;
+            }
+            if (!found) return;
+
+            Vector3 p = catcher.transform.position;
+            float targetZ = backZ + m_GroundShadowGap;
+            if (Mathf.Abs(p.z - targetZ) < 0.0005f) return;
+            p.z = targetZ;
+            catcher.transform.position = p;
         }
 
         /// <summary>
@@ -541,6 +582,7 @@ namespace PixelGame
                 lm.SyncActiveLevel(levelData);
             }
 
+            SnapGroundShadowCatcherToBoard();
             ShipDispatcher.SetActivePalette(levelData);
             LevelLoaded?.Invoke(levelData);
         }
