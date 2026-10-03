@@ -30,6 +30,14 @@ namespace PixelGame
         [Range(0.6f, 2.5f)]
         [SerializeField] private float m_SlotSpacing = 1.68f;
 
+        [Header("📱 Ekrana Sığdırma")]
+        [Tooltip("Slot sırası ekrandan taşarsa (ör. 5 slot) aralık ve simit boyutu birlikte, ekrana sığacak kadar küçülür. Sığıyorsa hiçbir şey değişmez.")]
+        [SerializeField] private bool m_FitToScreenWidth = true;
+        [Tooltip("Sıranın ekran kenarlarından bırakacağı boşluk (dünya birimi).")]
+        [SerializeField] private float m_ScreenEdgeMargin = 0.15f;
+        [Tooltip("Simidin köpüğüyle birlikte görünen genişliği / slot genişliği (ölçülen: ~1.51).")]
+        [SerializeField] private float m_BuoyVisualWidthRatio = 1.51f;
+
         [Header("📐 Yanaşma Açısı")]
         [Tooltip("Slotların ve gemilerin yanaşma açısı (Referans: 0 derece, düz yatay).")]
         [Range(-60f, 60f)]
@@ -276,20 +284,31 @@ namespace PixelGame
             int count = activeSlots.Count;
             if (count == 0) return;
 
-            float startX = -(count - 1) * m_SlotSpacing * 0.5f;
+            // Sıra ekrana sığmıyorsa aralık ve slot boyutu birlikte küçülür (oran korunur)
+            float fit = 1f;
+            Camera fitCam = Camera.main;
+            if (m_FitToScreenWidth && fitCam != null && fitCam.orthographic)
+            {
+                float available = 2f * fitCam.orthographicSize * fitCam.aspect - 2f * m_ScreenEdgeMargin;
+                float needed = (count - 1) * m_SlotSpacing + m_SlotWidth * m_BuoyVisualWidthRatio;
+                if (needed > available && needed > 0.001f) fit = Mathf.Max(0.5f, available / needed);
+            }
+            float spacing = m_SlotSpacing * fit;
+
+            float startX = -(count - 1) * spacing * 0.5f;
 
             for (int i = 0; i < count; i++)
             {
                 var slot = activeSlots[i];
                 Transform tr = slot.transform;
-                float posX = startX + i * m_SlotSpacing;
+                float posX = startX + i * spacing;
                 float t = count > 1 ? (i - (count - 1) * 0.5f) : 0f;
                 float posY = m_ArcCurveY * (t * t) + m_ArcAsymmetry * t;
                 float angle = m_SlotAngle + m_ArcAngleFan * t;
 
                 tr.localPosition = new Vector3(posX, posY, 0f);
                 tr.localRotation = Quaternion.Euler(m_WaterTiltX, 0f, 0f) * Quaternion.Euler(0f, angle, 0f);
-                tr.localScale = new Vector3(m_SlotWidth, 1f, m_SlotLength);
+                tr.localScale = new Vector3(m_SlotWidth * fit, 1f, m_SlotLength * fit);
 
                 // Can simidi slot görselini ([Slot_Lifebuoy]) öncelikli kullan
                 Transform foamSlot = tr.Find("FoamSlot");

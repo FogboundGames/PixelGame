@@ -142,7 +142,11 @@ namespace PixelGame
 
         private void Update()
         {
-            float t = Application.isPlaying ? Time.time : (float)Time.realtimeSinceStartup;
+            // Editörde sallanma yok: her yenilemede transform değişip sahne sürekli "değişti" (*)
+            // olarak işaretleniyordu. Dinlenme duruşunu MarinaSlotLayout zaten kuruyor.
+            if (!Application.isPlaying) return;
+
+            float t = Time.time;
 
             // 1. Dikey su salınımı (Bobbing) + Suya batma etkisi (Dip)
             float bobY = Mathf.Sin((t * m_BobSpeed) + m_PhaseOffset) * m_BobHeight;

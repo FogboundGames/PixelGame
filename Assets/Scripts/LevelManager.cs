@@ -74,27 +74,20 @@ namespace PixelGame
             {
                 EnsureGenerator();
 
-                // Editörde geliştirici seçtiği veya sahnede aktif olan seviyeyi test edebilsin diye kontrol yapılır.
-                int targetIndex = m_CurrentLevelIndex;
+                // Oyuncu: kayıtlı ilerleme varsa oradan, yoksa 1. bölümden başlar. Sahnede en son açık
+                // bırakılan bölüm (m_CurrentLevelIndex) başlangıcı belirlemez; yoksa ilk açılışta ve
+                // ilerleme sıfırlanınca oyun hep o bölümden (ör. roket) başlıyordu.
+                int targetIndex = PlayerPrefs.HasKey(ProgressPrefKey) ? PlayerPrefs.GetInt(ProgressPrefKey) : 0;
 #if UNITY_EDITOR
-                // Eğer sahnede PixelArtGenerator'da aktif atanmış bir bölüm varsa, öncelik doğrudan odur!
-                if (m_Generator != null && m_Generator.ActiveLevelData != null)
+                // Editör testi: işaretliyse sahnede açık olan / seçili bölümden başlar.
+                if (m_StartFromSelectedLevelInEditor)
                 {
-                    int activeIdx = m_Levels.IndexOf(m_Generator.ActiveLevelData);
-                    if (activeIdx >= 0)
+                    targetIndex = m_CurrentLevelIndex;
+                    if (m_Generator != null && m_Generator.ActiveLevelData != null)
                     {
-                        targetIndex = activeIdx;
-                        m_CurrentLevelIndex = activeIdx;
+                        int activeIdx = m_Levels.IndexOf(m_Generator.ActiveLevelData);
+                        if (activeIdx >= 0) targetIndex = activeIdx;
                     }
-                }
-                else if (!m_StartFromSelectedLevelInEditor && PlayerPrefs.HasKey(ProgressPrefKey))
-                {
-                    targetIndex = PlayerPrefs.GetInt(ProgressPrefKey);
-                }
-#else
-                if (PlayerPrefs.HasKey(ProgressPrefKey))
-                {
-                    targetIndex = PlayerPrefs.GetInt(ProgressPrefKey);
                 }
 #endif
                 targetIndex = Mathf.Clamp(targetIndex, 0, m_Levels.Count - 1);

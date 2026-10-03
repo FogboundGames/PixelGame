@@ -66,6 +66,41 @@ namespace PixelGame.Editor
             { "⭐", "Yildiz" }, { "❤️", "Kalp" }, { "🔥", "Ates" }, { "⚡", "Simsek" }
         };
 
+        private const string PixelSizePrefKey = "PixelGame_PixelArtSize";
+        private static readonly int[] s_SizePresets = { 16, 25, 32 };
+
+        /// <summary>
+        /// İndirilen görsellerin piksel boyutu (kare). Görsel Tarayıcı ile ortaktır, EditorPrefs'te saklanır.
+        /// Bölüm üretimi görselin kendi boyutunu kullandığı için oyunda ayrıca bir sınır yoktur.
+        /// </summary>
+        public static int PixelSize
+        {
+            get => Mathf.Clamp(EditorPrefs.GetInt(PixelSizePrefKey, 32), 8, 64);
+            set => EditorPrefs.SetInt(PixelSizePrefKey, Mathf.Clamp(value, 8, 64));
+        }
+
+        /// <summary>Seçili boyuta göre görsellerin kaydedildiği klasör (ör. Assets/32x32).</summary>
+        public static string PixelFolder => $"Assets/{PixelSize}x{PixelSize}";
+
+        /// <summary>Piksel boyutu seçici (16 / 25 / 32 / özel). İki pencerede aynı görünür.</summary>
+        public static void DrawPixelSizeField()
+        {
+            int size = PixelSize;
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Piksel Boyutu:", GUILayout.Width(90));
+            foreach (int preset in s_SizePresets)
+            {
+                GUI.backgroundColor = size == preset ? new Color(0.3f, 0.85f, 0.5f) : Color.white;
+                if (GUILayout.Button($"{preset}x{preset}", EditorStyles.miniButton, GUILayout.Width(56))) PixelSize = preset;
+            }
+            GUI.backgroundColor = Color.white;
+            int custom = EditorGUILayout.IntField(size, GUILayout.Width(40));
+            if (custom != size) PixelSize = custom;
+            EditorGUILayout.LabelField("(8-64)", EditorStyles.miniLabel, GUILayout.Width(40));
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+        }
+
         [MenuItem("Tools/PixelGame/📁 Toplu Seviye Üreticisi (Batch Generator)", priority = 2)]
         public static void OpenWindow()
         {
@@ -256,10 +291,11 @@ namespace PixelGame.Editor
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.Space(4);
+            DrawPixelSizeField();
             List<string> parsed = ParseEmojis(m_EmojiInput);
 
             GUI.backgroundColor = new Color(0.3f, 0.85f, 0.5f);
-            if (GUILayout.Button($"🌐 {parsed.Count} Emojiyi API'den İndir ve 25x25 Piksele Dönüştür", GUILayout.Height(28)))
+            if (GUILayout.Button($"🌐 {parsed.Count} Emojiyi API'den İndir ve {PixelSize}x{PixelSize} Piksele Dönüştür", GUILayout.Height(28)))
             {
                 FetchAndProcessEmojis(parsed);
             }
@@ -405,9 +441,11 @@ namespace PixelGame.Editor
         {
             if (emojis == null || emojis.Count == 0) return;
 
-            if (!AssetDatabase.IsValidFolder("Assets/25x25"))
+            int size = PixelSize;
+            string folder = PixelFolder;
+            if (!AssetDatabase.IsValidFolder(folder))
             {
-                AssetDatabase.CreateFolder("Assets", "25x25");
+                AssetDatabase.CreateFolder("Assets", $"{size}x{size}");
             }
 
             m_TexturesToProcess.Clear();
@@ -424,7 +462,7 @@ namespace PixelGame.Editor
                         string friendlyName = GetEmojiFriendlyName(emo, i);
 
                         float progress = (float)i / emojis.Count;
-                        EditorUtility.DisplayProgressBar("Emoji İndiriliyor & 25x25 Yapılıyor...", $"{emo} ({friendlyName})", progress);
+                        EditorUtility.DisplayProgressBar($"Emoji İndiriliyor & {size}x{size} Yapılıyor...", $"{emo} ({friendlyName})", progress);
 
                         string url = $"https://emojicdn.elk.sh/{Uri.EscapeDataString(emo)}?style=twitter";
 
@@ -444,12 +482,12 @@ namespace PixelGame.Editor
                         Texture2D rawTex = new Texture2D(2, 2);
                         if (rawTex.LoadImage(data))
                         {
-                            Texture2D scaled25 = DownscaleTo25x25(rawTex);
+                            Texture2D scaled25 = DownscaleTo(rawTex, size);
                             DestroyImmediate(rawTex);
 
                             if (scaled25 != null)
                             {
-                                string filePath = $"Assets/25x25/{friendlyName}.png";
+                                string filePath = $"{folder}/{friendlyName}.png";
                                 byte[] pngBytes = scaled25.EncodeToPNG();
                                 DestroyImmediate(scaled25);
 
@@ -479,7 +517,7 @@ namespace PixelGame.Editor
 
                 AssetDatabase.Refresh();
                 EditorUtility.DisplayDialog("Emojiler Hazır!", 
-                    $"{m_TexturesToProcess.Count} adet emoji başarıyla 25x25 piksel olarak indirildi ve 'Assets/25x25' klasörüne kaydedildi.\n\nŞimdi 'Seviyeleri Otomatik Üret' butonuna basarak doğrudan oynanabilir bölümler oluşturabilirsiniz.", "Tamam");
+                    $"{m_TexturesToProcess.Count} adet emoji başarıyla {size}x{size} piksel olarak indirildi ve '{folder}' klasörüne kaydedildi.\n\nŞimdi 'Seviyeleri Otomatik Üret' butonuna basarak doğrudan oynanabilir bölümler oluşturabilirsiniz.", "Tamam");
             }
             finally
             {
@@ -496,11 +534,16 @@ namespace PixelGame.Editor
         /// <summary>
         /// Yüksek çözünürlüklü emoji görselini 25x25 piksele indirger ve kenar şeffaflıklarını netleştirir.
         /// </summary>
-        public static Texture2D DownscaleTo25x25(Texture2D source)
+        public static Texture2D DownscaleTo25x25(Texture2D source) => DownscaleTo(source, 25);
+
+        /// <summary>
+        /// Görseli <paramref name="size"/> x <paramref name="size"/> piksele indirger ve kenar şeffaflıklarını netleştirir.
+        /// </summary>
+        public static Texture2D DownscaleTo(Texture2D source, int size)
         {
             if (source == null) return null;
-            int targetW = 25;
-            int targetH = 25;
+            int targetW = Mathf.Max(1, size);
+            int targetH = Mathf.Max(1, size);
 
             RenderTexture rt = RenderTexture.GetTemporary(targetW, targetH, 0, RenderTextureFormat.ARGB32);
             rt.filterMode = FilterMode.Bilinear;
