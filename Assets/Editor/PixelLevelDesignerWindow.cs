@@ -3585,16 +3585,17 @@ namespace PixelGame.Editor
 
             if (m_SelectedLevel == null && m_AllLevels.Count > 0)
             {
-                SelectLevel(m_AllLevels[0]);
+                SelectLevel(m_AllLevels[0], saveAsPlayerProgress: false);
             }
 
             SyncWithSceneLevelManager();
         }
 
-        private void SelectLevel(PixelLevelData level)
+        private void SelectLevel(PixelLevelData level, bool saveAsPlayerProgress = true)
         {
             m_SelectedLevel = level;
             Selection.activeObject = level;
+            if (saveAsPlayerProgress) SaveLevelAsPlayerProgress(level);
             if (level != null)
             {
                 m_GridColumnsPerRow = Mathf.Clamp(level.PoolColumns, 1, 8);
@@ -3836,6 +3837,22 @@ namespace PixelGame.Editor
         }
 
         private const string LevelSequenceAssetPath = "Assets/Levels/LevelSequence.asset";
+        private const string ProgressPrefKey = "PixelGame_CurrentLevelIndex";
+
+        /// <summary>
+        /// Tasarımcıda seçilen bölümü oyuncu ilerlemesi (PlayerPrefs) olarak yazar; böylece Play'e
+        /// basınca kayıtlı ilerleme yerine bu bölüm açılır. Bölüm sırada yoksa dokunmaz.
+        /// </summary>
+        private static void SaveLevelAsPlayerProgress(PixelLevelData level)
+        {
+            if (level == null || Application.isPlaying) return;
+            LevelSequence sequence = AssetDatabase.LoadAssetAtPath<LevelSequence>(LevelSequenceAssetPath);
+            if (sequence == null) return;
+            int index = sequence.Levels.IndexOf(level);
+            if (index < 0) return;
+            PlayerPrefs.SetInt(ProgressPrefKey, index);
+            PlayerPrefs.Save();
+        }
 
         /// <summary>
         /// Sıralamanın tek doğruluk kaynağı olan LevelSequence asset'ini bulur, yoksa oluşturur.
