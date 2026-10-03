@@ -260,20 +260,94 @@ namespace PixelGame
             }
         }
 
+        // Aktif bölümün paleti: her renk varyantı (orijinal, hedef, ayarlı hedef, gemi rengi) → palet indeksi.
+        // Renk eşleşmesi bu indeks üzerinden yapılır; sabit tolerans koyu yeşili laciverde, açık maviyi
+        // koyu maviye bağlıyordu (ve eşleşme geçişsiz olduğu için gemiler yanlış küpleri topluyordu).
+        private static readonly List<Color> s_PaletteColors = new List<Color>();
+        private static readonly List<int> s_PaletteIndices = new List<int>();
+        private const float PaletteSnapMaxSqrDistance = 0.12f;
+        private static int s_YellowPaletteEntryCount;
+
+        private static bool IsYellowTone(Color c) => c.r > 0.75f && c.g > 0.50f && c.b < 0.35f;
+
+        public static PixelLevelData ActivePaletteLevel { get; private set; }
+
         /// <summary>
-        /// Renk karşılaştırması için toleranslı renk eşleşmesi (RGB farkı kare toplamı < 0.09f, ~0.30f tolerans).
+        /// ColorsMatch'in kullanacağı paleti ayarlar. null verilirse eski toleranslı karşılaştırmaya döner.
+        /// </summary>
+        public static void SetActivePalette(PixelLevelData level)
+        {
+            ActivePaletteLevel = level;
+            s_PaletteColors.Clear();
+            s_PaletteIndices.Clear();
+            s_YellowPaletteEntryCount = 0;
+            if (level == null || level.ColorPalette == null) return;
+
+            foreach (var entry in level.ColorPalette)
+            {
+                if (entry == null) continue;
+                Color adjusted = PixelCube.AdjustColor(entry.targetColor, level.ColorBrightness, level.ColorSaturation, level.ColorContrast);
+                if (IsYellowTone(entry.targetColor) || IsYellowTone(adjusted)) s_YellowPaletteEntryCount++;
+            }
+
+            for (int i = 0; i < level.ColorPalette.Count; i++)
+            {
+                var entry = level.ColorPalette[i];
+                if (entry == null) continue;
+                Color adjusted = PixelCube.AdjustColor(entry.targetColor, level.ColorBrightness, level.ColorSaturation, level.ColorContrast);
+                AddPaletteVariant(entry.originalColor, i);
+                AddPaletteVariant(entry.targetColor, i);
+                AddPaletteVariant(adjusted, i);
+                AddPaletteVariant(NormalizeShipColor(entry.targetColor), i);
+                AddPaletteVariant(NormalizeShipColor(adjusted), i);
+            }
+        }
+
+        private static void AddPaletteVariant(Color c, int index)
+        {
+            s_PaletteColors.Add(c);
+            s_PaletteIndices.Add(index);
+        }
+
+        /// <summary>Rengi en yakın palet girdisine oturtur; palet yoksa veya renk hiçbirine yakın değilse -1.</summary>
+        public static int GetPaletteIndex(Color c)
+        {
+            int bestIndex = -1;
+            float bestDist = PaletteSnapMaxSqrDistance;
+            for (int i = 0; i < s_PaletteColors.Count; i++)
+            {
+                Color p = s_PaletteColors[i];
+                float dr = p.r - c.r, dg = p.g - c.g, db = p.b - c.b;
+                float d = dr * dr + dg * dg + db * db;
+                if (d < bestDist)
+                {
+                    bestDist = d;
+                    bestIndex = s_PaletteIndices[i];
+                }
+            }
+            return bestIndex;
+        }
+
+        /// <summary>
+        /// İki rengin aynı oyun rengi olup olmadığını söyler. Aktif palet varsa iki renk de en yakın palet
+        /// girdisine oturtulup indeksleri karşılaştırılır; yoksa toleranslı RGB karşılaştırmasına düşer.
         /// </summary>
         public static bool ColorsMatch(Color a, Color b)
         {
+            if (s_PaletteColors.Count > 0)
+            {
+                int ia = GetPaletteIndex(a);
+                int ib = GetPaletteIndex(b);
+                if (ia >= 0 && ib >= 0) return ia == ib;
+            }
+
             float dr = a.r - b.r;
             float dg = a.g - b.g;
             float db = a.b - b.b;
             if ((dr * dr + dg * dg + db * db) < 0.12f) return true;
 
             // Sarı / Amber tonları için özel tolerans (küp ve gemi her koşulda %100 eşleşir):
-            bool aIsYellow = a.r > 0.75f && a.g > 0.50f && a.b < 0.35f;
-            bool bIsYellow = b.r > 0.75f && b.g > 0.50f && b.b < 0.35f;
-            if (aIsYellow && bIsYellow) return true;
+            if (IsYellowTone(a) && IsYellowTone(b)) return true;
 
             return false;
         }
@@ -1380,7 +1454,9 @@ namespace PixelGame
         /// </summary>
         public static Color NormalizeShipColor(Color c)
         {
-            if (c.r > 0.75f && c.g > 0.50f && c.b < 0.35f)
+            // Palette birden fazla sarı/amber ton varsa hepsi aynı pastel sarıya dönüşüp ayırt edilemez
+            // hale gelirdi; o durumda gemi kendi gerçek rengini korur.
+            if (s_YellowPaletteEntryCount <= 1 && IsYellowTone(c))
             {
                 return new Color(0.957f, 0.831f, 0.384f, 1f); // 1. fotodaki gibi mat, yumuşak pastel sarı (#F4D462)
             }

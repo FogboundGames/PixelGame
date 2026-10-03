@@ -92,6 +92,21 @@ namespace PixelGame.Editor
 
         public static Report Analyze(PixelLevelData level, bool runSimulation = true, int trials = 200)
         {
+            // Oyundaki ile aynı palet tabanlı renk eşleşmesi kullanılsın; analiz bitince önceki palet geri gelir.
+            PixelLevelData previousPalette = ShipDispatcher.ActivePaletteLevel;
+            ShipDispatcher.SetActivePalette(level);
+            try
+            {
+                return AnalyzeInternal(level, runSimulation, trials);
+            }
+            finally
+            {
+                ShipDispatcher.SetActivePalette(previousPalette);
+            }
+        }
+
+        private static Report AnalyzeInternal(PixelLevelData level, bool runSimulation, int trials)
+        {
             var rep = new Report();
 
             if (level == null) { rep.invalidReason = "Bölüm seçili değil."; return rep; }

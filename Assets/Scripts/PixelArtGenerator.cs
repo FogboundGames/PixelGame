@@ -429,6 +429,7 @@ namespace PixelGame
             }
 
             // Bölüme bağlı sistemler (kamyon kuyruğu gibi) kendilerini yenilesin
+            ShipDispatcher.SetActivePalette(levelData);
             LevelLoaded?.Invoke(levelData);
         }
 
@@ -540,6 +541,7 @@ namespace PixelGame
                 lm.SyncActiveLevel(levelData);
             }
 
+            ShipDispatcher.SetActivePalette(levelData);
             LevelLoaded?.Invoke(levelData);
         }
 
@@ -548,6 +550,7 @@ namespace PixelGame
         /// </summary>
         public static void TriggerLevelLoaded(PixelLevelData levelData)
         {
+            ShipDispatcher.SetActivePalette(levelData);
             LevelLoaded?.Invoke(levelData);
         }
 
