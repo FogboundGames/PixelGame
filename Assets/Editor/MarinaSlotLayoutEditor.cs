@@ -18,6 +18,18 @@ namespace PixelGame.Editor
 
             EditorGUILayout.Space(4);
 
+            SerializedProperty enableCurvedProp = serializedObject.FindProperty("m_EnableCurvedPier");
+            SerializedProperty pierMat4Prop = serializedObject.FindProperty("m_PierMaterial4Slots");
+            SerializedProperty pierMat5Prop = serializedObject.FindProperty("m_PierMaterial5Slots");
+            SerializedProperty pierMat3Prop = serializedObject.FindProperty("m_PierMaterial3Slots");
+            SerializedProperty pierW4Prop = serializedObject.FindProperty("m_PierWidth4Slots");
+            SerializedProperty pierW5Prop = serializedObject.FindProperty("m_PierWidth5Slots");
+            SerializedProperty pierW3Prop = serializedObject.FindProperty("m_PierWidth3Slots");
+            SerializedProperty pierOffsetYProp = serializedObject.FindProperty("m_PierOffsetY");
+            SerializedProperty pierOffsetZProp = serializedObject.FindProperty("m_PierOffsetZ");
+            SerializedProperty pierScaleMulProp = serializedObject.FindProperty("m_PierScaleMultiplier");
+            SerializedProperty baySlotOffsetYProp = serializedObject.FindProperty("m_BaySlotOffsetY");
+
             SerializedProperty widthProp = serializedObject.FindProperty("m_SlotWidth");
             SerializedProperty lengthProp = serializedObject.FindProperty("m_SlotLength");
             SerializedProperty spacingProp = serializedObject.FindProperty("m_SlotSpacing");
@@ -31,26 +43,49 @@ namespace PixelGame.Editor
 
             EditorGUI.BeginChangeCheck();
 
-            EditorGUILayout.LabelField("⚓ Slot Boyutları (2. Görsel Standart)", EditorStyles.boldLabel);
-            EditorGUILayout.Slider(widthProp, 0.5f, 3.0f, new GUIContent("↔️ Slot Genişliği (Width)", "Slotların X eksenindeki yatay genişliği (2. görsel: 1.72f)"));
-            EditorGUILayout.Slider(lengthProp, 0.5f, 3.5f, new GUIContent("↕️ Slot Uzunluğu (Length / Height)", "Slotların Z eksenindeki dikey/uzunluk boyu (2. görsel: 2.35f)"));
+            EditorGUILayout.LabelField("🪵 Kavisli Ahşap İskele (Curved Pier)", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(enableCurvedProp, new GUIContent("⚓ Kavisli İskele Aktif"));
+
+            if (enableCurvedProp.boolValue)
+            {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(pierMat4Prop, new GUIContent("4 Slot Materyali"));
+                EditorGUILayout.PropertyField(pierMat5Prop, new GUIContent("5 Slot Materyali"));
+                EditorGUILayout.PropertyField(pierMat3Prop, new GUIContent("3 Slot Materyali"));
+                EditorGUILayout.Slider(pierW4Prop, 5.0f, 12.0f, new GUIContent("4 Slot İskele Genişliği"));
+                EditorGUILayout.Slider(pierW5Prop, 5.0f, 12.0f, new GUIContent("5 Slot İskele Genişliği"));
+                EditorGUILayout.Slider(pierW3Prop, 5.0f, 12.0f, new GUIContent("3 Slot İskele Genişliği"));
+                EditorGUILayout.Slider(pierScaleMulProp, 0.5f, 2.0f, new GUIContent("İskele Genel Ölçeği"));
+                EditorGUILayout.Slider(pierOffsetYProp, -3.0f, 3.0f, new GUIContent("İskele Y Ofseti"));
+                EditorGUILayout.Slider(pierOffsetZProp, -2.0f, 2.0f, new GUIContent("İskele Z Ofseti"));
+                EditorGUILayout.Slider(baySlotOffsetYProp, -1.0f, 1.0f, new GUIContent("Gemi Yanaşma Y Ofseti"));
+                EditorGUI.indentLevel--;
+                EditorGUILayout.Space(6);
+            }
+
+            EditorGUILayout.LabelField("⚓ Slot & Su Boyutları", EditorStyles.boldLabel);
+            EditorGUILayout.Slider(widthProp, 0.5f, 3.0f, new GUIContent("↔️ Slot Genişliği (Width)"));
+            EditorGUILayout.Slider(lengthProp, 0.5f, 3.5f, new GUIContent("↕️ Slot Uzunluğu (Length)"));
 
             EditorGUILayout.Space(4);
             EditorGUILayout.LabelField("📏 Yerleşim & Açı", EditorStyles.boldLabel);
-            EditorGUILayout.Slider(spacingProp, 0.8f, 2.5f, new GUIContent("📏 Slot Aralığı (Spacing)", "Slotların birbirine olan mesafesi"));
-            EditorGUILayout.Slider(angleProp, -60f, 60f, new GUIContent("📐 Çapraz Marina Açısı", "Slotların yanaşma açısı (varsayılan: -28°)"));
-            EditorGUILayout.Slider(tiltProp, -90f, 0f, new GUIContent("🌊 Su Eğim Açısı", "Kamera açısına göre eğim (varsayılan: -28°)"));
+            if (!enableCurvedProp.boolValue)
+            {
+                EditorGUILayout.Slider(spacingProp, 0.8f, 2.5f, new GUIContent("📏 Slot Aralığı (Spacing)"));
+            }
+            EditorGUILayout.Slider(angleProp, -60f, 60f, new GUIContent("📐 Yanaşma Açısı"));
+            EditorGUILayout.Slider(tiltProp, -90f, 0f, new GUIContent("🌊 Su Eğim Açısı"));
 
             EditorGUILayout.Space(4);
-            EditorGUILayout.LabelField("🌊 Sahil Kavis / Yay Eğrisi (Shoreline Arc)", EditorStyles.boldLabel);
-            EditorGUILayout.Slider(arcCurveYProp, -0.3f, 0.3f, new GUIContent("🌊 Kavis Gücü (Arc Curve Y)", "U-şeklinde sahil koyu eğriliği"));
-            EditorGUILayout.Slider(arcAsymProp, -0.2f, 0.2f, new GUIContent("📐 Kavis Asimetrisi", "Sol sahilin sağ sahile göre yükseklik farkı"));
-            EditorGUILayout.Slider(arcFanProp, -10f, 10f, new GUIContent("🪭 Açı Yelpazesi (Fan Angle)", "Kavis boyunca slotların hafifçe fırlama/dönme açısı"));
+            EditorGUILayout.LabelField("🌊 Sahil Kavis / Yay Eğrisi", EditorStyles.boldLabel);
+            EditorGUILayout.Slider(arcCurveYProp, -0.3f, 0.3f, new GUIContent("🌊 Kavis Gücü (Arc Curve Y)"));
+            EditorGUILayout.Slider(arcAsymProp, -0.2f, 0.2f, new GUIContent("📐 Kavis Asimetrisi"));
+            EditorGUILayout.Slider(arcFanProp, -10f, 10f, new GUIContent("🪭 Açı Yelpazesi"));
 
             EditorGUILayout.Space(4);
-            EditorGUILayout.LabelField("📍 Dikey Konum & Derinlik", EditorStyles.boldLabel);
-            EditorGUILayout.Slider(offsetYProp, -5f, 5f, new GUIContent("📍 Yükseklik (Y)", "Dikey konum (Sahil için -2.83f)"));
-            EditorGUILayout.Slider(offsetZProp, -3f, 3f, new GUIContent("📍 Derinlik (Z)", "İleri/Geri konum"));
+            EditorGUILayout.LabelField("📍 Kök Konum", EditorStyles.boldLabel);
+            EditorGUILayout.Slider(offsetYProp, -5f, 5f, new GUIContent("📍 Yükseklik (Y)"));
+            EditorGUILayout.Slider(offsetZProp, -3f, 3f, new GUIContent("📍 Derinlik (Z)"));
 
             if (EditorGUI.EndChangeCheck())
             {
@@ -64,28 +99,14 @@ namespace PixelGame.Editor
             EditorGUILayout.Space(8);
 
             EditorGUILayout.BeginHorizontal();
-            GUI.backgroundColor = new Color(0.25f, 0.85f, 0.45f);
-            if (GUILayout.Button("📸 2. Görsel Boyutunu Uygula", GUILayout.Height(24)))
+            GUI.backgroundColor = new Color(0.2f, 0.8f, 1.0f);
+            if (GUILayout.Button("⚓ Kavisli İskele Standartlarını Uygula", GUILayout.Height(26)))
             {
-                widthProp.floatValue = 1.72f;
-                lengthProp.floatValue = 2.35f;
-                spacingProp.floatValue = 1.42f;
-                angleProp.floatValue = -28f;
-                tiltProp.floatValue = -68f;
-                offsetYProp.floatValue = 2.82f;
-                offsetZProp.floatValue = 0.53f;
-                arcCurveYProp.floatValue = 0.055f;
-                arcAsymProp.floatValue = -0.055f;
-                arcFanProp.floatValue = 0f;
-                serializedObject.ApplyModifiedProperties();
-                MarinaSlotLayout layout = (MarinaSlotLayout)target;
-                layout.ApplyLayout();
-                EditorUtility.SetDirty(layout);
-                UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(layout.gameObject.scene);
+                SetupCurvedMarinaPier.SetupCurvedPier();
             }
 
             GUI.backgroundColor = new Color(0.85f, 0.85f, 0.9f);
-            if (GUILayout.Button("🔄 Yeniden Hizala", GUILayout.Height(24)))
+            if (GUILayout.Button("🔄 Yeniden Hizala", GUILayout.Height(26)))
             {
                 MarinaSlotLayout layout = (MarinaSlotLayout)target;
                 layout.ApplyLayout();

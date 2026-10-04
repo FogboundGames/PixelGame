@@ -51,6 +51,82 @@ namespace PixelGame
                  "böylece yan yana slotlar tek parça iskele gibi görünür. Boşsa hepsi m_SlotVisualMaterial kullanır.")]
         [SerializeField] private Material m_SlotVisualMaterialJoined;
 
+        [Header("🪵 Kavisli İskele (Curved Marina Pier Visual)")]
+        [Tooltip("Kullanıcının referans görselindeki kavisli ahşap iskele modelini (4 ve 5 slot seçenekli) aktif eder.")]
+        [SerializeField] private bool m_EnableCurvedPier = true;
+        [SerializeField] private Material m_PierMaterial4Slots;
+        [SerializeField] private Material m_PierMaterial5Slots;
+        [SerializeField] private Material m_PierMaterial3Slots;
+        [SerializeField] private float m_PierWidth4Slots = 8.1f;
+        [SerializeField] private float m_PierWidth5Slots = 8.55f;
+        [SerializeField] private float m_PierWidth3Slots = 7.2f;
+        [SerializeField] private float m_PierOffsetY = 2.06f;
+        [SerializeField] private float m_PierOffsetZ = 0.04f;
+        [SerializeField] private float m_PierScaleMultiplier = 1.0f;
+        [SerializeField] private float m_PierRotationX = -28f;
+        [SerializeField] private float m_BaySlotOffsetY = 0f;
+
+        public bool EnableCurvedPier
+        {
+            get => m_EnableCurvedPier;
+            set { m_EnableCurvedPier = value; ApplyLayout(); }
+        }
+
+        public float PierWidth4Slots
+        {
+            get => m_PierWidth4Slots;
+            set { m_PierWidth4Slots = value; ApplyLayout(); }
+        }
+
+        public float PierWidth5Slots
+        {
+            get => m_PierWidth5Slots;
+            set { m_PierWidth5Slots = value; ApplyLayout(); }
+        }
+
+        public float PierWidth3Slots
+        {
+            get => m_PierWidth3Slots;
+            set { m_PierWidth3Slots = value; ApplyLayout(); }
+        }
+
+        public float PierOffsetY
+        {
+            get => m_PierOffsetY;
+            set { m_PierOffsetY = value; ApplyLayout(); }
+        }
+
+        public float PierOffsetZ
+        {
+            get => m_PierOffsetZ;
+            set { m_PierOffsetZ = value; ApplyLayout(); }
+        }
+
+        public float PierScaleMultiplier
+        {
+            get => m_PierScaleMultiplier;
+            set { m_PierScaleMultiplier = value; ApplyLayout(); }
+        }
+
+        public float PierRotationX
+        {
+            get => m_PierRotationX;
+            set { m_PierRotationX = value; ApplyLayout(); }
+        }
+
+        public float BaySlotOffsetY
+        {
+            get => m_BaySlotOffsetY;
+            set { m_BaySlotOffsetY = value; ApplyLayout(); }
+        }
+
+        public void SetCurvedPierMaterials(Material mat4, Material mat5, Material mat3)
+        {
+            m_PierMaterial4Slots = mat4;
+            m_PierMaterial5Slots = mat5;
+            m_PierMaterial3Slots = mat3;
+        }
+
         [Header("📐 Yanaşma Açısı")]
         [Tooltip("Slotların ve gemilerin yanaşma açısı (Referans: 0 derece, düz yatay).")]
         [Range(-60f, 60f)]
@@ -271,8 +347,52 @@ namespace PixelGame
             ApplyLayout();
         }
 
+        private static Mesh s_PierQuadMesh;
+
+        private static Mesh GetPierQuadMesh()
+        {
+            if (s_PierQuadMesh != null && s_PierQuadMesh.bounds.extents.y > 0.1f) return s_PierQuadMesh;
+
+#if UNITY_EDITOR
+            s_PierQuadMesh = UnityEditor.AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes/Marina/Pier_Curved_Quad.asset");
+            if (s_PierQuadMesh != null && s_PierQuadMesh.bounds.extents.y > 0.1f) return s_PierQuadMesh;
+#endif
+
+            s_PierQuadMesh = new Mesh { name = "Pier_Curved_Quad" };
+            s_PierQuadMesh.vertices = new Vector3[]
+            {
+                new Vector3(-0.5f, -0.5f, 0f), // 0: sol-alt (parmak iskeleler / açık su)
+                new Vector3( 0.5f, -0.5f, 0f), // 1: sağ-alt (parmak iskeleler / açık su)
+                new Vector3(-0.5f,  0.5f, 0f), // 2: sol-üst (kumsal / kanatlar)
+                new Vector3( 0.5f,  0.5f, 0f)  // 3: sağ-üst (kumsal / kanatlar)
+            };
+            s_PierQuadMesh.uv = new Vector2[]
+            {
+                new Vector2(0f, 0f),
+                new Vector2(1f, 0f),
+                new Vector2(0f, 1f),
+                new Vector2(1f, 1f)
+            };
+            s_PierQuadMesh.triangles = new int[] { 0, 2, 1, 2, 3, 1 };
+            s_PierQuadMesh.normals = new Vector3[] { Vector3.back, Vector3.back, Vector3.back, Vector3.back };
+            s_PierQuadMesh.RecalculateBounds();
+
+#if UNITY_EDITOR
+            if (!System.IO.File.Exists("Assets/Meshes/Marina/Pier_Curved_Quad.asset"))
+            {
+                if (!UnityEditor.AssetDatabase.IsValidFolder("Assets/Meshes/Marina"))
+                {
+                    if (!UnityEditor.AssetDatabase.IsValidFolder("Assets/Meshes")) UnityEditor.AssetDatabase.CreateFolder("Assets", "Meshes");
+                    UnityEditor.AssetDatabase.CreateFolder("Assets/Meshes", "Marina");
+                }
+                UnityEditor.AssetDatabase.CreateAsset(s_PierQuadMesh, "Assets/Meshes/Marina/Pier_Curved_Quad.asset");
+            }
+#endif
+            return s_PierQuadMesh;
+        }
+
         /// <summary>
-        /// Tüm aktif çocuk slot nesnelerini 2. görsel oran ve kavis değerlerine göre anında yeniden hizalar ve ölçekler.
+        /// Tüm aktif çocuk slot nesnelerini kavisli iskele (veya klasik can simidi) düzenine göre anında yeniden hizalar ve ölçekler.
         /// </summary>
         [ContextMenu("Slotları Yeniden Hizala (Apply Layout)")]
         public void ApplyLayout()
@@ -296,6 +416,146 @@ namespace PixelGame
 
             int count = activeSlots.Count;
             if (count == 0) return;
+
+            if (m_EnableCurvedPier)
+            {
+                ApplyCurvedPierLayout(activeSlots, count);
+            }
+            else
+            {
+                ApplyLegacyDockLayout(activeSlots, count);
+            }
+        }
+
+        private void ApplyCurvedPierLayout(System.Collections.Generic.List<ShipSlot> activeSlots, int count)
+        {
+            // 1. Slot sayısına göre uygun materyal, genişlik ve doku oranını seç
+            Material targetMat = null;
+            float pierWidth = m_PierWidth5Slots;
+            float texWidth = 1422f;
+            float texHeight = 634f;
+            float baySpacingPx = 174f;
+
+            if (count == 4)
+            {
+                targetMat = m_PierMaterial4Slots;
+                pierWidth = m_PierWidth4Slots;
+                texWidth = 1246f;
+            }
+            else if (count == 5)
+            {
+                targetMat = m_PierMaterial5Slots;
+                pierWidth = m_PierWidth5Slots;
+                texWidth = 1422f;
+            }
+            else if (count <= 3)
+            {
+                targetMat = m_PierMaterial3Slots;
+                pierWidth = m_PierWidth3Slots;
+                texWidth = 1070f;
+            }
+            else
+            {
+                targetMat = m_PierMaterial5Slots;
+                pierWidth = m_PierWidth5Slots;
+                texWidth = 1422f;
+            }
+
+#if UNITY_EDITOR
+            if (targetMat == null)
+            {
+                string matName = count == 4 ? "Pier_Curved_4Slots_Mat" : (count <= 3 ? "Pier_Curved_3Slots_Mat" : "Pier_Curved_5Slots_Mat");
+                targetMat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>($"Assets/Materials/Marina/{matName}.mat");
+            }
+#endif
+
+            float aspect = texWidth / texHeight;
+            float finalWidth = pierWidth * m_PierScaleMultiplier;
+            float finalHeight = finalWidth / aspect;
+
+            // 2. Kavisli İskele nesnesini bul veya oluştur
+            Transform pierTr = transform.Find("[Marina_Curved_Pier]");
+            if (pierTr == null)
+            {
+                GameObject pGo = new GameObject("[Marina_Curved_Pier]");
+                pierTr = pGo.transform;
+                pierTr.SetParent(transform, false);
+            }
+
+            if (!pierTr.gameObject.activeSelf)
+            {
+                pierTr.gameObject.SetActive(true);
+            }
+
+            pierTr.localPosition = new Vector3(0f, m_PierOffsetY, m_PierOffsetZ);
+            pierTr.localRotation = Quaternion.Euler(m_PierRotationX, 0f, 0f);
+            pierTr.localScale = new Vector3(finalWidth, finalHeight, 1f);
+
+            MeshFilter mf = pierTr.GetComponent<MeshFilter>();
+            if (mf == null) mf = pierTr.gameObject.AddComponent<MeshFilter>();
+            mf.sharedMesh = GetPierQuadMesh();
+
+            MeshRenderer mr = pierTr.GetComponent<MeshRenderer>();
+            if (mr == null) mr = pierTr.gameObject.AddComponent<MeshRenderer>();
+            if (targetMat != null && mr.sharedMaterial != targetMat)
+            {
+                mr.sharedMaterial = targetMat;
+            }
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+            mr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+            mr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+            mr.sortingOrder = 5;
+
+            // 3. Slotları kavisli iskelenin koylarına (bays) matematiksel olarak tam oturt
+            float worldBaySpacing = (baySpacingPx / texWidth) * finalWidth;
+            float startX = -(count - 1) * worldBaySpacing * 0.5f;
+
+            // Doku üzerinde koy su alanı: Ahşap yürüyüş yolunun tamamen dışında (Y > 494)
+            // Kullanıcı isteği: "gemiler iskelelerin çok içine girerek yerleşiyor slota bunu istemiyorum biraz geride dursunlar istiyorum"
+            // Gemiler ahşap yürüyüş yolunun içine girmesin, geride parmak iskelelerin arasında açık suda dursun.
+            float baseBayLocalY = -0.52f * finalHeight + m_BaySlotOffsetY;
+
+            for (int i = 0; i < count; i++)
+            {
+                var slot = activeSlots[i];
+                Transform tr = slot.transform;
+                float localX = startX + i * worldBaySpacing;
+                float t = count > 1 ? (i - (count - 1) * 0.5f) : 0f;
+                float localCurveY = m_ArcCurveY * (t * t) + m_ArcAsymmetry * t;
+                float angle = m_SlotAngle + m_ArcAngleFan * t;
+
+                // İskelenin kendi yerel düzleminde (Z=0) hesaplayıp pierTr rotasyonuyla (-40°) marina koordinatlarına dönüştür
+                Vector3 pierLocalSlotPos = new Vector3(localX, baseBayLocalY + localCurveY, 0f);
+                tr.localPosition = pierTr.localPosition + pierTr.localRotation * pierLocalSlotPos;
+
+                // Kullanıcı isteği: Tekneler slota yerleşirken rotasyonları değişmesin, kuyrukla aynı kalsın
+                ShipQueuePool queuePool = UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
+                Quaternion baseSlotRot = queuePool != null ? queuePool.transform.rotation : Quaternion.Euler(m_WaterTiltX, 0f, 0f);
+                tr.rotation = baseSlotRot * Quaternion.Euler(0f, angle, 0f);
+                tr.localScale = new Vector3(m_SlotWidth, 1f, m_SlotLength);
+
+                // Eski düz parça görsellerini gizle (çünkü kavisli iskele tek parça ve koylar temiz su)
+                Transform lifebuoy = tr.Find("[Slot_Lifebuoy]");
+                if (lifebuoy != null && lifebuoy.gameObject.activeSelf)
+                {
+                    lifebuoy.gameObject.SetActive(false);
+                }
+                Transform foamSlot = tr.Find("FoamSlot");
+                if (foamSlot != null && foamSlot.gameObject.activeSelf)
+                {
+                    foamSlot.gameObject.SetActive(false);
+                }
+            }
+        }
+
+        private void ApplyLegacyDockLayout(System.Collections.Generic.List<ShipSlot> activeSlots, int count)
+        {
+            Transform pierTr = transform.Find("[Marina_Curved_Pier]");
+            if (pierTr != null && pierTr.gameObject.activeSelf)
+            {
+                pierTr.gameObject.SetActive(false);
+            }
 
             // Sıra ekrana sığmıyorsa aralık ve slot boyutu birlikte küçülür (oran korunur)
             float fit = 1f;
@@ -351,7 +611,6 @@ namespace PixelGame
                     Vector3 circleComp = Vector3.one;
                     if (visualTr == lifebuoy)
                     {
-                        // Kameraya göre görünen eğim: eğik kamerada (ör. 40°) slot eğiminin bir kısmını kamera verir
                         Camera cam = Camera.main;
                         float camPitch = cam != null ? Mathf.DeltaAngle(0f, cam.transform.eulerAngles.x) : 0f;
                         float tiltFactor = Mathf.Sin(Mathf.Abs(m_WaterTiltX - camPitch) * Mathf.Deg2Rad);

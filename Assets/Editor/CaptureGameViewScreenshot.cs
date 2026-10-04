@@ -11,6 +11,10 @@ namespace PixelGame.Editor
 
         static CaptureGameViewScreenshot()
         {
+            EditorApplication.playModeStateChanged += (s) =>
+            {
+                if (s == PlayModeStateChange.EnteredEditMode) EditorApplication.delayCall += CaptureGemiScene;
+            };
             EditorApplication.delayCall += CaptureGemiScene;
         }
 
@@ -28,12 +32,13 @@ namespace PixelGame.Editor
                     {
                         UnityEditor.SceneManagement.EditorSceneManager.OpenScene("Assets/Scenes/Gemi.unity");
                     }
+                }
 
-                    MarinaSlotLayout marina = Object.FindFirstObjectByType<MarinaSlotLayout>();
-                    if (marina != null)
-                    {
-                        marina.ApplyLayout();
-                    }
+                MarinaSlotLayout marina = Object.FindFirstObjectByType<MarinaSlotLayout>();
+                if (marina != null)
+                {
+                    marina.ApplyLayout();
+                }
 
                     PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
                     if (gen != null)
@@ -89,8 +94,22 @@ namespace PixelGame.Editor
                     if (hud != null) hud.HideCoinPill();
 
                     SetupGemiTopHUD.EnsureRetryButtonInScene();
-                }
+
+                    var allActiveSlots = marina != null ? marina.GetComponentsInChildren<ShipSlot>() : null;
+                    if (allActiveSlots != null && allActiveSlots.Length >= 2 && ships != null && ships.Length >= 2)
+                    {
+                        Vector3 targetLocalPos = new Vector3(0f, 0.08f, 0.02f);
+                        ships[0].transform.position = allActiveSlots[0].transform.TransformPoint(targetLocalPos);
+                        ships[0].transform.rotation = allActiveSlots[0].transform.rotation;
+                        ships[1].transform.position = allActiveSlots[1].transform.TransformPoint(targetLocalPos);
+                        ships[1].transform.rotation = allActiveSlots[1].transform.rotation;
+                    }
+
                 Capture();
+
+                // Çekimden sonra sırayı tekrar temizle
+                ShipQueuePool pool = Object.FindFirstObjectByType<ShipQueuePool>();
+                if (pool != null) pool.InitializeQueue();
             }
             catch (System.Exception ex)
             {

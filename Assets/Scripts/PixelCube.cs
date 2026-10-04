@@ -434,7 +434,8 @@ namespace PixelGame
             {
                 if (body[i] == null) continue;
                 m_HomeShadowModes[i] = body[i].shadowCastingMode;
-                body[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                // Sahilde yürürken kumsal zeminine gerçek zamanlı URP yumuşak gölgesi düşürsün
+                body[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
             }
 
             if (Application.isPlaying && regenerateContourShadow)

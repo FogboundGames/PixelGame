@@ -153,7 +153,7 @@ namespace PixelGame
                 {
                     mr.sharedMaterial = srcMr.sharedMaterial;
                 }
-                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
                 mr.receiveShadows = false;
                 mr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
                 mr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;

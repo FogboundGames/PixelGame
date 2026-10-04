@@ -1864,16 +1864,12 @@ namespace PixelGame
                 float alignWeight = Mathf.Clamp01((easeT - 0.65f) / 0.35f);
                 float currentRoll = Mathf.Lerp(bankRoll, 0f, alignWeight);
 
-                Quaternion baseRot = Quaternion.Slerp(startRot, targetSlotWorldRot, easeT);
-                float headingYaw = ComputeSailHeadingYaw(p0, p1, p2, p3, easeT, t, baseRot, slotUp, dist);
-                transform.rotation = Quaternion.AngleAxis(headingYaw, slotUp) * baseRot;
+                // Kullanıcı isteği: "tekneler yerleşirken rotasyonları değişmesin aynı kalsın istiyorum"
+                // Seyir boyunca ve yanaşırken gemi rotasyonu kuyruktaki orijinal rotasyonunu (startRot) %100 korur
+                transform.rotation = startRot;
                 if (m_VisualRoot != null)
                 {
-                    m_VisualRoot.localRotation = Quaternion.Euler(0f, 0f, currentRoll);
-                }
-                else
-                {
-                    transform.rotation = transform.rotation * Quaternion.Euler(0f, 0f, currentRoll);
+                    m_VisualRoot.localRotation = Quaternion.identity;
                 }
 
                 // Slota ilerlerken motor dumanı ve su izi
@@ -1890,11 +1886,11 @@ namespace PixelGame
 
             transform.SetParent(targetSlot.transform, true);
             transform.localPosition = targetLocalPos;
-            transform.localRotation = Quaternion.identity;
+            transform.rotation = startRot;
+            m_BaseLocalRotation = transform.localRotation;
             transform.localScale = GetLocalScaleForBaseWorldScale();
 
             m_BaseLocalPosition = targetLocalPos;
-            m_BaseLocalRotation = Quaternion.identity;
             ResetVisualOffset();
 
             // Slota yanaşma puf dalgası, suya batma yaylanması (VisualRoot üzerinde bağımsız punch)
