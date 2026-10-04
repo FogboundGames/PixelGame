@@ -151,6 +151,104 @@ namespace PixelGame.Editor
             }
         }
 
+        // ------------------------------------------------------------------
+        // Durum kopyalama (geri al / ileri al için) ve toplu renk işlemleri
+        // ------------------------------------------------------------------
+
+        public byte[] CopyCells() => (byte[])m_Cells.Clone();
+
+        /// <summary>Tuvali verilen boyut, hücre ve palet durumuna birebir döndürür.</summary>
+        public void LoadState(int w, int h, byte[] cells, Color[] customPalette)
+        {
+            Width = w;
+            Height = h;
+            m_Cells = cells != null && cells.Length == w * h ? (byte[])cells.Clone() : new byte[w * h];
+            CustomPalette = customPalette != null && customPalette.Length > 0 ? (Color[])customPalette.Clone() : null;
+        }
+
+        /// <summary>Her fırça değerinin (0 = boş) kaç hücrede kullanıldığını döner.</summary>
+        public int[] CountPerColor()
+        {
+            var counts = new int[ActivePalette.Length + 1];
+            for (int i = 0; i < m_Cells.Length; i++)
+            {
+                int v = m_Cells[i];
+                if (v < counts.Length) counts[v]++;
+            }
+            return counts;
+        }
+
+        /// <summary>Bir rengin tüm hücrelerini başka renge (0 = sil) çevirir; değişen hücre sayısını döner.</summary>
+        public int ReplaceColor(byte from, byte to)
+        {
+            if (from == to) return 0;
+            int n = 0;
+            for (int i = 0; i < m_Cells.Length; i++)
+            {
+                if (m_Cells[i] == from) { m_Cells[i] = to; n++; }
+            }
+            return n;
+        }
+
+        /// <summary>
+        /// Paletten bir rengi kaldırır; o renkteki hücreler boşalır, sonraki renklerin indeksleri bir kayar.
+        /// </summary>
+        public void RemoveColor(byte value)
+        {
+            if (value == 0) return;
+            var list = new System.Collections.Generic.List<Color>(ActivePalette);
+            int palIdx = value - 1;
+            if (palIdx < 0 || palIdx >= list.Count || list.Count <= 1) return;
+
+            list.RemoveAt(palIdx);
+            CustomPalette = list.ToArray();
+            for (int i = 0; i < m_Cells.Length; i++)
+            {
+                byte v = m_Cells[i];
+                if (v == value) m_Cells[i] = 0;
+                else if (v > value) m_Cells[i] = (byte)(v - 1);
+            }
+        }
+
+        /// <summary>Hiçbir hücrede kullanılmayan renkleri paletten kaldırır; kaldırılan sayısını döner.</summary>
+        public int RemoveUnusedColors()
+        {
+            int[] counts = CountPerColor();
+            int removed = 0;
+            for (int v = counts.Length - 1; v >= 1; v--)
+            {
+                if (counts[v] == 0 && ActivePalette.Length > 1)
+                {
+                    RemoveColor((byte)v);
+                    removed++;
+                }
+            }
+            return removed;
+        }
+
+        /// <summary>
+        /// Dokunun piksellerini okur; doku Read/Write kapalıysa GPU üzerinden geçici bir kopya alır.
+        /// </summary>
+        public static Color32[] ReadPixels32(Texture2D tex)
+        {
+            if (tex == null) return null;
+            if (tex.isReadable) return tex.GetPixels32();
+
+            RenderTexture prevRT = RenderTexture.active;
+            RenderTexture rt = RenderTexture.GetTemporary(tex.width, tex.height, 0, RenderTextureFormat.ARGB32);
+            Graphics.Blit(tex, rt);
+            RenderTexture.active = rt;
+            var copy = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, false);
+            copy.ReadPixels(new Rect(0, 0, tex.width, tex.height), 0, 0);
+            copy.Apply();
+            RenderTexture.active = prevRT;
+            RenderTexture.ReleaseTemporary(rt);
+
+            Color32[] px = copy.GetPixels32();
+            Object.DestroyImmediate(copy);
+            return px;
+        }
+
         /// <summary>
         /// Var olan bir Texture2D görselini tuvale aktarır ve görselin renklerini tuval paleti yapar.
         /// </summary>
