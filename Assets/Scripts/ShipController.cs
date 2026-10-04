@@ -245,6 +245,11 @@ namespace PixelGame
             tmp.textWrappingMode = TextWrappingModes.NoWrap;
             tmp.overflowMode = TextOverflowModes.Overflow;
             tmp.raycastTarget = false;
+
+            // Prefab kaydedilirken / import worker'da OnValidate çağrıldığında font materyali henüz bağlı
+            // olmayabilir; outlineWidth materyal kopyası oluşturmaya çalışıp UnassignedReferenceException atıyordu.
+            if (tmp.font == null || tmp.fontSharedMaterial == null) return;
+
             tmp.outlineWidth = 0.28f;
             tmp.outlineColor = outlineCol;
 
@@ -276,6 +281,28 @@ namespace PixelGame
 
         [SerializeField] private GameObject m_FakeShadowObj;
         private MeshRenderer m_FakeShadowRenderer;
+
+        [Header("🌑 Gemi Silüet Gölgesi")]
+        [Tooltip("Geminin gövde şeklini takip eden, sağa düşen net gölge. Açıkken eski yumuşak (quad) gölge ve gövdenin gerçek ışık gölgesi kapanır.")]
+        [SerializeField] private bool m_EnableSilhouetteShadow = true;
+        [Tooltip("Işık yönü: gövdenin her birim yüksekliği gölgeyi ne kadar kaydırır (X: sağ, Y: aşağı/kıç yönü negatif). Büyüdükçe gölge uzar.")]
+        [SerializeField] private Vector2 m_SilhouetteShadowDirection = new Vector2(0.70f, -0.15f);
+        [Tooltip("Gölge rengi ve opaklığı (alfa).")]
+        [SerializeField] private Color m_SilhouetteShadowColor = new Color(0.02f, 0.08f, 0.22f, 0.40f);
+        [Tooltip("Gölge kenarının yumuşaklığı (0 = keskin). Kenar bu genişlikte dışa doğru saydamlaşır.")]
+        [Range(0f, 0.8f)]
+        [SerializeField] private float m_SilhouetteShadowSoftness = 0.16f;
+        [SerializeField] private Material m_SilhouetteShadowMaterial;
+        private const string SilhouetteShadowName = "[Ship_SilhouetteShadow]";
+        private static Material s_SilhouetteShadowFallbackMaterial;
+        private static readonly int SilhouetteColorId = Shader.PropertyToID("_Color");
+        private static readonly int SilhouetteDirectionId = Shader.PropertyToID("_ShadowDir");
+        private static readonly int SilhouetteSoftnessId = Shader.PropertyToID("_Softness");
+
+        // Yumuşak kenar halkaları: her biri silüeti biraz daha genişletip daha saydam çizer (ilk eleman çekirdek)
+        private static readonly float[] SilhouetteRingAlphas = { 1f, 0.70f, 0.45f, 0.25f, 0.10f };
+        private static Material s_SilhouetteRingsSource;
+        private static Material[] s_SilhouetteRingMaterials;
         private static Material s_ShipFakeShadowMaterial;
         private static Mesh s_QuadMesh;
 
@@ -659,7 +686,7 @@ namespace PixelGame
         /// </summary>
         public void EnsureFakeShadow()
         {
-            if (!m_EnableFakeShadow)
+            if (!m_EnableFakeShadow || m_EnableSilhouetteShadow)
             {
                 if (m_FakeShadowObj != null) m_FakeShadowObj.SetActive(false);
                 return;
@@ -707,6 +734,121 @@ namespace PixelGame
         public void UpdateFakeShadowManual()
         {
             EnsureFakeShadow();
+            EnsureSilhouetteShadow();
+        }
+
+        private Material GetSilhouetteShadowMaterial()
+        {
+            if (m_SilhouetteShadowMaterial != null) return m_SilhouetteShadowMaterial;
+            if (s_SilhouetteShadowFallbackMaterial == null)
+            {
+                Shader shader = Shader.Find("PixelGame/ShipSilhouetteShadow");
+                if (shader == null) return null;
+                s_SilhouetteShadowFallbackMaterial = new Material(shader) { name = "ShipSilhouetteShadow_Runtime_Mat" };
+            }
+            return s_SilhouetteShadowFallbackMaterial;
+        }
+
+        /// <summary>
+        /// Çekirdek gölge + yumuşak kenar halkaları. Halkalar kaynak materyalden kopyalanır ve sırayla
+        /// (önce çekirdek, sonra içten dışa) çizilsin diye render kuyrukları birer artar; böylece tüm
+        /// gemilerin çekirdekleri halkalardan önce stencil'i doldurur.
+        /// </summary>
+        private static Material[] GetSilhouetteRingMaterials(Material source)
+        {
+            if (s_SilhouetteRingMaterials != null && s_SilhouetteRingsSource == source) return s_SilhouetteRingMaterials;
+
+            if (s_SilhouetteRingMaterials != null)
+            {
+                for (int i = 1; i < s_SilhouetteRingMaterials.Length; i++)
+                {
+                    if (s_SilhouetteRingMaterials[i] != null) DestroyImmediate(s_SilhouetteRingMaterials[i]);
+                }
+            }
+
+            int ringCount = SilhouetteRingAlphas.Length;
+            var mats = new Material[ringCount];
+            mats[0] = source;
+            for (int i = 1; i < ringCount; i++)
+            {
+                var ring = new Material(source)
+                {
+                    name = $"{source.name}_Ring{i}",
+                    hideFlags = HideFlags.DontSave,
+                    renderQueue = source.renderQueue + i
+                };
+                ring.SetFloat("_RingT", i / (float)(ringCount - 1));
+                ring.SetFloat("_RingAlpha", SilhouetteRingAlphas[i]);
+                mats[i] = ring;
+            }
+
+            s_SilhouetteRingsSource = source;
+            s_SilhouetteRingMaterials = mats;
+            return mats;
+        }
+
+        /// <summary>
+        /// Gövde mesh'ini ışık yönünde su yüzeyine yansıtıp gölge olarak çizer (yansıtma ShipSilhouetteShadow
+        /// shader'ında); böylece gölge geminin silüetini ve kabin gibi yüksek kısımlarını takip eder. Gölge VisualRoot'a değil köke bağlıdır:
+        /// gemi tutulup kaldırıldığında ya da dalgada sallandığında gölge suda kalır.
+        /// </summary>
+        public void EnsureSilhouetteShadow()
+        {
+            Transform existing = transform.Find(SilhouetteShadowName);
+            if (!m_EnableSilhouetteShadow)
+            {
+                if (existing != null) existing.gameObject.SetActive(false);
+                return;
+            }
+
+            MeshFilter hullFilter = m_VisualRoot != null ? m_VisualRoot.GetComponent<MeshFilter>() : null;
+            Material mat = GetSilhouetteShadowMaterial();
+            if (hullFilter == null || hullFilter.sharedMesh == null || mat == null) return;
+
+            GameObject shadowObj;
+            if (existing != null)
+            {
+                shadowObj = existing.gameObject;
+            }
+            else
+            {
+                shadowObj = new GameObject(SilhouetteShadowName);
+                shadowObj.transform.SetParent(transform, false);
+            }
+
+            shadowObj.SetActive(true);
+            // Yansıtma shader'da yapılır (köşeler _ShadowDir yönünde su seviyesine iner); obje gövdeyle hizalı kalır
+            shadowObj.transform.localPosition = new Vector3(0f, -0.015f, 0f);
+            shadowObj.transform.localRotation = Quaternion.identity;
+            shadowObj.transform.localScale = Vector3.one;
+
+            MeshFilter mf = shadowObj.GetComponent<MeshFilter>();
+            if (mf == null) mf = shadowObj.AddComponent<MeshFilter>();
+            mf.sharedMesh = hullFilter.sharedMesh;
+
+            MeshRenderer mr = shadowObj.GetComponent<MeshRenderer>();
+            if (mr == null) mr = shadowObj.AddComponent<MeshRenderer>();
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+            mr.sharedMaterials = m_SilhouetteShadowSoftness > 0.001f ? GetSilhouetteRingMaterials(mat) : new[] { mat };
+
+            if (m_PropBlock == null) m_PropBlock = new MaterialPropertyBlock();
+            m_PropBlock.Clear();
+            m_PropBlock.SetColor(SilhouetteColorId, m_SilhouetteShadowColor);
+            m_PropBlock.SetVector(SilhouetteDirectionId, new Vector4(m_SilhouetteShadowDirection.x, m_SilhouetteShadowDirection.y, 0f, 0f));
+            m_PropBlock.SetFloat(SilhouetteSoftnessId, m_SilhouetteShadowSoftness);
+            mr.SetPropertyBlock(m_PropBlock);
+
+            // Eski yumuşak quad gölge ve gövdenin gerçek ışık gölgesi silüetle çakışmasın
+            if (m_FakeShadowObj == null)
+            {
+                Transform oldShadow = transform.Find("[Ship_FakeShadow]");
+                if (oldShadow != null) m_FakeShadowObj = oldShadow.gameObject;
+            }
+            if (m_FakeShadowObj != null) m_FakeShadowObj.SetActive(false);
+
+            MeshRenderer hullRenderer = hullFilter.GetComponent<MeshRenderer>();
+            if (hullRenderer != null) hullRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
         private void Awake()
@@ -720,6 +862,7 @@ namespace PixelGame
                 EnsureDecoupledHierarchy();
                 CreateOrFindBadge();
                 EnsureFakeShadow();
+                EnsureSilhouetteShadow();
             }
         }
 
@@ -735,11 +878,13 @@ namespace PixelGame
                 EnsureDecoupledHierarchy();
                 CreateOrFindBadge();
                 EnsureFakeShadow();
+                EnsureSilhouetteShadow();
                 UpdateBadgeText();
             }
             else
             {
                 ApplyColorToShip(m_ShipColor);
+                QueueEditorSilhouetteShadow();
             }
         }
 
@@ -775,6 +920,26 @@ namespace PixelGame
             }
             ApplyColorToShip(m_ShipColor);
             EnsureFakeShadow();
+            QueueEditorSilhouetteShadow();
+        }
+
+        /// <summary>
+        /// Silüet gölgeyi editörde (Play'e basmadan) da gösterir. OnEnable/OnValidate içinde obje
+        /// oluşturmak Unity uyarısı verdiği için kurulum bir sonraki editör döngüsüne bırakılır.
+        /// Prefab asset'inin kendisine dokunulmaz; sahnedeki gemiler güncellenir.
+        /// </summary>
+        private void QueueEditorSilhouetteShadow()
+        {
+#if UNITY_EDITOR
+            if (Application.isPlaying) return;
+            UnityEditor.EditorApplication.delayCall += () =>
+            {
+                if (this == null || Application.isPlaying) return;
+                if (UnityEditor.PrefabUtility.IsPartOfPrefabAsset(gameObject)) return;
+                if (!gameObject.scene.IsValid()) return;
+                EnsureSilhouetteShadow();
+            };
+#endif
         }
 
         private void Start()
@@ -1665,6 +1830,8 @@ namespace PixelGame
             float elapsed = 0f;
             float lastSmokeTime = 0f;
             float lateralDelta = targetWorld.x - startWorldPos.x;
+            // Su yüzeyinin normali: gemi slota oturunca yerel "yukarı"sı bu olur; yönelme bu eksen etrafında yapılır
+            Vector3 slotUp = targetSlotWorldRot * Vector3.up;
 
             while (elapsed < duration)
             {
@@ -1690,7 +1857,9 @@ namespace PixelGame
                 float alignWeight = Mathf.Clamp01((easeT - 0.65f) / 0.35f);
                 float currentRoll = Mathf.Lerp(bankRoll, 0f, alignWeight);
 
-                transform.rotation = Quaternion.Slerp(startRot, targetSlotWorldRot, easeT);
+                Quaternion baseRot = Quaternion.Slerp(startRot, targetSlotWorldRot, easeT);
+                float headingYaw = ComputeSailHeadingYaw(p0, p1, p2, p3, easeT, t, baseRot, slotUp, dist);
+                transform.rotation = Quaternion.AngleAxis(headingYaw, slotUp) * baseRot;
                 if (m_VisualRoot != null)
                 {
                     m_VisualRoot.localRotation = Quaternion.Euler(0f, 0f, currentRoll);
@@ -1750,6 +1919,44 @@ namespace PixelGame
             }
 
             onComplete?.Invoke();
+        }
+
+        [Header("🧭 Slota Gidişte Yönelme")]
+        [Tooltip("Slota giderken geminin burnunu rota yönüne çevirebileceği en büyük açı (derece). 0 = eski davranış (düz kayma).")]
+        [Range(0f, 60f)]
+        [SerializeField] private float m_SailHeadingMaxDegrees = 35f;
+        [Tooltip("Bu mesafeden kısa gidişlerde (ör. sürükle-bırak snap) yönelme orantılı olarak azalır; kısa hamlede titreme olmasın.")]
+        [SerializeField] private float m_SailHeadingFullDistance = 1.2f;
+
+        /// <summary>
+        /// Slota giderken geminin burnunu rotanın teğetine çeviren sapma açısı (slotUp ekseni etrafında).
+        /// Küplerin yürürken gittikleri yöne dönmesi gibi: başta rotaya yönelir, yol boyunca kavisi takip eder,
+        /// son kısımda slotun düz duruşuna geri döner. Açı sınırlıdır, yoksa geri/yan giden gemi tersine dönerdi.
+        /// </summary>
+        private float ComputeSailHeadingYaw(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float easeT, float t,
+            Quaternion baseRot, Vector3 up, float travelDistance)
+        {
+            if (m_SailHeadingMaxDegrees <= 0f) return 0f;
+
+            Vector3 tangent = EvaluateCubicBezierTangent(p0, p1, p2, p3, easeT);
+            tangent = Vector3.ProjectOnPlane(tangent, up);
+            Vector3 forward = Vector3.ProjectOnPlane(baseRot * Vector3.forward, up);
+            if (tangent.sqrMagnitude < 1e-8f || forward.sqrMagnitude < 1e-8f) return 0f;
+
+            float yaw = Mathf.Clamp(Vector3.SignedAngle(forward, tangent, up), -m_SailHeadingMaxDegrees, m_SailHeadingMaxDegrees);
+
+            // Yumuşak giriş (ilk %20) ve slota yaklaşırken düz duruşa dönüş (son %35)
+            float turnIn = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / 0.2f));
+            float turnOut = 1f - Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - 0.65f) / 0.35f));
+            float distanceWeight = m_SailHeadingFullDistance > 0.001f ? Mathf.Clamp01(travelDistance / m_SailHeadingFullDistance) : 1f;
+
+            return yaw * turnIn * turnOut * distanceWeight;
+        }
+
+        private static Vector3 EvaluateCubicBezierTangent(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
+        {
+            float u = 1f - t;
+            return 3f * u * u * (p1 - p0) + 6f * u * t * (p2 - p1) + 3f * t * t * (p3 - p2);
         }
 
         private static Vector3 EvaluateCubicBezier(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
