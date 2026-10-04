@@ -38,6 +38,19 @@ namespace PixelGame
         [Tooltip("Simidin köpüğüyle birlikte görünen genişliği / slot genişliği (ölçülen: ~1.51).")]
         [SerializeField] private float m_BuoyVisualWidthRatio = 1.51f;
 
+        [Header("🫧 Slot Görseli (Köpük Halkası)")]
+        [Tooltip("Slot görselinin slot genişliğine göre ölçeği.")]
+        [SerializeField] private float m_SlotVisualScale = 1.30f;
+        [Tooltip("Slot görselinin ekranda görünen yükseklik / genişlik oranı. 1'den büyükse dikey elips olur ve gemiyi boyuna sarar.")]
+        [SerializeField] private float m_SlotVisualScreenAspect = 1.17f;
+        [Tooltip("Slot görselini slot içinde ileri (ekranda yukarı) kaydırır; gemi gövdesi yükseldiği için ekranda halkanın üstüne oturuyordu, bununla ortalanır.")]
+        [SerializeField] private float m_SlotVisualOffsetZ = 0.38f;
+        [Tooltip("Sıradaki son slotun görseli (ör. iki kolu da olan tam iskele). Boşsa slot görsellerinin materyaline dokunulmaz.")]
+        [SerializeField] private Material m_SlotVisualMaterial;
+        [Tooltip("Son slot dışındaki slotların görseli (ör. sağ kolu kesilmiş iskele): sağ komşunun sol kolu birleşme yerini kapatır, " +
+                 "böylece yan yana slotlar tek parça iskele gibi görünür. Boşsa hepsi m_SlotVisualMaterial kullanır.")]
+        [SerializeField] private Material m_SlotVisualMaterialJoined;
+
         [Header("📐 Yanaşma Açısı")]
         [Tooltip("Slotların ve gemilerin yanaşma açısı (Referans: 0 derece, düz yatay).")]
         [Range(-60f, 60f)]
@@ -317,7 +330,21 @@ namespace PixelGame
 
                 if (visualTr != null)
                 {
-                    visualTr.localPosition = new Vector3(0f, 0.025f, 0f);
+                    Vector3 visualBasePos = new Vector3(0f, 0.025f, visualTr == lifebuoy ? m_SlotVisualOffsetZ : 0f);
+                    visualTr.localPosition = visualBasePos;
+
+                    if (visualTr == lifebuoy && m_SlotVisualMaterial != null)
+                    {
+                        MeshRenderer visualRenderer = visualTr.GetComponent<MeshRenderer>();
+                        if (visualRenderer != null)
+                        {
+                            bool isLast = i == count - 1;
+                            Material target = (!isLast && m_SlotVisualMaterialJoined != null) ? m_SlotVisualMaterialJoined : m_SlotVisualMaterial;
+                            if (visualRenderer.sharedMaterial != target) visualRenderer.sharedMaterial = target;
+                            // Sağdaki slot soldakinin üstüne çizilsin: birleşme yerindeki kol/kazık hep üstte kalır
+                            visualRenderer.sortingOrder = i;
+                        }
+                    }
                     visualTr.localRotation = Quaternion.identity;
 
                     // Can simidinin ekranda dolgun, dairesel ve izometrik derinlikli durması için perspektif ve scale kompanzasyonu
@@ -329,11 +356,8 @@ namespace PixelGame
                         float camPitch = cam != null ? Mathf.DeltaAngle(0f, cam.transform.eulerAngles.x) : 0f;
                         float tiltFactor = Mathf.Sin(Mathf.Abs(m_WaterTiltX - camPitch) * Mathf.Deg2Rad);
                         if (tiltFactor < 0.05f) tiltFactor = 0.47f;
-                        // Kullanıcı referans görselindeki dolgunluk ve 0.90 dairesel en/boy oranı
-                        float targetScreenAspect = 0.90f;
-                        float zComp = (targetScreenAspect / tiltFactor) * (m_SlotWidth / Mathf.Max(0.001f, m_SlotLength));
-                        // 1.35f çarpanı ile simitlerin su alanını doldurması ve gemileri rahatça kucaklaması sağlanır
-                        circleComp = new Vector3(1.35f, 1f, 1.35f * zComp);
+                        float zComp = (m_SlotVisualScreenAspect / tiltFactor) * (m_SlotWidth / Mathf.Max(0.001f, m_SlotLength));
+                        circleComp = new Vector3(m_SlotVisualScale, 1f, m_SlotVisualScale * zComp);
                     }
                     visualTr.localScale = circleComp;
 
@@ -349,7 +373,7 @@ namespace PixelGame
                         bobbing = visualTr.gameObject.AddComponent<FoamSlotBobbing>();
                     }
                     bobbing.PhaseOffset = i * 0.75f;
-                    bobbing.SetBasePosition(new Vector3(0f, 0.025f, 0f));
+                    bobbing.SetBasePosition(visualBasePos);
                     bobbing.SetBaseScale(circleComp);
                 }
 

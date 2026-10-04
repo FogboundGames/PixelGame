@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Slot_FoamSquare_Mat
+  m_Shader: {fileID: 4800000, guid: 7c182ccbf9923c8d8bd5dde8bfeee1b6, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: ffbd4253a654a0197aa86b012a82f0d9, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _BubbleScale: 40
+    - _BubbleSize: 0.34
+    - _BubbleSpeed: 1
+    - _ChurnAmount: 0.55
+    - _ChurnScale: 38
+    - _ChurnSpeed: 1.8
+    - _FillRadius: 0.6
+    - _PuffBubbleWidth: 0.12
+    - _PuffCenter: 0.67
+    - _PuffCoreWidth: 0.008
+    - _PuffEdgeNoise: 0.015
+    - _PuffLifeSpeed: 0.9
+    - _PuffRowGap: 0.022
+    - _PuffShadowOffset: 0.012
+    - _PuffSpill: 0.03
+    - _RippleSpeed: 0.45
+    - _RippleStart: 0.8
+    - _RippleTravel: 0.08
+    - _RippleWidth: 0.016
+    - _ScreenAspect: 1.17
+    - _ShapePower: 5
+    - _WobbleAmount: 0.01
+    - _WobbleScale: 9
+    - _WobbleSpeed: 1.8
+    m_Colors:
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _FillColor: {r: 0.8, g: 0.96, b: 1, a: 0.14}
+    - _PuffColor: {r: 1, g: 1, b: 1, a: 1}
+    - _PuffShadowColor: {r: 0, g: 0.27999997, b: 0.52, a: 0.35}
+    - _RippleColor: {r: 1, g: 1, b: 1, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

@@ -17,7 +17,7 @@ namespace PixelGame
         [SerializeField] private float m_BobSpeed = 1.35f;
 
         [Tooltip("Dikey salınım miktarı (Y ekseni).")]
-        [Range(0.001f, 0.05f)]
+        [Range(0f, 0.05f)]
         [SerializeField] private float m_BobHeight = 0.008f;
 
         [Tooltip("Hafif su dalgası yana yatma açısı (Z ekseni tilt).")]
@@ -41,6 +41,9 @@ namespace PixelGame
         private Vector3 m_BaseScale = Vector3.one;
 
         [Header("💦 Suya Batma Animasyonu (Water Dip Impact)")]
+        [Tooltip("Gemi yanaşınca görselin suya batıp yaylanması. İskele gibi sabit/ortak kollu görsellerde kapalı olmalı; " +
+                 "yoksa tek bir cep şişip komşu iskelelerle ortak kolları kayar.")]
+        [SerializeField] private bool m_EnableDipImpact = true;
         private float m_DipOffsetY = 0f;
         private Vector3 m_DipScaleOffset = Vector3.zero;
         private Coroutine m_DipCoroutine;
@@ -84,7 +87,7 @@ namespace PixelGame
         /// </summary>
         public void TriggerWaterDipImpact(float depth = 0.16f, float duration = 0.52f)
         {
-            if (!isActiveAndEnabled) return;
+            if (!isActiveAndEnabled || !m_EnableDipImpact) return;
             if (m_DipCoroutine != null)
             {
                 StopCoroutine(m_DipCoroutine);

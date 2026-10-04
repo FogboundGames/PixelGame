@@ -29,7 +29,24 @@ namespace PixelGame
 
         [Header("🚀 Kargo Treni & Sahilden Gemiye Zıplama Ayarları")]
         [Tooltip("Küp treninin kayma hızı (dünya birimi / sn). Referans videoda ~13 küp/sn akıyor (iki kol toplamı).")]
-        [SerializeField] private float m_RopeSpeed = 1.4f;
+        [Range(0.6f, 4f)]
+        [SerializeField] private float m_RopeSpeed = 2.0f;
+        [Tooltip("Rope Speed bu küp boyunda (ızgara adımı, dünya birimi) geçerlidir. Gerçek hız küp boyuyla ölçeklenir: " +
+                 "16x16 gibi iri küplü bölümlerde küpler dünya biriminde daha hızlı gider, böylece her bölümde saniyede aynı " +
+                 "sayıda küp boyu yol alırlar. 0.167 = 32x32 bölümdeki küp boyu.")]
+        [SerializeField] private float m_RopeSpeedReferencePitch = 0.167f;
+
+        /// <summary>
+        /// Küp treninin gerçek hızı (dünya birimi / sn). Sabit dünya hızı iri küplü bölümlerde ağır çekim gibi
+        /// görünüyordu (küp kendi boyuna göre yarı hızda ilerliyor, adımları seyrekleşiyordu).
+        /// </summary>
+        private float EffectiveRopeSpeed()
+        {
+            float speed = Mathf.Max(0.05f, m_RopeSpeed);
+            float pitch = m_GridFrame.Pitch;
+            if (m_RopeSpeedReferencePitch > 0.001f && pitch > 0.001f) speed *= pitch / m_RopeSpeedReferencePitch;
+            return speed;
+        }
         [Tooltip("Sahil kenarından gemiye zıplama süresi (sn).")]
         [SerializeField] private float m_HopDuration = 0.38f;
         [Tooltip("Sahil sonundan gemiye doğru zıplama yayının yüksekliği (parabolik zıplama tepe noktası).")]
@@ -237,9 +254,9 @@ namespace PixelGame
         {
             if (m_HopArcHeight < 0.20f) m_HopArcHeight = 1.25f;
             if (m_HopDuration < 0.20f) m_HopDuration = 0.48f;
-            // Kullanıcı isteği: "gemilere giderken çok hızlılar" → sakin, takip edilebilir yürüyüş hızı.
-            // Eski sahnelerde kayıtlı 2.4 gibi yüksek değerler de bu aralığa çekilir.
-            if (m_RopeSpeed < 0.6f || m_RopeSpeed > 1.6f) m_RopeSpeed = 1.4f;
+            // 2.4 fazla hızlı, 1.4 ağır çekim gibi bulundu; varsayılan 2.0. Inspector'dan ayarlanabilsin diye
+            // yalnızca anlamsız değerler düzeltilir (üst sınırla zorla düşürmek ayarı etkisiz kılıyordu).
+            if (m_RopeSpeed < 0.6f) m_RopeSpeed = 2.0f;
 
             // Eğer m_Shoreline eski koordinatları taşıyorsa (orta nokta Y <= -0.85f ise veya liste boşsa),
             // kullanıcının çizdiği kırmızı kıyı çizgisine otomatik güncelle:
@@ -751,7 +768,7 @@ namespace PixelGame
                 m_RopeGates[ship] = gate;
             }
 
-            float speed = Mathf.Max(0.05f, m_RopeSpeed);
+            float speed = EffectiveRopeSpeed();
             float arrivalGap = m_GridFrame.Pitch / speed;
             float startTime = Time.time;
             foreach (var rope in ropes)
@@ -878,7 +895,7 @@ namespace PixelGame
                 // Kalkışta ani sıçrama yerine yumuşak hızlanma (0 → tam hız, ease-in-out)
                 rampElapsed += dt;
                 float ramp = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(rampElapsed / RopeStartRampDuration));
-                float baseSpeed = Mathf.Max(0.05f, m_RopeSpeed);
+                float baseSpeed = EffectiveRopeSpeed();
                 float speed = baseSpeed * Mathf.Max(0.04f, ramp);
                 float accel = baseSpeed * RopeAcceleration;
 
