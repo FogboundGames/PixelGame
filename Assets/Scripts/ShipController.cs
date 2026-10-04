@@ -1424,6 +1424,13 @@ namespace PixelGame
             CartoonShader.ApplyColor(mat, Color.white);
             if (mat.HasProperty("_MatCapColor")) mat.SetColor("_MatCapColor", new Color(0.12f, 0.12f, 0.12f, 1f));
 
+            // Küplerle aynı tonlama kalsın ama gemi parlamasın: ApplyColor küplerin plastik vurgu şeridini,
+            // specular'ı ve kenar parlamasını da açıyor; gövdenin sağ kenarında beyaz bir parlama yapıyordu.
+            if (mat.HasProperty("_PlasticHighlightIntensity")) mat.SetFloat("_PlasticHighlightIntensity", 0f);
+            if (mat.HasProperty("_PlasticHighlightColor")) mat.SetColor("_PlasticHighlightColor", Color.black);
+            if (mat.HasProperty("_SpecularColor")) mat.SetColor("_SpecularColor", Color.black);
+            if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", Color.clear);
+
             s_CachedBoatMaterials[key] = mat;
             return mat;
         }
