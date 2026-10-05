@@ -72,7 +72,7 @@ namespace PixelGame.Editor
                 layout.SlotLength = 1.55f;
                 layout.WaterTiltX = -67.892f;
                 layout.SlotAngle = 0f;
-                layout.ArcCurveY = 0.025f;
+                layout.ArcCurveY = 0.042f;
                 layout.ArcAsymmetry = 0f;
                 layout.ArcAngleFan = 0f;
 

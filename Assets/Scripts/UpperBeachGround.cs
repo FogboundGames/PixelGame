@@ -45,6 +45,11 @@ namespace PixelGame
             set { m_Size = value; UpdateGroundTransform(); }
         }
 
+        /// <summary>Kumsal zemin düzleminin dünya z'si (küplerin arka yüzünün değdiği düzlem).</summary>
+        public float GroundWorldZ => m_GroundQuad != null
+            ? m_GroundQuad.transform.position.z
+            : transform.TransformPoint(m_Center).z;
+
         public float TiltX
         {
             get => m_TiltX;

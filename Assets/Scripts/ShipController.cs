@@ -97,6 +97,18 @@ namespace PixelGame
         [SerializeField] private bool m_IsMoving = false;
         [SerializeField] private ShipSlot m_CurrentSlot;
 
+        [Header("⚓ Slota Yanaşma Ayarları (Dock Alignment)")]
+        [Tooltip("Gemi slota oturduğunda slot merkezine göre yerel ileri (Z) ofseti. Geminin iskelenin yuvasına daha hoş, dolgun ve estetik oturmasını sağlar.")]
+        [SerializeField] private float m_DockForwardOffset = 0.28f;
+        [Tooltip("Gemi slota oturduğunda slot merkezine göre yerel dikey su seviyesi (Y) ofseti.")]
+        [SerializeField] private float m_DockHeightOffset = 0.08f;
+
+        public const float DefaultDockForwardOffset = 0.28f;
+        public const float DefaultDockHeightOffset = 0.08f;
+
+        public float DockForwardOffset { get => m_DockForwardOffset; set => m_DockForwardOffset = value; }
+        public float DockHeightOffset { get => m_DockHeightOffset; set => m_DockHeightOffset = value; }
+
         [Header("🌊 Su Salınımı (Idle Water Bobbing)")]
         [SerializeField] private bool m_EnableWaterBobbing = true;
         [SerializeField] private float m_BobFrequency = 2.4f;
@@ -314,6 +326,19 @@ namespace PixelGame
         private Quaternion m_BaseLocalRotation;
         private Vector3 m_BaseScale = Vector3.one * DefaultShipScale;
         private static Material s_AlwaysOnTopMaterial;
+
+        // Her gemi örneğine özel çalışma zamanı kimliği. Aynı renkteki iki gemi bile farklı ID taşır;
+        // küp sahipliği renge değil bu ID'ye göre tutulur. İlk erişimde verilir (Instantiate kopyalamaz).
+        private static int s_NextShipRuntimeId = 1;
+        private int m_ShipRuntimeId;
+        public int ShipRuntimeId
+        {
+            get
+            {
+                if (m_ShipRuntimeId == 0) m_ShipRuntimeId = s_NextShipRuntimeId++;
+                return m_ShipRuntimeId;
+            }
+        }
 
         public Color ShipColor => m_ShipColor;
         public int Capacity => m_Capacity;
@@ -1696,7 +1721,13 @@ namespace PixelGame
         public static Vector3 GetSlotDockPosition(ShipSlot slot)
         {
             if (slot == null) return Vector3.zero;
-            return slot.transform.TransformPoint(new Vector3(0f, 0.08f, 0.02f));
+            return slot.transform.TransformPoint(new Vector3(0f, DefaultDockHeightOffset, DefaultDockForwardOffset));
+        }
+
+        public Vector3 GetDockPosition(ShipSlot slot)
+        {
+            if (slot == null) return Vector3.zero;
+            return slot.transform.TransformPoint(new Vector3(0f, m_DockHeightOffset, m_DockForwardOffset));
         }
 
         /// <summary>
@@ -1793,7 +1824,7 @@ namespace PixelGame
             ResetVisualOffset();
             transform.DOKill(true);
 
-            // Eski slottan ayrıl (eğer başka bir slottan kayıyorsa)
+            // Eski slottan ayrıl
             if (m_CurrentSlot != null && m_CurrentSlot != targetSlot)
             {
                 m_CurrentSlot.ReleaseShip();
@@ -1807,72 +1838,79 @@ namespace PixelGame
             Vector3 startWorldScale = transform.lossyScale;
             Quaternion startRot = transform.rotation;
 
-            Vector3 targetLocalPos = new Vector3(0f, 0.08f, 0.02f);
+            Vector3 targetLocalPos = new Vector3(0f, m_DockHeightOffset, m_DockForwardOffset);
             Quaternion targetSlotWorldRot = targetSlot.transform.rotation;
             Vector3 targetWorld = targetSlot.transform.TransformPoint(targetLocalPos);
+            Vector3 slotUp = targetSlotWorldRot * Vector3.up;
 
-            // 4 Noktalı Pürüzsüz Bezier Su Rotası (Tamamen su yüzeyinde - havaya zıplama/uçma yok)
+            // 1. PICKUP / START: VisualRoot üzerinde hafif kalkış ve minik scale (1.04x)
+            if (m_VisualRoot != null)
+            {
+                m_VisualRoot.localPosition = new Vector3(0f, 0.04f, 0f);
+                m_VisualRoot.localScale = Vector3.one * 1.04f;
+            }
+
+            // 2 & 3. TEK, PÜRÜZSÜZ VE DOĞAL BEZIER ROTASI
+            // P0: Geminin kalkış noktası
+            // P3: Slotun tam varış noktası
+            // P1 & P2: Keyfi dünya eksenleri yerine doğrudan start->target yönü ve slot giriş ekseninden türetilir.
             Vector3 p0 = startWorldPos;
-            Vector3 delta = targetWorld - startWorldPos;
+            Vector3 p3 = targetWorld;
+            Vector3 delta = p3 - p0;
             float dist = delta.magnitude;
 
-            Vector3 p1, p2;
-            if (dist > 1.8f)
-            {
-                // Kuyruktan slota gelirken su yüzeyi üzerinde tatlı bir dümen kırma S-rotası (su seviyesinde)
-                float lateralOffset = Mathf.Clamp((targetWorld.x - startWorldPos.x) * 0.22f, -0.35f, 0.35f);
-                p1 = startWorldPos + delta * 0.35f + new Vector3(lateralOffset, 0f, 0f);
-                p2 = startWorldPos + delta * 0.70f - new Vector3(lateralOffset * 0.4f, 0f, 0f);
-            }
-            else
-            {
-                // Slotlar arası yatay kaymada veya yakın snap'te doğrudan su üzerinde pürüzsüz hat
-                p1 = startWorldPos + delta * 0.333f;
-                p2 = startWorldPos + delta * 0.667f;
-            }
-            Vector3 p3 = targetWorld;
+            // Kalkış doğrultusu (geminin mevcut ileri yönü ile hedefe doğru yönün pürüzsüz karışımı)
+            Vector3 vStart = Vector3.Lerp(transform.forward, delta.normalized, 0.45f).normalized;
+            Vector3 p1 = p0 + vStart * (dist * 0.38f);
 
-            // Snap durumunda m_SnapDuration (0.16s), normal click durumunda varsayılan 0.48s
-            float duration = (customDuration > 0f) ? customDuration : 0.48f;
+            // Varış doğrultusu: Slotun kendi ileri ekseni boyunca yaklaşır.
+            // Bu sayede teğet (P3 - P2) doğrudan slotun içine bakar; ASLA yana kayma (sideways drift) yapmaz!
+            Vector3 vSlot = (targetSlotWorldRot * Vector3.forward).normalized;
+            Vector3 p2 = p3 - vSlot * (dist * 0.32f);
+
+            // Snap durumunda m_SnapDuration (0.16s), normal click durumunda 0.46s
+            float duration = (customDuration > 0f) ? customDuration : 0.46f;
             float elapsed = 0f;
             float lastSmokeTime = 0f;
             float lateralDelta = targetWorld.x - startWorldPos.x;
-            // Su yüzeyinin normali: gemi slota oturunca yerel "yukarı"sı bu olur; yönelme bu eksen etrafında yapılır
-            Vector3 slotUp = targetSlotWorldRot * Vector3.up;
 
             while (elapsed < duration)
             {
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / duration);
+
+                // 5. HIZ PROFİLİ: %0 yavaş -> %20 hızlan -> %70 seyir -> %90 yavaşla -> %100 oturma
                 float easeT = Mathf.SmoothStep(0f, 1f, t);
 
+                // Pozisyon:
                 Vector3 currentWorldPos = EvaluateCubicBezier(p0, p1, p2, p3, easeT);
                 transform.position = currentWorldPos;
 
-                // Dünya boyutunu yelken boyunca %100 sabit tut
-                if (transform.parent == null)
+                // 4. ROTASYON: Rotasyon hareketin anlık teğetine bakar (Forward = Path Tangent)
+                Vector3 tangent = 3f * (1f - easeT) * (1f - easeT) * (p1 - p0) +
+                                  6f * (1f - easeT) * easeT * (p2 - p1) +
+                                  3f * easeT * easeT * (p3 - p2);
+
+                if (tangent.sqrMagnitude > 1e-5f)
                 {
-                    transform.localScale = startWorldScale;
-                }
-                else
-                {
-                    transform.localScale = GetLocalScaleForBaseWorldScale();
+                    Quaternion pathRot = Quaternion.LookRotation(tangent.normalized, slotUp);
+                    // Rota sonuna yaklaştıkça (%70+) slotun kesin açısıyla tam hizalanır
+                    float alignWeight = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((easeT - 0.70f) / 0.30f));
+                    transform.rotation = Quaternion.Slerp(pathRot, targetSlotWorldRot, alignWeight);
                 }
 
-                // Dönüş yönüne göre hafif yatma (Banking Roll)
-                float bankRoll = Mathf.Sin(easeT * Mathf.PI) * (-Mathf.Sign(lateralDelta) * Mathf.Clamp(Mathf.Abs(lateralDelta) * 5.0f, 2f, 6.5f));
-                float alignWeight = Mathf.Clamp01((easeT - 0.65f) / 0.35f);
-                float currentRoll = Mathf.Lerp(bankRoll, 0f, alignWeight);
-
-                // Kullanıcı isteği: "tekneler yerleşirken rotasyonları değişmesin aynı kalsın istiyorum"
-                // Seyir boyunca ve yanaşırken gemi rotasyonu kuyruktaki orijinal rotasyonunu (startRot) %100 korur
-                transform.rotation = startRot;
+                // Viraja yatma (Bank Roll) m_VisualRoot üzerinde uygulanır
+                float bankRoll = Mathf.Sin(easeT * Mathf.PI) * (-Mathf.Sign(lateralDelta) * Mathf.Clamp(Mathf.Abs(lateralDelta) * 4.5f, 1.5f, 6.0f));
+                float finalRollWeight = 1f - Mathf.Clamp01((easeT - 0.65f) / 0.35f);
                 if (m_VisualRoot != null)
                 {
-                    m_VisualRoot.localRotation = Quaternion.identity;
+                    m_VisualRoot.localRotation = Quaternion.Euler(0f, 0f, bankRoll * finalRollWeight);
+                    // Ölçek varışa doğru normale döner
+                    m_VisualRoot.localScale = Vector3.Lerp(Vector3.one * 1.04f, Vector3.one, easeT);
+                    m_VisualRoot.localPosition = new Vector3(0f, Mathf.Lerp(0.04f, 0f, easeT), 0f);
                 }
 
-                // Slota ilerlerken motor dumanı ve su izi
+                // Duman ve su dalgası efekti
                 if (Time.time - lastSmokeTime > 0.045f)
                 {
                     lastSmokeTime = Time.time;
@@ -1884,41 +1922,58 @@ namespace PixelGame
                 yield return null;
             }
 
+            // 6. FINAL SNAP & DOCKING
             transform.SetParent(targetSlot.transform, true);
             transform.localPosition = targetLocalPos;
-            transform.rotation = startRot;
-            m_BaseLocalRotation = transform.localRotation;
+            transform.localRotation = Quaternion.identity;
+            m_BaseLocalRotation = Quaternion.identity;
             transform.localScale = GetLocalScaleForBaseWorldScale();
 
             m_BaseLocalPosition = targetLocalPos;
             ResetVisualOffset();
 
-            // Slota yanaşma puf dalgası, suya batma yaylanması (VisualRoot üzerinde bağımsız punch)
+            // 6.b) SETTLING MOVEMENT: 0.10 saniyelik çok tatlı, doğal sönümlü yaylanma
+            float settleDur = 0.10f;
+            float settleElapsed = 0f;
+            while (settleElapsed < settleDur)
+            {
+                settleElapsed += Time.deltaTime;
+                float sT = Mathf.Clamp01(settleElapsed / settleDur);
+                float settleDip = Mathf.Sin(sT * Mathf.PI) * 0.035f * (1f - sT);
+                if (m_VisualRoot != null)
+                {
+                    m_VisualRoot.localPosition = new Vector3(0f, -settleDip, 0f);
+                    m_VisualRoot.localRotation = Quaternion.identity;
+                    m_VisualRoot.localScale = Vector3.one;
+                }
+                yield return null;
+            }
+
+            if (m_VisualRoot != null)
+            {
+                m_VisualRoot.localPosition = Vector3.zero;
+                m_VisualRoot.localRotation = Quaternion.identity;
+                m_VisualRoot.localScale = Vector3.one;
+            }
+
+            // Su etkisi ve dalga
             if (targetSlot != null)
             {
                 targetSlot.TriggerWaterDipImpact(0.18f, 0.52f);
             }
             TriggerWaterDipImpact(0.18f, 0.52f);
             SpawnWaterRipple(transform.position, 0.35f, 1.25f, 0.55f);
-            if (m_VisualRoot != null)
-            {
-                m_VisualRoot.DOPunchScale(new Vector3(0.08f, -0.10f, 0.08f), 0.38f, 2, 0.40f)
-                    .OnComplete(() => m_VisualRoot.localScale = Vector3.one);
-            }
-            else
-            {
-                transform.DOPunchScale(new Vector3(0.08f, -0.10f, 0.08f) * m_BaseScale.x, 0.38f, 2, 0.40f)
-                    .OnComplete(() => transform.localScale = GetLocalScaleForBaseWorldScale());
-            }
 
             m_IsMoving = false;
             m_IsDocked = true;
             m_EnableWaterBobbing = true;
 
+            // ÖNEMLİ BUG DÜZELTMESİ: Gemi slota vardığında hemen CompactSlots ÇAĞRILMAZ.
+            // CompactSlots yalnızca bir gemi ayrıldığında (boşluk açıldığında) çalışmalıdır;
+            // aksi halde slota yeni giren gemiyi anında yana doğru kaydırıyordu.
             if (ShipDispatcher.Instance != null)
             {
                 ShipDispatcher.Instance.OnShipDocked(this);
-                ShipDispatcher.Instance.CompactSlots(0.05f);
             }
 
             onComplete?.Invoke();
@@ -2373,6 +2428,7 @@ namespace PixelGame
                     transform.SetParent(null, true);
                     m_LinkedPartner.transform.SetParent(null, true);
 
+                    ShipDispatcher.Instance?.NotifyShipSent();
                     SailToSlot(candidate, m_SnapDuration);
                     m_LinkedPartner.SailToSlot(partnerSlot, 0.35f);
                 }
@@ -2391,6 +2447,7 @@ namespace PixelGame
                     transform.SetParent(null, true);
 
                     // Mevcut Bezier SailToSlotRoutine ile hızlı, tatmin edici snap (m_SnapDuration: 0.16s)
+                    ShipDispatcher.Instance?.NotifyShipSent();
                     SailToSlot(candidate, m_SnapDuration);
                 }
             }

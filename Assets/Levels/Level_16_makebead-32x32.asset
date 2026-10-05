@@ -71,13 +71,13 @@ MonoBehaviour:
     capacity: 16
     paletteIndex: 1
     label: Mavi (#2) (#1)
-    linkId: 0
+    linkId: 1
     isHidden: 0
   - wagonColor: {r: 0.32156864, g: 0.6117647, b: 0.9058824, a: 1}
     capacity: 16
     paletteIndex: 0
     label: Mavi (#1) (#2)
-    linkId: 0
+    linkId: 1
     isHidden: 0
   - wagonColor: {r: 0.18431373, g: 0.36862746, b: 0.56078434, a: 1}
     capacity: 16

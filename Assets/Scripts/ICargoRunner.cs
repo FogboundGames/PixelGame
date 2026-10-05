@@ -35,10 +35,15 @@ namespace PixelGame
             return -(screenMove.x / len) * maxDegrees;
         }
 
-        /// <summary>Taban (eğik) duruşu dünyanın dikey ekseni etrafında çevirir.</summary>
-        public static Quaternion Apply(Quaternion baseRotation, float yaw)
+        /// <summary>Taban (eğik) duruşu dünyanın dikey ekseni etrafında çevirir ve viraja yatma (bank roll) ekler.</summary>
+        public static Quaternion Apply(Quaternion baseRotation, float yaw, float bankRoll = 0f)
         {
-            return Quaternion.AngleAxis(yaw, Vector3.up) * baseRotation;
+            Quaternion yawRot = Quaternion.AngleAxis(yaw, Vector3.up) * baseRotation;
+            if (Mathf.Abs(bankRoll) > 0.01f)
+            {
+                return Quaternion.AngleAxis(bankRoll, Vector3.forward) * yawRot;
+            }
+            return yawRot;
         }
     }
 }

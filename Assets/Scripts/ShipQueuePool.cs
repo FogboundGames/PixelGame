@@ -510,6 +510,8 @@ namespace PixelGame
                 ShipController existingShip = spot.GetComponentInChildren<ShipController>();
                 if (existingShip != null && existingShip.gameObject.activeInHierarchy)
                 {
+                    existingShip.transform.localPosition = Vector3.zero;
+                    existingShip.transform.localRotation = Quaternion.identity;
                     existingShip.transform.localScale = Vector3.one * m_ShipScale;
                     existingShip.SetBaseScale(Vector3.one * m_ShipScale);
                     existingShip.SetLinkedPartner(null, linkId);

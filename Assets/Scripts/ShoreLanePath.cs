@@ -181,7 +181,7 @@ namespace PixelGame
                 for (int k = 0; k < samplesPerSegment; k++)
                 {
                     float t = (float)k / samplesPerSegment;
-                    pts.Add(CatmullRom(p0, p1, p2, p3, t));
+                    pts.Add(CentripetalCatmullRom(p0, p1, p2, p3, t));
                 }
             }
             pts.Add(waypoints[n - 1]);
@@ -189,13 +189,33 @@ namespace PixelGame
             return new ShoreLanePath(pts.ToArray());
         }
 
-        private static Vector3 CatmullRom(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
+        /// <summary>
+        /// Centripetal Catmull-Rom (alpha = 0.5): Segmentler arası mesafeye duyarlı parametrelendirme.
+        /// Standart uniform Catmull-Rom'un aksine virajlarda ve ani dönüşlerde ASLA ilmik (loop),
+        /// sivri uç (cusp) veya geriye taşma (retrograde overshoot) oluşturmaz.
+        /// </summary>
+        private static Vector3 CentripetalCatmullRom(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
         {
-            float t2 = t * t, t3 = t2 * t;
-            return 0.5f * ((2f * p1)
-                + (-p0 + p2) * t
-                + (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2
-                + (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
+            const float alpha = 0.5f;
+            float d01 = Mathf.Pow(Mathf.Max(1e-4f, (p1 - p0).sqrMagnitude), alpha * 0.5f);
+            float d12 = Mathf.Pow(Mathf.Max(1e-4f, (p2 - p1).sqrMagnitude), alpha * 0.5f);
+            float d23 = Mathf.Pow(Mathf.Max(1e-4f, (p3 - p2).sqrMagnitude), alpha * 0.5f);
+
+            float t0 = 0f;
+            float t1 = t0 + d01;
+            float t2 = t1 + d12;
+            float t3 = t2 + d23;
+
+            float curT = Mathf.Lerp(t1, t2, t);
+
+            Vector3 a1 = (t1 - curT) / (t1 - t0) * p0 + (curT - t0) / (t1 - t0) * p1;
+            Vector3 a2 = (t2 - curT) / (t2 - t1) * p1 + (curT - t1) / (t2 - t1) * p2;
+            Vector3 a3 = (t3 - curT) / (t3 - t2) * p2 + (curT - t2) / (t3 - t2) * p3;
+
+            Vector3 b1 = (t2 - curT) / (t2 - t0) * a1 + (curT - t0) / (t2 - t0) * a2;
+            Vector3 b2 = (t3 - curT) / (t3 - t1) * a2 + (curT - t1) / (t3 - t1) * a3;
+
+            return (t2 - curT) / (t2 - t1) * b1 + (curT - t1) / (t2 - t1) * b2;
         }
 
         /// <summary>
@@ -237,6 +257,20 @@ namespace PixelGame
                 if (sq < bestSq) { bestSq = sq; best = m_Cumulative[i]; }
             }
             return best;
+        }
+
+        /// <summary>Şerit üzerinde verilen mesafedeki teğet (ilerleme yönü) birim vektörü.</summary>
+        public Vector3 TangentAtDistance(float distance)
+        {
+            float total = Length;
+            if (total <= 0.001f || m_Points.Length < 2) return Vector3.down;
+
+            float d0 = Mathf.Clamp(distance, 0f, Mathf.Max(0f, total - 0.02f));
+            float d1 = Mathf.Clamp(distance + 0.05f, 0.01f, total);
+            Vector3 p0 = PointAtDistance(d0);
+            Vector3 p1 = PointAtDistance(d1);
+            Vector3 delta = p1 - p0;
+            return delta.sqrMagnitude > 1e-6f ? delta.normalized : Vector3.down;
         }
     }
 }

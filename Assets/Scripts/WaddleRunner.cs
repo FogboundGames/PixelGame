@@ -45,6 +45,27 @@ namespace PixelGame
         [Tooltip("Yürürken küpün altında kumsalda beliren yumuşak zemin temas gölgesi.")]
         [SerializeField] private bool m_EnableFootstepShadow = true;
         [SerializeField] private Vector2 m_ShadowBaseSize = new Vector2(0.34f, 0.16f);
+        [Tooltip("Zemin gölgesi malzemesi. Boşsa editörde SoftVoxelShadow_Mat, build'de kodla üretilen yumuşak leke kullanılır.")]
+        [SerializeField] private Material m_FootstepShadowMaterial;
+        [Tooltip("Küp zeminden bir küp boyu yükseldiğinde gölgenin küçülme oranı (zıplama/sekme hissi).")]
+        [Range(0f, 0.8f)]
+        [SerializeField] private float m_ShadowShrinkPerHeight = 0.45f;
+        [Tooltip("Gemiye binerken gölgenin sönme süresi (sn).")]
+        [SerializeField] private float m_ShadowFadeOutDuration = 0.12f;
+        [Tooltip("Yürürken URP gerçek zamanlı gölgesi de düşsün mü? Kapalıyken (önerilen) sadece küpün altındaki " +
+                 "temas gölgesi görünür; açıkken ışık açısına göre kayık ikinci bir gölge oluşur.")]
+        [SerializeField] private bool m_CastRealtimeShadowWhileWalking = false;
+
+        /// <summary>
+        /// Gövdenin zeminden görsel kayması (sekme, zıplama, anticipation). Gölge bu kaymayı izlemez,
+        /// zeminde kalır ve kayma büyüdükçe küçülür.
+        /// </summary>
+        public Vector3 GroundAnchorOffset { get; set; }
+
+        /// <summary>Kumsal zemin düzleminin dünya z'si. NaN ise gölge küpün yanında (eski davranış) durur.</summary>
+        public float GroundPlaneZ { get; set; } = float.NaN;
+
+        private float m_ShadowFade = 1f;
 
         private GameObject m_FootstepShadow;
         private Transform m_FootstepShadowTransform;
@@ -92,13 +113,17 @@ namespace PixelGame
             m_Heading = 0f;
             m_Phase = (indexInRope % 2) * Mathf.PI;
 
-            // Küpün ve bacaklarının sahil zeminine gerçek zamanlı URP gölgesi düşürmesini sağla
+            // Gerçek zamanlı URP gölgesi varsayılan olarak kapalı: kayık düşüp küpü havada gösteriyordu.
+            // Zemin teması aşağıdaki ayak gölgesiyle verilir.
+            var castMode = m_CastRealtimeShadowWhileWalking
+                ? UnityEngine.Rendering.ShadowCastingMode.On
+                : UnityEngine.Rendering.ShadowCastingMode.Off;
             MeshRenderer[] renderers = GetComponentsInChildren<MeshRenderer>(true);
             for (int i = 0; i < renderers.Length; i++)
             {
                 if (renderers[i] == null) continue;
                 if (renderers[i].name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
-                renderers[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                renderers[i].shadowCastingMode = castMode;
             }
 
             if (m_EnableFootstepShadow)
@@ -131,22 +156,23 @@ namespace PixelGame
                     m_FootstepShadow.layer = 2; // Ignore Raycast
                 }
 
-                if (s_FootstepShadowMaterial == null)
+                if (s_FootstepShadowMaterial == null && m_FootstepShadowMaterial == null)
                 {
 #if UNITY_EDITOR
                     s_FootstepShadowMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/SoftVoxelShadow_Mat.mat");
 #endif
                     if (s_FootstepShadowMaterial == null)
                     {
-                        Shader sh = Shader.Find("Sprites/Default");
-                        if (sh != null) s_FootstepShadowMaterial = new Material(sh);
+                        // Build'de AssetDatabase yok: düz beyaz kare yerine yumuşak, yarı saydam koyu leke üret
+                        s_FootstepShadowMaterial = CreateSoftBlobMaterial();
                     }
                 }
 
                 m_FootstepShadowRenderer = m_FootstepShadow.GetComponent<MeshRenderer>();
                 if (m_FootstepShadowRenderer != null)
                 {
-                    if (s_FootstepShadowMaterial != null) m_FootstepShadowRenderer.sharedMaterial = s_FootstepShadowMaterial;
+                    Material shadowMat = m_FootstepShadowMaterial != null ? m_FootstepShadowMaterial : s_FootstepShadowMaterial;
+                    if (shadowMat != null) m_FootstepShadowRenderer.sharedMaterial = shadowMat;
                     m_FootstepShadowRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                     m_FootstepShadowRenderer.receiveShadows = false;
                     m_FootstepShadowRenderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
@@ -161,6 +187,41 @@ namespace PixelGame
             {
                 m_FootstepShadow.SetActive(true);
             }
+            m_ShadowFade = 1f;
+        }
+
+        private static Material CreateSoftBlobMaterial()
+        {
+            Shader sh = Shader.Find("Sprites/Default");
+            if (sh == null) return null;
+
+            const int size = 64;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                name = "FootstepShadowBlob",
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear
+            };
+            var pixels = new Color32[size * size];
+            float r = (size - 1) * 0.5f;
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = (x - r) / r, dy = (y - r) / r;
+                    float d = Mathf.Sqrt(dx * dx + dy * dy);
+                    // Merkezde koyu, kenara doğru yumuşakça sönen leke
+                    float a = Mathf.Clamp01(1f - d);
+                    a = a * a * (3f - 2f * a);
+                    pixels[y * size + x] = new Color32(0, 0, 0, (byte)(a * 255f));
+                }
+            }
+            tex.SetPixels32(pixels);
+            tex.Apply(false, true);
+
+            var mat = new Material(sh) { name = "FootstepShadowBlob_Mat", mainTexture = tex };
+            mat.color = new Color(0.08f, 0.12f, 0.22f, 0.42f);
+            return mat;
         }
 
         private void OnDisable()
@@ -171,22 +232,32 @@ namespace PixelGame
             }
         }
 
+        private float m_BankTilt = 0f;
+        public float BankTilt
+        {
+            get => m_BankTilt;
+            set => m_BankTilt = value;
+        }
+
         public void TurnToward(Vector3 screenMove, float deltaTime)
         {
             if (screenMove.x * screenMove.x + screenMove.y * screenMove.y < 1e-8f) return;
 
             float target = CargoRunnerHeading.TargetYaw(screenMove, m_MaxTurnDegrees);
-            m_Heading = Mathf.MoveTowards(m_Heading, target, m_TurnSpeed * deltaTime);
-            transform.rotation = CargoRunnerHeading.Apply(m_BaseRotation, m_Heading);
+            m_Heading = Mathf.MoveTowardsAngle(m_Heading, target, m_TurnSpeed * deltaTime);
+            transform.rotation = CargoRunnerHeading.Apply(m_BaseRotation, m_Heading, m_BankTilt);
         }
 
         private void LateUpdate()
         {
             if (m_IsAirborne)
             {
+                // Gölge bir anda kaybolmaz: kısa sürede küçülerek söner
                 if (m_FootstepShadow != null && m_FootstepShadow.activeSelf)
                 {
-                    m_FootstepShadow.SetActive(false);
+                    m_ShadowFade -= Time.deltaTime / Mathf.Max(0.01f, m_ShadowFadeOutDuration);
+                    if (m_ShadowFade <= 0f) m_FootstepShadow.SetActive(false);
+                    else UpdateFootstepShadow(0f, Mathf.Max(1e-4f, transform.lossyScale.x));
                 }
                 if (m_Body != null)
                 {
@@ -251,22 +322,45 @@ namespace PixelGame
                 m_LegR.localPosition = m_LegRRest + new Vector3(0f, rightUp * m_LegLift, 0f);
             }
 
-            if (m_FootstepShadowTransform != null && m_FootstepShadow != null && m_FootstepShadow.activeSelf)
+            m_ShadowFade = 1f;
+            UpdateFootstepShadow(step, size);
+        }
+
+        /// <summary>
+        /// Zemin teması gölgesi: kumsal düzleminde (GroundPlaneZ) durur, gövdenin sekme/zıplama
+        /// kaymasını izlemez; gövde yükseldikçe küçülür. Böylece küp zemine basıyormuş gibi okunur.
+        /// </summary>
+        private void UpdateFootstepShadow(float step, float size)
+        {
+            if (m_FootstepShadowTransform == null || m_FootstepShadow == null || !m_FootstepShadow.activeSelf) return;
+
+            // Gölge kumsal zeminine paralel durur
+            m_FootstepShadowTransform.rotation = Quaternion.identity;
+
+            // Zemindeki çıpa: gövdenin görsel kayması (sekme, anticipation) çıkarılır
+            Vector3 anchor = transform.position - GroundAnchorOffset;
+
+            // Gövdenin/bacakların altına, basan ayağa doğru hafifçe eşlik ederek yerleşir
+            float stepOffset = -step * size * 0.08f;
+            Vector3 shadowPos = anchor + new Vector3(stepOffset, -size * 0.44f, 0.02f);
+            if (float.IsFinite(GroundPlaneZ))
             {
-                // Gölge kumsal zeminine paralel (ekrana dik) durur
-                m_FootstepShadowTransform.rotation = Quaternion.identity;
-
-                // Gövdenin/bacakların altına, basan ayağa doğru hafifçe eşlik ederek yerleşir
-                float stepOffset = -step * size * 0.08f;
-                Vector3 shadowPos = transform.position + new Vector3(stepOffset, -size * 0.44f, 0.02f);
-                m_FootstepShadowTransform.position = shadowPos;
-
-                // Adım atarken zıplamaya göre gölgenin nefes alması (hop etkisi)
-                float bobFactor = 1f - (Mathf.Abs(step) * 0.15f);
-                float shadowW = size * m_ShadowBaseSize.x * 3.8f * bobFactor;
-                float shadowH = size * m_ShadowBaseSize.y * 3.5f * bobFactor;
-                m_FootstepShadowTransform.localScale = new Vector3(shadowW, shadowH, 1f);
+                // Tam zemin düzleminde, kumun hemen önünde (z-fighting olmasın)
+                shadowPos.z = GroundPlaneZ - 0.002f;
             }
+            m_FootstepShadowTransform.position = shadowPos;
+
+            // Yükseklik: kod kaynaklı kayma + adım zıplaması (küp boyu cinsinden)
+            float height = GroundAnchorOffset.magnitude / size + Mathf.Abs(step) * m_BodyBob;
+            float liftFactor = 1f - Mathf.Clamp01(height) * m_ShadowShrinkPerHeight;
+            float k = Mathf.Clamp01(m_ShadowFade) * liftFactor;
+
+            // Gölge küpün çocuğu: yerel ölçek zaten küp boyuyla çarpılır. Eskiden bir kez daha
+            // 'size' ile çarpılıyordu ve gölge küpün ~1/5'i kadar kalıp görünmüyordu.
+            float shadowW = m_ShadowBaseSize.x * 3.8f * k;
+            float shadowH = m_ShadowBaseSize.y * 3.5f * k;
+            // Ebeveyn ölçeği 0'a yaklaşsa bile sonlu kalsın
+            m_FootstepShadowTransform.localScale = new Vector3(Mathf.Max(1e-3f, shadowW), Mathf.Max(1e-3f, shadowH), 1f);
         }
     }
 }

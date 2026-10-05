@@ -7,11 +7,38 @@ namespace PixelGame
     /// Piksel resmini oluşturan her bir 3D küpü temsil eder.
     /// Koordinat, renk ve 360 derece tüm yönleri çevreleyen sahte gölge (Fake Shadow) bilgilerini saklar.
     /// Küp tıklandığında parçaları aşağı dökülür; sahte gölgeleri ise panoda hep sabit kalır.
+    public enum CubeAssignmentState
+    {
+        Unassigned = 0,
+        Assigned = 1,
+        MovingToShip = 2,
+        ArrivedAtShip = 3,
+        Locked = 4
+    }
+
+    /// <summary>
+    /// Piksel resmini oluşturan her bir 3D küpü temsil eder.
+    /// Koordinat, renk ve 360 derece tüm yönleri çevreleyen sahte gölge (Fake Shadow) bilgilerini saklar.
+    /// Küp tıklandığında parçaları aşağı dökülür; sahte gölgeleri ise panoda hep sabit kalır.
     /// </summary>
     [SelectionBase]
     [DisallowMultipleComponent]
     public class PixelCube : MonoBehaviour, IPointerClickHandler, IPointerDownHandler
     {
+        [Header("🎯 Ship Assignment & Debug")]
+        [SerializeField] private int m_CubeId = 0;
+        [SerializeField] private CubeAssignmentState m_AssignmentState = CubeAssignmentState.Unassigned;
+        [SerializeField] private int m_AssignedShipId = 0;
+        [SerializeField] private int m_ReservedShipId = 0;
+        [SerializeField] private ShipController m_AssignedShip;
+
+        private static int s_NextCubeId = 1;
+
+        public static void ResetCubeIdCounter()
+        {
+            s_NextCubeId = 1;
+        }
+
         [Header("Izgara Konumu")]
         [SerializeField] private int m_GridX;
         [SerializeField] private int m_GridY;
@@ -49,6 +76,11 @@ namespace PixelGame
 
         private void Awake()
         {
+            if (m_CubeId <= 0)
+            {
+                m_CubeId = s_NextCubeId++;
+            }
+
             if (m_Renderer == null) m_Renderer = GetComponent<MeshRenderer>();
             if (m_CubeCollider == null) m_CubeCollider = GetComponent<Collider>();
 
@@ -144,6 +176,43 @@ namespace PixelGame
         private static readonly int PlasticTopLightProp = Shader.PropertyToID("_PlasticTopLight");
         private static readonly int PlasticHighlightIntensityProp = Shader.PropertyToID("_PlasticHighlightIntensity");
 
+        public int CubeId => m_CubeId;
+        public CubeAssignmentState AssignmentState => m_AssignmentState;
+        public ShipController AssignedShip => m_AssignedShip;
+        public int AssignedShipId => m_AssignedShipId;
+        public int ReservedShipId => m_ReservedShipId;
+        public bool IsAssigned => m_AssignedShip != null || m_AssignmentState != CubeAssignmentState.Unassigned;
+
+        public bool AssignToShip(ShipController ship)
+        {
+            if (ship == null) return false;
+            if (m_AssignmentState != CubeAssignmentState.Unassigned && m_AssignedShip != ship) return false;
+            m_AssignedShip = ship;
+            m_AssignedShipId = ship.ShipRuntimeId;
+            m_ReservedShipId = ship.ShipRuntimeId;
+            m_AssignmentState = CubeAssignmentState.Assigned;
+            return true;
+        }
+
+        public void SetAssignmentState(CubeAssignmentState newState)
+        {
+            m_AssignmentState = newState;
+            if (newState == CubeAssignmentState.Unassigned)
+            {
+                m_AssignedShip = null;
+                m_AssignedShipId = 0;
+                m_ReservedShipId = 0;
+            }
+        }
+
+        public void ClearAssignment()
+        {
+            m_AssignedShip = null;
+            m_AssignedShipId = 0;
+            m_ReservedShipId = 0;
+            m_AssignmentState = CubeAssignmentState.Unassigned;
+        }
+
         public int GridX => m_GridX;
         public int GridY => m_GridY;
         public Color OriginalColor => m_OriginalColor;
@@ -201,6 +270,23 @@ namespace PixelGame
             m_BodyRenderers = list.ToArray();
             m_BodyRenderersChildCount = transform.childCount;
             return m_BodyRenderers;
+        }
+
+        /// <summary>
+        /// Gövdenin kameradan en uzak (zemine bakan) noktasının dünya z'si. Küpün zemine tam
+        /// oturduğu derinliği hesaplamak için kullanılır. Görünür gövde yoksa NaN döner.
+        /// </summary>
+        public float BodyMaxWorldZ()
+        {
+            MeshRenderer[] body = GetBodyRenderers();
+            float maxZ = float.NaN;
+            for (int i = 0; i < body.Length; i++)
+            {
+                if (body[i] == null || !body[i].enabled) continue;
+                float z = body[i].bounds.max.z;
+                if (float.IsNaN(maxZ) || z > maxZ) maxZ = z;
+            }
+            return maxZ;
         }
 
         public void ApplyColor(Color color, float emission = 0f)
@@ -434,8 +520,10 @@ namespace PixelGame
             {
                 if (body[i] == null) continue;
                 m_HomeShadowModes[i] = body[i].shadowCastingMode;
-                // Sahilde yürürken kumsal zeminine gerçek zamanlı URP yumuşak gölgesi düşürsün
-                body[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                // Yürürken gerçek zamanlı URP gölgesi kapalı: ışık açısı yüzünden küpten kayık ve kopuk
+                // düşüp küpü havada gösteriyordu. Zemin teması WaddleRunner'ın alttaki gölgesiyle verilir
+                // (panodaki küplerin sahte gölgesiyle aynı stil). Geri dönüşte eski mod geri yüklenir.
+                body[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
 
             if (Application.isPlaying && regenerateContourShadow)
@@ -500,6 +588,7 @@ namespace PixelGame
                     }
                 }
                 SetBodyRenderersEnabled(true);
+                ClearAssignment();
                 if (m_CubeCollider != null) m_CubeCollider.enabled = true;
                 if (m_ShadowObject != null) m_ShadowObject.SetActive(true);
             }

@@ -77,6 +77,8 @@ MonoBehaviour:
   m_IsDeparting: 0
   m_IsMoving: 0
   m_CurrentSlot: {fileID: 0}
+  m_DockForwardOffset: 0.28
+  m_DockHeightOffset: 0.08
   m_EnableWaterBobbing: 1
   m_BobFrequency: 2.4
   m_BobHeight: 0.035

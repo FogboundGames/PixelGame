@@ -19,19 +19,19 @@ Shader "PixelGame/HypercasualWaterBackground"
         _SandLighten ("Sand Lighten (0=Normal, 1=Extra Light)", Range(0.0, 1.0)) = 0.0
 
         [Header(Gentle Wave Undulation)]
-        _WaveSpeed ("Wave Speed", Range(0.2, 4.0)) = 1.25
-        _WaveFrequency ("Wave Frequency", Range(4.0, 35.0)) = 14.0
-        _WaveAmplitude ("Wave Amplitude", Range(0.001, 0.025)) = 0.0055
+        _WaveSpeed ("Wave Speed", Range(0.2, 4.0)) = 0.50
+        _WaveFrequency ("Wave Frequency", Range(4.0, 35.0)) = 6.0
+        _WaveAmplitude ("Wave Amplitude", Range(0.001, 0.025)) = 0.0035
 
         [Header(Sunlight Caustics and Shimmer)]
-        _ShimmerSpeed ("Shimmer Speed", Range(0.2, 4.0)) = 1.3
+        _ShimmerSpeed ("Shimmer Speed", Range(0.2, 4.0)) = 1.0
         _ShimmerScale ("Shimmer Scale", Range(4.0, 30.0)) = 16.0
-        _ShimmerIntensity ("Shimmer Intensity", Range(0.0, 0.6)) = 0.22
+        _ShimmerIntensity ("Shimmer Intensity", Range(0.0, 0.6)) = 0.0
         _ShimmerColor ("Shimmer Color", Color) = (0.75, 0.96, 1.0, 1.0)
 
         [Header(Shoreline Wave Lapping)]
-        _TideSpeed ("Shore Tide Speed", Range(0.3, 3.0)) = 1.1
-        _TideHeight ("Shore Tide Height", Range(0.001, 0.02)) = 0.004
+        _TideSpeed ("Shore Tide Speed", Range(0.3, 3.0)) = 0.8
+        _TideHeight ("Shore Tide Height", Range(0.001, 0.02)) = 0.003
 
         // UI Canvas masking properties
         _StencilComp ("Stencil Comparison", Float) = 8
@@ -183,17 +183,17 @@ Shader "PixelGame/HypercasualWaterBackground"
                 float blueFactor = smoothstep(0.0, 0.12, (rawCol.b - rawCol.r) - _WaterBlueDominance);
                 float waterMask = saturate(vZone * blueFactor);
 
-                // 2. Kıyı Gel-Giti (Shoreline Tide Breathing)
+                // 2. Kıyı Gel-Giti (Shoreline Tide Breathing - Yumuşak ve sakin nefes alma)
                 float tide = sin(_Time.y * _TideSpeed) * _TideHeight;
 
-                // 3. Organik Sıvı Dalgalanması (Harmonik Çift Sinüs & Kosinüs UV Distorsiyonu)
+                // 3. Hypercasual Sıvı Dalgalanması (Geniş, akıcı, tatlı lagün salınımı)
                 float timeWave = _Time.y * _WaveSpeed;
                 float2 waveOffset;
-                waveOffset.x = sin(baseUV.y * _WaveFrequency + timeWave) * _WaveAmplitude
-                             + cos(baseUV.x * (_WaveFrequency * 0.72) - timeWave * 0.85) * (_WaveAmplitude * 0.55);
-                waveOffset.y = cos(baseUV.x * (_WaveFrequency * 0.88) + timeWave * 1.1) * (_WaveAmplitude * 0.65)
-                             + sin(baseUV.y * (_WaveFrequency * 0.55) - timeWave * 0.75) * (_WaveAmplitude * 0.45)
-                             + tide * 0.4;
+                waveOffset.x = sin(baseUV.y * _WaveFrequency + timeWave * 0.85) * _WaveAmplitude
+                             + cos(baseUV.x * (_WaveFrequency * 0.70) - timeWave * 0.65) * (_WaveAmplitude * 0.55);
+                waveOffset.y = cos(baseUV.x * (_WaveFrequency * 0.80) + timeWave * 0.75) * (_WaveAmplitude * 0.65)
+                             + sin(baseUV.y * (_WaveFrequency * 0.50) - timeWave * 0.50) * (_WaveAmplitude * 0.45)
+                             + tide * 0.35;
 
                 // 4. Dinamik İnteraktif Dalgalar (Gemiler hareket ettiğinde / yanaştığında)
                 float2 rippleUVOffset = float2(0, 0);
@@ -227,17 +227,10 @@ Shader "PixelGame/HypercasualWaterBackground"
                     texCol.rgb = lerp(texCol.rgb, deepOcean, waterMask);
                 }
 
-                // 5. Tropik Güneş Kostik Parıltısı (Sunlight Sparkle / Shimmer)
-                if (waterMask > 0.01)
+                // 5. İnteraktif Dalga Köpüğü & Parıltı
+                // Kullanıcı isteği: Aşağı doğru inen hafif parlaklık şeridi kaldırıldı (temiz hypercasual lagün).
+                if (waterMask > 0.01 && rippleGlow > 0.001)
                 {
-                    float timeShimmer = _Time.y * _ShimmerSpeed;
-                    float s1 = sin((finalUV.x * 1.2 + finalUV.y * 1.5) * _ShimmerScale + timeShimmer);
-                    float s2 = cos((finalUV.x * 1.8 - finalUV.y * 1.1) * (_ShimmerScale * 0.9) - timeShimmer * 0.85);
-                    float shimmerPattern = saturate(s1 * s2 * 0.5 + 0.5);
-                    float shimmer = pow(shimmerPattern, 4.0) * _ShimmerIntensity * waterMask;
-
-                    // Parıltıyı ve interaktif dalga köpüğünü renge ekle
-                    texCol.rgb += _ShimmerColor.rgb * shimmer;
                     texCol.rgb += half3(0.9, 0.98, 1.0) * (rippleGlow * waterMask);
                 }
 

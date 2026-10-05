@@ -27,10 +27,10 @@ namespace PixelGame
         [SerializeField] [Range(0.0f, 0.2f)] private float m_WaterBlueDominance = 0.02f;
 
         [Header("✨ Dalga & Parıltı Ayarları")]
-        [SerializeField] [Range(0.2f, 4.0f)] private float m_WaveSpeed = 1.25f;
-        [SerializeField] [Range(5.0f, 35.0f)] private float m_WaveFrequency = 14.0f;
-        [SerializeField] [Range(0.001f, 0.025f)] private float m_WaveAmplitude = 0.0055f;
-        [SerializeField] [Range(0.0f, 0.6f)] private float m_ShimmerIntensity = 0.22f;
+        [SerializeField] [Range(0.2f, 4.0f)] private float m_WaveSpeed = 0.50f;
+        [SerializeField] [Range(3.0f, 35.0f)] private float m_WaveFrequency = 6.0f;
+        [SerializeField] [Range(0.001f, 0.025f)] private float m_WaveAmplitude = 0.0035f;
+        [SerializeField] [Range(0.0f, 0.6f)] private float m_ShimmerIntensity = 0.0f;
 
         [Header("🌊 Su Rengi & Derinlik (Gemilerin Ön Plana Çıkması İçin)")]
         [SerializeField] [Range(0.0f, 1.0f)] private float m_WaterDarkness = 0.15f;

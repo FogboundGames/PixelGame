@@ -61,6 +61,14 @@ namespace PixelGame
         public Vector3 ToWorld(float gx, float gy) => Origin + StepX * gx + StepY * gy;
         public float Pitch => StepX.magnitude;
 
+        public (int, int) ToGrid(Vector3 worldPos)
+        {
+            Vector3 diff = worldPos - Origin;
+            float gx = Vector3.Dot(diff, StepX) / Mathf.Max(1e-6f, StepX.sqrMagnitude);
+            float gy = Vector3.Dot(diff, StepY) / Mathf.Max(1e-6f, StepY.sqrMagnitude);
+            return (Mathf.RoundToInt(gx), Mathf.RoundToInt(gy));
+        }
+
         public static bool TryBuild(PixelCube[] allCubes, out CubeGridFrame frame)
         {
             frame = default;
@@ -242,71 +250,42 @@ namespace PixelGame
                 leftList.RemoveRange(0, half);
             }
 
-            // 4. Her iki kolu başından kuyruğuna kesintisiz yılan (snake) zinciri olarak diz
-            BuildArmChain(leftList, shoreTarget, outsideAir, leftArm);
-            BuildArmChain(rightList, shoreTarget, outsideAir, rightArm);
+            // 4. Her iki kolu çıkış koridoruna doğru pürüzsüz akış sırasına göre diz
+            BuildArmChain(leftList, shoreTarget, outsideAir, depthMap, true, leftArm);
+            BuildArmChain(rightList, shoreTarget, outsideAir, depthMap, false, rightArm);
         }
 
-        private static void BuildArmChain(List<PixelCube> cubes, Vector3 shoreTarget, HashSet<(int, int)> outsideAir, List<PixelCube> arm)
+        private static void BuildArmChain(List<PixelCube> cubes, Vector3 shoreTarget, HashSet<(int, int)> outsideAir,
+                                          Dictionary<PixelCube, int> depthMap, bool isLeftArm, List<PixelCube> arm)
         {
             arm.Clear();
             if (cubes == null || cubes.Count == 0) return;
 
-            // arm[0] (HEAD) seçimi: Dış havaya temas eden küpler arasından shoreTarget'a en yakın olan
-            PixelCube head = null;
-            float bestHeadDist = float.MaxValue;
-            foreach (var c in cubes)
+            // Küpleri çıkış koridoruna (aşağı ve dış kanada) doğru pürüzsüz akış sırasına göre diz.
+            // arm[0] = çıkışa en yakın baş küp; arm[N-1] = kuyruktaki en son küp.
+            // Bu sıralama tek yönlü (monotonik) olduğu için ASLA girdap (spiral/vorteks) veya zikzak oluşturmaz.
+            cubes.Sort((a, b) =>
             {
-                int x = c.GridX, y = c.GridY;
-                bool touchesAir = outsideAir.Contains((x - 1, y)) || outsideAir.Contains((x + 1, y)) ||
-                                  outsideAir.Contains((x, y - 1)) || outsideAir.Contains((x, y + 1));
-                float d = (c.transform.position - shoreTarget).sqrMagnitude;
-                if (touchesAir) d -= 1000f;
-
-                if (d < bestHeadDist)
+                // 1. Y ekseni (Aşağıya/çıkışa yakınlık): Aşağıdaki küpler çıkışa daha yakındır, önden yürür.
+                float ya = a.transform.position.y;
+                float yb = b.transform.position.y;
+                if (Mathf.Abs(ya - yb) > 0.04f)
                 {
-                    bestHeadDist = d;
-                    head = c;
-                }
-            }
-
-            if (head == null) head = cubes[0];
-
-            arm.Add(head);
-            var remaining = new HashSet<PixelCube>(cubes);
-            remaining.Remove(head);
-
-            // Kuyruk oluşturma: Zincirdeki son küpe en yakın komşu küpü ekleyerek kesintisiz akış kur
-            while (remaining.Count > 0)
-            {
-                PixelCube tip = arm[arm.Count - 1];
-                int tx = tip.GridX, ty = tip.GridY;
-
-                PixelCube bestNext = null;
-                float bestDist = float.MaxValue;
-
-                foreach (var cand in remaining)
-                {
-                    int dx = Mathf.Abs(cand.GridX - tx);
-                    int dy = Mathf.Abs(cand.GridY - ty);
-
-                    float dist;
-                    if (dx + dy == 1) dist = 1.0f; // 4-komşu
-                    else if (dx == 1 && dy == 1) dist = 1.414f; // 8-komşu
-                    else dist = Mathf.Sqrt(dx * dx + dy * dy) + 5.0f;
-
-                    if (dist < bestDist)
-                    {
-                        bestDist = dist;
-                        bestNext = cand;
-                    }
+                    return ya.CompareTo(yb);
                 }
 
-                if (bestNext == null) break;
+                // 2. X ekseni (Dış kanada yakınlık):
+                // Sol kol için en soldaki (dış şeride en yakın) küp öne geçer.
+                // Sağ kol için en sağdaki (dış şeride en yakın) küp öne geçer.
+                float xa = a.transform.position.x;
+                float xb = b.transform.position.x;
+                if (isLeftArm)
+                    return xa.CompareTo(xb);
+                else
+                    return xb.CompareTo(xa);
+            });
 
-                arm.Add(bestNext);
-                remaining.Remove(bestNext);
-            }
+            arm.AddRange(cubes);
         }
 
         /// <summary>
@@ -410,59 +389,51 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Kolun yolunu kurar: kuyruk → ... → baş → dış hava çıkışı → <paramref name="approach"/> (son nokta kıyı).
-        /// <paramref name="exitShift"/> iki kolun ortak çıkış hücrelerinde yan yana
-        /// (iç içe değil) akması için dünya biriminde yatay kaydırmadır.
+        /// Kolun yolunu ve kuyruk slotlarını kurar:
+        /// Küpler panonun dış kanadındaki (flank) temiz koridorda tek sıra ("ipe dizilmiş boncuklar")
+        /// halinde dizilir ve buradan kıyıya/gemiye doğru kesintisiz, pürüzsüzce akar.
+        /// Asla resmin içinde girdap veya zikzak oluşturmaz.
         /// </summary>
-        public static CargoRope Build(List<PixelCube> arm, List<(int, int)> exitCells, HashSet<(int, int)> sharedCells,
-                                      float exitShift, CubeGridFrame frame, IList<Vector3> approach, bool entersLeft,
-                                      HashSet<(int, int)> walkable = null)
+        public static CargoRope Build(List<PixelCube> arm, CubeGridFrame frame, Vector3 shoreCenter,
+                                      Vector3 shoreLaneOffset, bool entersLeft,
+                                      float boardMinX, float boardMaxX, float boardBottomY, float boardTopY)
         {
+            if (arm == null || arm.Count == 0) return null;
+
             const int samplesPerSegment = 12;
+            float pitch = frame.Pitch > 0.001f ? frame.Pitch : 0.2605f;
+            float flankMargin = pitch * 0.90f;
+            float flankX = entersLeft ? (boardMinX - flankMargin) : (boardMaxX + flankMargin);
+            float bottomY = boardBottomY - pitch * 0.5f;
+            float z = arm[0].transform.position.z;
 
-            // Kolun kendi hücreleri de yürünebilir: küpler boşalttıkları hücrelerin içinden geçer
-            HashSet<(int, int)> armCells = null;
-            if (walkable != null)
+            // Slot 0 (baş küp) konumu:
+            float minSlot0Y = boardBottomY + pitch * 0.35f;
+            float maxSlot0Y = boardTopY + pitch * 0.5f - (arm.Count - 1) * pitch;
+            float lowestCubeY = arm[0].transform.position.y;
+            float slot0Y = Mathf.Clamp(lowestCubeY, minSlot0Y, Mathf.Max(minSlot0Y, maxSlot0Y));
+
+            Vector3 exitPoint = new Vector3(flankX, bottomY, z);
+            IList<Vector3> approach = ShipDispatcher.BuildApproach(exitPoint, shoreCenter, shoreLaneOffset);
+
+            var waypoints = new List<Vector3>(arm.Count + approach.Count + 4);
+
+            // 1. Lead-in: kuyruktaki en üst küpün biraz yukarısında başlar
+            Vector3 leadIn = new Vector3(flankX, slot0Y + arm.Count * pitch, z);
+            waypoints.Add(leadIn);
+
+            // 2. Kuyruktan başa (k = N-1 down to 0) kuyruk slotları:
+            // Yol boyunca ilerledikçe gemiye doğru mesafe artar
+            for (int k = arm.Count - 1; k >= 0; k--)
             {
-                armCells = new HashSet<(int, int)>(walkable);
-                foreach (var c in arm) armCells.Add((c.GridX, c.GridY));
+                waypoints.Add(new Vector3(flankX, slot0Y + k * pitch, z));
             }
 
-            var waypoints = new List<Vector3>(arm.Count + exitCells.Count + approach.Count);
-            var cubeWaypointIndex = new int[arm.Count];
-            for (int i = arm.Count - 1; i >= 0; i--)
-            {
-                // Zincirde komşu olmayan iki küp arasına düz çizgi çekmek yolu resmin üstünden
-                // geçiriyordu (küpler başka küplerin içinden yürüyordu). Aradaki boş hücrelerden
-                // gerçek bir zemin yolu bulunur ve ara nokta olarak eklenir.
-                if (armCells != null && i < arm.Count - 1)
-                {
-                    var from = (arm[i + 1].GridX, arm[i + 1].GridY);
-                    var to = (arm[i].GridX, arm[i].GridY);
-                    if (Mathf.Abs(from.Item1 - to.Item1) > 1 || Mathf.Abs(from.Item2 - to.Item2) > 1)
-                    {
-                        foreach (var cell in FindGroundLink(from, to, armCells))
-                        {
-                            waypoints.Add(frame.ToWorld(cell.Item1, cell.Item2));
-                        }
-                    }
-                }
-                cubeWaypointIndex[i] = waypoints.Count;
-                // Referans oyundaki gibi tren, küplerin kendi hücreleri üzerinde değil panonun hemen
-                // DIŞINDAKİ ayrı bir şeritte yürür (yoksa her küp öndekinin boşalttığı yere kaydığı için
-                // kenar "yerinde sıra sıra kayıyor" gibi görünüyordu). Küp, açık (hava) tarafa kaydırılır.
-                waypoints.Add(arm[i].transform.position + OutwardOffset(arm[i], walkable, frame));
-            }
-
-            Vector3 shift = frame.StepX.normalized * exitShift;
-            foreach (var cell in exitCells)
-            {
-                Vector3 p = frame.ToWorld(cell.Item1, cell.Item2);
-                if (sharedCells != null && sharedCells.Contains(cell)) p += shift;
-                waypoints.Add(p);
-            }
+            // 3. Pano alt çıkış noktası
+            waypoints.Add(exitPoint);
             int boardExitIndex = waypoints.Count - 1;
 
+            // 4. Sahil ve gemi giriş rotası
             waypoints.AddRange(approach);
 
             var rope = new CargoRope
@@ -475,32 +446,36 @@ namespace PixelGame
             for (int k = 0; k < arm.Count; k++)
             {
                 rope.Cubes.Add(arm[k]);
-                rope.StartDistances[k] = rope.Path.DistanceAtIndex(cubeWaypointIndex[k] * samplesPerSegment);
+                int waypointIdx = arm.Count - k;
+                float d = rope.Path.DistanceAtIndex(waypointIdx * samplesPerSegment);
+                rope.StartDistances[k] = Mathf.Max(0.01f, d);
             }
+
             rope.BoardExitDistance = rope.Path.DistanceAtIndex(boardExitIndex * samplesPerSegment);
             return rope;
         }
 
         /// <summary>Yürüme şeridinin pano kenarından dışarı uzaklığı (ızgara adımı cinsinden).</summary>
-        public const float LaneOutwardPitch = 0.8f;
+        public const float LaneOutwardPitch = 0.65f;
 
         /// <summary>
-        /// Küpün açık havaya bakan yönü (dört komşudan boş olanların toplamı) × şerit mesafesi.
-        /// Köşe küplerinde iki yön toplanır, şerit köşeyi çapraz döner. Açık komşusu yoksa kaydırma yok.
+        /// Küpün dış şerit ofseti: Her zaman kendi kolunun dış kanadına (sol kol sola, sağ kol sağa)
+        /// ve çıkış yönüne (aşağıya) doğru kaydırılır. Asla içeriye veya yukarıya doğru sapmaz.
         /// </summary>
-        private static Vector3 OutwardOffset(PixelCube cube, HashSet<(int, int)> outsideAir, CubeGridFrame frame)
+        private static Vector3 OutwardOffset(PixelCube cube, HashSet<(int, int)> outsideAir, CubeGridFrame frame, bool entersLeft)
         {
-            if (outsideAir == null) return Vector3.zero;
+            float sideSign = entersLeft ? -1f : 1f;
+            Vector3 sideDir = frame.StepX.normalized * sideSign;
+            Vector3 downDir = -frame.StepY.normalized;
+
             int x = cube.GridX, y = cube.GridY;
-            Vector2 dir = Vector2.zero;
-            if (outsideAir.Contains((x - 1, y))) dir.x -= 1f;
-            if (outsideAir.Contains((x + 1, y))) dir.x += 1f;
-            if (outsideAir.Contains((x, y - 1))) dir.y -= 1f;
-            if (outsideAir.Contains((x, y + 1))) dir.y += 1f;
-            if (dir.sqrMagnitude < 1e-4f) return Vector3.zero;
-            dir.Normalize();
-            Vector3 world = frame.StepX.normalized * dir.x + frame.StepY.normalized * dir.y;
-            return world * (frame.Pitch * LaneOutwardPitch);
+            bool airSide = outsideAir != null && outsideAir.Contains((entersLeft ? x - 1 : x + 1, y));
+            bool airDown = outsideAir != null && outsideAir.Contains((x, y - 1));
+
+            float sideMag = airSide ? 0.70f : 0.40f;
+            float downMag = airDown ? 0.25f : 0.0f;
+
+            return (sideDir * sideMag + downDir * downMag) * (frame.Pitch * LaneOutwardPitch);
         }
 
         /// <summary>
