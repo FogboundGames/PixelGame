@@ -130,13 +130,13 @@ namespace PixelGame
         [Tooltip("Açık olduğunda sahnede yaptığınız tüm değişiklikler (silinen küpler, taşınan parçalar, silinen çerçeve/raylar) Play'e basıldığında KESİNLİKLE korunur; hiçbir şey yeniden üretilip sahneyi bozmaz.")]
         [SerializeField] private bool m_PreserveSceneEdits = true;
 
-        [Header("🌑 Küp Altı Sahte Gölge (Fake Shadow - Her Yönde)")]
-        [Tooltip("Her bir piksel küpünün altına 360 derece çevreleyen yumuşak sahte gölge yerleştir")]
-        [SerializeField] private bool m_EnableCubeShadows = false;
+        [Header("🌑 Küp Altı Sahte Gölge (Fake Shadow)")]
+        [Tooltip("Her bir piksel küpünün altına referans fotoğraftaki gibi alt kısımda duran yumuşak sahte gölge yerleştir")]
+        [SerializeField] private bool m_EnableCubeShadows = true;
         [SerializeField] private Material m_CubeShadowMaterial;
-        [SerializeField] private Vector2 m_ShadowOffset = new Vector2(0.04f, -0.06f); // Sağa ve aşağı düşen belirgin, doğal sahte gölge
-        [SerializeField] private float m_ShadowScale = 1.25f; // Küpün altından ve kenarlarından taşarak 3D derinlik katan gölge boyutu
-        [SerializeField] private Color m_ShadowColor = new Color(0.04f, 0.06f, 0.14f, 0.65f); // Belirgin, tok ve estetik sahte gölge tonu
+        [SerializeField] private Vector2 m_ShadowOffset = new Vector2(0f, -0.58f); // Küpün alt yüzeyine oturan sahte gölge (55-60% sarkma)
+        [SerializeField] private float m_ShadowScale = 1.0f; // Referans boyut oranı
+        [SerializeField] private Color m_ShadowColor = new Color(0.04f, 0.06f, 0.14f, 0.68f); // Doğal, tok ve estetik sahte gölge tonu
 
         [Header("🌑 Şekil Çevresi Kontur Gölgesi (Figure Contour Shadow)")]
         [Tooltip("Tüm piksel figürünün arkasını kaplayan genel siluet gölgesi")]
@@ -1053,7 +1053,8 @@ namespace PixelGame
             if (m_CubeShadowMaterial != null) return m_CubeShadowMaterial;
 
             #if UNITY_EDITOR
-            string[] guids = AssetDatabase.FindAssets("SoftVoxelShadow_Mat t:Material");
+            string[] guids = AssetDatabase.FindAssets("CubeFakeShadow_Mat t:Material");
+            if (guids.Length == 0) guids = AssetDatabase.FindAssets("SoftVoxelShadow_Mat t:Material");
             if (guids.Length > 0)
             {
                 string path = AssetDatabase.GUIDToAssetPath(guids[0]);

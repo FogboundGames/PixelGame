@@ -105,12 +105,9 @@ namespace PixelGame
             }
 
             EnsureShadowReferences();
-
-            PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
-            if (gen != null && !gen.EvaluateShadowMode())
+            if (m_ShadowObject != null)
             {
-                if (m_ShadowObject != null) m_ShadowObject.SetActive(false);
-                if (m_ShadowBottomObject != null) m_ShadowBottomObject.SetActive(false);
+                m_ShadowObject.SetActive(true);
             }
         }
 
@@ -147,13 +144,56 @@ namespace PixelGame
             s_ActiveCubes.Remove(this);
         }
 
+        private static Material s_CachedShadowMaterial;
+        public static Material GetDefaultShadowMaterial()
+        {
+            if (s_CachedShadowMaterial != null) return s_CachedShadowMaterial;
+
+            s_CachedShadowMaterial = Resources.Load<Material>("CubeFakeShadow_Mat");
+            if (s_CachedShadowMaterial != null) return s_CachedShadowMaterial;
+
+#if UNITY_EDITOR
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("CubeFakeShadow_Mat t:Material");
+            if (guids.Length > 0)
+            {
+                s_CachedShadowMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]));
+                if (s_CachedShadowMaterial != null) return s_CachedShadowMaterial;
+            }
+#endif
+
+            Shader s = Shader.Find("Sprites/Default") ?? Shader.Find("Universal Render Pipeline/Unlit");
+            if (s != null)
+            {
+                s_CachedShadowMaterial = new Material(s);
+                s_CachedShadowMaterial.name = "Runtime_CubeFakeShadow_Mat";
+                Texture2D tex = Resources.Load<Texture2D>("CubeFakeShadow");
+                if (tex != null) s_CachedShadowMaterial.mainTexture = tex;
+                s_CachedShadowMaterial.color = new Color(0.04f, 0.06f, 0.14f, 0.68f);
+                s_CachedShadowMaterial.renderQueue = 2995;
+            }
+            return s_CachedShadowMaterial;
+        }
+
         public void EnsureShadowReferences()
         {
             if (m_ShadowObject == null)
             {
                 Transform st = transform.Find("CubeShadow");
-                if (st != null) m_ShadowObject = st.gameObject;
+                if (st != null)
+                {
+                    m_ShadowObject = st.gameObject;
+                }
+                else
+                {
+                    EnsureShadow(null, new Vector2(0f, -0.58f), 1f, Color.clear);
+                }
             }
+
+            if (m_ShadowObject != null)
+            {
+                m_ShadowObject.SetActive(true);
+            }
+
             if (m_ShadowBottomObject == null)
             {
                 Transform sbt = transform.Find("CubeShadow_Bottom");
@@ -440,10 +480,18 @@ namespace PixelGame
                 m_ShadowObject = shadowTrans.gameObject;
             }
 
-            // Hafif ofsetli ve küpün sınırlarında yumuşak sönümlenen gölge
-            m_ShadowObject.transform.localPosition = new Vector3(offset.x, offset.y, 0.52f);
+            if (shadowMaterial == null)
+            {
+                shadowMaterial = GetDefaultShadowMaterial();
+            }
+
+            // Referans fotoğraftaki gibi alt kısımda duran yumuşak pill/capsule sahte gölge (55-60% sarkma)
+            float yPos = offset.y != 0 ? offset.y : -0.58f;
+            float mul = scaleMultiplier > 0.001f ? scaleMultiplier : 1f;
+            m_ShadowObject.transform.localPosition = new Vector3(offset.x, yPos, 0.52f);
             m_ShadowObject.transform.localRotation = Quaternion.identity;
-            m_ShadowObject.transform.localScale = new Vector3(scaleMultiplier, scaleMultiplier, 1f);
+            m_ShadowObject.transform.localScale = new Vector3(1.45f * mul, 0.85f * mul, 1f);
+            m_ShadowObject.SetActive(true);
 
             MeshRenderer mr = m_ShadowObject.GetComponent<MeshRenderer>();
             if (mr != null)
@@ -451,6 +499,7 @@ namespace PixelGame
                 if (shadowMaterial != null) mr.sharedMaterial = shadowMaterial;
                 mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 mr.receiveShadows = false;
+                mr.sortingOrder = -1;
 
                 if (shadowColor.a > 0.001f)
                 {
@@ -512,7 +561,8 @@ namespace PixelGame
             if (m_CubeCollider == null) m_CubeCollider = GetComponent<Collider>();
             if (m_CubeCollider != null) m_CubeCollider.enabled = false;
             EnsureShadowReferences();
-            HideShadows();
+            // Küp panodan ayrılıp gemiye yürürken sahte gölgesi referans fotoğraftaki gibi altında kalır
+            if (m_ShadowObject != null) m_ShadowObject.SetActive(true);
 
             MeshRenderer[] body = GetBodyRenderers();
             m_HomeShadowModes = new UnityEngine.Rendering.ShadowCastingMode[body.Length];

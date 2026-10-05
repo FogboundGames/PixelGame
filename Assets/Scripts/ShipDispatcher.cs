@@ -1333,6 +1333,24 @@ namespace PixelGame
                 mr.SetPropertyBlock(b);
             }
 
+            // Referans fotoğraftaki gibi yürürken de altındaki yumuşak sahte gölgeyi koru
+            GameObject shadowQuad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            shadowQuad.name = "CubeShadow";
+            shadowQuad.transform.SetParent(cargo.transform, false);
+            shadowQuad.transform.localPosition = new Vector3(0f, -0.58f, 0.52f);
+            shadowQuad.transform.localRotation = Quaternion.identity;
+            shadowQuad.transform.localScale = new Vector3(1.45f, 0.85f, 1f);
+            Collider sc = shadowQuad.GetComponent<Collider>();
+            if (sc != null) Destroy(sc);
+            MeshRenderer smr = shadowQuad.GetComponent<MeshRenderer>();
+            if (smr != null)
+            {
+                smr.sharedMaterial = PixelCube.GetDefaultShadowMaterial();
+                smr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                smr.receiveShadows = false;
+                smr.sortingOrder = -1;
+            }
+
             return cargo;
         }
 

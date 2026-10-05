@@ -43,7 +43,7 @@ namespace PixelGame
 
         [Header("🌑 Sahil Zemin Temas Gölgesi")]
         [Tooltip("Yürürken küpün altında kumsalda beliren yumuşak zemin temas gölgesi.")]
-        [SerializeField] private bool m_EnableFootstepShadow = true;
+        [SerializeField] private bool m_EnableFootstepShadow = false;
         [SerializeField] private Vector2 m_ShadowBaseSize = new Vector2(0.34f, 0.16f);
         [Tooltip("Zemin gölgesi malzemesi. Boşsa editörde SoftVoxelShadow_Mat, build'de kodla üretilen yumuşak leke kullanılır.")]
         [SerializeField] private Material m_FootstepShadowMaterial;
