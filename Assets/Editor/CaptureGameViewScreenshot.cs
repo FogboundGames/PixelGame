@@ -40,8 +40,12 @@ namespace PixelGame.Editor
                     marina.ApplyLayout();
                 }
 
-                    PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
-                    if (gen != null)
+                AssetDatabase.ImportAsset("Assets/Resources/mystery_cube_question.png", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/Textures/mystery_cube_question.png", ImportAssetOptions.ForceUpdate);
+                PixelCube.ClearMysteryMaterialCache();
+
+                PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
+                if (gen != null)
                     {
                         // Boşluk oranını eskisi gibi (level ayarı neyse) koru — asla değiştirme
                         if (gen.ActiveLevelData != null)

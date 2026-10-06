@@ -55,7 +55,7 @@ MonoBehaviour:
   - {x: 7, y: 9}
   - {x: 8, y: 9}
   m_MysteryRevealCondition: 0
-  m_MysteryCubeColor: {r: 0.08, g: 0.09, b: 0.16, a: 1}
+  m_MysteryCubeColor: {r: 0.1254902, g: 0.11764706, b: 0.30588236, a: 1}
   m_SlotSprite: {fileID: 0}
   m_SlotCount: 3
   m_PoolColumns: 3

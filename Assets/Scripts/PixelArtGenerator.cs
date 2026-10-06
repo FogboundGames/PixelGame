@@ -637,7 +637,7 @@ namespace PixelGame
             PixelCube[] cubes = m_CubesContainer.GetComponentsInChildren<PixelCube>(true);
             if (cubes == null || cubes.Length == 0) return;
 
-            Color mysteryColor = (m_ActiveLevelData != null) ? m_ActiveLevelData.MysteryCubeColor : new Color(0.08f, 0.09f, 0.16f, 1f);
+            Color mysteryColor = (m_ActiveLevelData != null) ? m_ActiveLevelData.MysteryCubeColor : new Color(0.125f, 0.118f, 0.306f, 1f);
 
             Texture2D activeTex = GetActiveTexture();
             GetEffectiveGridSize(activeTex, out int cols, out int rows);

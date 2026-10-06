@@ -158,6 +158,40 @@ namespace PixelGame
         }
 
         /// <summary>
+        /// Verilen kontrol noktalarından geçen doğrusal (polyline) yürüyüş hattı oluşturur.
+        /// Segmentler maxStep aralıklarla yoğun şekilde örneklenir; böylece Catmull-Rom eğrilerinin
+        /// köşelerde engel içine taşması (overshoot) önlenir ve küpler boş alanlar boyunca
+        /// hiçbir pikselin üstünden geçmeden yürür.
+        /// </summary>
+        public static ShoreLanePath BuildLinear(System.Collections.Generic.IList<Vector3> waypoints, float maxStep = 0.04f)
+        {
+            if (waypoints == null || waypoints.Count < 2)
+                return new ShoreLanePath(new[] { Vector3.zero, Vector3.zero });
+
+            var pts = new System.Collections.Generic.List<Vector3>(waypoints.Count * 8);
+            pts.Add(waypoints[0]);
+
+            float stepSize = Mathf.Max(0.005f, maxStep);
+            for (int i = 0; i < waypoints.Count - 1; i++)
+            {
+                Vector3 a = waypoints[i];
+                Vector3 b = waypoints[i + 1];
+                float dist = Vector3.Distance(a, b);
+                if (dist <= 1e-5f) continue;
+
+                int steps = Mathf.Max(1, Mathf.CeilToInt(dist / stepSize));
+                for (int s = 1; s <= steps; s++)
+                {
+                    float t = (float)s / steps;
+                    pts.Add(Vector3.Lerp(a, b, t));
+                }
+            }
+
+            if (pts.Count < 2) pts.Add(waypoints[waypoints.Count - 1]);
+            return new ShoreLanePath(pts.ToArray());
+        }
+
+        /// <summary>
         /// Verilen noktalardan GEÇEN yumuşak eğri (Catmull-Rom). Hiçbir parçası düz
         /// çizgi olmaz; köşelerde teğetler komşu noktalardan türetildiği için geçişler
         /// sürekli olur.

@@ -60,7 +60,7 @@ namespace PixelGame
         [Header("❓ Gizli / Soru İşareti Küp (Mystery Cube)")]
         [SerializeField] private bool m_IsMystery = false;
         [SerializeField] private bool m_HasRevealed = false;
-        [SerializeField] private Color m_MysteryCubeColor = new Color(0.08f, 0.09f, 0.16f, 1f);
+        [SerializeField] private Color m_MysteryCubeColor = new Color(0.125f, 0.118f, 0.306f, 1f); // #201E4E (Gemi gizli örtüsüyle aynı lacivert)
         [SerializeField] private GameObject m_MysteryQuestionObject;
 
         private MeshRenderer m_Renderer;
@@ -449,9 +449,10 @@ namespace PixelGame
 
         private bool IsMysteryColor(Color c)
         {
-            return Mathf.Abs(c.r - m_MysteryCubeColor.r) < 0.02f &&
-                   Mathf.Abs(c.g - m_MysteryCubeColor.g) < 0.02f &&
-                   Mathf.Abs(c.b - m_MysteryCubeColor.b) < 0.02f;
+            return (Mathf.Abs(c.r - m_MysteryCubeColor.r) < 0.05f &&
+                    Mathf.Abs(c.g - m_MysteryCubeColor.g) < 0.05f &&
+                    Mathf.Abs(c.b - m_MysteryCubeColor.b) < 0.05f)
+                || (Mathf.Abs(c.r - 0.08f) < 0.04f && Mathf.Abs(c.g - 0.09f) < 0.04f && Mathf.Abs(c.b - 0.16f) < 0.04f);
         }
 
         public static Color AdjustColor(Color col, float brightness, float saturation, float contrast)
@@ -812,19 +813,42 @@ namespace PixelGame
         #region ❓ Mystery Cube (Gizli Küp) Yönetimi & Açılma (Reveal)
 
         private static Material s_CachedMysteryMaterial;
+        public static void ClearMysteryMaterialCache()
+        {
+            s_CachedMysteryMaterial = null;
+        }
+
         public static Material GetDefaultMysteryMaterial()
         {
-            if (s_CachedMysteryMaterial != null) return s_CachedMysteryMaterial;
+            Texture2D tex = Resources.Load<Texture2D>("mystery_cube_question");
+            if (s_CachedMysteryMaterial != null)
+            {
+                if (tex != null && s_CachedMysteryMaterial.mainTexture != tex)
+                {
+                    s_CachedMysteryMaterial.mainTexture = tex;
+                    if (s_CachedMysteryMaterial.HasProperty("_BaseMap"))
+                        s_CachedMysteryMaterial.SetTexture("_BaseMap", tex);
+                }
+                return s_CachedMysteryMaterial;
+            }
 
             s_CachedMysteryMaterial = Resources.Load<Material>("MysteryQuestion_Mat");
-            if (s_CachedMysteryMaterial != null) return s_CachedMysteryMaterial;
+            if (s_CachedMysteryMaterial != null)
+            {
+                if (tex != null)
+                {
+                    s_CachedMysteryMaterial.mainTexture = tex;
+                    if (s_CachedMysteryMaterial.HasProperty("_BaseMap"))
+                        s_CachedMysteryMaterial.SetTexture("_BaseMap", tex);
+                }
+                return s_CachedMysteryMaterial;
+            }
 
             Shader s = Shader.Find("Sprites/Default") ?? Shader.Find("Universal Render Pipeline/Unlit");
             if (s != null)
             {
                 s_CachedMysteryMaterial = new Material(s);
                 s_CachedMysteryMaterial.name = "Runtime_MysteryQuestion_Mat";
-                Texture2D tex = Resources.Load<Texture2D>("mystery_cube_question");
                 if (tex != null)
                 {
                     s_CachedMysteryMaterial.mainTexture = tex;
@@ -859,7 +883,7 @@ namespace PixelGame
                     m_MysteryQuestionObject.transform.SetParent(transform, false);
                     m_MysteryQuestionObject.transform.localPosition = new Vector3(0f, 0f, -0.52f);
                     m_MysteryQuestionObject.transform.localRotation = Quaternion.identity;
-                    m_MysteryQuestionObject.transform.localScale = new Vector3(0.85f, 0.85f, 1f);
+                    m_MysteryQuestionObject.transform.localScale = new Vector3(0.96f, 0.96f, 1f);
 
                     MeshFilter mf = m_MysteryQuestionObject.AddComponent<MeshFilter>();
 #if UNITY_EDITOR
@@ -873,6 +897,24 @@ namespace PixelGame
                     mr.receiveShadows = false;
                     mr.sharedMaterial = GetDefaultMysteryMaterial();
                     mr.sortingOrder = 2;
+                }
+                else
+                {
+                    m_MysteryQuestionObject.transform.localPosition = new Vector3(0f, 0f, -0.52f);
+                    m_MysteryQuestionObject.transform.localRotation = Quaternion.identity;
+                    m_MysteryQuestionObject.transform.localScale = new Vector3(0.96f, 0.96f, 1f);
+                    MeshRenderer mr = m_MysteryQuestionObject.GetComponent<MeshRenderer>();
+                    if (mr != null)
+                    {
+                        Material mat = GetDefaultMysteryMaterial();
+                        mr.sharedMaterial = mat;
+                        Texture2D tex = Resources.Load<Texture2D>("mystery_cube_question");
+                        if (mat != null && tex != null && mat.mainTexture != tex)
+                        {
+                            mat.mainTexture = tex;
+                            if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", tex);
+                        }
+                    }
                 }
                 m_MysteryQuestionObject.SetActive(true);
             }

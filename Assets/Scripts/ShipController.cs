@@ -25,10 +25,7 @@ namespace PixelGame
     public class ShipController : MonoBehaviour,
         IPointerClickHandler,
         IPointerDownHandler,
-        IPointerUpHandler,
-        IBeginDragHandler,
-        IDragHandler,
-        IEndDragHandler
+        IPointerUpHandler
     {
         /// <summary>
         /// A/B test anahtarı: true ise kargo gelince eski DOTween Punch Scale efekti çalışır,
@@ -128,7 +125,7 @@ namespace PixelGame
 
         [Header("🖐️ Gerçek Zamanlı Drag & Smooth Follow (Aşama 3 & 4)")]
         [Tooltip("Drag etkileşimini açar veya kapatır.")]
-        [SerializeField] private bool m_EnableDrag = true;
+        [SerializeField] private bool m_EnableDrag = false;
         [Tooltip("Pointer hareketinin drag başlatması için aşması gereken piksel eşiği (2-8 px, varsayılan 4 px).")]
         [SerializeField] private float m_DragThreshold = 4f;
         [Tooltip("VisualRoot'un DragTarget'a yaklaşırken kullandığı yumuşatma süresi (SmoothTime). Düşük değerler daha atik/tepkiseldir (0.04 - 0.08 s).")]
@@ -202,7 +199,7 @@ namespace PixelGame
         public bool IsPickedUp => m_IsPickedUp;
         public float DragSmoothTime { get => m_DragSmoothTime; set => m_DragSmoothTime = value; }
         public float DragThreshold { get => m_DragThreshold; set => m_DragThreshold = value; }
-        public bool EnableDrag { get => m_EnableDrag; set => m_EnableDrag = value; }
+        public bool EnableDrag { get => false; set => m_EnableDrag = false; }
         public float DragPlaneHeight { get => m_DragPlaneHeight; set => m_DragPlaneHeight = value; }
         public float PickupLift { get => m_PickupLift; set => m_PickupLift = value; }
         public float PickupScaleMultiplier { get => m_PickupScaleMultiplier; set => m_PickupScaleMultiplier = value; }
@@ -1009,6 +1006,10 @@ namespace PixelGame
 
         private void Start()
         {
+            m_EnableDrag = false;
+            m_IsDragging = false;
+            m_IsPickedUp = false;
+
             m_BaseLocalPosition = transform.localPosition;
             m_BaseLocalRotation = transform.localRotation;
             if (transform.lossyScale != Vector3.zero) m_BaseScale = transform.lossyScale;
@@ -1723,7 +1724,7 @@ namespace PixelGame
 
             transform.position = reversePos;
 
-            // Slottan tamamen geriye çıkınca slotu serbest bırak ve diğer gemileri kaydır
+            // Slottan tamamen geriye çıkınca slotu serbest bırak
             if (slotToFree != null)
             {
                 slotToFree.ReleaseShip();
@@ -2290,20 +2291,7 @@ namespace PixelGame
 
         #region 🖐️ Gerçek Zamanlı Drag & Smooth Follow (Aşama 3)
 
-        public bool CanInitiateDrag()
-        {
-            if (!m_EnableDrag) return false;
-            if (m_IsDocked || m_IsMoving || m_IsDeparting) return false;
-            if (ShipDispatcher.Instance != null && (ShipDispatcher.Instance.IsAutoPlacing || ShipDispatcher.Instance.IsLevelFailed)) return false;
-            if (IsLinked && !CanDispatchLinked())
-            {
-                PlayWobble();
-                if (m_LinkedPartner != null) m_LinkedPartner.PlayWobble();
-                if (m_Tether != null) m_Tether.Rattle();
-                return false;
-            }
-            return true;
-        }
+        public bool CanInitiateDrag() => false;
 
         private Plane GetDragPlane(Camera cam)
         {
@@ -2317,116 +2305,32 @@ namespace PixelGame
 
         public void OnPointerDown(PointerEventData eventData)
         {
-            if (!CanInitiateDrag()) return;
-
-            // EventSystem'in dahili piksel drag eşiğini Inspector'dan tanımlanan DragThreshold ile senkronize et
-            if (EventSystem.current != null && m_DragThreshold > 0f)
-            {
-                EventSystem.current.pixelDragThreshold = Mathf.RoundToInt(m_DragThreshold);
-            }
-
             m_IsPointerDown = true;
             m_DragThresholdPassed = false;
             m_WasDragged = false;
             m_IsDragging = false;
             m_IsPickedUp = false;
-            m_PointerDownScreenPos = eventData.position;
-
-            Camera cam = eventData.pressEventCamera ?? Camera.main;
-            m_DragCamera = cam;
-            if (cam == null) return;
-
-            m_DragPlane = GetDragPlane(cam);
-            Ray ray = cam.ScreenPointToRay(eventData.position);
-
-            // 1. Raycast ile drag plane kesişimini bul
-            if (m_DragPlane.Raycast(ray, out float enter))
-            {
-                Vector3 hitPoint = ray.GetPoint(enter);
-                // 2. Hit point ile gemi gameplay position arasındaki Grab Offset'i hesapla
-                m_GrabOffset = transform.position - hitPoint;
-            }
-            else
-            {
-                m_GrabOffset = Vector3.zero;
-            }
-
-            m_DragTargetWorldPosition = transform.position;
-            m_SmoothedWorldPosition = transform.position;
-            m_VisualWorldPosition = transform.position;
-            m_PreviousWorldPosition = transform.position;
         }
 
         public void OnBeginDrag(PointerEventData eventData)
         {
-            if (!CanInitiateDrag()) return;
-            if (!m_DragThresholdPassed)
-            {
-                m_DragThresholdPassed = true;
-                m_IsDragging = true;
-                m_IsPickedUp = true;
-            }
         }
 
         public void OnDrag(PointerEventData eventData)
         {
-            if (!m_IsPointerDown) return;
-            if (!CanInitiateDrag()) return;
-
-            // Threshold kontrolü: 2-8 piksel arasındaki eşiği geçmeden drag başlamaz
-            if (!m_DragThresholdPassed)
-            {
-                float distSq = (eventData.position - m_PointerDownScreenPos).sqrMagnitude;
-                if (distSq >= m_DragThreshold * m_DragThreshold)
-                {
-                    m_DragThresholdPassed = true;
-                    m_IsDragging = true;
-                    m_IsPickedUp = true;
-                }
-            }
-
-            if (m_IsDragging)
-            {
-                Camera cam = m_DragCamera != null ? m_DragCamera : (eventData.pressEventCamera ?? Camera.main);
-                if (cam != null)
-                {
-                    Ray ray = cam.ScreenPointToRay(eventData.position);
-                    if (m_DragPlane.Raycast(ray, out float enter))
-                    {
-                        Vector3 pointerWorld = ray.GetPoint(enter);
-                        m_DragTargetWorldPosition = pointerWorld + m_GrabOffset;
-                    }
-                }
-            }
         }
 
         public void OnEndDrag(PointerEventData eventData)
         {
-            if (m_IsDragging || m_DragThresholdPassed)
-            {
-                HandleDropValidation();
-            }
         }
 
         public void OnPointerUp(PointerEventData eventData)
         {
             m_IsPointerDown = false;
-            if (m_IsDragging || m_DragThresholdPassed)
-            {
-                HandleDropValidation();
-            }
         }
 
         public void OnPointerClick(PointerEventData eventData)
         {
-            // Eğer drag eşiği aşıldıysa normal click tetiklenmez (tıklama ile drag birbirinden ayrılır)
-            if (m_DragThresholdPassed || m_IsDragging || m_WasDragged || eventData.dragging)
-            {
-                m_WasDragged = false;
-                m_DragThresholdPassed = false;
-                return;
-            }
-
             if (m_IsDocked || m_IsMoving || m_IsDeparting) return;
             if (ShipDispatcher.Instance != null && (ShipDispatcher.Instance.IsAutoPlacing || ShipDispatcher.Instance.IsLevelFailed)) return;
 

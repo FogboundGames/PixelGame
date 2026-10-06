@@ -309,7 +309,7 @@ namespace PixelGame
         [SerializeField] private MysteryRevealCondition m_MysteryRevealCondition = MysteryRevealCondition.WhenExposed;
 
         [Tooltip("Gizli küpün koyu arka plan rengi")]
-        [SerializeField] private Color m_MysteryCubeColor = new Color(0.08f, 0.09f, 0.16f, 1f);
+        [SerializeField] private Color m_MysteryCubeColor = new Color(0.125f, 0.118f, 0.306f, 1f); // #201E4E
 
         [Header("🚚 Kamyon Düzeni")]
         [Tooltip("Öndeki park yerlerinin görseli. Boş bırakılırsa sahnedeki kurulumdan gelen " +
