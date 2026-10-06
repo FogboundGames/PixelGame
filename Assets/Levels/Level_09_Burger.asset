@@ -85,13 +85,13 @@ MonoBehaviour:
     capacity: 10
     paletteIndex: 1
     label: Renk #2 (1)
-    linkId: 0
+    linkId: 1
     isHidden: 0
   - wagonColor: {r: 0.3137255, g: 0.7254902, b: 0.25490198, a: 1}
     capacity: 16
     paletteIndex: 2
     label: Renk #3 (1)
-    linkId: 0
+    linkId: 2
     isHidden: 0
   - wagonColor: {r: 0.3137255, g: 0.7254902, b: 0.25490198, a: 1}
     capacity: 20
@@ -115,13 +115,13 @@ MonoBehaviour:
     capacity: 15
     paletteIndex: 1
     label: Renk #2 (2)
-    linkId: 0
+    linkId: 1
     isHidden: 0
   - wagonColor: {r: 0.92549026, g: 0.6039216, b: 0.25882354, a: 1}
     capacity: 10
     paletteIndex: 1
     label: Renk #2 (2)
-    linkId: 0
+    linkId: 2
     isHidden: 0
   - wagonColor: {r: 1, g: 0.8431373, b: 0, a: 1}
     capacity: 17
@@ -152,19 +152,19 @@ MonoBehaviour:
     paletteIndex: 0
     label: Renk #1 (4)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.92549026, g: 0.6039216, b: 0.25882354, a: 1}
     capacity: 10
     paletteIndex: 1
     label: Renk #2 (4)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.69803923, g: 0.3137255, b: 0.1254902, a: 1}
     capacity: 16
     paletteIndex: 0
     label: Renk #1 (5)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.92549026, g: 0.6039216, b: 0.25882354, a: 1}
     capacity: 10
     paletteIndex: 1
@@ -188,7 +188,7 @@ MonoBehaviour:
     paletteIndex: 0
     label: Renk #1 (7)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.92549026, g: 0.6039216, b: 0.25882354, a: 1}
     capacity: 10
     paletteIndex: 1

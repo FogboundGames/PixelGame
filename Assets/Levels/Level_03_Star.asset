@@ -63,19 +63,19 @@ MonoBehaviour:
     capacity: 18
     paletteIndex: 0
     label: Turuncu (#1) (#1)
-    linkId: 1
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.7254902, g: 0.4901961, b: 0.1333333, a: 1}
     capacity: 10
     paletteIndex: 0
     label: Turuncu (#1) (#1)
-    linkId: 1
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.8, b: 0.1254902, a: 1}
     capacity: 10
     paletteIndex: 1
     label: "Sar\u0131 (#2) (#2)"
-    linkId: 0
+    linkId: 1
     isHidden: 0
   - wagonColor: {r: 0.7254902, g: 0.4901961, b: 0.1333333, a: 1}
     capacity: 12
@@ -93,7 +93,7 @@ MonoBehaviour:
     capacity: 17
     paletteIndex: 1
     label: "Sar\u0131 (#2) (#4)"
-    linkId: 0
+    linkId: 1
     isHidden: 0
   - wagonColor: {r: 1, g: 0.9882353, b: 0.8431373, a: 1}
     capacity: 1

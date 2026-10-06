@@ -81,19 +81,19 @@ MonoBehaviour:
     capacity: 20
     paletteIndex: 0
     label: Turkuaz (#1) (#2)
-    linkId: 3
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.003921569, g: 0.7294118, b: 0.8352942, a: 1}
     capacity: 11
     paletteIndex: 0
     label: Turkuaz (#1) (#3)
-    linkId: 1
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.003921569, g: 0.7294118, b: 0.8352942, a: 1}
     capacity: 19
     paletteIndex: 0
     label: Turkuaz (#1) (#3)
-    linkId: 0
+    linkId: 3
     isHidden: 0
   - wagonColor: {r: 0.003921569, g: 0.7294118, b: 0.8352942, a: 1}
     capacity: 20
@@ -105,20 +105,20 @@ MonoBehaviour:
     capacity: 20
     paletteIndex: 1
     label: Siyah (#2) (#4)
-    linkId: 1
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.003921569, g: 0.7294118, b: 0.8352942, a: 1}
     capacity: 10
     paletteIndex: 0
     label: Turkuaz (#1) (#5)
-    linkId: 0
+    linkId: 1
     isHidden: 0
   - wagonColor: {r: 0.003921569, g: 0.7294118, b: 0.8352942, a: 1}
     capacity: 20
     paletteIndex: 0
     label: Turkuaz (#1) (#5)
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   - wagonColor: {r: 0.67058825, g: 0.67058825, b: 0.67058825, a: 1}
     capacity: 10
     paletteIndex: 3
@@ -129,36 +129,42 @@ MonoBehaviour:
     capacity: 10
     paletteIndex: 0
     label: Turkuaz (#1) (#7)
-    linkId: 2
+    linkId: 1
     isHidden: 0
   - wagonColor: {r: 0.003921569, g: 0.7294118, b: 0.8352942, a: 1}
     capacity: 11
     paletteIndex: 0
     label: Turkuaz (#1) (#7)
-    linkId: 0
-    isHidden: 1
+    linkId: 2
+    isHidden: 0
   - wagonColor: {r: 1, g: 1, b: 1, a: 1}
     capacity: 20
     paletteIndex: 2
     label: Beyaz (#3) (#8)
-    linkId: 4
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 1, b: 1, a: 1}
     capacity: 10
     paletteIndex: 2
     label: Beyaz (#3) (#8)
-    linkId: 2
+    linkId: 4
     isHidden: 0
   - wagonColor: {r: 1, g: 1, b: 1, a: 1}
     capacity: 17
     paletteIndex: 2
     label: Beyaz (#3) (#8)
-    linkId: 0
-    isHidden: 1
+    linkId: 2
+    isHidden: 0
   - wagonColor: {r: 0.003921569, g: 0.7294118, b: 0.8352942, a: 1}
     capacity: 20
     paletteIndex: 0
     label: Turkuaz (#1) (#9)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 1, g: 1, b: 1, a: 1}
+    capacity: 20
+    paletteIndex: 2
+    label: Beyaz (#3) (#10)
     linkId: 4
     isHidden: 0
   - wagonColor: {r: 1, g: 1, b: 1, a: 1}
@@ -166,13 +172,7 @@ MonoBehaviour:
     paletteIndex: 2
     label: Beyaz (#3) (#10)
     linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 1, b: 1, a: 1}
-    capacity: 20
-    paletteIndex: 2
-    label: Beyaz (#3) (#10)
-    linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.003921569, g: 0.7294118, b: 0.8352942, a: 1}
     capacity: 10
     paletteIndex: 0
@@ -184,7 +184,7 @@ MonoBehaviour:
     paletteIndex: 1
     label: Siyah (#2) (#12)
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   - wagonColor: {r: 0.003921569, g: 0.7294118, b: 0.8352942, a: 1}
     capacity: 10
     paletteIndex: 0
@@ -202,12 +202,6 @@ MonoBehaviour:
     paletteIndex: 4
     label: Pembe (#5) (#14)
     linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.003921569, g: 0.7294118, b: 0.8352942, a: 1}
-    capacity: 10
-    paletteIndex: 0
-    label: Turkuaz (#1) (#15)
-    linkId: 0
     isHidden: 1
   - wagonColor: {r: 0.003921569, g: 0.7294118, b: 0.8352942, a: 1}
     capacity: 10
@@ -218,7 +212,7 @@ MonoBehaviour:
   - wagonColor: {r: 0.003921569, g: 0.7294118, b: 0.8352942, a: 1}
     capacity: 10
     paletteIndex: 0
-    label: Turkuaz (#1) (#17)
+    label: Turkuaz (#1) (#15)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.003921569, g: 0.7294118, b: 0.8352942, a: 1}
@@ -227,6 +221,12 @@ MonoBehaviour:
     label: Turkuaz (#1) (#17)
     linkId: 0
     isHidden: 0
+  - wagonColor: {r: 0.003921569, g: 0.7294118, b: 0.8352942, a: 1}
+    capacity: 10
+    paletteIndex: 0
+    label: Turkuaz (#1) (#17)
+    linkId: 0
+    isHidden: 1
   - wagonColor: {r: 0.003921569, g: 0.7294118, b: 0.8352942, a: 1}
     capacity: 10
     paletteIndex: 0
@@ -238,7 +238,7 @@ MonoBehaviour:
     paletteIndex: 0
     label: Turkuaz (#1) (#17)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.003921569, g: 0.7294118, b: 0.8352942, a: 1}
     capacity: 20
     paletteIndex: 0
@@ -268,7 +268,7 @@ MonoBehaviour:
     paletteIndex: 1
     label: Siyah (#2) (#18)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.003921569, g: 0.7294118, b: 0.8352942, a: 1}
     capacity: 10
     paletteIndex: 0
@@ -322,13 +322,13 @@ MonoBehaviour:
     paletteIndex: 3
     label: Gri (#4) (#37)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.5019608, g: 0.37647063, b: 0.2784314, a: 1}
     capacity: 17
     paletteIndex: 5
     label: Turuncu (#6) (#38)
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   - wagonColor: {r: 0.5019608, g: 0.37647063, b: 0.2784314, a: 1}
     capacity: 10
     paletteIndex: 5

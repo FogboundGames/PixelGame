@@ -81,7 +81,7 @@ MonoBehaviour:
     capacity: 20
     paletteIndex: 4
     label: Turuncu (#5) (#1)
-    linkId: 0
+    linkId: 1
     isHidden: 0
   - wagonColor: {r: 0.7803922, g: 0.8196079, b: 0.8431373, a: 1}
     capacity: 20
@@ -105,7 +105,7 @@ MonoBehaviour:
     capacity: 12
     paletteIndex: 0
     label: Gri (#1) (#4)
-    linkId: 0
+    linkId: 1
     isHidden: 0
   - wagonColor: {r: 0.854902, g: 0.67058825, b: 0.39607847, a: 1}
     capacity: 10
@@ -142,7 +142,7 @@ MonoBehaviour:
     paletteIndex: 5
     label: "Fu\u015Fya (#6) (#10)"
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.9176471, g: 0.34901962, b: 0.43137258, a: 1}
     capacity: 10
     paletteIndex: 5
@@ -153,7 +153,7 @@ MonoBehaviour:
     capacity: 18
     paletteIndex: 0
     label: Gri (#1) (#11)
-    linkId: 0
+    linkId: 2
     isHidden: 0
   - wagonColor: {r: 0.9176471, g: 0.34901962, b: 0.43137258, a: 1}
     capacity: 10
@@ -166,18 +166,18 @@ MonoBehaviour:
     paletteIndex: 0
     label: Gri (#1) (#13)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.6, g: 0.6666667, b: 0.70980394, a: 1}
     capacity: 19
     paletteIndex: 3
     label: Mavi (#4) (#14)
-    linkId: 0
+    linkId: 3
     isHidden: 0
   - wagonColor: {r: 0.9960785, g: 0.6784314, b: 0.21568629, a: 1}
     capacity: 10
     paletteIndex: 1
     label: Turuncu (#2) (#15)
-    linkId: 0
+    linkId: 2
     isHidden: 0
   - wagonColor: {r: 0.9960785, g: 0.6784314, b: 0.21568629, a: 1}
     capacity: 17
@@ -195,7 +195,7 @@ MonoBehaviour:
     capacity: 10
     paletteIndex: 2
     label: Turuncu (#3) (#16)
-    linkId: 0
+    linkId: 3
     isHidden: 0
   - wagonColor: {r: 0.9960785, g: 0.6784314, b: 0.21568629, a: 1}
     capacity: 20
@@ -220,7 +220,7 @@ MonoBehaviour:
     paletteIndex: 1
     label: Turuncu (#2) (#19)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 1, g: 0.8470589, b: 0.50980395, a: 1}
     capacity: 20
     paletteIndex: 2
@@ -238,7 +238,7 @@ MonoBehaviour:
     paletteIndex: 2
     label: Turuncu (#3) (#24)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   m_FigureShadowTexture: {fileID: 0}
   m_UseCustomColorTheme: 0
   m_ColorTheme:
