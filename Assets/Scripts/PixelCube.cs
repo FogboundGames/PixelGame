@@ -46,6 +46,8 @@ namespace PixelGame
         [Header("Renk Bilgileri")]
         [SerializeField] private Color m_OriginalColor = Color.white;
         [SerializeField] private Color m_CurrentColor = Color.white;
+        [SerializeField] private Color m_TrueColor = Color.white;
+        [SerializeField] private float m_EmissionIntensity = 0f;
 
         [Header("Gölge (Fake Shadow - Her Yönde)")]
         [Tooltip("Arka paneldeki 360 derece çevreleyen gölge quad'ı")]
@@ -54,6 +56,12 @@ namespace PixelGame
         [SerializeField] private GameObject m_ShadowBottomObject;
         [Tooltip("Küp patladığında sahte gölgesi de gizlenir; kalan küplerin gölgeleri derinliği tamamlar")]
         [SerializeField] private bool m_KeepShadowPermanent = false;
+
+        [Header("❓ Gizli / Soru İşareti Küp (Mystery Cube)")]
+        [SerializeField] private bool m_IsMystery = false;
+        [SerializeField] private bool m_HasRevealed = false;
+        [SerializeField] private Color m_MysteryCubeColor = new Color(0.08f, 0.09f, 0.16f, 1f);
+        [SerializeField] private GameObject m_MysteryQuestionObject;
 
         private MeshRenderer m_Renderer;
         // Küp gövdesi + (varsa) bacak/ayak gibi alt parçaların renderer'ları.
@@ -257,6 +265,8 @@ namespace PixelGame
         public int GridY => m_GridY;
         public Color OriginalColor => m_OriginalColor;
         public Color CurrentColor => m_CurrentColor;
+        public Color TrueColor => GetEffectiveTrueColor();
+        public float EmissionIntensity => m_EmissionIntensity;
         public GameObject ShadowObject => m_ShadowObject;
         public GameObject ShadowBottomObject => m_ShadowBottomObject;
         public bool IsPopped => m_IsPopped;
@@ -267,25 +277,57 @@ namespace PixelGame
             set => m_KeepShadowPermanent = value;
         }
 
+        public bool IsMystery => m_IsMystery && !m_HasRevealed;
+        public bool HasRevealed => m_HasRevealed;
+        public Color MysteryCubeColor => m_MysteryCubeColor;
+
         public void Initialize(int x, int y, Color originalColor, float emission = 0f)
         {
             m_GridX = x;
             m_GridY = y;
             m_OriginalColor = originalColor;
+            m_TrueColor = originalColor;
             m_CurrentColor = originalColor;
+            m_EmissionIntensity = emission;
             m_IsPopped = false;
-            ApplyColor(originalColor, emission);
+            m_HasRevealed = false;
+
+            if (m_IsMystery)
+            {
+                ApplyVisualColor(m_MysteryCubeColor, 0f);
+                EnsureMysteryQuestionObject(true);
+            }
+            else
+            {
+                ApplyVisualColor(originalColor, emission);
+                EnsureMysteryQuestionObject(false);
+            }
         }
 
         public void SetColor(Color newColor, float emission = 0f)
         {
             m_OriginalColor = newColor;
+            m_TrueColor = newColor;
             m_CurrentColor = newColor;
-            ApplyColor(newColor, emission);
+            m_EmissionIntensity = emission;
+            if (!m_IsMystery || m_HasRevealed)
+            {
+                ApplyVisualColor(newColor, emission);
+            }
+        }
+
+        public void SetTrueColor(Color newColor)
+        {
+            m_TrueColor = newColor;
+            m_CurrentColor = newColor;
+            if (!m_IsMystery || m_HasRevealed)
+            {
+                ApplyVisualColor(newColor, m_EmissionIntensity);
+            }
         }
 
         /// <summary>
-        /// Küpün gövdesini oluşturan tüm renderer'ları toplar (gölge quad'ları hariç).
+        /// Küpün gövdesini oluşturan tüm renderer'ları toplar (gölge ve soru işareti quad'ları hariç).
         /// Tek parça küpte sadece kök renderer, MainCube_Walk modelinde kök + bacaklar + ayaklar.
         /// </summary>
         private MeshRenderer[] GetBodyRenderers()
@@ -301,8 +343,10 @@ namespace PixelGame
             for (int i = 0; i < all.Length; i++)
             {
                 if (all[i] == null) continue;
-                // Sahte gölge quad'ları gövdeye dahil değil — renkleri ayrı yönetiliyor.
+                // Sahte gölge quad'ları ve Mystery quad'ı gövdeye dahil değil — renkleri ayrı yönetiliyor.
                 if (all[i].gameObject.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    continue;
+                if (all[i].gameObject.name.IndexOf("Mystery", System.StringComparison.OrdinalIgnoreCase) >= 0)
                     continue;
                 list.Add(all[i]);
             }
@@ -329,15 +373,17 @@ namespace PixelGame
             return maxZ;
         }
 
-        public void ApplyColor(Color color, float emission = 0f)
+        /// <summary>
+        /// Sadece renderer'lar üzerindeki görsel rengi (MPB) günceller.
+        /// Küpün gerçek mantıksal rengini (m_TrueColor/m_CurrentColor) bozmaz.
+        /// </summary>
+        public void ApplyVisualColor(Color color, float emission = 0f)
         {
-            m_CurrentColor = color;
-
             if (m_Renderer == null)
                 m_Renderer = GetComponent<MeshRenderer>();
 
             MeshRenderer[] body = GetBodyRenderers();
-            if (body.Length == 0) return;
+            if (body == null || body.Length == 0) return;
 
             if (s_PropertyBlock == null)
                 s_PropertyBlock = new MaterialPropertyBlock();
@@ -345,7 +391,6 @@ namespace PixelGame
             s_PropertyBlock.Clear();
             s_PropertyBlock.SetColor(BaseColorProp, color);
             s_PropertyBlock.SetColor(ColorProp, color);
-
 
             if (emission > 0f)
             {
@@ -362,10 +407,51 @@ namespace PixelGame
             }
         }
 
+        public void ApplyColor(Color color, float emission = 0f)
+        {
+            m_TrueColor = color;
+            m_CurrentColor = color;
+            m_EmissionIntensity = emission;
+
+            if (m_IsMystery && !m_HasRevealed)
+            {
+                ApplyVisualColor(m_MysteryCubeColor, 0f);
+            }
+            else
+            {
+                ApplyVisualColor(color, emission);
+            }
+        }
+
         public void UpdateColorAdjustments(float brightness, float saturation, float contrast, float emission)
         {
-            Color adjusted = AdjustColor(m_OriginalColor, brightness, saturation, contrast);
+            Color baseColor = (m_OriginalColor != Color.clear && m_OriginalColor != Color.white) ? m_OriginalColor : GetEffectiveTrueColor();
+            Color adjusted = AdjustColor(baseColor, brightness, saturation, contrast);
             ApplyColor(adjusted, emission);
+        }
+
+        public Color GetEffectiveTrueColor()
+        {
+            if (m_TrueColor != Color.clear && m_TrueColor != Color.white && !IsMysteryColor(m_TrueColor))
+                return m_TrueColor;
+
+            if (m_OriginalColor != Color.clear && m_OriginalColor != Color.white && !IsMysteryColor(m_OriginalColor))
+                return m_OriginalColor;
+
+            if (m_CurrentColor != Color.clear && m_CurrentColor != Color.white && !IsMysteryColor(m_CurrentColor))
+                return m_CurrentColor;
+
+            if (m_TrueColor != Color.clear && !IsMysteryColor(m_TrueColor))
+                return m_TrueColor;
+
+            return m_OriginalColor != Color.clear ? m_OriginalColor : Color.white;
+        }
+
+        private bool IsMysteryColor(Color c)
+        {
+            return Mathf.Abs(c.r - m_MysteryCubeColor.r) < 0.02f &&
+                   Mathf.Abs(c.g - m_MysteryCubeColor.g) < 0.02f &&
+                   Mathf.Abs(c.b - m_MysteryCubeColor.b) < 0.02f;
         }
 
         public static Color AdjustColor(Color col, float brightness, float saturation, float contrast)
@@ -620,6 +706,7 @@ namespace PixelGame
                 SetBodyRenderersEnabled(false);
                 if (m_CubeCollider != null) m_CubeCollider.enabled = false;
                 HideShadows();
+                if (m_MysteryQuestionObject != null) m_MysteryQuestionObject.SetActive(false);
             }
             else
             {
@@ -641,6 +728,18 @@ namespace PixelGame
                 ClearAssignment();
                 if (m_CubeCollider != null) m_CubeCollider.enabled = true;
                 if (m_ShadowObject != null) m_ShadowObject.SetActive(true);
+
+                if (m_IsMystery && !m_HasRevealed)
+                {
+                    ApplyVisualColor(m_MysteryCubeColor, 0f);
+                    EnsureMysteryQuestionObject(true);
+                }
+                else
+                {
+                    EnsureMysteryQuestionObject(false);
+                    Color targetColor = GetEffectiveTrueColor();
+                    ApplyVisualColor(targetColor, m_EmissionIntensity);
+                }
             }
 
             // Kontur gölgesi de küplerle birlikte parça parça küçülsün/geri büyüsün diye canlı yeniden üret.
@@ -668,7 +767,8 @@ namespace PixelGame
             // 1. Kendi renginde 3D mini vokseller aşağıya doğru dökülsün
             if (VoxelParticleManager.Instance != null)
             {
-                VoxelParticleManager.Instance.SpawnVoxelBurst(transform.position, transform.lossyScale, m_CurrentColor);
+                Color burstColor = GetEffectiveTrueColor();
+                VoxelParticleManager.Instance.SpawnVoxelBurst(transform.position, transform.lossyScale, burstColor);
             }
 
             // 3. Etkileşim yöneticisine bildir
@@ -705,6 +805,173 @@ namespace PixelGame
         {
             if (!Application.isPlaying) return;
             BurstAndDestroy();
+        }
+
+        #endregion
+
+        #region ❓ Mystery Cube (Gizli Küp) Yönetimi & Açılma (Reveal)
+
+        private static Material s_CachedMysteryMaterial;
+        public static Material GetDefaultMysteryMaterial()
+        {
+            if (s_CachedMysteryMaterial != null) return s_CachedMysteryMaterial;
+
+            s_CachedMysteryMaterial = Resources.Load<Material>("MysteryQuestion_Mat");
+            if (s_CachedMysteryMaterial != null) return s_CachedMysteryMaterial;
+
+            Shader s = Shader.Find("Sprites/Default") ?? Shader.Find("Universal Render Pipeline/Unlit");
+            if (s != null)
+            {
+                s_CachedMysteryMaterial = new Material(s);
+                s_CachedMysteryMaterial.name = "Runtime_MysteryQuestion_Mat";
+                Texture2D tex = Resources.Load<Texture2D>("mystery_cube_question");
+                if (tex != null)
+                {
+                    s_CachedMysteryMaterial.mainTexture = tex;
+                    if (s_CachedMysteryMaterial.HasProperty("_BaseMap"))
+                        s_CachedMysteryMaterial.SetTexture("_BaseMap", tex);
+                }
+                s_CachedMysteryMaterial.color = Color.white;
+                if (s_CachedMysteryMaterial.HasProperty("_BaseColor"))
+                    s_CachedMysteryMaterial.SetColor("_BaseColor", Color.white);
+
+                s_CachedMysteryMaterial.renderQueue = 3000;
+            }
+            return s_CachedMysteryMaterial;
+        }
+
+        public void EnsureMysteryQuestionObject(bool visible)
+        {
+            if (m_MysteryQuestionObject == null)
+            {
+                Transform t = transform.Find("Mystery_QuestionMark");
+                if (t != null)
+                {
+                    m_MysteryQuestionObject = t.gameObject;
+                }
+            }
+
+            if (visible)
+            {
+                if (m_MysteryQuestionObject == null)
+                {
+                    m_MysteryQuestionObject = new GameObject("Mystery_QuestionMark");
+                    m_MysteryQuestionObject.transform.SetParent(transform, false);
+                    m_MysteryQuestionObject.transform.localPosition = new Vector3(0f, 0f, -0.52f);
+                    m_MysteryQuestionObject.transform.localRotation = Quaternion.identity;
+                    m_MysteryQuestionObject.transform.localScale = new Vector3(0.85f, 0.85f, 1f);
+
+                    MeshFilter mf = m_MysteryQuestionObject.AddComponent<MeshFilter>();
+#if UNITY_EDITOR
+                    Mesh builtinQuad = Resources.GetBuiltinResource<Mesh>("Quad.fbx");
+                    mf.sharedMesh = builtinQuad != null ? builtinQuad : GetOrCreateQuadMesh();
+#else
+                    mf.sharedMesh = GetOrCreateQuadMesh();
+#endif
+                    MeshRenderer mr = m_MysteryQuestionObject.AddComponent<MeshRenderer>();
+                    mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    mr.receiveShadows = false;
+                    mr.sharedMaterial = GetDefaultMysteryMaterial();
+                    mr.sortingOrder = 2;
+                }
+                m_MysteryQuestionObject.SetActive(true);
+            }
+            else
+            {
+                if (m_MysteryQuestionObject != null)
+                {
+                    m_MysteryQuestionObject.SetActive(false);
+                }
+            }
+        }
+
+        public void SetMysteryState(bool isMystery, Color mysteryColor)
+        {
+            m_IsMystery = isMystery;
+            m_MysteryCubeColor = mysteryColor;
+            m_HasRevealed = false;
+
+            if (isMystery)
+            {
+                ApplyVisualColor(mysteryColor, 0f);
+                EnsureMysteryQuestionObject(true);
+            }
+            else
+            {
+                EnsureMysteryQuestionObject(false);
+                Color realColor = GetEffectiveTrueColor();
+                m_CurrentColor = realColor;
+                m_TrueColor = realColor;
+                ApplyVisualColor(realColor, m_EmissionIntensity);
+            }
+        }
+
+        public void RevealMystery(bool animate = true)
+        {
+            if (!m_IsMystery || m_HasRevealed) return;
+            m_HasRevealed = true;
+            m_IsMystery = false;
+
+            Color targetColor = GetEffectiveTrueColor();
+            m_CurrentColor = targetColor;
+            m_TrueColor = targetColor;
+
+            if (animate && Application.isPlaying && gameObject.activeInHierarchy)
+            {
+                StartCoroutine(RevealRoutine(targetColor));
+            }
+            else
+            {
+                EnsureMysteryQuestionObject(false);
+                ApplyVisualColor(targetColor, m_EmissionIntensity);
+            }
+        }
+
+        private System.Collections.IEnumerator RevealRoutine(Color targetColor)
+        {
+            Vector3 originalScale = transform.localScale;
+            float duration = 0.35f;
+            float elapsed = 0f;
+
+            if (VoxelParticleManager.Instance != null)
+            {
+                VoxelParticleManager.Instance.SpawnVoxelBurst(transform.position, transform.lossyScale * 0.45f, targetColor);
+            }
+
+            bool colorSwapped = false;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+
+                float scaleMul;
+                if (t < 0.35f)
+                {
+                    float p = t / 0.35f;
+                    scaleMul = Mathf.Lerp(1f, 1.28f, Mathf.Sin(p * Mathf.PI * 0.5f));
+                }
+                else
+                {
+                    float p = (t - 0.35f) / 0.65f;
+                    scaleMul = Mathf.Lerp(1.28f, 1f, Mathf.Sin(p * Mathf.PI * 0.5f));
+                }
+
+                transform.localScale = originalScale * scaleMul;
+
+                if (!colorSwapped && t >= 0.35f)
+                {
+                    colorSwapped = true;
+                    EnsureMysteryQuestionObject(false);
+                    ApplyVisualColor(targetColor, m_EmissionIntensity);
+                }
+
+                yield return null;
+            }
+
+            transform.localScale = originalScale;
+            EnsureMysteryQuestionObject(false);
+            ApplyVisualColor(targetColor, m_EmissionIntensity);
         }
 
         #endregion

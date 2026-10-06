@@ -28,6 +28,9 @@ namespace PixelGame
         [Header("Paytak Yürüyüş")]
         [Tooltip("Küp boyu kadar yolda atılan adım sayısı.")]
         [SerializeField] private float m_StepsPerCube = 1.6f;
+        [Tooltip("Saniyedeki en fazla adım sayısı. Hızlı ipte adımlar yola bağlı kalırsa saniyede ~30 adıma çıkıp " +
+                 "titreme gibi görünüyordu; bu sınır yürüyüşü akıcı tutar.")]
+        [SerializeField] private float m_MaxStepsPerSecond = 5f;
         [Tooltip("Adım atan bacağın yana açılma açısı (derece).")]
         [SerializeField] private float m_LegSplayDegrees = 24f;
         [Tooltip("Adım atan bacağın kalkma yüksekliği (küp boyu cinsinden).")]
@@ -83,6 +86,9 @@ namespace PixelGame
         private Vector3 m_LegsRest;
         private bool m_IsAirborne;
         public bool IsAirborne { get => m_IsAirborne; set => m_IsAirborne = value; }
+
+        /// <summary>Açıkken küp adım atmaz: gövde ve bacaklar prefab duruşunda kalır, küp yolda düz kayar.</summary>
+        public bool Glide { get; set; }
 
         private void Awake()
         {
@@ -282,10 +288,25 @@ namespace PixelGame
             }
 
             float size = Mathf.Max(1e-4f, transform.lossyScale.x);
+
+            if (Glide)
+            {
+                // Akıcı zincir: adım/yalpalama yok, küp prefab duruşunda kayar
+                m_LastPosition = transform.position;
+                if (m_Body != null) { m_Body.localRotation = Quaternion.identity; m_Body.localPosition = Vector3.zero; }
+                if (m_Legs != null) m_Legs.localPosition = m_LegsRest;
+                if (m_LegL != null) { m_LegL.localRotation = m_LegLRestRotation; m_LegL.localPosition = m_LegLRest; }
+                if (m_LegR != null) { m_LegR.localRotation = m_LegRRestRotation; m_LegR.localPosition = m_LegRRest; }
+                m_ShadowFade = 1f;
+                UpdateFootstepShadow(0f, size);
+                return;
+            }
+
             Vector3 delta = transform.position - m_LastPosition;
             m_LastPosition = transform.position;
             float moved = new Vector2(delta.x, delta.y).magnitude;
-            m_Phase += moved / size * m_StepsPerCube * Mathf.PI;
+            float phaseStep = moved / size * m_StepsPerCube * Mathf.PI;
+            m_Phase += Mathf.Min(phaseStep, m_MaxStepsPerSecond * Mathf.PI * Time.deltaTime);
             if (moved < size * 0.002f)
             {
                 // Trende öndekini beklerken adım ortasında donup kalmasın: iki ayağını yere basıp dursun

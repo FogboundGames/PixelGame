@@ -4,6 +4,12 @@ using UnityEngine;
 
 namespace PixelGame
 {
+    public enum MysteryRevealCondition
+    {
+        WhenExposed = 0,         // Dış havaya açıldığında (Erişilebilir olunca)
+        WhenNeighborCleared = 1  // Bitişik herhangi bir komşu toplandığında
+    }
+
     [Serializable]
     public class PaletteColorOverride
     {
@@ -295,6 +301,16 @@ namespace PixelGame
         [Tooltip("Şeffaf (alpha < 0.1) pikseller için küp oluşturulmasın mı?")]
         [SerializeField] private bool m_SkipTransparent = true;
 
+        [Header("❓ Gizli / Soru İşaretli Küpler (Mystery Cubes)")]
+        [Tooltip("Bölüm başladığında rengi '?' ile gizli olan ve sonradan açılan küplerin koordinatları")]
+        [SerializeField] private List<Vector2Int> m_MysteryCubeCoordinates = new List<Vector2Int>();
+
+        [Tooltip("Gizli küplerin ortaya çıkma (açılma) koşulu")]
+        [SerializeField] private MysteryRevealCondition m_MysteryRevealCondition = MysteryRevealCondition.WhenExposed;
+
+        [Tooltip("Gizli küpün koyu arka plan rengi")]
+        [SerializeField] private Color m_MysteryCubeColor = new Color(0.08f, 0.09f, 0.16f, 1f);
+
         [Header("🚚 Kamyon Düzeni")]
         [Tooltip("Öndeki park yerlerinin görseli. Boş bırakılırsa sahnedeki kurulumdan gelen " +
                  "görsel kullanılır; buraya bir sprite sürüklersen bu bölüme özel olur.")]
@@ -399,6 +415,116 @@ namespace PixelGame
         public Vector3 CubeRowStepOffset { get => m_CubeRowStepOffset; set => m_CubeRowStepOffset = value; }
         public float InnerPadding { get => m_InnerPadding; set => m_InnerPadding = value; }
         public bool SkipTransparent { get => m_SkipTransparent; set => m_SkipTransparent = value; }
+
+        public List<Vector2Int> MysteryCubeCoordinates
+        {
+            get
+            {
+                if (m_MysteryCubeCoordinates == null) m_MysteryCubeCoordinates = new List<Vector2Int>();
+                return m_MysteryCubeCoordinates;
+            }
+            set => m_MysteryCubeCoordinates = value;
+        }
+
+        public MysteryRevealCondition MysteryRevealCondition
+        {
+            get => m_MysteryRevealCondition;
+            set => m_MysteryRevealCondition = value;
+        }
+
+        public Color MysteryCubeColor
+        {
+            get => m_MysteryCubeColor;
+            set => m_MysteryCubeColor = value;
+        }
+
+        public bool IsMysteryCube(int x, int y)
+        {
+            if (m_MysteryCubeCoordinates == null) return false;
+            return m_MysteryCubeCoordinates.Contains(new Vector2Int(x, y));
+        }
+
+        public bool SetMysteryCube(int x, int y, bool isMystery)
+        {
+            if (m_MysteryCubeCoordinates == null) m_MysteryCubeCoordinates = new List<Vector2Int>();
+            Vector2Int pos = new Vector2Int(x, y);
+            bool contains = m_MysteryCubeCoordinates.Contains(pos);
+            if (isMystery && !contains)
+            {
+                m_MysteryCubeCoordinates.Add(pos);
+                return true;
+            }
+            else if (!isMystery && contains)
+            {
+                m_MysteryCubeCoordinates.Remove(pos);
+                return true;
+            }
+            return false;
+        }
+
+        public bool ToggleMysteryCube(int x, int y)
+        {
+            if (m_MysteryCubeCoordinates == null) m_MysteryCubeCoordinates = new List<Vector2Int>();
+            Vector2Int pos = new Vector2Int(x, y);
+            if (m_MysteryCubeCoordinates.Contains(pos))
+            {
+                m_MysteryCubeCoordinates.Remove(pos);
+                return false;
+            }
+            else
+            {
+                m_MysteryCubeCoordinates.Add(pos);
+                return true;
+            }
+        }
+
+        public void ClearMysteryCubes()
+        {
+            if (m_MysteryCubeCoordinates != null)
+                m_MysteryCubeCoordinates.Clear();
+        }
+
+        public int GetMysteryCubeCount()
+        {
+            return m_MysteryCubeCoordinates != null ? m_MysteryCubeCoordinates.Count : 0;
+        }
+
+        public void SetMysteryRegion(int minX, int maxX, int minY, int maxY, bool isMystery)
+        {
+            if (m_MysteryCubeCoordinates == null) m_MysteryCubeCoordinates = new List<Vector2Int>();
+            for (int x = minX; x <= maxX; x++)
+            {
+                for (int y = minY; y <= maxY; y++)
+                {
+                    SetMysteryCube(x, y, isMystery);
+                }
+            }
+        }
+
+        public void SetMysteryByColor(Color targetCol, bool isMystery, float threshold = 0.05f)
+        {
+            Texture2D tex = GetActiveTexture();
+            if (tex == null) return;
+            Vector2Int res = GetGridResolution();
+            int cols = res.x;
+            int rows = res.y;
+
+            for (int x = 0; x < cols; x++)
+            {
+                for (int y = 0; y < rows; y++)
+                {
+                    int px = Mathf.Clamp(Mathf.FloorToInt((x + 0.5f) / cols * tex.width), 0, tex.width - 1);
+                    int py = Mathf.Clamp(Mathf.FloorToInt((y + 0.5f) / rows * tex.height), 0, tex.height - 1);
+                    Color c = tex.GetPixel(px, py);
+                    if (m_SkipTransparent && c.a < 0.1f) continue;
+                    c = ApplyColorPipeline(c);
+                    if (PaletteColorOverride.ColorsMatch(c, targetCol, threshold))
+                    {
+                        SetMysteryCube(x, y, isMystery);
+                    }
+                }
+            }
+        }
 
         public Sprite SlotSprite { get => m_SlotSprite; set => m_SlotSprite = value; }
         public int SlotCount { get => m_SlotCount; set => m_SlotCount = Mathf.Max(1, value); }

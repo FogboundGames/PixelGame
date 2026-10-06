@@ -579,6 +579,7 @@ namespace PixelGame
             {
                 PixelCube cube = kvp.Value;
                 if (cube == null || s_ReservedCubes.Contains(cube)) continue;
+                if (cube.IsMystery) continue;
 
                 if (ColorsMatch(cube.CurrentColor, shipColor) || ColorsMatch(cube.OriginalColor, shipColor))
                 {
@@ -633,11 +634,80 @@ namespace PixelGame
         }
 
         /// <summary>
+        /// Dış havaya açılan veya komşusu temizlenen gizli / soru işaretli küpleri kontrol eder ve açar.
+        /// </summary>
+        public void CheckAndRevealMysteryCubes(bool triggerFollowUpCheck = false)
+        {
+            var allCubes = PixelCube.ActiveCubes;
+            if (allCubes == null || allCubes.Count == 0) return;
+
+            bool hasMystery = false;
+            for (int i = 0; i < allCubes.Count; i++)
+            {
+                if (allCubes[i] != null && allCubes[i].IsMystery)
+                {
+                    hasMystery = true;
+                    break;
+                }
+            }
+            if (!hasMystery) return;
+
+            if (!TryBuildLiveGrid(out var gridMap, out var outsideAir, out _)) return;
+
+            PixelLevelData level = (m_Generator != null) ? m_Generator.ActiveLevelData : null;
+            if (level == null && LevelManager.Instance != null) level = LevelManager.Instance.CurrentLevel;
+            MysteryRevealCondition condition = (level != null) ? level.MysteryRevealCondition : MysteryRevealCondition.WhenExposed;
+
+            bool anyRevealed = false;
+            foreach (var kvp in gridMap)
+            {
+                PixelCube cube = kvp.Value;
+                if (cube == null || !cube.IsMystery) continue;
+
+                int x = cube.GridX;
+                int y = cube.GridY;
+
+                bool shouldReveal = false;
+                if (condition == MysteryRevealCondition.WhenExposed)
+                {
+                    bool touchesAir = outsideAir != null && (
+                        outsideAir.Contains((x - 1, y)) ||
+                        outsideAir.Contains((x + 1, y)) ||
+                        outsideAir.Contains((x, y - 1)) ||
+                        outsideAir.Contains((x, y + 1))
+                    );
+                    if (touchesAir) shouldReveal = true;
+                }
+                else // WhenNeighborCleared
+                {
+                    bool neighborMissing = !gridMap.ContainsKey((x - 1, y)) ||
+                                           !gridMap.ContainsKey((x + 1, y)) ||
+                                           !gridMap.ContainsKey((x, y - 1)) ||
+                                           !gridMap.ContainsKey((x, y + 1));
+                    if (neighborMissing) shouldReveal = true;
+                }
+
+                if (shouldReveal)
+                {
+                    cube.RevealMystery(true);
+                    anyRevealed = true;
+                }
+            }
+
+            if (anyRevealed && triggerFollowUpCheck)
+            {
+                TriggerWaitingShipsCheck();
+            }
+        }
+
+        /// <summary>
         /// Bir küp patladığında veya gemi yanaştığında, slotlarda bekleyen dolmamış diğer gemilerin
         /// önüne yeni açılan dış küp gelip gelmediğini kontrol eder ve toplamayı başlatır.
         /// </summary>
         public void TriggerWaitingShipsCheck()
         {
+            CheckAndRevealMysteryCubes(triggerFollowUpCheck: false);
+
             if (m_Slots == null || m_Slots.Count == 0) return;
 
             foreach (var slot in m_Slots)
@@ -745,6 +815,7 @@ namespace PixelGame
             {
                 PixelCube cube = kvp.Value;
                 if (s_ReservedCubes.Contains(cube)) continue;
+                if (cube.IsMystery) continue;
                 if (!ColorsMatch(cube.CurrentColor, ship.ShipColor) && !ColorsMatch(cube.OriginalColor, ship.ShipColor)) continue;
 
                 matchingCubes.Add(cube);
@@ -805,24 +876,31 @@ namespace PixelGame
                     rightArm.Add(c);
             }
 
-            // Eğer bir kol boşsa ve diğerinde küp varsa ikiye bölerek iki taraftan akış sağla
-            if (leftArm.Count == 0 && rightArm.Count > 1)
-            {
-                int half = rightArm.Count / 2;
-                leftArm.AddRange(rightArm.GetRange(0, half));
-                rightArm.RemoveRange(0, half);
-            }
-            else if (rightArm.Count == 0 && leftArm.Count > 1)
-            {
-                int half = leftArm.Count / 2;
-                rightArm.AddRange(leftArm.GetRange(0, half));
-                leftArm.RemoveRange(0, half);
-            }
-
+            // Eğer tüm küpler tek bir taraftaysa yapay olarak ikiye bölme; doğal zincir tek parça aksın.
+            // Sadece her iki tarafta da doğal olarak küp varsa iki kol kullanılır.
             float pitch = Mathf.Max(0.12f, m_GridFrame.Pitch);
             float margin = pitch * 1.35f;
             float baseSpeed = Mathf.Max(3.2f, EffectiveRopeSpeed());
             float maxDuration = 0f;
+            CubeMovementSettings ms = MovementSettings;
+            float stagger = ms.TrainStaggerInterval;
+
+            // Sıralı zincir akışı (Staggered stream): Küpler panodan tek tek, sırayla ayrılır.
+            // Sol ve sağ kolların küpleri ardışık gecikmeler alarak asla aynı anda yola çıkmaz.
+            float[] leftDelays = new float[leftArm.Count];
+            float[] rightDelays = new float[rightArm.Count];
+            int dispatchIdx = 0;
+
+            for (int i = 0; i < leftArm.Count; i++)
+            {
+                leftDelays[i] = dispatchIdx * stagger;
+                dispatchIdx++;
+            }
+            for (int i = 0; i < rightArm.Count; i++)
+            {
+                rightDelays[i] = dispatchIdx * stagger;
+                dispatchIdx++;
+            }
 
             // 4. Referans videodaki gibi: her kol, kenar boyunca birbirine bağlı bir zincirdir.
             // Baş küp çıkışa (pano altı, orta) en yakın açık küptür; zincir oradan komşu
@@ -842,15 +920,15 @@ namespace PixelGame
                     arm, outsideAir, gridMap, minY, exitRef, boatEntrance, isLeft,
                     out float[] cubeStartDistances, out float boardExitDist);
 
-                // Hız profili payı: başlama gecikmesi + anticipation + hızlanma + varıştaki yavaşlama
-                CubeMovementSettings ms = MovementSettings;
+                // Hız profili payı: başlama gecikmesi + anticipation + hızlanma + varıştaki yavaşlama + toplam stagger
                 float profileSlack = ms.StartDelayVariation + ms.AnticipationDuration
                                      + ms.MoveSpeed / Mathf.Max(0.1f, ms.Acceleration)
                                      + Mathf.Max(pitch, ms.ArrivalDistance) / (baseSpeed * Mathf.Max(0.1f, ms.ArrivalSlowdown));
-                float dur = (armPath.Length + arm.Count * pitch * RopeSpacingFactor) / baseSpeed + profileSlack;
+                float totalArmStagger = arm.Count * stagger;
+                float dur = (armPath.Length + arm.Count * pitch * RopeSpacingFactor) / baseSpeed + profileSlack + totalArmStagger;
                 if (dur > maxDuration) maxDuration = dur;
 
-                StartCoroutine(RunReferenceRopeArm(arm, armPath, cubeStartDistances, boardExitDist, ship, isLeft, boatEntrance));
+                StartCoroutine(RunReferenceRopeArm(arm, armPath, cubeStartDistances, boardExitDist, ship, isLeft, boatEntrance, isLeft ? leftDelays : rightDelays));
             }
 
             if (m_Generator != null) m_Generator.RegenerateContourShadowFromLiveCubeState();
@@ -1115,7 +1193,8 @@ namespace PixelGame
             float boardExitDist,
             ShipController ship,
             bool entersLeft,
-            Vector3 shoreTargetAtLaunch)
+            Vector3 shoreTargetAtLaunch,
+            float[] customStartDelays = null)
         {
             if (armCubes == null || armCubes.Count == 0 || path == null) yield break;
 
@@ -1144,6 +1223,7 @@ namespace PixelGame
             var dists = new float[count];
             float groundPlaneZ = BeachGroundZ();
 
+            float staggerInterval = s.TrainStaggerInterval;
             for (int k = 0; k < count; k++)
             {
                 dists[k] = (cubeStartDistances != null && k < cubeStartDistances.Length) ? cubeStartDistances[k] : 0f;
@@ -1177,9 +1257,17 @@ namespace PixelGame
                 motion.SetGroundPlaneZ(groundPlaneZ);
                 motions[k] = motion;
 
-                // Kontrollü varyasyon
-                startDelay[k] = UnityEngine.Random.Range(0f, s.StartDelayVariation);
-                speedMul[k] = 1f + UnityEngine.Random.Range(-s.SpeedVariation, s.SpeedVariation);
+                // Sıralı zincir akışı (Staggered stream): her küp aralarında TrainStaggerInterval
+                // kadar gecikmeyle sırayla panodan ayrılır
+                if (customStartDelays != null && k < customStartDelays.Length)
+                {
+                    startDelay[k] = customStartDelays[k];
+                }
+                else
+                {
+                    startDelay[k] = k * staggerInterval;
+                }
+                speedMul[k] = 1f;
             }
 
             int onPath = count;
@@ -1214,13 +1302,39 @@ namespace PixelGame
                     float myCruise = cruise * speedMul[k];
 
                     // Hedef takip mesafesi:
-                    // Önünde bir lider varsa ondan spacing kadar geride kalır.
+                    // Önünde aktif bir lider varsa ondan spacing kadar geride kalır.
                     // Yoksa (veya öndeki gemiye bindiyse) kendisi baştır ve yol sonuna kadar yürür!
                     float targetDist = leader >= 0 
                         ? dists[leader] - (k - leader) * spacing 
                         : path.Length;
 
-                    if (active && targetDist > dists[k])
+                    if (!active)
+                    {
+                        // Henüz çıkış sırası gelmedi: tahtadaki başlangıç hücresinde sabit beklesin
+                        speeds[k] = 0f;
+                    }
+                    else if (s.SmoothGlide && leader >= 0)
+                    {
+                        // Akıcı tren zinciri (V2): öndeki küp onu çekmeye başladığında ani ışınlanma (teleport)
+                        // yerine yumuşak elastik ivmelenmeyle başlar (0-0.08s pickup hissi).
+                        // Spacing mesafesini yakalayınca tam vagon gibi liderle aynı sabit aralık ve hızda akar.
+                        if (targetDist > dists[k])
+                        {
+                            float slack = targetDist - dists[k];
+                            // Liderin hızına doğru yumuşak ivmelenme
+                            float targetFollowSpeed = speeds[leader];
+                            speeds[k] = Mathf.MoveTowards(speeds[k], targetFollowSpeed, accelRate * 1.5f * dt);
+                            // Boşluğu kapatacak şekilde ilerle (asla targetDist'i aşmaz)
+                            float moveStep = Mathf.Min(slack, Mathf.Max(speeds[k], speeds[leader]) * dt + slack * (1f - Mathf.Exp(-dt / 0.06f)));
+                            dists[k] += moveStep;
+                            accelT[k] = accelT[leader];
+                        }
+                        else
+                        {
+                            speeds[k] = Mathf.MoveTowards(speeds[k], 0f, decelRate * dt);
+                        }
+                    }
+                    else if (active && targetDist > dists[k])
                     {
                         float slack = targetDist - dists[k];
                         float remaining = Mathf.Max(0f, path.Length - dists[k]);
@@ -1242,9 +1356,16 @@ namespace PixelGame
                         speeds[k] = Mathf.MoveTowards(speeds[k], 0f, decelRate * dt);
                     }
 
-                    // Konum: Kesinlikle ve daima yol (spline) üzerindedir!
-                    float w = path.Length > 1e-4f ? Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((dists[k] - boardExitDist) / Mathf.Max(0.5f, path.Length - boardExitDist))) : 1f;
-                    basePos[k] = path.PointAtDistance(dists[k]) + shoreShift * w;
+                    // Konum: Henüz aktif değilse tahtadaki kendi konumunda sabit bekler; aktif olunca yol boyunca akar
+                    if (!active)
+                    {
+                        basePos[k] = armCubes[k] != null ? armCubes[k].transform.position : path.PointAtDistance(dists[k]);
+                    }
+                    else
+                    {
+                        float w = path.Length > 1e-4f ? Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((dists[k] - boardExitDist) / Mathf.Max(0.5f, path.Length - boardExitDist))) : 1f;
+                        basePos[k] = path.PointAtDistance(dists[k]) + shoreShift * w;
+                    }
 
                     // Karakter hareket katmanına uygula (zemin teması korunur)
                     motions[k].ApplyRopeFrame(basePos[k], 0f, popUp, camUp, dt);
@@ -1258,7 +1379,10 @@ namespace PixelGame
                         continue;
                     }
 
-                    leader = k;
+                    if (active)
+                    {
+                        leader = k;
+                    }
                 }
 
                 yield return null;

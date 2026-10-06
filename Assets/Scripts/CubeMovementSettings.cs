@@ -28,6 +28,47 @@ namespace PixelGame
             }
         }
 
+        [Header("🚂 0. AKICI ZİNCİR & KARAKTER CANLILIĞI (Glide & Micro-Dynamics)")]
+        [Tooltip("Referans videodaki gibi: küpler akıcı bir zincir halinde kayarak taşınır ama yaşayan bir karakter gibi tepki verir (%80 glide + %20 mikro-animasyon). " +
+                 "Kaba paytak yürüyüş kapanır; momentum, pickup anticipation, viraj yön gecikmesi, mikro-yatma ve yumuşak fren devrededir.")]
+        public bool SmoothGlide = true;
+
+        [Tooltip("Görsel gövdenin yolu ne kadar geriden takip ettiği (sn). Momentum ve virajda yön gecikmesi hissi verir. 0 = yola yapışık.")]
+        [Range(0f, 0.15f)]
+        public float GlideFollowLag = 0.07f;
+
+        [Tooltip("Pickup: küp ilk çekildiğinde çok kısa basılma (compression) süresi (sn).")]
+        [Range(0.02f, 0.12f)]
+        public float PickupCompressionDuration = 0.06f;
+
+        [Tooltip("Pickup: küp çekildiğinde dikey basılma (0.04 = Y %4 basılır, X/Z %2 genişler).")]
+        [Range(0.01f, 0.08f)]
+        public float PickupSquash = 0.04f;
+
+        [Tooltip("Pickup kalkış süresi (sn).")]
+        [Range(0.06f, 0.20f)]
+        public float PickupLiftDuration = 0.10f;
+
+        [Tooltip("Pickup: ip küpü ilk çektiğinde küçük kalkış yüksekliği (dünya birimi).")]
+        [Range(0f, 0.10f)]
+        public float PickupLift = 0.045f;
+
+        [Tooltip("Virajlarda yön gecikmesi (Direction Lag süresi, sn). Gövde yolun dönüşünü geriden takip eder.")]
+        [Range(0.02f, 0.15f)]
+        public float DirectionLag = 0.07f;
+
+        [Tooltip("Mikro hareketlerin genel şiddeti: viraj yatması, hızlanma esnemesi, seyirde hafif nefes alma. 0 = tamamen düz kayma.")]
+        [Range(0f, 1f)]
+        public float GlideMicroMotion = 0.75f;
+
+        [Tooltip("Sıralı zincir akışında küplerin panodan tek tek yola çıkış gecikmesi (sn). 0.10 - 0.18s arası hypercasual akış için idealdir.")]
+        [Range(0.04f, 0.35f)]
+        public float TrainStaggerInterval = 0.14f;
+
+        // Geriye dönük uyumluluk aliasları
+        public float GlidePickupLift { get => PickupLift; set => PickupLift = value; }
+        public float GlidePickupSquash { get => PickupSquash; set => PickupSquash = value; }
+
         [Header("🚀 1. HAREKET (Movement)")]
         [Tooltip("Küpün maksimum seyir hızı (dünya birimi/sn).")]
         [Range(1.5f, 10f)]

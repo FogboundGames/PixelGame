@@ -48,6 +48,14 @@ MonoBehaviour:
   m_CubeRowStepOffset: {x: 0, y: 0, z: 0}
   m_InnerPadding: 0.08
   m_SkipTransparent: 1
+  m_MysteryCubeCoordinates:
+  - {x: 8, y: 10}
+  - {x: 9, y: 10}
+  - {x: 9, y: 9}
+  - {x: 7, y: 9}
+  - {x: 8, y: 9}
+  m_MysteryRevealCondition: 0
+  m_MysteryCubeColor: {r: 0.08, g: 0.09, b: 0.16, a: 1}
   m_SlotSprite: {fileID: 0}
   m_SlotCount: 3
   m_PoolColumns: 3

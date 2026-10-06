@@ -623,6 +623,43 @@ namespace PixelGame
 
                 cube.UpdateColorAdjustments(m_ColorBrightness, m_ColorSaturation, m_ColorContrast, m_EmissionIntensity);
             }
+
+            SyncMysteryCubesLive();
+        }
+
+        /// <summary>
+        /// Sahnedeki küplerin gizli / soru işaretli durumunu bölüm verileriyle anında senkronize eder.
+        /// </summary>
+        [ContextMenu("❓ Gizli Küpleri Canlı Güncelle (Sync Mystery)")]
+        public void SyncMysteryCubesLive()
+        {
+            if (m_CubesContainer == null) return;
+            PixelCube[] cubes = m_CubesContainer.GetComponentsInChildren<PixelCube>(true);
+            if (cubes == null || cubes.Length == 0) return;
+
+            Color mysteryColor = (m_ActiveLevelData != null) ? m_ActiveLevelData.MysteryCubeColor : new Color(0.08f, 0.09f, 0.16f, 1f);
+
+            Texture2D activeTex = GetActiveTexture();
+            GetEffectiveGridSize(activeTex, out int cols, out int rows);
+
+            foreach (var cube in cubes)
+            {
+                if (cube == null) continue;
+                bool isMystery = (m_ActiveLevelData != null) && m_ActiveLevelData.IsMysteryCube(cube.GridX, cube.GridY);
+
+                // Dokudan gerçek orijinal rengi ve ayarlanmış rengi doğrula/tazele (özellikle eski çalıştırmalarda siyah kalmış küpler varsa)
+                if (activeTex != null && cols > 0 && rows > 0)
+                {
+                    Color rawColor = SampleRawColor(activeTex, cube.GridX, cube.GridY, cols, rows);
+                    if (rawColor.a >= 0.05f)
+                    {
+                        Color adjusted = PixelCube.AdjustColor(rawColor, m_ColorBrightness, m_ColorSaturation, m_ColorContrast);
+                        cube.SetTrueColor(adjusted);
+                    }
+                }
+
+                cube.SetMysteryState(isMystery, mysteryColor);
+            }
         }
 
         /// <summary>
@@ -990,6 +1027,12 @@ namespace PixelGame
 
                     pixelCube.Initialize(x, y, rawColor, m_EmissionIntensity);
                     pixelCube.ApplyColor(adjustedColor, m_EmissionIntensity);
+
+                    bool isMystery = m_ActiveLevelData != null && m_ActiveLevelData.IsMysteryCube(x, y);
+                    if (isMystery)
+                    {
+                        pixelCube.SetMysteryState(true, m_ActiveLevelData.MysteryCubeColor);
+                    }
 
                     // Küp altına sahte gölge (Fake Shadow) ekle
                     if (useFakeShadows && shadowMat != null)

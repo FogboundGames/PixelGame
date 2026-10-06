@@ -44,9 +44,17 @@ namespace PixelGame.Editor
             SimpleMode = 0,    // ⚡ Kolay Mod (Gemi & Hızlı)
             LevelSetup = 1,    // 📋 Bölüm & Izgara
             ColorStudio = 2,   // 🎨 Piksel Renkleri & TCP2 Toon
-            TruckLayout = 3,   // 🚚 Vagon & Ray Düzeni
-            SceneTools = 4     // 🛠️ Sahne & Görsel Araçları
+            MysteryCubes = 3,  // ❓ Gizli Küpler
+            TruckLayout = 4,   // 🚢 Gemi / Vagon Sıra Düzeni
+            SceneTools = 5     // 🛠️ Sahne & Görsel Araçları
         }
+
+        private enum MysteryBrushMode { Paint = 0, Erase = 1, Toggle = 2 }
+        private MysteryBrushMode m_MysteryBrushMode = MysteryBrushMode.Paint;
+        private int m_MysteryRandomPercent = 25;
+        private int m_MysteryColorIndex = 0;
+        private Vector2 m_MysteryGridScroll = Vector2.zero;
+        private Texture2D m_MysteryQuestionIconTex;
 
         private DetailTab m_CurrentTab = DetailTab.SimpleMode;
         private Color m_PreviewBlockColor = new Color32(230, 40, 40, 255);
@@ -638,6 +646,10 @@ namespace PixelGame.Editor
             {
                 DrawColorStudioTab();
             }
+            else if (m_CurrentTab == DetailTab.MysteryCubes)
+            {
+                DrawMysteryCubesTab();
+            }
             else if (m_CurrentTab == DetailTab.TruckLayout)
             {
                 DrawTruckLayoutTab();
@@ -676,6 +688,7 @@ namespace PixelGame.Editor
             DrawTabButton(DetailTab.SimpleMode, "⚡ Kolay Mod (Gemi)", tabStyle);
             DrawTabButton(DetailTab.LevelSetup, "📋 Bölüm & Izgara", tabStyle);
             DrawTabButton(DetailTab.ColorStudio, "🎨 Piksel Renkleri & TCP2", tabStyle);
+            DrawTabButton(DetailTab.MysteryCubes, "❓ Gizli Küpler", tabStyle);
             DrawTabButton(DetailTab.TruckLayout, "🚢 Gemi / Vagon Sıra Düzeni", tabStyle);
             DrawTabButton(DetailTab.SceneTools, "🛠️ Sahne Araçları", tabStyle);
             EditorGUILayout.EndHorizontal();
@@ -688,7 +701,9 @@ namespace PixelGame.Editor
             {
                 GUI.backgroundColor = (tab == DetailTab.SimpleMode)
                     ? new Color(0.25f, 0.85f, 0.5f)
-                    : new Color(0.25f, 0.75f, 1f);
+                    : (tab == DetailTab.MysteryCubes)
+                        ? new Color(1f, 0.6f, 0.2f)
+                        : new Color(0.25f, 0.75f, 1f);
             }
             else
             {
@@ -3633,6 +3648,394 @@ namespace PixelGame.Editor
             GUI.backgroundColor = Color.white;
         }
 
+        #region TAB 5: MYSTERY CUBES (GİZLİ KÜPLER)
+
+        private void DrawMysteryCubesTab()
+        {
+            if (m_SelectedLevel == null) return;
+
+            Texture2D activeTex = m_SelectedLevel.GetActiveTexture();
+            Vector2Int gridRes = m_SelectedLevel.GetGridResolution();
+            int cols = gridRes.x;
+            int rows = gridRes.y;
+
+            int totalCubes = m_SelectedLevel.GetTotalCubeCountInPalette();
+            int mysteryCount = m_SelectedLevel.GetMysteryCubeCount();
+            int normalCount = Mathf.Max(0, totalCubes - mysteryCount);
+            float mysteryRatio = totalCubes > 0 ? (mysteryCount / (float)totalCubes) * 100f : 0f;
+
+            // 1. Üst Bilgi & Durum Kartı (Hero Banner)
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label("❓", GUILayout.Width(30), GUILayout.Height(30));
+            EditorGUILayout.BeginVertical();
+            EditorGUILayout.LabelField("Gizli / Soru İşaretli Küp Tasarımcısı (Mystery Cubes Studio)", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Bölüm başında '?' simgesiyle gizlenen ve dış katman temizlenip açığa çıktığında rengi beliren küpleri tasarlayın.", EditorStyles.miniLabel);
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(4);
+
+            // İstatistik Rozetleri
+            EditorGUILayout.BeginHorizontal();
+            DrawBadgeCard("Toplam Küp", $"{totalCubes}", new Color(0.2f, 0.5f, 0.9f));
+            DrawBadgeCard("❓ Gizli Küp", $"{mysteryCount} (%{mysteryRatio:F1})", new Color(0.95f, 0.5f, 0.15f));
+            DrawBadgeCard("Normal Küp", $"{normalCount}", new Color(0.25f, 0.75f, 0.4f));
+            DrawBadgeCard("Çözünürlük", $"{cols} x {rows}", new Color(0.55f, 0.4f, 0.85f));
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(6);
+
+            // Temel Ayarlar (Açılma Koşulu & Koyu Küp Rengi)
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.LabelField("⚙️ Gizli Küp Davranış Ayarları", EditorStyles.boldLabel);
+            
+            EditorGUI.BeginChangeCheck();
+            var newCond = (MysteryRevealCondition)EditorGUILayout.EnumPopup(new GUIContent("🔓 Açılma Koşulu", "Küplerin gizliliğini bozup gerçek rengini ortaya çıkarma şartı"), m_SelectedLevel.MysteryRevealCondition);
+            var newColor = EditorGUILayout.ColorField(new GUIContent("🎨 Gizli Küp Rengi", "Soru işaretinin arkasındaki koyu arka plan rengi"), m_SelectedLevel.MysteryCubeColor);
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(m_SelectedLevel, "Change Mystery Settings");
+                m_SelectedLevel.MysteryRevealCondition = newCond;
+                m_SelectedLevel.MysteryCubeColor = newColor;
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+            }
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.Space(8);
+
+            // 2. Hızlı Toplu İşlem Araçları (Batch Operations)
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.LabelField("⚡ Hızlı & Otomatik Toplu Araçlar", EditorStyles.boldLabel);
+
+            if (activeTex != null && !activeTex.isReadable)
+            {
+                EnsureTextureReadable(activeTex);
+            }
+
+            EditorGUILayout.BeginHorizontal();
+
+            // A: İç Küpleri Otomatik Gizle
+            GUI.backgroundColor = new Color(0.3f, 0.85f, 0.5f);
+            if (GUILayout.Button("⭕ Tüm İç Küpleri Gizle", GUILayout.Height(28)))
+            {
+                Undo.RecordObject(m_SelectedLevel, "Hide All Inner Cubes");
+                AutoMarkInnerCubesAsMystery(cols, rows, activeTex);
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+            }
+
+            // B: Rastgele İç Küp Gizle
+            GUI.backgroundColor = new Color(0.3f, 0.75f, 1f);
+            if (GUILayout.Button($"🎲 Rastgele %{m_MysteryRandomPercent} İç Küp Gizle", GUILayout.Height(28)))
+            {
+                Undo.RecordObject(m_SelectedLevel, "Random Inner Mystery");
+                RandomizeInnerCubesAsMystery(cols, rows, activeTex, m_MysteryRandomPercent);
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+            }
+
+            // C: Tüm Gizlilikleri Temizle
+            GUI.backgroundColor = new Color(1f, 0.45f, 0.45f);
+            if (GUILayout.Button("🧹 Tüm Gizlilikleri Temizle", GUILayout.Height(28)))
+            {
+                if (EditorUtility.DisplayDialog("Gizli Küpleri Temizle", "Bu bölümdeki tüm '?' gizli küpler normal renge dönecek. Onaylıyor musunuz?", "Evet, Temizle", "Vazgeç"))
+                {
+                    Undo.RecordObject(m_SelectedLevel, "Clear Mystery Cubes");
+                    m_SelectedLevel.ClearMysteryCubes();
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+            }
+            GUI.backgroundColor = Color.white;
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(4);
+
+            // Renge Göre Gizle / Aç ve Rastgele % Slider
+            EditorGUILayout.BeginHorizontal();
+            m_MysteryRandomPercent = EditorGUILayout.IntSlider("Rastgele Oran (%)", m_MysteryRandomPercent, 5, 80);
+
+            // Renk Paletinden Seçerek Gizle
+            if (m_SelectedLevel.ColorPalette != null && m_SelectedLevel.ColorPalette.Count > 0)
+            {
+                string[] colorNames = new string[m_SelectedLevel.ColorPalette.Count];
+                for (int i = 0; i < colorNames.Length; i++)
+                {
+                    var p = m_SelectedLevel.ColorPalette[i];
+                    colorNames[i] = string.IsNullOrEmpty(p.label) ? $"Renk #{i + 1}" : p.label;
+                }
+                m_MysteryColorIndex = Mathf.Clamp(m_MysteryColorIndex, 0, colorNames.Length - 1);
+                m_MysteryColorIndex = EditorGUILayout.Popup(m_MysteryColorIndex, colorNames, GUILayout.Width(130));
+
+                if (GUILayout.Button("Bu Rengi Gizle", EditorStyles.miniButton, GUILayout.Width(100)))
+                {
+                    Undo.RecordObject(m_SelectedLevel, "Hide Color");
+                    Color target = m_SelectedLevel.ColorPalette[m_MysteryColorIndex].targetColor;
+                    m_SelectedLevel.SetMysteryByColor(target, true);
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+                if (GUILayout.Button("Gizliliği Aç", EditorStyles.miniButton, GUILayout.Width(80)))
+                {
+                    Undo.RecordObject(m_SelectedLevel, "Unhide Color");
+                    Color target = m_SelectedLevel.ColorPalette[m_MysteryColorIndex].targetColor;
+                    m_SelectedLevel.SetMysteryByColor(target, false);
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.Space(8);
+
+            // 3. İnteraktif 2D Piksel Boyama Izgarası (Interactive Pixel Board Painter)
+            DrawInteractiveMysteryGrid(cols, rows, activeTex);
+        }
+
+        private void DrawBadgeCard(string title, string value, Color accent)
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.ExpandWidth(true));
+            GUIStyle valStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 12,
+                normal = { textColor = accent }
+            };
+            GUIStyle titleStyle = new GUIStyle(EditorStyles.miniLabel)
+            {
+                alignment = TextAnchor.MiddleCenter
+            };
+            GUILayout.Label(value, valStyle);
+            GUILayout.Label(title, titleStyle);
+            EditorGUILayout.EndVertical();
+        }
+
+        private void AutoMarkInnerCubesAsMystery(int cols, int rows, Texture2D tex)
+        {
+            if (tex == null) return;
+            for (int x = 1; x < cols - 1; x++)
+            {
+                for (int y = 1; y < rows - 1; y++)
+                {
+                    if (IsSolidPixel(tex, x, y, cols, rows) &&
+                        IsSolidPixel(tex, x - 1, y, cols, rows) &&
+                        IsSolidPixel(tex, x + 1, y, cols, rows) &&
+                        IsSolidPixel(tex, x, y - 1, cols, rows) &&
+                        IsSolidPixel(tex, x, y + 1, cols, rows))
+                    {
+                        m_SelectedLevel.SetMysteryCube(x, y, true);
+                    }
+                }
+            }
+        }
+
+        private bool IsSolidPixel(Texture2D tex, int x, int y, int cols, int rows)
+        {
+            if (x < 0 || x >= cols || y < 0 || y >= rows) return false;
+            int px = Mathf.Clamp(Mathf.FloorToInt((x + 0.5f) / cols * tex.width), 0, tex.width - 1);
+            int py = Mathf.Clamp(Mathf.FloorToInt((y + 0.5f) / rows * tex.height), 0, tex.height - 1);
+            Color c = tex.GetPixel(px, py);
+            return !(m_SelectedLevel.SkipTransparent && c.a < 0.1f);
+        }
+
+        private void RandomizeInnerCubesAsMystery(int cols, int rows, Texture2D tex, int percent)
+        {
+            if (tex == null) return;
+            var innerCubes = new List<Vector2Int>();
+            for (int x = 1; x < cols - 1; x++)
+            {
+                for (int y = 1; y < rows - 1; y++)
+                {
+                    if (IsSolidPixel(tex, x, y, cols, rows) &&
+                        IsSolidPixel(tex, x - 1, y, cols, rows) &&
+                        IsSolidPixel(tex, x + 1, y, cols, rows) &&
+                        IsSolidPixel(tex, x, y - 1, cols, rows) &&
+                        IsSolidPixel(tex, x, y + 1, cols, rows))
+                    {
+                        innerCubes.Add(new Vector2Int(x, y));
+                    }
+                }
+            }
+
+            if (innerCubes.Count == 0) return;
+            var rng = new System.Random();
+            for (int i = innerCubes.Count - 1; i > 0; i--)
+            {
+                int j = rng.Next(i + 1);
+                var temp = innerCubes[i];
+                innerCubes[i] = innerCubes[j];
+                innerCubes[j] = temp;
+            }
+
+            int targetCount = Mathf.RoundToInt(innerCubes.Count * (percent / 100f));
+            for (int i = 0; i < innerCubes.Count; i++)
+            {
+                m_SelectedLevel.SetMysteryCube(innerCubes[i].x, innerCubes[i].y, i < targetCount);
+            }
+        }
+
+        private void DrawInteractiveMysteryGrid(int cols, int rows, Texture2D activeTex)
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            // Araç Çubuğu (Brush, Eraser, Toggle)
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("🎨 İnteraktif Izgara (Tıklayarak / Sürükleyerek Boyayın):", EditorStyles.boldLabel);
+            GUILayout.FlexibleSpace();
+
+            GUI.backgroundColor = (m_MysteryBrushMode == MysteryBrushMode.Paint) ? new Color(0.3f, 0.88f, 0.5f) : Color.white;
+            if (GUILayout.Button("✏️ Soru İşareti Çiz (?)", EditorStyles.miniButtonLeft, GUILayout.Width(140)))
+            {
+                m_MysteryBrushMode = MysteryBrushMode.Paint;
+            }
+
+            GUI.backgroundColor = (m_MysteryBrushMode == MysteryBrushMode.Erase) ? new Color(1f, 0.45f, 0.45f) : Color.white;
+            if (GUILayout.Button("🧹 Sil (Normal Yap)", EditorStyles.miniButtonMid, GUILayout.Width(130)))
+            {
+                m_MysteryBrushMode = MysteryBrushMode.Erase;
+            }
+
+            GUI.backgroundColor = (m_MysteryBrushMode == MysteryBrushMode.Toggle) ? new Color(0.35f, 0.75f, 1f) : Color.white;
+            if (GUILayout.Button("🔄 Tıkla Değiştir", EditorStyles.miniButtonRight, GUILayout.Width(110)))
+            {
+                m_MysteryBrushMode = MysteryBrushMode.Toggle;
+            }
+            GUI.backgroundColor = Color.white;
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(6);
+
+            if (cols <= 0 || rows <= 0 || activeTex == null)
+            {
+                EditorGUILayout.HelpBox("Izgara çözünürlüğü tespit edilemedi veya görsel atanmadı.", MessageType.Warning);
+                EditorGUILayout.EndVertical();
+                return;
+            }
+
+            if (m_MysteryQuestionIconTex == null)
+            {
+                m_MysteryQuestionIconTex = Resources.Load<Texture2D>("mystery_cube_question");
+            }
+
+            float availableWidth = EditorGUIUtility.currentViewWidth - 380f;
+            float cellSize = Mathf.Clamp(Mathf.Floor(availableWidth / cols), 14f, 28f);
+            float gridWidth = cols * cellSize;
+            float gridHeight = rows * cellSize;
+
+            m_MysteryGridScroll = EditorGUILayout.BeginScrollView(m_MysteryGridScroll, GUILayout.Height(Mathf.Min(gridHeight + 30, 480)));
+
+            Rect gridRect = GUILayoutUtility.GetRect(gridWidth, gridHeight, GUILayout.Width(gridWidth), GUILayout.Height(gridHeight));
+            // Izgara arka planı
+            EditorGUI.DrawRect(new Rect(gridRect.x - 2, gridRect.y - 2, gridWidth + 4, gridHeight + 4), new Color(0.12f, 0.15f, 0.2f));
+            EditorGUI.DrawRect(gridRect, new Color(0.92f, 0.90f, 0.85f));
+
+            Color mysteryBgColor = m_SelectedLevel.MysteryCubeColor;
+            GUIStyle qStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = Mathf.Clamp(Mathf.RoundToInt(cellSize * 0.72f), 9, 20),
+                normal = { textColor = Color.white }
+            };
+
+            // Hücreleri çiz (Y=rows-1 en üstte, Y=0 en altta)
+            for (int r = 0; r < rows; r++)
+            {
+                int y = rows - 1 - r;
+                for (int x = 0; x < cols; x++)
+                {
+                    Rect cellRect = new Rect(gridRect.x + x * cellSize, gridRect.y + r * cellSize, cellSize - 1, cellSize - 1);
+
+                    int px = Mathf.Clamp(Mathf.FloorToInt((x + 0.5f) / cols * activeTex.width), 0, activeTex.width - 1);
+                    int py = Mathf.Clamp(Mathf.FloorToInt((y + 0.5f) / rows * activeTex.height), 0, activeTex.height - 1);
+                    Color rawColor = activeTex.GetPixel(px, py);
+
+                    if (m_SelectedLevel.SkipTransparent && rawColor.a < 0.1f)
+                    {
+                        bool checker = ((x + y) % 2 == 0);
+                        EditorGUI.DrawRect(cellRect, checker ? new Color(0.88f, 0.88f, 0.88f, 0.6f) : new Color(0.82f, 0.82f, 0.82f, 0.6f));
+                        continue;
+                    }
+
+                    bool isMystery = m_SelectedLevel.IsMysteryCube(x, y);
+
+                    Color finalColor = m_SelectedLevel.ApplyColorPipeline(rawColor);
+                    EditorGUI.DrawRect(cellRect, finalColor);
+
+                    if (isMystery)
+                    {
+                        // Altındaki rengin kaybolmaması için opak siyah yerine yarı saydam şık bir karartma ve soru işareti çiz
+                        Color overlayTint = new Color(mysteryBgColor.r, mysteryBgColor.g, mysteryBgColor.b, 0.45f);
+                        EditorGUI.DrawRect(cellRect, overlayTint);
+
+                        // İnce altın sarısı kenarlıkla gizli küpü netleştir
+                        Handles.color = new Color(1f, 0.85f, 0.15f, 0.75f);
+                        Handles.DrawWireCube(new Vector3(cellRect.center.x, cellRect.center.y, 0f), new Vector3(cellRect.width, cellRect.height, 0f));
+
+                        if (m_MysteryQuestionIconTex != null)
+                        {
+                            float pad = Mathf.Max(1f, cellSize * 0.12f);
+                            Rect iconRect = new Rect(cellRect.x + pad, cellRect.y + pad, cellRect.width - pad * 2, cellRect.height - pad * 2);
+                            GUI.DrawTexture(iconRect, m_MysteryQuestionIconTex, ScaleMode.ScaleToFit);
+                        }
+                        else
+                        {
+                            GUI.Label(cellRect, "?", qStyle);
+                        }
+                    }
+                }
+            }
+
+            // Fare ile etkileşim (Tıklama ve Sürükleme ile Boyama)
+            Event evt = Event.current;
+            if ((evt.type == EventType.MouseDown || evt.type == EventType.MouseDrag) && gridRect.Contains(evt.mousePosition))
+            {
+                float localX = evt.mousePosition.x - gridRect.x;
+                float localY = evt.mousePosition.y - gridRect.y;
+                int clickedX = Mathf.FloorToInt(localX / cellSize);
+                int clickedY = rows - 1 - Mathf.FloorToInt(localY / cellSize);
+
+                if (clickedX >= 0 && clickedX < cols && clickedY >= 0 && clickedY < rows)
+                {
+                    int px = Mathf.Clamp(Mathf.FloorToInt((clickedX + 0.5f) / cols * activeTex.width), 0, activeTex.width - 1);
+                    int py = Mathf.Clamp(Mathf.FloorToInt((clickedY + 0.5f) / rows * activeTex.height), 0, activeTex.height - 1);
+                    Color c = activeTex.GetPixel(px, py);
+
+                    if (!(m_SelectedLevel.SkipTransparent && c.a < 0.1f))
+                    {
+                        Undo.RecordObject(m_SelectedLevel, "Paint Mystery Cube");
+                        if (m_MysteryBrushMode == MysteryBrushMode.Paint)
+                        {
+                            m_SelectedLevel.SetMysteryCube(clickedX, clickedY, true);
+                        }
+                        else if (m_MysteryBrushMode == MysteryBrushMode.Erase)
+                        {
+                            m_SelectedLevel.SetMysteryCube(clickedX, clickedY, false);
+                        }
+                        else if (m_MysteryBrushMode == MysteryBrushMode.Toggle && evt.type == EventType.MouseDown)
+                        {
+                            m_SelectedLevel.ToggleMysteryCube(clickedX, clickedY);
+                        }
+
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                        NotifyLiveSceneUpdate();
+                        Repaint();
+                        evt.Use();
+                    }
+                }
+            }
+
+            EditorGUILayout.EndScrollView();
+            EditorGUILayout.EndVertical();
+        }
+
+        #endregion
+
         private void DrawVerticalDivider()
         {
             Rect dividerRect = EditorGUILayout.GetControlRect(false, GUILayout.Width(2), GUILayout.ExpandHeight(true));
@@ -3652,6 +4055,7 @@ namespace PixelGame.Editor
                 gen.CubeDepth = m_SelectedLevel.CubeDepth;
                 gen.InnerPadding = m_SelectedLevel.InnerPadding;
                 gen.UpdateExistingCubesLive();
+                gen.SyncMysteryCubesLive();
             }
 
             // Sahnedeki ShipQueuePool'u anında senkronize et

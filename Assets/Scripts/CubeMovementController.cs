@@ -375,7 +375,7 @@ namespace PixelGame
             Camera cam = ShipController.MainCamera;
             Vector3 arcUp = cam != null ? cam.transform.up : Vector3.up;
             float arc = 4f * t * (1f - t);
-            float hopHeight = 0.28f;
+            float hopHeight = Settings.BoardingArcHeight;
             p += arcUp * (arc * hopHeight);
 
             transform.position = p;
@@ -421,11 +421,13 @@ namespace PixelGame
         private Vector3 m_RopeDir = Vector3.down;
         private Vector3 m_RopeRecoilDir = Vector3.down;
         private float m_RopeLastSpeed;
+        private float m_RopeSmoothSpeed;
         private float m_RopeStretch;
         private float m_RopeLift;
         private float m_RopeLiftHeight;
         private float m_RopeCruise = 1f;
-        private float m_RopeBobDist;
+        private float m_RopeBobDist; // bob fazı (radyan)
+        private const float MaxRopeBobRate = Mathf.PI * 2f * 2.5f; // en fazla 2.5 sekme / sn
         private float m_BobMul = 1f;
         private float m_TiltMul = 1f;
 
@@ -453,6 +455,7 @@ namespace PixelGame
             m_RopeDir = Vector3.down;
             m_RopeRecoilDir = Vector3.down;
             m_RopeLastSpeed = 0f;
+            m_RopeSmoothSpeed = 0f;
             m_RopeStretch = 0f;
             m_RopeLift = 0f;
             m_RopeLiftHeight = liftHeight;
@@ -468,6 +471,13 @@ namespace PixelGame
             m_TiltMul = 1f + UnityEngine.Random.Range(-0.15f, 0.15f);
 
             if (m_CargoRunner != null) m_CargoRunner.BeginWalk(indexInQueue);
+            if (m_Waddle != null) m_Waddle.Glide = s.SmoothGlide;
+            m_GlidePos = transform.position;
+            m_GlideVel = Vector3.zero;
+            m_GlideSpeed = 0f;
+            m_GlideAccel = 0f;
+            m_GlideBreath = 0f;
+            m_GlideSize = Mathf.Max(1e-3f, transform.lossyScale.y);
             m_State = MovementState.Idle;
         }
 
@@ -485,7 +495,10 @@ namespace PixelGame
             Vector3 delta = basePos - m_RopeLastBase;
             m_RopeLastBase = basePos;
             float moved = delta.magnitude;
-            float speed = moved / dt;
+            // Kare süresi oynadıkça ham hız da oynar; ivme/esneme ve bob bu yumuşatılmış hızı kullanır (titreme olmasın)
+            float rawSpeed = moved / dt;
+            float speed = Mathf.Lerp(m_RopeSmoothSpeed, rawSpeed, 1f - Mathf.Exp(-dt / 0.08f));
+            m_RopeSmoothSpeed = speed;
 
             // İp henüz bu küpü çekmedi: yerinde dur, hiçbir şey yazma (ucuz)
             if (m_State == MovementState.Idle)
@@ -495,6 +508,14 @@ namespace PixelGame
                 m_StateTimer = 0f;
                 m_RopeDir = delta / moved;
                 m_RopeRecoilDir = m_RopeDir;
+                m_GlidePos = basePos;
+                m_GlideVel = Vector3.zero;
+            }
+
+            if (s.SmoothGlide)
+            {
+                ApplyGlideFrame(s, basePos, landFade, popUp, camUp, dt);
+                return;
             }
 
             // --- Yön yumuşatma + dönüş hızına göre viraja yatma (turning anticipation & tilt) ---
@@ -543,9 +564,10 @@ namespace PixelGame
             float liftEase = Mathf.SmoothStep(0f, 1f, m_RopeLift);
 
             // --- Bob: katedilen yola bağlı, hız düştükçe söner ---
-            m_RopeBobDist += moved;
+            // Frekans sınırlı: hızlı ipte yola bağlı bob saniyede ~7 kez sekip titreme gibi görünüyordu
+            m_RopeBobDist += Mathf.Min(moved * s.BobSpeed, MaxRopeBobRate * dt);
             float speedRatio = Mathf.Clamp01(speed / m_RopeCruise);
-            float bob = Mathf.Sin(m_RopeBobDist * s.BobSpeed + m_BobPhase) * s.BobAmount * m_BobMul * speedRatio;
+            float bob = Mathf.Sin(m_RopeBobDist + m_BobPhase) * s.BobAmount * m_BobMul * speedRatio;
 
             transform.position = basePos + recoil
                                  + popUp * (m_RopeLiftHeight * liftEase * landFade)
@@ -559,6 +581,136 @@ namespace PixelGame
                 m_BaseScale.x * (1f - sy * 0.5f),
                 m_BaseScale.y * (1f + sy),
                 m_BaseScale.z * (1f - sy * 0.5f));
+
+            ApplyHeading(dt);
+        }
+
+        // --- Akıcı zincir (SmoothGlide V2) durumu ---
+        private Vector3 m_GlidePos;
+        private Vector3 m_GlideVel;
+        private float m_GlideSpeed;
+        private float m_GlideAccel;
+        private float m_GlideBreath;
+        private float m_GlideSize = 1f;
+        private const float MaxGlideBreathRate = Mathf.PI * 2f * 2.2f; // en fazla 2.2 nefes / sn
+
+        /// <summary>
+        /// Akıcı zincir V2 (Hypercasual Glide + Canlı Mikro-Dinamikler):
+        /// Küp yolda takılmadan, akıcı şekilde kayar (%80 glide) ama yaşayan bir karakter gibi
+        /// tepki verir (%20 mikro-animasyon).
+        /// Faz 1: Çekilme gerilimi ve basılma (0 - 0.06s compression)
+        /// Faz 2: Yerden hafif kalkış ve çözülme (0.06 - 0.16s lift & release)
+        /// Faz 3: Seyirde viraj yön gecikmesi (Direction Lag), mikro viraj yatması (Bank Tilt),
+        ///        hızlanma esnemesi ve mikro nefes alma
+        /// Faz 4: Hedefe varışta yumuşak sönümlenme (Soft Settle)
+        /// </summary>
+        private void ApplyGlideFrame(CubeMovementSettings s, Vector3 basePos, float landFade, Vector3 popUp, Vector3 camUp, float dt)
+        {
+            float micro = s.GlideMicroMotion;
+            m_StateTimer += dt;
+
+            // --- 1. Momentum Takibi: Görsel konum yolu sönümlü yayla izler (titreme/sekme olmadan) ---
+            if (s.GlideFollowLag > 1e-3f)
+            {
+                m_GlidePos = Vector3.SmoothDamp(m_GlidePos, basePos, ref m_GlideVel, s.GlideFollowLag, Mathf.Infinity, dt);
+            }
+            else
+            {
+                m_GlideVel = (basePos - m_GlidePos) / dt;
+                m_GlidePos = basePos;
+            }
+
+            // Hız ve yumuşatılmış ivme (kare süresi dalgalanmalarından etkilenmez)
+            float speed = m_GlideVel.magnitude;
+            float rawAccel = (speed - m_GlideSpeed) / dt;
+            m_GlideSpeed = speed;
+            m_GlideAccel = Mathf.Lerp(m_GlideAccel, rawAccel, 1f - Mathf.Exp(-dt / 0.09f));
+            float speedRatio = Mathf.Clamp01(speed / Mathf.Max(0.1f, m_RopeCruise));
+
+            // --- 2. Yön Gecikmesi (Direction Lag) ve Viraja Yatma (Bank Tilt) ---
+            if (speed > 1e-3f)
+            {
+                Vector3 moveDir = m_GlideVel / speed;
+                Vector3 prevDir = m_RopeDir;
+                float dirFollow = 1f - Mathf.Exp(-dt / Mathf.Max(0.01f, s.DirectionLag));
+                m_RopeDir = Vector3.Slerp(m_RopeDir, moveDir, dirFollow).normalized;
+
+                // Virajda mikro yatma: viraj dönüş hızına göre gövde tatlıca yatar
+                float turnRate = Vector3.SignedAngle(prevDir, m_RopeDir, Vector3.forward) / dt;
+                float targetTilt = Mathf.Clamp(turnRate / 140f, -1f, 1f) * s.TiltAmount * micro * m_TiltMul;
+                float tiltFollow = 1f - Mathf.Exp(-dt / Mathf.Max(0.03f, s.TiltSmoothness));
+                m_CurrentBankAngle = Mathf.Lerp(m_CurrentBankAngle, targetTilt, tiltFollow);
+            }
+            else
+            {
+                m_CurrentBankAngle = Mathf.Lerp(m_CurrentBankAngle, 0f, 1f - Mathf.Exp(-dt * 10f));
+            }
+
+            // --- 3. 4-Fazlı Pickup Döngüsü (Compression -> Lift -> Cruise) ---
+            float compDur = Mathf.Max(0.02f, s.PickupCompressionDuration);
+            float liftDur = Mathf.Max(0.04f, s.PickupLiftDuration);
+            float totalPickup = compDur + liftDur;
+
+            float pickupSquash = 0f;
+            float pickupLift = 0f;
+            Vector3 recoil = Vector3.zero;
+
+            if (m_StateTimer < compDur)
+            {
+                // Faz 1 (0 - 0.06s): Çekilme gerilimiyle dikey basılma & minik geri esneme
+                float tComp = Mathf.Clamp01(m_StateTimer / compDur);
+                float compFactor = Mathf.Sin(tComp * Mathf.PI * 0.5f);
+                pickupSquash = compFactor * s.PickupSquash;
+                recoil = -m_RopeRecoilDir * (compFactor * 0.016f * m_GlideSize);
+            }
+            else if (m_StateTimer < totalPickup)
+            {
+                // Faz 2 (0.06 - 0.16s): Yerden pürüzsüz kalkış & basılmanın çözülmesi
+                float tLift = Mathf.Clamp01((m_StateTimer - compDur) / liftDur);
+                float liftArc = Mathf.Sin(tLift * Mathf.PI);
+                pickupLift = liftArc * s.PickupLift * m_GlideSize;
+                pickupSquash = Mathf.Lerp(s.PickupSquash, 0f, tLift);
+                recoil = -m_RopeRecoilDir * ((1f - tLift) * 0.016f * m_GlideSize);
+            }
+            else
+            {
+                // Faz 3: Düzenli seyir (Cruise)
+                if (m_State == MovementState.Anticipation)
+                {
+                    m_State = MovementState.Moving;
+                }
+            }
+
+            // --- 4. Hızlanma Esnemesi & Mikro Nefes Alma (Micro-Dynamics) ---
+            float accelNorm = Mathf.Clamp(m_GlideAccel / Mathf.Max(0.5f, m_RopeCruise * 5f), -1f, 1f);
+            float stretch = accelNorm * 0.035f * micro;
+
+            // Seyirde çok hafif karakter soluklanması (frekans sınırlı, gövde sekmesi değil)
+            m_GlideBreath += Mathf.Min(speed / m_GlideSize * 1.4f, MaxGlideBreathRate) * dt;
+            float breath = Mathf.Sin(m_GlideBreath + m_BobPhase) * 0.012f * micro * speedRatio;
+
+            // Karttan hafif kalkış (hover)
+            m_RopeLift = Mathf.MoveTowards(m_RopeLift, 1f, dt / 0.3f);
+            Vector3 hover = popUp * (m_RopeLiftHeight * Mathf.SmoothStep(0f, 1f, m_RopeLift) * landFade);
+            Vector3 totalLift = hover + camUp * pickupLift;
+
+            // Pozisyonu uygula
+            transform.position = m_GlidePos + recoil + totalLift;
+
+            // Zemin temas gölgesi gövdenin altında kalsın, liftoff'ta hafifçe küçülsün
+            if (m_Waddle != null)
+            {
+                m_Waddle.GroundAnchorOffset = recoil + totalLift;
+            }
+
+            // Hacim koruyan ölçek (Volume-preserving scale):
+            // sy > 0 ise Y uzar, X ve Z daralır; sy < 0 ise Y basılır, X ve Z genişler
+            float sy = stretch + breath - pickupSquash;
+            transform.localScale = new Vector3(
+                m_BaseScale.x * (1f - sy * 0.45f),
+                m_BaseScale.y * (1f + sy),
+                m_BaseScale.z * (1f - sy * 0.45f)
+            );
 
             ApplyHeading(dt);
         }

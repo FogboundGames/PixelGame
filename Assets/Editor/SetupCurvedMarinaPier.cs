@@ -61,33 +61,20 @@ namespace PixelGame.Editor
 
                 // Varsayılan kavisli iskele sahil oranları
                 layout.EnableCurvedPier = true;
-                layout.PierWidth4Slots = 8.1f;
-                layout.PierWidth5Slots = 8.55f;
-                layout.PierWidth3Slots = 7.2f;
-                layout.PierOffsetY = 2.06f;
-                layout.PierOffsetZ = 0.04f;
-                layout.PierScaleMultiplier = 1.07f;
+                layout.UsePerCountSettings = true;
                 layout.PierRotationX = -40f;
-                layout.BaySlotOffsetY = 0f;
-
-                // Su ve slot parametreleri
-                layout.SlotWidth = 1.05f;
-                layout.SlotLength = 1.55f;
                 layout.WaterTiltX = -67.892f;
-                layout.SlotAngle = 0f;
-                layout.ArcCurveY = 0.042f;
                 layout.ArcAsymmetry = 0f;
                 layout.ArcAngleFan = 0f;
 
-                // Sahne kumsalına tam oturan kök Y konumu
-                layout.OffsetY = -2.20f;
-                layout.OffsetZ = 0.05f;
+                // 3, 4 ve 5 slot için kıyıya kalibre edilmiş ayarları yükle
+                layout.ResetToCalibratedDefaults(0);
 
                 layout.ApplyLayout();
                 EditorUtility.SetDirty(layout);
                 EditorUtility.SetDirty(layout.gameObject);
 
-                Debug.Log("<color=#00FFAA><b>[CurvedPier]</b></color> Kavisli iskele (4 ve 5 slot uyumlu) başarıyla kuruldu!");
+                Debug.Log("<color=#00FFAA><b>[CurvedPier]</b></color> Kavisli iskele (3, 4 ve 5 slot kıyıya uyumlu) başarıyla kuruldu!");
             }
 
             // 5. Üst sahil görünmez zeminini kur (pikselart küplerinin yürüme animasyonu gölgesi için)
