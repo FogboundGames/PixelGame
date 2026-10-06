@@ -12,25 +12,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe58058e3b890b141a573b6163a73810, type: 3}
   m_Name: CubeMovementSettings
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.CubeMovementSettings
-  MoveSpeed: 4.2
-  Acceleration: 9.5
+  SmoothGlide: 1
+  GlideFollowLag: 0.05
+  PickupCompressionDuration: 0.08
+  PickupSquash: 0.035
+  PickupLiftDuration: 0.08
+  PickupLift: 0.03
+  DirectionLag: 0.05
+  GlideMicroMotion: 0.65
+  TrainStaggerInterval: 0.14
+  MoveSpeed: 4.4
+  Acceleration: 10
   Deceleration: 12
-  TurnSpeed: 380
-  RotationSmoothness: 0.1
+  TurnSpeed: 400
+  RotationSmoothness: 0.08
   PathCurvature: 1
   PathWidth: 0.12
   PathSmoothing: 16
-  ArrivalDistance: 0.45
-  BobAmount: 0.012
+  ArrivalDistance: 0.5
+  ObstacleClearance: 0.38
+  CorridorClearance: 0.15
+  BobAmount: 0
   BobSpeed: 14
-  TiltAmount: 6.5
-  TiltSmoothness: 0.08
-  SquashAmount: 0.14
+  TiltAmount: 2.4
+  TiltSmoothness: 0.06
+  SquashAmount: 0.04
   SquashSpeed: 16
-  ArrivalSlowdown: 0.35
+  ArrivalSlowdown: 0.45
   ArrivalEase: 1.6
-  SettleDuration: 0.11
-  SettleBounce: 0.045
+  SettleDuration: 0.1
+  SettleBounce: 0.02
+  BoardingDuration: 0.22
+  BoardingArcHeight: 0.02
   SpeedVariation: 0.08
   BobVariation: 0.35
   StartDelayVariation: 0.035

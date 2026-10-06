@@ -88,7 +88,7 @@ namespace PixelGame
         public bool IsAirborne { get => m_IsAirborne; set => m_IsAirborne = value; }
 
         /// <summary>Açıkken küp adım atmaz: gövde ve bacaklar prefab duruşunda kalır, küp yolda düz kayar.</summary>
-        public bool Glide { get; set; }
+        public bool Glide { get; set; } = true;
 
         private void Awake()
         {
@@ -274,15 +274,24 @@ namespace PixelGame
                 {
                     m_Legs.localPosition = m_LegsRest;
                 }
-                if (m_LegL != null)
+                if (Glide)
                 {
-                    m_LegL.localRotation = m_LegLRestRotation * Quaternion.Euler(-25f, 0f, -12f);
-                    m_LegL.localPosition = m_LegLRest + new Vector3(0f, 0.06f, 0.02f);
+                    // Glide modunda bacaklar eğrilip bükülmez, sevimli prefab duruşunda kalır
+                    if (m_LegL != null) { m_LegL.localRotation = m_LegLRestRotation; m_LegL.localPosition = m_LegLRest; }
+                    if (m_LegR != null) { m_LegR.localRotation = m_LegRRestRotation; m_LegR.localPosition = m_LegRRest; }
                 }
-                if (m_LegR != null)
+                else
                 {
-                    m_LegR.localRotation = m_LegRRestRotation * Quaternion.Euler(-25f, 0f, 12f);
-                    m_LegR.localPosition = m_LegRRest + new Vector3(0f, 0.06f, 0.02f);
+                    if (m_LegL != null)
+                    {
+                        m_LegL.localRotation = m_LegLRestRotation * Quaternion.Euler(-25f, 0f, -12f);
+                        m_LegL.localPosition = m_LegLRest + new Vector3(0f, 0.06f, 0.02f);
+                    }
+                    if (m_LegR != null)
+                    {
+                        m_LegR.localRotation = m_LegRRestRotation * Quaternion.Euler(-25f, 0f, 12f);
+                        m_LegR.localPosition = m_LegRRest + new Vector3(0f, 0.06f, 0.02f);
+                    }
                 }
                 return;
             }

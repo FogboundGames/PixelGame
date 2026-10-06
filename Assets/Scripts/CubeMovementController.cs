@@ -336,6 +336,8 @@ namespace PixelGame
             }
         }
 
+        private Vector3 m_DeckTargetOffset = new Vector3(0f, 0.16f, 0.02f);
+
         // =========================================================================
         // 4. BOARDING: Gemi veya Araba Güvertesine Pürüzsüz Atlayış & Yerleşim
         // =========================================================================
@@ -345,6 +347,7 @@ namespace PixelGame
         public void StartBoarding(Transform targetVehicle, Vector3 deckTargetOffset, float duration, Action onBoarded)
         {
             m_TargetVehicle = targetVehicle;
+            m_DeckTargetOffset = deckTargetOffset;
             m_BoardingStartPos = transform.position;
             m_BoardingStartRot = transform.rotation;
             m_BoardingDuration = Mathf.Max(0.12f, duration);
@@ -364,7 +367,7 @@ namespace PixelGame
 
             // Hedef güverte noktası (araç hareket ediyorsa dinamik takip eder):
             Vector3 currentTarget = m_TargetVehicle != null
-                ? m_TargetVehicle.position + new Vector3(0f, 0.16f, 0.02f)
+                ? m_TargetVehicle.position + m_DeckTargetOffset
                 : m_BoardingStartPos;
 
             // Parabolik Yay & İlerleme:
@@ -442,7 +445,7 @@ namespace PixelGame
         /// İp modunu başlatır. Küp, ip onu çekene kadar (gerilim gelene kadar) yerinde bekler;
         /// ilk çekildiği karede kısa bir anticipation yapıp hareketlenir.
         /// </summary>
-        public void BeginRopeMotion(CubeMovementSettings settings, int indexInQueue, float cruiseSpeed, float liftHeight)
+        public void BeginRopeMotion(CubeMovementSettings settings, int indexInQueue, float cruiseSpeed, float liftHeight, Vector3 initialDir = default)
         {
             m_Settings = settings != null ? settings : CubeMovementSettings.Default;
             m_IndexInQueue = indexInQueue;
@@ -452,8 +455,8 @@ namespace PixelGame
             m_Waddle = GetComponent<WaddleRunner>();
 
             m_RopeLastBase = transform.position;
-            m_RopeDir = Vector3.down;
-            m_RopeRecoilDir = Vector3.down;
+            m_RopeDir = initialDir.sqrMagnitude > 1e-4f ? initialDir.normalized : Vector3.down;
+            m_RopeRecoilDir = m_RopeDir;
             m_RopeLastSpeed = 0f;
             m_RopeSmoothSpeed = 0f;
             m_RopeStretch = 0f;
@@ -478,7 +481,7 @@ namespace PixelGame
             m_GlideAccel = 0f;
             m_GlideBreath = 0f;
             m_GlideSize = Mathf.Max(1e-3f, transform.lossyScale.y);
-            m_State = MovementState.Idle;
+            m_State = MovementState.Anticipation;
         }
 
         /// <summary>
@@ -609,16 +612,9 @@ namespace PixelGame
             float micro = s.GlideMicroMotion;
             m_StateTimer += dt;
 
-            // --- 1. Momentum Takibi: Görsel konum yolu sönümlü yayla izler (titreme/sekme olmadan) ---
-            if (s.GlideFollowLag > 1e-3f)
-            {
-                m_GlidePos = Vector3.SmoothDamp(m_GlidePos, basePos, ref m_GlideVel, s.GlideFollowLag, Mathf.Infinity, dt);
-            }
-            else
-            {
-                m_GlideVel = (basePos - m_GlidePos) / dt;
-                m_GlidePos = basePos;
-            }
+            // --- 1. Pozisyon Takibi: Dispatcher gerçek dünya pozisyonunu doğrudan yönetir ---
+            m_GlideVel = (basePos - m_GlidePos) / Mathf.Max(1e-4f, dt);
+            m_GlidePos = basePos;
 
             // Hız ve yumuşatılmış ivme (kare süresi dalgalanmalarından etkilenmez)
             float speed = m_GlideVel.magnitude;

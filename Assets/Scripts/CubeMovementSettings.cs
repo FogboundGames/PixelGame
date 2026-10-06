@@ -35,31 +35,31 @@ namespace PixelGame
 
         [Tooltip("Görsel gövdenin yolu ne kadar geriden takip ettiği (sn). Momentum ve virajda yön gecikmesi hissi verir. 0 = yola yapışık.")]
         [Range(0f, 0.15f)]
-        public float GlideFollowLag = 0.07f;
+        public float GlideFollowLag = 0.05f;
 
         [Tooltip("Pickup: küp ilk çekildiğinde çok kısa basılma (compression) süresi (sn).")]
         [Range(0.02f, 0.12f)]
-        public float PickupCompressionDuration = 0.06f;
+        public float PickupCompressionDuration = 0.08f;
 
-        [Tooltip("Pickup: küp çekildiğinde dikey basılma (0.04 = Y %4 basılır, X/Z %2 genişler).")]
+        [Tooltip("Pickup: küp çekildiğinde dikey basılma (0.035 = Y %3.5 basılır, X/Z %1.75 genişler).")]
         [Range(0.01f, 0.08f)]
-        public float PickupSquash = 0.04f;
+        public float PickupSquash = 0.035f;
 
         [Tooltip("Pickup kalkış süresi (sn).")]
         [Range(0.06f, 0.20f)]
-        public float PickupLiftDuration = 0.10f;
+        public float PickupLiftDuration = 0.08f;
 
         [Tooltip("Pickup: ip küpü ilk çektiğinde küçük kalkış yüksekliği (dünya birimi).")]
         [Range(0f, 0.10f)]
-        public float PickupLift = 0.045f;
+        public float PickupLift = 0.03f;
 
         [Tooltip("Virajlarda yön gecikmesi (Direction Lag süresi, sn). Gövde yolun dönüşünü geriden takip eder.")]
         [Range(0.02f, 0.15f)]
-        public float DirectionLag = 0.07f;
+        public float DirectionLag = 0.05f;
 
         [Tooltip("Mikro hareketlerin genel şiddeti: viraj yatması, hızlanma esnemesi, seyirde hafif nefes alma. 0 = tamamen düz kayma.")]
         [Range(0f, 1f)]
-        public float GlideMicroMotion = 0.75f;
+        public float GlideMicroMotion = 0.65f;
 
         [Tooltip("Sıralı zincir akışında küplerin panodan tek tek yola çıkış gecikmesi (sn). 0.10 - 0.18s arası hypercasual akış için idealdir.")]
         [Range(0.04f, 0.35f)]
@@ -72,11 +72,11 @@ namespace PixelGame
         [Header("🚀 1. HAREKET (Movement)")]
         [Tooltip("Küpün maksimum seyir hızı (dünya birimi/sn).")]
         [Range(1.5f, 10f)]
-        public float MoveSpeed = 4.2f;
+        public float MoveSpeed = 4.4f;
 
         [Tooltip("Kalkışta seyir hızına ulaşma ivmesi (sn^-1 veya birim/sn^2).")]
         [Range(2f, 20f)]
-        public float Acceleration = 9.5f;
+        public float Acceleration = 10.0f;
 
         [Tooltip("Hedefe varışta yavaşlama ivmesi.")]
         [Range(2f, 20f)]
@@ -84,11 +84,11 @@ namespace PixelGame
 
         [Tooltip("Dönüş hızı (derece / sn).")]
         [Range(90f, 720f)]
-        public float TurnSpeed = 380f;
+        public float TurnSpeed = 400f;
 
         [Tooltip("Rotasyon yumuşatma faktörü (0 = anlık, 1 = çok yumuşak).")]
         [Range(0.01f, 0.4f)]
-        public float RotationSmoothness = 0.10f;
+        public float RotationSmoothness = 0.08f;
 
         [Tooltip("Kalkışta hız profili: X = hızlanma süresi oranı (0-1), Y = seyir hızı oranı (0-1). " +
                  "Hızlanma süresi = MoveSpeed / Acceleration.")]
@@ -115,7 +115,7 @@ namespace PixelGame
 
         [Tooltip("Yavaşlamanın başlayacağı hedefe kalan mesafe.")]
         [Range(0.1f, 1.5f)]
-        public float ArrivalDistance = 0.45f;
+        public float ArrivalDistance = 0.50f;
 
         [Tooltip("Pixel-art konturundan ve canlı bloklardan bırakılacak fiziksel emniyet mesafesi (dünya birimi).")]
         [Range(0.15f, 1.2f)]
@@ -128,23 +128,23 @@ namespace PixelGame
         [Header("💃 3. ANİMASYON & İKİNCİL HAREKET (Animation & Secondary Motion)")]
         [Tooltip("Yürüyüş sırasındaki dikey zıplama/sekme genliği (bob amount).")]
         [Range(0f, 0.12f)]
-        public float BobAmount = 0.038f;
+        public float BobAmount = 0f;
 
         [Tooltip("Yürüyüş sekme frekansı / hızı.")]
         [Range(4f, 24f)]
         public float BobSpeed = 14f;
 
         [Tooltip("Virajlara girerken gövdenin viraj yönüne yatma açısı (Bank Tilt, derece).")]
-        [Range(2f, 15f)]
-        public float TiltAmount = 6.5f;
+        [Range(1f, 10f)]
+        public float TiltAmount = 2.4f;
 
         [Tooltip("Yatma açısının değişim yumuşaklığı.")]
         [Range(0.02f, 0.3f)]
-        public float TiltSmoothness = 0.08f;
+        public float TiltSmoothness = 0.06f;
 
         [Tooltip("Kalkış ve inişlerdeki esneme/basılma genliği (Squash & Stretch).")]
-        [Range(0f, 0.3f)]
-        public float SquashAmount = 0.14f;
+        [Range(0f, 0.2f)]
+        public float SquashAmount = 0.04f;
 
         [Tooltip("Squash-stretch geri toparlanma hızı.")]
         [Range(5f, 30f)]
@@ -153,7 +153,7 @@ namespace PixelGame
         [Header("🏁 4. VARIŞ & YERLEŞME (Arrival & Settle)")]
         [Tooltip("Hedefe yaklaşırken hızın düşürüleceği minimum seyir oranı.")]
         [Range(0.1f, 0.7f)]
-        public float ArrivalSlowdown = 0.35f;
+        public float ArrivalSlowdown = 0.45f;
 
         [Tooltip("Varış ease-out eğrisi yumuşaklığı.")]
         [Range(0.5f, 3f)]
@@ -161,19 +161,19 @@ namespace PixelGame
 
         [Tooltip("Slota/araca varışta yaylanarak oturma süresi (sn).")]
         [Range(0.06f, 0.25f)]
-        public float SettleDuration = 0.11f;
+        public float SettleDuration = 0.10f;
 
         [Tooltip("Varıştaki son yaylanma (bounce) yüksekliği.")]
         [Range(0f, 0.15f)]
-        public float SettleBounce = 0.045f;
+        public float SettleBounce = 0.02f;
 
         [Tooltip("Gemi girişinden güverteye kayarak binme süresi (sn).")]
         [Range(0.12f, 0.6f)]
-        public float BoardingDuration = 0.26f;
+        public float BoardingDuration = 0.22f;
 
         [Tooltip("Güverteye binerken çizilen yayın yüksekliği (dünya birimi). 0 = zeminde kayarak biner (havadan gelme hissi yok).")]
         [Range(0f, 0.4f)]
-        public float BoardingArcHeight = 0f;
+        public float BoardingArcHeight = 0.02f;
 
         [Tooltip("Hareket ederken küpün karttan/zeminden kalkma yüksekliği (küp boyu cinsinden). " +
                  "0 = zeminde yürür. Arttıkça küpler havadan geliyormuş gibi görünür.")]
