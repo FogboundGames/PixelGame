@@ -52,31 +52,33 @@ MonoBehaviour:
   m_SlotCount: 5
   m_PoolColumns: 3
   m_PoolRows: 6
-  m_TruckCapacity: 16
-  m_MinTruckCapacity: 4
+  m_TruckCapacity: 20
+  m_MinTruckCapacity: 10
   m_PeakTruckCapacity: 10
+  m_UseRoundCapacities: 1
+  m_RoundCapacityRatio: 0.8
   m_UseCustomWagonSequence: 1
   m_WagonSequence:
   - wagonColor: {r: 0.7843137, g: 0.0392157, b: 0.3921569, a: 1}
-    capacity: 10
+    capacity: 20
     paletteIndex: 1
     label: "Fu\u015Fya (#2) (#1)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.7843137, g: 0.0392157, b: 0.3921569, a: 1}
-    capacity: 9
+    capacity: 19
     paletteIndex: 1
     label: "Fu\u015Fya (#2) (#1)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 9
+    capacity: 15
     paletteIndex: 0
     label: "Fu\u015Fya (#1) (#2)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 10
+    capacity: 20
     paletteIndex: 0
     label: "Fu\u015Fya (#1) (#2)"
     linkId: 0
@@ -94,37 +96,25 @@ MonoBehaviour:
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 11
+    capacity: 10
     paletteIndex: 0
     label: "Fu\u015Fya (#1) (#4)"
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.7843137, g: 0.0392157, b: 0.3921569, a: 1}
-    capacity: 7
-    paletteIndex: 1
-    label: "Fu\u015Fya (#2) (#5)"
-    linkId: 0
-    isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 13
+    capacity: 20
     paletteIndex: 0
     label: "Fu\u015Fya (#1) (#6)"
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.7843137, g: 0.0392157, b: 0.3921569, a: 1}
-    capacity: 13
-    paletteIndex: 1
-    label: "Fu\u015Fya (#2) (#7)"
-    linkId: 0
-    isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 14
+    capacity: 17
     paletteIndex: 0
     label: "Fu\u015Fya (#1) (#8)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 10
+    capacity: 20
     paletteIndex: 0
     label: "Fu\u015Fya (#1) (#9)"
     linkId: 0
@@ -136,13 +126,13 @@ MonoBehaviour:
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 13
+    capacity: 10
     paletteIndex: 0
     label: "Fu\u015Fya (#1) (#10)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 9
+    capacity: 10
     paletteIndex: 0
     label: "Fu\u015Fya (#1) (#10)"
     linkId: 0
@@ -160,57 +150,27 @@ MonoBehaviour:
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 8
+    capacity: 10
     paletteIndex: 0
     label: "Fu\u015Fya (#1) (#13)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 11
+    capacity: 10
     paletteIndex: 0
     label: "Fu\u015Fya (#1) (#14)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 7
+    capacity: 19
     paletteIndex: 0
     label: "Fu\u015Fya (#1) (#14)"
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 12
-    paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#14)"
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 11
-    paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#15)"
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 6
-    paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#16)"
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 11
-    paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#16)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
     capacity: 10
     paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#17)"
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 6
-    paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#18)"
+    label: "Fu\u015Fya (#1) (#14)"
     linkId: 0
     isHidden: 0
   m_FigureShadowTexture: {fileID: 0}

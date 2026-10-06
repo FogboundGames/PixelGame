@@ -2059,13 +2059,36 @@ namespace PixelGame.Editor
                 m_SelectedLevel.MinTruckCapacity = Mathf.Clamp(newMinCap, 1, m_SelectedLevel.TruckCapacity);
                 EditorUtility.SetDirty(m_SelectedLevel);
             }
-            GUILayout.Label("en sık", EditorStyles.miniLabel, GUILayout.Width(36));
-            int newPeakCap = EditorGUILayout.IntField(m_SelectedLevel.PeakTruckCapacity, GUILayout.Width(30));
-            if (newPeakCap != m_SelectedLevel.PeakTruckCapacity)
+            bool newRound = GUILayout.Toggle(m_SelectedLevel.UseRoundCapacities,
+                new GUIContent("🔟 10'un katları", "Açık: sayılar çoğunlukla 10, 20... olur; arada nadiren ara sayılar (12, 13, 17...). Kapalı: 'en sık' değeri etrafında karışık."),
+                EditorStyles.toolbarButton, GUILayout.Width(92));
+            if (newRound != m_SelectedLevel.UseRoundCapacities)
             {
-                Undo.RecordObject(m_SelectedLevel, "Gemi Kapasite Yoğunluğu");
-                m_SelectedLevel.PeakTruckCapacity = Mathf.Clamp(newPeakCap, m_SelectedLevel.MinTruckCapacity, m_SelectedLevel.TruckCapacity);
+                Undo.RecordObject(m_SelectedLevel, "Gemi Sayı Modu");
+                m_SelectedLevel.UseRoundCapacities = newRound;
                 EditorUtility.SetDirty(m_SelectedLevel);
+            }
+            if (m_SelectedLevel.UseRoundCapacities)
+            {
+                GUILayout.Label(new GUIContent("yuvarlak %", "10'un katı olan gemilerin oranı."), EditorStyles.miniLabel, GUILayout.Width(58));
+                int newRatio = EditorGUILayout.IntSlider(Mathf.RoundToInt(m_SelectedLevel.RoundCapacityRatio * 100f), 0, 100, GUILayout.Width(120));
+                if (newRatio != Mathf.RoundToInt(m_SelectedLevel.RoundCapacityRatio * 100f))
+                {
+                    Undo.RecordObject(m_SelectedLevel, "Yuvarlak Sayı Oranı");
+                    m_SelectedLevel.RoundCapacityRatio = newRatio / 100f;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                }
+            }
+            else
+            {
+                GUILayout.Label("en sık", EditorStyles.miniLabel, GUILayout.Width(36));
+                int newPeakCap = EditorGUILayout.IntField(m_SelectedLevel.PeakTruckCapacity, GUILayout.Width(30));
+                if (newPeakCap != m_SelectedLevel.PeakTruckCapacity)
+                {
+                    Undo.RecordObject(m_SelectedLevel, "Gemi Kapasite Yoğunluğu");
+                    m_SelectedLevel.PeakTruckCapacity = Mathf.Clamp(newPeakCap, m_SelectedLevel.MinTruckCapacity, m_SelectedLevel.TruckCapacity);
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                }
             }
             GUILayout.Label(new GUIContent("en çok", "Bir geminin alabileceği en fazla küp. Üstteki 'Vagon Kapasitesi' ile aynı değerdir."), EditorStyles.miniLabel, GUILayout.Width(38));
             int newMaxCap = EditorGUILayout.IntField(m_SelectedLevel.TruckCapacity, GUILayout.Width(30));

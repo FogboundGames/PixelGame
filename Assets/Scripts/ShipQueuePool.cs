@@ -506,6 +506,8 @@ namespace PixelGame
                     existingShip.transform.localScale = Vector3.one * m_ShipScale;
                     existingShip.SetBaseScale(Vector3.one * m_ShipScale);
                     existingShip.SetLinkedPartner(null, linkId);
+                    // Sahneye kayıtlı gemi prefab örneği değil: yazı ayarları prefab'dan gelsin (tek ayar yeri)
+                    if (m_ShipPrefab != null) existingShip.CopyBadgeSettingsFrom(m_ShipPrefab.GetComponent<ShipController>());
                     existingShip.Configure(shipColor, capacity);
                     existingShip.SetMysteryHidden(m_LastSequenceShipHidden);
 

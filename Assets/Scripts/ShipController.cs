@@ -294,6 +294,22 @@ namespace PixelGame
         [SerializeField] private GameObject m_FakeShadowObj;
         private MeshRenderer m_FakeShadowRenderer;
 
+        [Header("🔢 Kapasite Yazısı")]
+        [Tooltip("Açıkken sayı kabin çatısına boyanmış gibi çatı yüzeyine yatar ve gemiyle birlikte döner. Kapalıyken kameraya dik tabela gibi durur.")]
+        [SerializeField] private bool m_BadgePaintedOnRoof = true;
+        [Tooltip("Çatıya yazılı sayının gemi yerel uzayında ince ayarı (Y: çatıdan yükseklik, Z: ileri/geri).")]
+        [SerializeField] private Vector3 m_BadgeRoofNudge = new Vector3(0f, 0.02f, 0f);
+        [Tooltip("Çatıya yazılı sayının boyut çarpanı.")]
+        [Range(0.5f, 1.5f)]
+        [SerializeField] private float m_BadgeRoofScale = 1f;
+        [Tooltip("Kamera çatıya yandan baktığı için çatıdaki yazı ekranda basık görünür (pruva yönü ~%47). " +
+                 "Yazı çatı üzerinde pruva yönünde bu kadar uzatılır: 1 = gerçek boya (basık), ~2.1 = tamamen düz görünür.")]
+        [Range(1f, 2.5f)]
+        [SerializeField] private float m_BadgeRoofStretch = 1.6f;
+        // Kabin çatısının üst yüzeyi. Gövde artık düz çatılı kopya (Assets/Meshes/Ships/boat-house-a_flatroof):
+        // orijinal modeldeki çatı çıkıntısı (Y 2.086–2.173) silindi, çatı Y=2.0 düzlemi. Z: yazının çatı üzerindeki yeri.
+        private static readonly Vector3 RoofSurfaceCenter = new Vector3(0f, 2.0f, -0.557f);
+
         [Header("🌑 Gemi Silüet Gölgesi")]
         [Tooltip("Geminin gövde şeklini takip eden, sağa düşen net gölge. Açıkken eski yumuşak (quad) gölge ve gövdenin gerçek ışık gölgesi kapanır.")]
         [SerializeField] private bool m_EnableSilhouetteShadow = true;
@@ -956,6 +972,17 @@ namespace PixelGame
             {
                 UpdateBadgeText();
             }
+            // Kapasite yazısı ayarı Inspector'da değişince anında görünsün
+            if (m_BadgeText != null) ApplyBadgeTextPose(m_BadgeText.rectTransform);
+#if UNITY_EDITOR
+            // Prefab'daki yazı ayarı değişince sahnedeki gemilere de hemen geçsin (sahnedeki kuyruk gemileri
+            // prefab örneği değil; aksi halde değişiklik ancak Play'de görünüyordu)
+            if (UnityEditor.PrefabUtility.IsPartOfPrefabAsset(this))
+            {
+                ShipController source = this;
+                UnityEditor.EditorApplication.delayCall += () => SyncBadgeSettingsToScene(source);
+            }
+#endif
             ApplyColorToShip(m_ShipColor);
             EnsureFakeShadow();
             QueueEditorSilhouetteShadow();
@@ -1059,6 +1086,47 @@ namespace PixelGame
             UpdateBadgePlacement();
         }
 
+        /// <summary>
+        /// Kapasite yazısı ayarlarını başka bir gemiden (prefab) kopyalar. Sahneye kaydedilmiş kuyruk gemileri
+        /// prefab örneği olmadığı için prefab'daki ayar değişikliği onlara kendiliğinden geçmez.
+        /// </summary>
+        public void CopyBadgeSettingsFrom(ShipController source)
+        {
+            if (source == null || source == this) return;
+            m_BadgePaintedOnRoof = source.m_BadgePaintedOnRoof;
+            m_BadgeRoofNudge = source.m_BadgeRoofNudge;
+            m_BadgeRoofScale = source.m_BadgeRoofScale;
+            m_BadgeRoofStretch = source.m_BadgeRoofStretch;
+            UpdateBadgePlacement();
+        }
+
+#if UNITY_EDITOR
+        private static void SyncBadgeSettingsToScene(ShipController source)
+        {
+            if (source == null || Application.isPlaying) return;
+            var ships = UnityEngine.Object.FindObjectsByType<ShipController>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (var ship in ships)
+            {
+                if (ship == null || ship == source || UnityEditor.PrefabUtility.IsPartOfPrefabAsset(ship)) continue;
+                if (ship.m_BadgePaintedOnRoof == source.m_BadgePaintedOnRoof && ship.m_BadgeRoofNudge == source.m_BadgeRoofNudge &&
+                    Mathf.Approximately(ship.m_BadgeRoofScale, source.m_BadgeRoofScale) && Mathf.Approximately(ship.m_BadgeRoofStretch, source.m_BadgeRoofStretch))
+                    continue;
+                UnityEditor.Undo.RecordObject(ship, "Kapasite yazısı ayarı (prefab)");
+                ship.CopyBadgeSettingsFrom(source);
+                UnityEditor.EditorUtility.SetDirty(ship);
+            }
+        }
+#endif
+
+        /// <summary>Sayı yazısı rozetin tam ortasında, düz durur (çatıya yatırma rozet tuvalinde yapılır).</summary>
+        private static void ApplyBadgeTextPose(RectTransform rt)
+        {
+            if (rt == null) return;
+            if (rt.localPosition != Vector3.zero) rt.localPosition = Vector3.zero;
+            if (rt.localRotation != Quaternion.identity) rt.localRotation = Quaternion.identity;
+            if (rt.localScale != Vector3.one) rt.localScale = Vector3.one;
+        }
+
         public void UpdateBadgePlacement()
         {
             if (m_BadgeCanvasObj == null)
@@ -1085,7 +1153,7 @@ namespace PixelGame
 
             // Kullanıcı isteği: "gemi textlerimi eski commitlerdeki hale getir" (9be8b92 sürümü)
             // 1. Gemi kabin çatısının tam geometrik merkezi (Y=2.22f tavan düzlemi, Z=-0.42f tavan merkezi):
-            Vector3 roofLocalPos = new Vector3(0f, 2.22f, -0.42f);
+            Vector3 roofLocalPos = m_BadgePaintedOnRoof ? RoofSurfaceCenter + m_BadgeRoofNudge : new Vector3(0f, 2.22f, -0.42f);
             // Gizli gemideki "?" çatı üstünde hafifçe süzülür
             if (m_IsMysteryHidden && Application.isPlaying)
             {
@@ -1098,9 +1166,12 @@ namespace PixelGame
                 canvasTr.position = targetWorldPos;
             }
 
-            // 2. Yazı HER ZAMAN kameraya dik, düzgün ve net bakar; asla yana yatmaz, bozulmaz.
+            // 2. Çatıya boyalı: tuval çatı düzlemine yatar (ön yüzü yukarı, yazının üstü geminin pruvasına),
+            //    gemiyle birlikte döner. Değilse kameraya dik tabela gibi bakar.
             Camera cam = MainCamera;
-            Quaternion targetWorldRot = cam != null ? cam.transform.rotation : Quaternion.identity;
+            Quaternion targetWorldRot = m_BadgePaintedOnRoof
+                ? sourceTr.rotation * Quaternion.Euler(90f, 0f, 0f)
+                : (cam != null ? cam.transform.rotation : Quaternion.identity);
             if (canvasTr.rotation != targetWorldRot)
             {
                 canvasTr.rotation = targetWorldRot;
@@ -1111,13 +1182,14 @@ namespace PixelGame
             float avgLossy = (Mathf.Abs(boatLossy.x) + Mathf.Abs(boatLossy.y) + Mathf.Abs(boatLossy.z)) / 3f;
             if (avgLossy < 0.0001f) avgLossy = 0.35f;
 
-            float targetLocalScaleFactor = 0.0085f / avgLossy;
+            float targetLocalScaleFactor = 0.0085f / avgLossy * (m_BadgePaintedOnRoof ? m_BadgeRoofScale : 1f);
             if (m_IsMysteryHidden && Application.isPlaying)
             {
                 // "?" rozeti hafifçe nefes alır gibi büyüyüp küçülür
                 targetLocalScaleFactor *= 1f + Mathf.Sin(Time.time * 2.4f + m_BobRandomOffset * 1.7f) * 0.07f;
             }
             Vector3 targetLocalScale = Vector3.one * targetLocalScaleFactor;
+            if (m_BadgePaintedOnRoof) targetLocalScale.y *= m_BadgeRoofStretch; // tuvalin Y'si çatıda pruva yönü
             if ((canvasTr.localScale - targetLocalScale).sqrMagnitude > 0.000001f)
             {
                 canvasTr.localScale = targetLocalScale;
@@ -1141,10 +1213,8 @@ namespace PixelGame
                 if (rt != null)
                 {
                     if (rt.pivot != new Vector2(0.5f, 0.5f)) rt.pivot = new Vector2(0.5f, 0.5f);
-                    if (rt.anchoredPosition != Vector2.zero) rt.anchoredPosition = Vector2.zero;
-                    if (rt.localPosition != Vector3.zero) rt.localPosition = Vector3.zero;
                     if (rt.sizeDelta != new Vector2(210f, 140f)) rt.sizeDelta = new Vector2(210f, 140f);
-                    if (rt.localScale != Vector3.one) rt.localScale = Vector3.one;
+                    ApplyBadgeTextPose(rt);
                 }
 
                 ApplyBadgeTextStyle(m_BadgeText);
@@ -3007,12 +3077,9 @@ namespace PixelGame
             }
 
             RectTransform textRect = textObj.GetComponent<RectTransform>();
-            textRect.localPosition = Vector3.zero;
-            textRect.localRotation = Quaternion.identity;
-            textRect.localScale = Vector3.one;
             textRect.sizeDelta = new Vector2(210f, 140f);
-            textRect.anchoredPosition = Vector2.zero;
             textRect.pivot = new Vector2(0.5f, 0.5f);
+            ApplyBadgeTextPose(textRect);
 
             // Eski pikselli UI.Outline ve Shadow bileşenlerini temizle
             var oldOutlines = textObj.GetComponents<Outline>();

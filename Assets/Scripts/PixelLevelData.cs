@@ -328,6 +328,13 @@ namespace PixelGame
         [Min(1)]
         [SerializeField] private int m_PeakTruckCapacity = 10;
 
+        [Tooltip("Açıkken gemi sayıları ağırlıklı olarak 10'un katları olur (10, 20...), aralarda nadiren ara sayılar " +
+                 "(12, 13, 17...) gelir. Kapalıyken sayılar 'en sık' değeri etrafında karışık dağılır.")]
+        [SerializeField] private bool m_UseRoundCapacities = true;
+        [Tooltip("10'un katı olan gemilerin oranı (0–1). 0.8 → 10 gemiden ~8'i 10/20.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float m_RoundCapacityRatio = 0.8f;
+
         [Header("🚚 Manuel Vagon & Maden Arabası Sıra Tasarımı (Opsiyonel Override)")]
         [Tooltip("Açıksa vagonlar otomatik rastgele karıştırılmaz; aşağıda dizilen birebir sırada ve kapasitelerle oyuna gelir.")]
         [SerializeField] private bool m_UseCustomWagonSequence = false;
@@ -401,6 +408,8 @@ namespace PixelGame
         /// <summary>Karışık kapasitenin alt sınırı; hiçbir zaman TruckCapacity'yi geçmez.</summary>
         public int MinTruckCapacity { get => Mathf.Clamp(m_MinTruckCapacity, 1, Mathf.Max(1, m_TruckCapacity)); set => m_MinTruckCapacity = Mathf.Max(1, value); }
         /// <summary>Kapasitelerin yoğunlaştığı değer; her zaman [MinTruckCapacity, TruckCapacity] içinde.</summary>
+        public bool UseRoundCapacities { get => m_UseRoundCapacities; set => m_UseRoundCapacities = value; }
+        public float RoundCapacityRatio { get => Mathf.Clamp01(m_RoundCapacityRatio); set => m_RoundCapacityRatio = Mathf.Clamp01(value); }
         public int PeakTruckCapacity { get => Mathf.Clamp(m_PeakTruckCapacity, MinTruckCapacity, Mathf.Max(1, m_TruckCapacity)); set => m_PeakTruckCapacity = Mathf.Max(1, value); }
         public bool UseCustomWagonSequence { get => m_UseCustomWagonSequence; set => m_UseCustomWagonSequence = value; }
         public List<WagonSequenceEntry> WagonSequence 
@@ -443,7 +452,7 @@ namespace PixelGame
                 }
 
                 string nameLabel = string.IsNullOrEmpty(entry.label) ? $"Renk #{i + 1}" : entry.label;
-                List<int> loads = SplitCapacities(entry.pixelCount, MinTruckCapacity, PeakTruckCapacity, cap, rng);
+                List<int> loads = SplitForLevel(entry.pixelCount, cap, rng);
                 for (int w = 0; w < loads.Count; w++)
                 {
                     m_WagonSequence.Add(new WagonSequenceEntry(wagonColor, loads[w], i, $"{nameLabel} ({w + 1})"));
@@ -481,7 +490,7 @@ namespace PixelGame
 
                 List<WagonSequenceEntry> list = new List<WagonSequenceEntry>();
                 string nameLabel = string.IsNullOrEmpty(entry.label) ? $"Renk #{i + 1}" : entry.label;
-                List<int> loads = SplitCapacities(entry.pixelCount, MinTruckCapacity, PeakTruckCapacity, cap, rng);
+                List<int> loads = SplitForLevel(entry.pixelCount, cap, rng);
                 for (int w = 0; w < loads.Count; w++)
                 {
                     list.Add(new WagonSequenceEntry(wagonColor, loads[w], i, $"{nameLabel} ({w + 1})"));
@@ -510,6 +519,79 @@ namespace PixelGame
         /// Bir rengin küplerini [minCap, maxCap] aralığında karışık kapasiteli gemilere böler; toplam aynen korunur.
         /// Kapasiteler peakCap etrafında yoğunlaşan üçgen dağılımdan çekilir (uç değerler seyrek gelir).
         /// </summary>
+        /// <summary>Bu bölümün ayarlarına göre (yuvarlak mod ya da en-sık dağılımı) bir rengi gemilere böler.</summary>
+        private List<int> SplitForLevel(int total, int maxCap, System.Random rng)
+        {
+            return m_UseRoundCapacities
+                ? SplitCapacitiesRound(total, MinTruckCapacity, maxCap, RoundCapacityRatio, rng)
+                : SplitCapacities(total, MinTruckCapacity, PeakTruckCapacity, maxCap, rng);
+        }
+
+        /// <summary>
+        /// Rengi ağırlıklı olarak 10'un katı kapasiteli gemilere böler (10, 20...); roundRatio dışındaki gemiler
+        /// [minCap, maxCap] içindeki ara sayılardır. Toplam aynen korunur: rengin küp sayısı 10'a tam bölünmüyorsa
+        /// artan kısım ara sayılı bir gemide toplanır; renk minCap'ten azsa tek küçük gemi olur.
+        /// </summary>
+        public static List<int> SplitCapacitiesRound(int total, int minCap, int maxCap, float roundRatio, System.Random rng)
+        {
+            var loads = new List<int>();
+            if (total <= 0) return loads;
+            maxCap = Mathf.Max(1, maxCap);
+            minCap = Mathf.Clamp(minCap, 1, maxCap);
+
+            var rounds = new List<int>();
+            for (int r = 10; r <= maxCap; r += 10) if (r >= minCap) rounds.Add(r);
+            if (rounds.Count == 0) return SplitCapacities(total, minCap, (minCap + maxCap) / 2, maxCap, rng);
+
+            int remaining = total;
+            int guard = 0;
+            while (remaining > 0 && guard++ < 10000)
+            {
+                // Kalan tek gemiye sığıyorsa bitir (bu bir yuvarlak sayıysa zaten yuvarlak kalır)
+                if (remaining <= maxCap)
+                {
+                    if (remaining >= minCap || loads.Count == 0)
+                    {
+                        loads.Add(remaining);
+                    }
+                    else
+                    {
+                        // minCap'ten küçük artık: sığan bir gemiye eklenir, yoksa kendi küçük gemisi olur
+                        int target = -1;
+                        for (int i = 0; i < loads.Count; i++)
+                            if (loads[i] + remaining <= maxCap && (target < 0 || loads[i] % 10 != 0)) target = i;
+                        if (target >= 0) loads[target] += remaining; else loads.Add(remaining);
+                    }
+                    break;
+                }
+
+                int pick;
+                if (rng.NextDouble() < roundRatio)
+                {
+                    pick = rounds[rng.Next(rounds.Count)];
+                }
+                else
+                {
+                    // Ara sayı (10'un katı olmayan)
+                    pick = minCap + rng.Next(maxCap - minCap + 1);
+                    if (pick % 10 == 0) pick = Mathf.Clamp(pick + (rng.Next(2) == 0 ? -1 : 1) * (1 + rng.Next(3)), minCap, maxCap);
+                }
+
+                // Geriye minCap'ten küçük bir artık kalmasın (son gemiyi gereksiz küçültmesin)
+                int left = remaining - pick;
+                if (left > 0 && left < minCap) pick = Mathf.Max(minCap, pick - (minCap - left));
+                loads.Add(pick);
+                remaining -= pick;
+            }
+
+            for (int i = loads.Count - 1; i > 0; i--)
+            {
+                int j = rng.Next(i + 1);
+                int t = loads[i]; loads[i] = loads[j]; loads[j] = t;
+            }
+            return loads;
+        }
+
         public static List<int> SplitCapacities(int total, int minCap, int peakCap, int maxCap, System.Random rng, int forcedCount = 0)
         {
             var loads = new List<int>();
@@ -585,7 +667,7 @@ namespace PixelGame
                 }
                 if (ships.Count == 0 || total <= 0) continue;
 
-                List<int> loads = SplitCapacities(total, MinTruckCapacity, PeakTruckCapacity, maxCap, rng);
+                List<int> loads = SplitForLevel(total, maxCap, rng);
 
                 // Fazla gemi: sondan, bağlı/gizli olmayanlar silinir
                 for (int i = ships.Count - 1; i >= 0 && ships.Count > loads.Count; i--)
