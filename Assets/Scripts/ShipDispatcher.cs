@@ -241,6 +241,7 @@ namespace PixelGame
             m_IsAutoPlacing = false;
             m_BoardBoundsInitialized = false;
             m_RopeGates.Clear();
+            m_ActiveExtractingShips.Clear(); // önceki bölümden kalan çekim kayıtları yeni bölümün fail kontrolünü kilitlemesin
             m_GridFrameValid = false;
             EnsureBoardBounds(forceRefresh: true);
             EnsureReferences();
@@ -613,6 +614,22 @@ namespace PixelGame
             if (ship == null || ship.IsDeparting) return;
             StartCoroutine(ExtractMatchingCubesToShipRoutine(ship));
             CheckAutoPlaceRemainingShips();
+
+            // Gemi yoldayken solundaki slot boşaldıysa (o anki kaydırma yoldaki gemiyi atlar) vardığında sola kaysın
+            if (HasEmptySlotLeftOf(ship)) CompactSlots(0.05f);
+        }
+
+        private bool HasEmptySlotLeftOf(ShipController ship)
+        {
+            if (m_Slots == null) return false;
+            for (int i = 0; i < m_Slots.Count; i++)
+            {
+                var slot = m_Slots[i];
+                if (slot == null || !slot.gameObject.activeInHierarchy) continue;
+                if (slot.DockedShip == ship) return false;
+                if (slot.IsEmpty) return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -700,10 +717,9 @@ namespace PixelGame
             }
             finally
             {
-                if (ship != null)
-                {
-                    m_ActiveExtractingShips.Remove(ship);
-                }
+                // Gemi bu arada yok edilmiş olsa bile (Unity'de ship == null) referansı listeden çıkar;
+                // aksi halde liste hiç boşalmaz ve CheckDeadlockCondition bir daha asla fail vermez.
+                m_ActiveExtractingShips.Remove(ship);
             }
 
             // Çekim bittikten sonra da genel kontrol yap
@@ -2071,10 +2087,12 @@ namespace PixelGame
                         }
                     }
                 }
-                if (count > 0) return count;
+                // Tahta kuruluyken sayım kesindir: bu renk bittiyse 0 döner. (Eskiden 0'da palet sayısına
+                // düşülüyordu; renk bitince gemi "hâlâ küp var" sanıp slotta sonsuza kadar bekliyordu.)
+                return count;
             }
 
-            // Fallback: Seviye paletinden piksel sayısını bul
+            // Fallback (tahta henüz kurulmamışken): Seviye paletinden piksel sayısını bul
             PixelLevelData level = (m_Generator != null) ? m_Generator.ActiveLevelData : null;
             if (level == null && LevelManager.Instance != null) level = LevelManager.Instance.CurrentLevel;
             if (level != null && level.ColorPalette != null)
@@ -2317,6 +2335,7 @@ namespace PixelGame
 
             // 3. Havada uçuşan kargo var mı veya küp çekme coroutine'i çalışıyor mu?
             if (m_ActiveCargoFlightCount > 0) return false;
+            m_ActiveExtractingShips.RemoveWhere(s => s == null);
             if (m_ActiveExtractingShips.Count > 0) return false;
 
             // 4. Sahnedeki gemilerden herhangi biri hareket halinde mi, sürükleniyor mu veya ayrılıyor mu?

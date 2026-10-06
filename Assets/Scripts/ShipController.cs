@@ -762,6 +762,19 @@ namespace PixelGame
             EnsureSilhouetteShadow();
         }
 
+        // Halat gölgesi (LinkedShipTether) gemi gölgesiyle aynı görünsün diye ayarları okur
+        public bool SilhouetteShadowEnabled => m_EnableSilhouetteShadow;
+        public Vector2 SilhouetteShadowDirection => m_SilhouetteShadowDirection;
+        public Color SilhouetteShadowColor => m_SilhouetteShadowColor;
+        public float SilhouetteShadowSoftness => m_SilhouetteShadowSoftness;
+        /// <summary>Gemi gölgesinin kullandığı (çekirdek + yumuşak kenar halkaları) paylaşılan materyaller.</summary>
+        public Material[] GetSilhouetteShadowMaterials()
+        {
+            Material mat = GetSilhouetteShadowMaterial();
+            if (mat == null) return null;
+            return m_SilhouetteShadowSoftness > 0.001f ? GetSilhouetteRingMaterials(mat) : new[] { mat };
+        }
+
         private Material GetSilhouetteShadowMaterial()
         {
             if (m_SilhouetteShadowMaterial != null) return m_SilhouetteShadowMaterial;

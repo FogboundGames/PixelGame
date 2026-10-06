@@ -319,6 +319,15 @@ namespace PixelGame
         [Min(1)]
         [SerializeField] private int m_TruckCapacity = 16;
 
+        [Tooltip("Gemi sırası üretilirken / karıştırılırken en küçük gemi kapasitesi.")]
+        [Min(1)]
+        [SerializeField] private int m_MinTruckCapacity = 4;
+
+        [Tooltip("Gemi kapasitelerinin en sık geleceği değer. Sayılar bunun etrafında yoğunlaşır; " +
+                 "en az ve en çok (Truck Capacity) değerleri seyrek gelir.")]
+        [Min(1)]
+        [SerializeField] private int m_PeakTruckCapacity = 10;
+
         [Header("🚚 Manuel Vagon & Maden Arabası Sıra Tasarımı (Opsiyonel Override)")]
         [Tooltip("Açıksa vagonlar otomatik rastgele karıştırılmaz; aşağıda dizilen birebir sırada ve kapasitelerle oyuna gelir.")]
         [SerializeField] private bool m_UseCustomWagonSequence = false;
@@ -389,6 +398,10 @@ namespace PixelGame
         public int PoolColumns { get => m_PoolColumns; set => m_PoolColumns = Mathf.Max(1, value); }
         public int PoolRows { get => m_PoolRows; set => m_PoolRows = Mathf.Max(1, value); }
         public int TruckCapacity { get => m_TruckCapacity; set => m_TruckCapacity = Mathf.Max(1, value); }
+        /// <summary>Karışık kapasitenin alt sınırı; hiçbir zaman TruckCapacity'yi geçmez.</summary>
+        public int MinTruckCapacity { get => Mathf.Clamp(m_MinTruckCapacity, 1, Mathf.Max(1, m_TruckCapacity)); set => m_MinTruckCapacity = Mathf.Max(1, value); }
+        /// <summary>Kapasitelerin yoğunlaştığı değer; her zaman [MinTruckCapacity, TruckCapacity] içinde.</summary>
+        public int PeakTruckCapacity { get => Mathf.Clamp(m_PeakTruckCapacity, MinTruckCapacity, Mathf.Max(1, m_TruckCapacity)); set => m_PeakTruckCapacity = Mathf.Max(1, value); }
         public bool UseCustomWagonSequence { get => m_UseCustomWagonSequence; set => m_UseCustomWagonSequence = value; }
         public List<WagonSequenceEntry> WagonSequence 
         { 
@@ -415,6 +428,7 @@ namespace PixelGame
             if (m_ColorPalette == null || m_ColorPalette.Count == 0) return;
 
             int cap = Mathf.Max(1, m_TruckCapacity);
+            var rng = new System.Random();
             bool hasAdjustment = (m_ColorBrightness != 1f || m_ColorSaturation != 1f || m_ColorContrast != 1f);
 
             for (int i = 0; i < m_ColorPalette.Count; i++)
@@ -428,15 +442,11 @@ namespace PixelGame
                     wagonColor = PixelCube.AdjustColor(wagonColor, m_ColorBrightness, m_ColorSaturation, m_ColorContrast);
                 }
 
-                int remaining = entry.pixelCount;
-                int wagonIndex = 1;
-                while (remaining > 0)
+                string nameLabel = string.IsNullOrEmpty(entry.label) ? $"Renk #{i + 1}" : entry.label;
+                List<int> loads = SplitCapacities(entry.pixelCount, MinTruckCapacity, PeakTruckCapacity, cap, rng);
+                for (int w = 0; w < loads.Count; w++)
                 {
-                    int load = Mathf.Min(cap, remaining);
-                    string nameLabel = string.IsNullOrEmpty(entry.label) ? $"Renk #{i + 1}" : entry.label;
-                    m_WagonSequence.Add(new WagonSequenceEntry(wagonColor, load, i, $"{nameLabel} ({wagonIndex})"));
-                    remaining -= load;
-                    wagonIndex++;
+                    m_WagonSequence.Add(new WagonSequenceEntry(wagonColor, loads[w], i, $"{nameLabel} ({w + 1})"));
                 }
             }
         }
@@ -453,6 +463,7 @@ namespace PixelGame
             if (m_ColorPalette == null || m_ColorPalette.Count == 0) return;
 
             int cap = Mathf.Max(1, m_TruckCapacity);
+            var rng = new System.Random();
             bool hasAdjustment = (m_ColorBrightness != 1f || m_ColorSaturation != 1f || m_ColorContrast != 1f);
 
             List<List<WagonSequenceEntry>> colorWagonLists = new List<List<WagonSequenceEntry>>();
@@ -469,15 +480,11 @@ namespace PixelGame
                 }
 
                 List<WagonSequenceEntry> list = new List<WagonSequenceEntry>();
-                int remaining = entry.pixelCount;
-                int wagonIndex = 1;
-                while (remaining > 0)
+                string nameLabel = string.IsNullOrEmpty(entry.label) ? $"Renk #{i + 1}" : entry.label;
+                List<int> loads = SplitCapacities(entry.pixelCount, MinTruckCapacity, PeakTruckCapacity, cap, rng);
+                for (int w = 0; w < loads.Count; w++)
                 {
-                    int load = Mathf.Min(cap, remaining);
-                    string nameLabel = string.IsNullOrEmpty(entry.label) ? $"Renk #{i + 1}" : entry.label;
-                    list.Add(new WagonSequenceEntry(wagonColor, load, i, $"{nameLabel} ({wagonIndex})"));
-                    remaining -= load;
-                    wagonIndex++;
+                    list.Add(new WagonSequenceEntry(wagonColor, loads[w], i, $"{nameLabel} ({w + 1})"));
                 }
                 colorWagonLists.Add(list);
             }
@@ -496,6 +503,116 @@ namespace PixelGame
                     }
                 }
                 stepIndex++;
+            }
+        }
+
+        /// <summary>
+        /// Bir rengin küplerini [minCap, maxCap] aralığında karışık kapasiteli gemilere böler; toplam aynen korunur.
+        /// Kapasiteler peakCap etrafında yoğunlaşan üçgen dağılımdan çekilir (uç değerler seyrek gelir).
+        /// </summary>
+        public static List<int> SplitCapacities(int total, int minCap, int peakCap, int maxCap, System.Random rng, int forcedCount = 0)
+        {
+            var loads = new List<int>();
+            if (total <= 0) return loads;
+            maxCap = Mathf.Max(1, maxCap);
+            minCap = Mathf.Clamp(minCap, 1, maxCap);
+            peakCap = Mathf.Clamp(peakCap, minCap, maxCap);
+
+            int fewest = Mathf.CeilToInt(total / (float)maxCap);
+            int most = Mathf.Max(fewest, total / minCap);
+            float mean = (minCap + peakCap + maxCap) / 3f;
+            int count = forcedCount > 0
+                ? Mathf.Max(fewest, forcedCount)
+                : Mathf.Clamp(Mathf.RoundToInt(total / mean), fewest, most);
+
+            // Üçgen dağılım: tepe noktası peakCap
+            float range = maxCap - minCap;
+            float f = range > 0f ? (peakCap - minCap) / range : 0.5f;
+            int sum = 0;
+            for (int i = 0; i < count; i++)
+            {
+                double u = rng.NextDouble();
+                float v = range <= 0f ? minCap
+                    : u < f ? minCap + Mathf.Sqrt((float)u * range * (peakCap - minCap))
+                            : maxCap - Mathf.Sqrt((float)(1.0 - u) * range * (maxCap - peakCap));
+                int load = Mathf.Clamp(Mathf.RoundToInt(v), minCap, maxCap);
+                loads.Add(load);
+                sum += load;
+            }
+
+            // Toplamı tutturmak için rastgele gemilerde birer birer düzelt (dağılımın şekli korunur)
+            int floor = minCap, ceil = maxCap, guard = 0;
+            while (sum != total)
+            {
+                int i = rng.Next(count);
+                if (sum > total && loads[i] > floor) { loads[i]--; sum--; guard = 0; }
+                else if (sum < total && loads[i] < ceil) { loads[i]++; sum++; guard = 0; }
+                else if (++guard > count * 16)
+                {
+                    // Aralık yetmiyor (çok az / çok fazla küp): sınırlar gevşetilir
+                    if (sum > total) { if (floor <= 1) break; floor--; }
+                    else ceil++;
+                    guard = 0;
+                }
+            }
+            return loads;
+        }
+
+        /// <summary>
+        /// Mevcut gemi sırasındaki kapasiteleri [MinTruckCapacity, TruckCapacity] aralığında yeniden karıştırır.
+        /// Renk başına toplam korunur; gerekirse aynı renkten yeni gemi araya eklenir ya da sondaki boşa çıkan gemi silinir.
+        /// Sıradaki renk düzeni, bağlı ve gizli gemiler korunur.
+        /// </summary>
+        public void VaryWagonCapacities(System.Random rng = null)
+        {
+            if (m_WagonSequence == null || m_WagonSequence.Count == 0) return;
+            if (rng == null) rng = new System.Random();
+            int maxCap = Mathf.Max(1, m_TruckCapacity);
+
+            var colorKeys = new List<int>();
+            foreach (var w in m_WagonSequence)
+                if (w != null && !colorKeys.Contains(w.paletteIndex)) colorKeys.Add(w.paletteIndex);
+
+            foreach (int key in colorKeys)
+            {
+                var ships = new List<WagonSequenceEntry>();
+                int total = 0;
+                foreach (var w in m_WagonSequence)
+                {
+                    if (w == null || w.paletteIndex != key) continue;
+                    ships.Add(w);
+                    total += Mathf.Max(0, w.capacity);
+                }
+                if (ships.Count == 0 || total <= 0) continue;
+
+                List<int> loads = SplitCapacities(total, MinTruckCapacity, PeakTruckCapacity, maxCap, rng);
+
+                // Fazla gemi: sondan, bağlı/gizli olmayanlar silinir
+                for (int i = ships.Count - 1; i >= 0 && ships.Count > loads.Count; i--)
+                {
+                    if (ships[i].linkId != 0 || ships[i].isHidden) continue;
+                    m_WagonSequence.Remove(ships[i]);
+                    ships.RemoveAt(i);
+                }
+                if (ships.Count > loads.Count)
+                    loads = SplitCapacities(total, MinTruckCapacity, PeakTruckCapacity, maxCap, rng, ships.Count);
+
+                // Eksik gemi: aynı renkli rastgele bir geminin hemen arkasına eklenir
+                while (ships.Count < loads.Count)
+                {
+                    WagonSequenceEntry src = ships[rng.Next(ships.Count)];
+                    var copy = new WagonSequenceEntry(src.wagonColor, 1, src.paletteIndex, src.label);
+                    m_WagonSequence.Insert(m_WagonSequence.IndexOf(src) + 1, copy);
+                    ships.Add(copy);
+                }
+
+                // Kapasiteler karışık dağıtılır (sıra içinde büyük/küçük gemiler serpiştirilsin)
+                for (int i = loads.Count - 1; i > 0; i--)
+                {
+                    int j = rng.Next(i + 1);
+                    int t = loads[i]; loads[i] = loads[j]; loads[j] = t;
+                }
+                for (int i = 0; i < ships.Count; i++) ships[i].capacity = loads[i];
             }
         }
 
@@ -570,6 +687,80 @@ namespace PixelGame
         /// <summary>
         /// Sıradaki iki gemiyi birbirine bağlar (ikisine de aynı linkId'yi atar).
         /// </summary>
+        /// <summary>
+        /// Gemi sırasındaki halatları ve gizli gemileri oranlara göre yeniden üretir (önceki bağ/gizlilik silinir).
+        /// Halatlar yalnızca oyun başındaki havuz dizilimine (satır satır dolar) konur, çünkü sonradan gelen
+        /// gemilerin hangi sütuna düşeceği oyuncuya bağlıdır:
+        ///  - üst üste (aynı sütun, ardışık sıra): sütun birlikte kaydığı için oyun boyunca bitişik kalır;
+        ///  - yan yana (aynı sıra, komşu sütun): sütunlar bağımsız kaydığından yalnızca en ön sırada.
+        /// Gizli gemiler en ön sıra dışından ve halatsız gemilerden seçilir (ön sıradaki gizli gemi hemen açılır).
+        /// </summary>
+        /// <param name="linkRatio">Halatlı gemi oranı (0–1). 0.2 → gemilerin ~%20'si halatlı (çift sayısı bunun yarısı).</param>
+        /// <param name="hiddenRatio">Gizli gemi oranı (0–1).</param>
+        public void GenerateLinksAndHidden(float linkRatio, float hiddenRatio, System.Random rng, out int linkPairs, out int hiddenCount, out int targetPairs)
+        {
+            linkPairs = 0; hiddenCount = 0; targetPairs = 0;
+            if (m_WagonSequence == null || m_WagonSequence.Count == 0) return;
+            if (rng == null) rng = new System.Random();
+
+            foreach (var w in m_WagonSequence)
+            {
+                if (w == null) continue;
+                w.linkId = 0;
+                w.isHidden = false;
+            }
+
+            int n = m_WagonSequence.Count;
+            // Oyundaki havuzla aynı sınırlar (ShipQueuePool.RebuildSpots)
+            int cols = Mathf.Clamp(m_PoolColumns, 1, 8);
+            int rows = Mathf.Clamp(m_PoolRows, 1, 6);
+            int poolSize = Mathf.Min(n, cols * rows);
+
+            // Aday çiftler
+            var pairs = new List<Vector2Int>();
+            for (int i = 0; i < poolSize; i++)
+            {
+                int row = i / cols, col = i % cols;
+                if (i + cols < poolSize) pairs.Add(new Vector2Int(i, i + cols));               // üst üste
+                if (row == 0 && col + 1 < cols && i + 1 < poolSize) pairs.Add(new Vector2Int(i, i + 1)); // yan yana (ön sıra)
+            }
+            for (int i = pairs.Count - 1; i > 0; i--)
+            {
+                int j = rng.Next(i + 1);
+                var t = pairs[i]; pairs[i] = pairs[j]; pairs[j] = t;
+            }
+
+            targetPairs = Mathf.RoundToInt(n * Mathf.Clamp01(linkRatio) * 0.5f);
+            var used = new bool[n];
+            foreach (var p in pairs)
+            {
+                if (linkPairs >= targetPairs) continue;
+                if (used[p.x] || used[p.y]) continue;
+                var a = m_WagonSequence[p.x];
+                var b = m_WagonSequence[p.y];
+                if (a == null || b == null) continue;
+                used[p.x] = used[p.y] = true;
+                linkPairs++;
+                a.linkId = linkPairs;
+                b.linkId = linkPairs;
+            }
+
+            // Gizli gemiler: ön sıra dışı, halatsız
+            var hidCands = new List<int>();
+            for (int i = Mathf.Min(cols, n); i < n; i++)
+                if (!used[i] && m_WagonSequence[i] != null) hidCands.Add(i);
+            int targetHidden = Mathf.Min(hidCands.Count, Mathf.RoundToInt(n * Mathf.Clamp01(hiddenRatio)));
+            for (int k = 0; k < targetHidden; k++)
+            {
+                int pick = k + rng.Next(hidCands.Count - k);
+                int t = hidCands[k]; hidCands[k] = hidCands[pick]; hidCands[pick] = t;
+                m_WagonSequence[hidCands[k]].isHidden = true;
+                hiddenCount++;
+            }
+
+            m_UseCustomWagonSequence = true;
+        }
+
         public void LinkWagons(int indexA, int indexB)
         {
             if (m_WagonSequence == null) return;

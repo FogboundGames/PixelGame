@@ -26,6 +26,8 @@ namespace PixelGame.Editor
         private int m_ActiveBrushPaletteIndex = -1;
         private int m_SelectedSlotForSwap = -1;
         private int m_SelectedSlotForLink = -1;
+        private int m_GenLinkPercent = 20;
+        private int m_GenHiddenPercent = 15;
         private string m_LastSmartStatusMessage = "";
 
         public enum WagonDifficultyMode
@@ -62,6 +64,8 @@ namespace PixelGame.Editor
         private void OnEnable()
         {
             m_CurrentTab = (DetailTab)EditorPrefs.GetInt("PixelGame_SelectedDetailTab", (int)DetailTab.SimpleMode);
+            m_GenLinkPercent = EditorPrefs.GetInt("PixelGame_GenLinkPercent", 20);
+            m_GenHiddenPercent = EditorPrefs.GetInt("PixelGame_GenHiddenPercent", 15);
             RefreshLevelList();
         }
 
@@ -2042,6 +2046,78 @@ namespace PixelGame.Editor
             }
             GUI.backgroundColor = Color.white;
 
+            EditorGUILayout.EndHorizontal();
+
+            // Gemi üstü sayıların çeşitliliği: hep 16 yerine arada 12, 13... gelsin
+            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+            GUILayout.Label(new GUIContent("🎲 Gemi Sayıları:", "Sıra üretilirken / karıştırılırken her geminin kapasitesi en az–en çok aralığından seçilir; sayılar \"en sık\" değerinin etrafında yoğunlaşır. En çok = Vagon Kapasitesi."), EditorStyles.miniBoldLabel, GUILayout.Width(100));
+            GUILayout.Label("en az", EditorStyles.miniLabel, GUILayout.Width(32));
+            int newMinCap = EditorGUILayout.IntField(m_SelectedLevel.MinTruckCapacity, GUILayout.Width(30));
+            if (newMinCap != m_SelectedLevel.MinTruckCapacity)
+            {
+                Undo.RecordObject(m_SelectedLevel, "Gemi Kapasite Aralığı");
+                m_SelectedLevel.MinTruckCapacity = Mathf.Clamp(newMinCap, 1, m_SelectedLevel.TruckCapacity);
+                EditorUtility.SetDirty(m_SelectedLevel);
+            }
+            GUILayout.Label("en sık", EditorStyles.miniLabel, GUILayout.Width(36));
+            int newPeakCap = EditorGUILayout.IntField(m_SelectedLevel.PeakTruckCapacity, GUILayout.Width(30));
+            if (newPeakCap != m_SelectedLevel.PeakTruckCapacity)
+            {
+                Undo.RecordObject(m_SelectedLevel, "Gemi Kapasite Yoğunluğu");
+                m_SelectedLevel.PeakTruckCapacity = Mathf.Clamp(newPeakCap, m_SelectedLevel.MinTruckCapacity, m_SelectedLevel.TruckCapacity);
+                EditorUtility.SetDirty(m_SelectedLevel);
+            }
+            GUILayout.Label(new GUIContent("en çok", "Bir geminin alabileceği en fazla küp. Üstteki 'Vagon Kapasitesi' ile aynı değerdir."), EditorStyles.miniLabel, GUILayout.Width(38));
+            int newMaxCap = EditorGUILayout.IntField(m_SelectedLevel.TruckCapacity, GUILayout.Width(30));
+            if (newMaxCap != m_SelectedLevel.TruckCapacity)
+            {
+                Undo.RecordObject(m_SelectedLevel, "Gemi Kapasite Üst Sınırı");
+                m_SelectedLevel.TruckCapacity = Mathf.Clamp(newMaxCap, 1, 64);
+                // Alt sınır ve en sık değer yeni üst sınırı aşmasın
+                if (m_SelectedLevel.MinTruckCapacity > m_SelectedLevel.TruckCapacity) m_SelectedLevel.MinTruckCapacity = m_SelectedLevel.TruckCapacity;
+                if (m_SelectedLevel.PeakTruckCapacity > m_SelectedLevel.TruckCapacity) m_SelectedLevel.PeakTruckCapacity = m_SelectedLevel.TruckCapacity;
+                EditorUtility.SetDirty(m_SelectedLevel);
+            }
+            if (GUILayout.Button(new GUIContent("🎲 Sayıları Karıştır", "Renk sırasını bozmadan gemi kapasitelerini bu aralıkta yeniden dağıtır. Renk başına toplam küp sayısı korunur; gerekirse aynı renkten gemi eklenir/çıkarılır. Undo ile geri alınır."), EditorStyles.toolbarButton, GUILayout.Width(130)))
+            {
+                Undo.RecordObject(m_SelectedLevel, "Gemi Sayılarını Karıştır");
+                if (!m_SelectedLevel.UseCustomWagonSequence || m_SelectedLevel.WagonSequence == null || m_SelectedLevel.WagonSequence.Count == 0)
+                {
+                    m_SelectedLevel.GenerateInterleavedWagonSequenceFromPalette();
+                }
+                else
+                {
+                    m_SelectedLevel.VaryWagonCapacities();
+                }
+                m_SelectedLevel.UseCustomWagonSequence = true;
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+            }
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+
+            // Halat & gizli gemi üretimi
+            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+            GUILayout.Label(new GUIContent("🔗 Halat %", "Gemilerin yaklaşık bu kadarı halatla bağlanır (iki gemi bir halat). Sadece oyun başındaki havuz diziliminde: üst üste olanlar her yerde, yan yana olanlar yalnızca en ön sırada."), EditorStyles.miniBoldLabel, GUILayout.Width(62));
+            m_GenLinkPercent = EditorGUILayout.IntSlider(m_GenLinkPercent, 0, 60, GUILayout.Width(150));
+            GUILayout.Space(8);
+            GUILayout.Label(new GUIContent("❓ Gizli %", "Gemilerin yaklaşık bu kadarı gizli ('?') olur. En ön sıradakiler ve halatlılar gizlenmez."), EditorStyles.miniBoldLabel, GUILayout.Width(58));
+            m_GenHiddenPercent = EditorGUILayout.IntSlider(m_GenHiddenPercent, 0, 60, GUILayout.Width(150));
+            if (GUILayout.Button(new GUIContent("🪄 Halat & Gizli Üret", "Mevcut halatları ve gizli gemileri silip oranlara göre yeniden dağıtır. Sayıları karıştırdıktan SONRA bas (karıştırma gemi ekleyip çıkarınca yerler kayar). Undo ile geri alınır."), EditorStyles.toolbarButton, GUILayout.Width(130)))
+            {
+                EditorPrefs.SetInt("PixelGame_GenLinkPercent", m_GenLinkPercent);
+                EditorPrefs.SetInt("PixelGame_GenHiddenPercent", m_GenHiddenPercent);
+                Undo.RecordObject(m_SelectedLevel, "Halat & Gizli Üret");
+                m_SelectedLevel.GenerateLinksAndHidden(m_GenLinkPercent / 100f, m_GenHiddenPercent / 100f, new System.Random(),
+                    out int pairs, out int hidden, out int targetPairs);
+                m_SelectedSlotForLink = -1;
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+                string note = pairs < targetPairs ? $" (hedef {targetPairs} çiftti; havuzda uygun yan yana/üst üste yer bu kadar)" : "";
+                ShowNotification(new GUIContent($"🔗 {pairs} halat · ❓ {hidden} gizli gemi{note}"));
+                Debug.Log($"[Level Designer] {m_SelectedLevel.name}: {pairs} halat, {hidden} gizli gemi üretildi{note}.");
+            }
+            GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
 
             if (!string.IsNullOrEmpty(m_LastSmartStatusMessage))

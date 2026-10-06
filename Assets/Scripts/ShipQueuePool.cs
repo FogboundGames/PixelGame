@@ -152,26 +152,17 @@ namespace PixelGame
 
         public int GetTotalCapacityOfActiveShips()
         {
+            // Sahnedeki TÜM canlı gemiler sayılır: kuyrukta bekleyen, slota doğru yolda olan ve slottaki.
+            // Eskiden sadece kuyruk listesi + slottakiler sayılıyordu; slota giden gemi ikisinde de olmadığı
+            // için kapasite eksik görünüyor, sıra bitince gereksiz ekstra gemiler (yanlış sayılarla) doğuyordu.
+            // Rezerve edilmiş (yoldaki) küpler GetTotalRemainingCubes'ta sayılmadığı için burada da düşülür.
             int total = 0;
-            if (m_WaitingShips != null)
+            var ships = ShipController.ActiveShips;
+            for (int i = 0; i < ships.Count; i++)
             {
-                foreach (var s in m_WaitingShips)
-                {
-                    if (s != null && !s.IsDeparting)
-                    {
-                        total += s.RemainingCapacity;
-                    }
-                }
-            }
-            if (ShipDispatcher.Instance != null && ShipDispatcher.Instance.Slots != null)
-            {
-                foreach (var slot in ShipDispatcher.Instance.Slots)
-                {
-                    if (slot != null && slot.DockedShip != null && !slot.DockedShip.IsDeparting)
-                    {
-                        total += slot.DockedShip.RemainingCapacity;
-                    }
-                }
+                ShipController s = ships[i];
+                if (s == null || s.IsDeparting || !s.gameObject.activeInHierarchy) continue;
+                total += Mathf.Max(0, s.Capacity - s.CurrentCargo - s.PendingCargo);
             }
             return total;
         }
@@ -892,12 +883,12 @@ namespace PixelGame
 
                     if (m_Rows >= 2)
                     {
-                        StartCoroutine(SpawnAndSailInNewShip(last1, 0.15f));
-                        StartCoroutine(SpawnAndSailInNewShip(last2, 0.30f));
+                        SpawnAndSailInNewShip(last1, 0.15f);
+                        SpawnAndSailInNewShip(last2, 0.30f);
                     }
                     else
                     {
-                        StartCoroutine(SpawnAndSailInNewShip(last2, 0.18f));
+                        SpawnAndSailInNewShip(last2, 0.18f);
                     }
                 }
             }
@@ -913,6 +904,9 @@ namespace PixelGame
             if (frontIndex < 0) return;
 
             int col = frontIndex % m_Columns;
+
+            // Gönderilen gemi kuyruktan hemen düşer; arkası boşsa bile listede (slottaki gemi olarak) kalmasın
+            m_WaitingShips[frontIndex] = null;
 
             // 1. Aynı sütundaki arkadaki tüm gemileri birer kademe öne kaydır
             for (int r = 0; r < m_Rows - 1; r++)
@@ -938,7 +932,7 @@ namespace PixelGame
             int lastRowIdx = (m_Rows - 1) * m_Columns + col;
             if (gameObject.activeInHierarchy)
             {
-                StartCoroutine(SpawnAndSailInNewShip(lastRowIdx, 0.18f));
+                SpawnAndSailInNewShip(lastRowIdx, 0.18f);
             }
         }
 
@@ -982,11 +976,16 @@ namespace PixelGame
                 });
         }
 
-        private IEnumerator SpawnAndSailInNewShip(int spotIndex, float delay)
+        /// <summary>
+        /// En arka spota denizden yeni gemi getirir. Gemi kuyruk listesine HEMEN yazılır, sadece süzülme
+        /// animasyonu gecikmeli başlar. Eskiden liste kaydı da gecikmeliydi: bu sürede aynı sütundan bir gemi
+        /// daha gönderilince ikinci yeni gemi aynı spota doğup birincinin kaydının üstüne yazıyordu; birinci
+        /// gemi listeden düşüp ekran dışında sonsuza kadar kalıyor, küpleri toplanamadığı için bölüm bitmiyordu.
+        /// </summary>
+        private void SpawnAndSailInNewShip(int spotIndex, float delay)
         {
-            if (delay > 0f) yield return new WaitForSeconds(delay);
-            if (spotIndex < 0 || spotIndex >= m_QueueSpots.Count) yield break;
-            if (m_ShipPrefab == null) yield break;
+            if (spotIndex < 0 || spotIndex >= m_QueueSpots.Count) return;
+            if (m_ShipPrefab == null) return;
 
             // Eğer özel sıra kullanılıyorsa ve sırada başka gemi kalmadıysa:
             if (m_UsingLevelSequence && (m_LevelSequenceQueue == null || m_LevelSequenceQueue.Count == 0))
@@ -996,7 +995,7 @@ namespace PixelGame
                 if (remainingCubes <= currentShipCapacity)
                 {
                     // Seviyedeki tüm küpler mevcut gemilerce karşılanıyor, yeni gemiye gerek yok
-                    yield break;
+                    return;
                 }
             }
 
@@ -1034,6 +1033,19 @@ namespace PixelGame
                 m_WaitingShips.Add(null);
             }
             m_WaitingShips[spotIndex] = ship;
+
+            if (gameObject.activeInHierarchy) StartCoroutine(SailInNewShip(ship, delay));
+            else ship.transform.localPosition = Vector3.zero;
+        }
+
+        private IEnumerator SailInNewShip(ShipController ship, float delay)
+        {
+            if (delay > 0f) yield return new WaitForSeconds(delay);
+            if (ship == null) yield break;
+            // Beklerken öne kaydırıldıysa (kendi tween'i var) ya da çoktan slota gönderildiyse dokunma
+            if (ship.transform.parent == null || ship.IsMoving || ship.IsDocked || ship.IsDeparting) yield break;
+            if (DOTween.IsTweening(ship.transform)) yield break;
+            GameObject shipObj = ship.gameObject;
 
             // Su sallanması (bobbing) animasyon süresince pozisyonu eski (arkadaki) tabana
             // geri çekip DOTween ile çakışmasın diye geçici olarak susturulur — aksi halde
