@@ -15,7 +15,10 @@ namespace PixelGame.Editor
 
         static SetupCurvedMarinaPier()
         {
-            EditorApplication.delayCall += SetupCurvedPier;
+            // Otomatik tetikleme kapatıldı: her derlemede/pull'da iskele ayarlarını sabit değerlere geri yazıp
+            // sahneyi ve materyalleri kaydediyordu (sahnedeki elle ayar kayboluyordu).
+            // Gerekirse menüden elle çalıştırılır: PixelGame/⚓ Setup Curved Marina Pier.
+            // EditorApplication.delayCall += SetupCurvedPier;
         }
 
         [MenuItem("PixelGame/⚓ Setup Curved Marina Pier (4 & 5 Slots)")]
