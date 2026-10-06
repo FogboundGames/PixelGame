@@ -1437,6 +1437,16 @@ namespace PixelGame
                 yield return null;
             }
 
+            // Küp güverteye değdiği an sayılır: sayı, su/gemi tepkisiyle birlikte hemen düşer.
+            // (Eskiden yaylanma + batma animasyonu da bittikten sonra sayılıyordu; sayı ~0.5 sn+ geç düşüyordu.)
+            if (ship != null)
+            {
+                ship.AddCargo(1);
+                ship.TriggerWaterDipImpact(0.12f, 0.35f);
+                ShipController.SpawnWaterRipple(ship.transform.position + new Vector3(0f, -0.05f, 0.05f), 0.28f, 0.95f, 0.45f);
+                HypercasualWaterController.TriggerWaterRipple(ship.transform.position, 0.70f, 0.25f);
+            }
+
             // 2. Settle: sönümlü minik yaylanma, sonra güverteye ease-in ile batarak kaybolma (snap yok)
             float settleDur = Mathf.Max(0.06f, s.SettleDuration);
             float sinkDur = settleDur;
@@ -1486,15 +1496,6 @@ namespace PixelGame
                 }
             }
             if (sourceCube != null) s_ReservedCubes.Remove(sourceCube);
-
-            if (ship != null)
-            {
-                // Gemiye kargo ekle ve görsel/ses/su geri bildirimini tetikle
-                ship.AddCargo(1);
-                ship.TriggerWaterDipImpact(0.12f, 0.35f);
-                ShipController.SpawnWaterRipple(ship.transform.position + new Vector3(0f, -0.05f, 0.05f), 0.28f, 0.95f, 0.45f);
-                HypercasualWaterController.TriggerWaterRipple(ship.transform.position, 0.70f, 0.25f);
-            }
 
             m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - 1);
 
