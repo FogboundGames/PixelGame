@@ -358,7 +358,9 @@ namespace PixelGame.Editor
 
                 // Sürükle-Bırak Bırakma Algılama: fare bu satırın üzerinde bırakılırsa, sürüklenen
                 // level'i buraya taşı ve otomatik yeniden numaralandır (AutoRenumberLevels MoveLevel içinde çağrılıyor).
-                if (m_DraggingLevel != null && Event.current.type == EventType.MouseUp && rowRect.Contains(Event.current.mousePosition))
+                // Not: rowRect yalnızca son kontrolün (butonların) alanıdır; satırın tüm genişliğini kapsasın diye genişletiyoruz.
+                Rect dropRect = new Rect(0f, rowRect.y, position.width, Mathf.Max(rowRect.height, 20f));
+                if (m_DraggingLevel != null && Event.current.type == EventType.MouseUp && dropRect.Contains(Event.current.mousePosition))
                 {
                     int fromIndex = m_AllLevels.IndexOf(m_DraggingLevel);
                     int toIndex = i;

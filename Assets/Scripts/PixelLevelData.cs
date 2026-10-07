@@ -314,7 +314,7 @@ namespace PixelGame
         [Range(0f, 0.3f)]
         [SerializeField] private float m_InnerPadding = 0.08f;
 
-        [Tooltip("Şeffaf (alpha < 0.1) pikseller için küp oluşturulmasın mı?")]
+        [Tooltip("Açık: tahta dolu alana sıkı kırpılır (küpler büyük görünür). Kapalı: tam ızgara kullanılır. Şeffaf piksellerden her durumda küp üretilmez.")]
         [SerializeField] private bool m_SkipTransparent = true;
 
         [Header("❓ Gizli / Soru İşaretli Küpler (Mystery Cubes)")]
@@ -549,7 +549,7 @@ namespace PixelGame
                     int px = Mathf.Clamp(Mathf.FloorToInt((x + 0.5f) / cols * tex.width), 0, tex.width - 1);
                     int py = Mathf.Clamp(Mathf.FloorToInt((y + 0.5f) / rows * tex.height), 0, tex.height - 1);
                     Color c = tex.GetPixel(px, py);
-                    if (m_SkipTransparent && c.a < 0.1f) continue;
+                    if (c.a < 0.1f) continue;
                     c = ApplyColorPipeline(c);
                     if (PaletteColorOverride.ColorsMatch(c, targetCol, threshold))
                     {
@@ -1167,7 +1167,7 @@ namespace PixelGame
             for (int i = 0; i < pixels.Length; i++)
             {
                 Color c = pixels[i];
-                if (m_SkipTransparent && c.a < 0.1f) continue;
+                if (c.a < 0.1f) continue;
 
                 // Mevcut grupta var mı?
                 bool found = false;

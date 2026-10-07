@@ -120,7 +120,7 @@ namespace PixelGame
         [Tooltip("Her satır (GridY arttıkça) küpün konumuna eklenen serbest X/Y/Z kademesi. Örn. Z=0.12 verirsen her üst satır bir öncekinden 0.12 birim daha ileri/geri kayar; X veya Y'ye değer verirsen satırlar yana/yukarı da kayabilir. Sahnede canlı görmek için 'Preserve Scene Edits' kapalı olmalı.")]
         [SerializeField] private Vector3 m_CubeRowStepOffset = Vector3.zero;
 
-        [Tooltip("Şeffaf (alpha < 0.1) pikseller için küp oluşturulmasın mı?")]
+        [Tooltip("Açık: tahta dolu alana sıkı kırpılır (küpler büyük görünür). Kapalı: tam ızgara kullanılır. Şeffaf piksellerden her durumda küp üretilmez.")]
         [SerializeField] private bool m_SkipTransparent = true;
 
         [Tooltip("Oyun başladığında otomatik oluştursun mu?")]
@@ -983,8 +983,8 @@ namespace PixelGame
                 {
                     Color rawColor = SampleRawColor(activeTex, x, y, cols, rows);
 
-                    // Şeffaf piksel kontrolü
-                    if (m_SkipTransparent && rawColor.a < 0.1f)
+                    // Şeffaf pikselden asla küp üretilmez (bayraktan bağımsız)
+                    if (rawColor.a < 0.1f)
                         continue;
 
                     Color adjustedColor = PixelCube.AdjustColor(rawColor, m_ColorBrightness, m_ColorSaturation, m_ColorContrast);

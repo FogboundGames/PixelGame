@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_20_Kilic
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Kilic
-  m_LevelIndex: 4
+  m_LevelIndex: 11
   m_DifficultyTier: 0
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: e822a0a3edd413dda8546d89f5ecb22b, type: 3}

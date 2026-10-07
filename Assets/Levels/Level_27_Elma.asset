@@ -10,29 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56621c704aae40878464c98bd3ff671a, type: 3}
-  m_Name: "Level_03_Alt\u0131n Y\u0131ld\u0131z"
-  m_EditorClassIdentifier: PixelGame::PixelGame.PixelLevelData
-  m_LevelName: "Alt\u0131n Y\u0131ld\u0131z"
-  m_LevelIndex: 14
+  m_Name: Level_27_Elma
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
+  m_LevelName: Bir
+  m_LevelIndex: 1
   m_DifficultyTier: 0
   m_LegacyIsHardLevel: 0
-  m_LevelTexture: {fileID: 2800000, guid: f16dad97d6094c5fa353b599dab245b3, type: 3}
-  m_OriginalSourceTexture: {fileID: 0}
+  m_LevelTexture: {fileID: 2800000, guid: 3af4c29133a5f0a9c95c3634aeae1c22, type: 3}
+  m_OriginalSourceTexture: {fileID: 2800000, guid: 9335ca9c11a389b20a7b5bdc377919a9, type: 3}
   m_LevelSprite: {fileID: 0}
   m_UseNativeResolution: 1
   m_CustomResolution: {x: 24, y: 24}
   m_ColorPalette:
-  - originalColor: {r: 0.7254902, g: 0.4901961, b: 0.1333333, a: 1}
-    targetColor: {r: 0.7254902, g: 0.4901961, b: 0.1333333, a: 1}
-    pixelCount: 40
-    label: 
-  - originalColor: {r: 1, g: 0.8, b: 0.1254902, a: 1}
-    targetColor: {r: 1, g: 0.8, b: 0.1254902, a: 1}
-    pixelCount: 37
-    label: 
-  - originalColor: {r: 1, g: 0.9882353, b: 0.8431373, a: 1}
-    targetColor: {r: 1, g: 0.9882353, b: 0.8431373, a: 1}
-    pixelCount: 1
+  - originalColor: {r: 0.83921576, g: 0.2509804, b: 0.18823531, a: 1}
+    targetColor: {r: 0.83921576, g: 0.2509804, b: 0.18823531, a: 1}
+    pixelCount: 13
     label: 
   m_TintColor: {r: 1, g: 1, b: 1, a: 1}
   m_HueShift: 0
@@ -44,65 +36,30 @@ MonoBehaviour:
   m_CubeSpacingX: 0
   m_CubeDepth: 1
   m_BoardTiltAngle: 18
-  m_CubeFrontTiltAngle: 25
+  m_CubeFrontTiltAngle: -6
   m_TargetZ: 0
   m_CubeRowStepOffset: {x: 0, y: 0, z: 0}
   m_InnerPadding: 0.08
-  m_SkipTransparent: 1
-  m_MysteryCubeCoordinates:
-  - {x: 8, y: 10}
-  - {x: 9, y: 10}
-  - {x: 9, y: 9}
-  - {x: 7, y: 9}
-  - {x: 8, y: 9}
+  m_SkipTransparent: 0
+  m_MysteryCubeCoordinates: []
   m_MysteryRevealCondition: 0
-  m_MysteryCubeColor: {r: 0.1254902, g: 0.11764706, b: 0.30588236, a: 1}
+  m_MysteryCubeColor: {r: 0.125, g: 0.118, b: 0.306, a: 1}
   m_SlotSprite: {fileID: 0}
-  m_SlotCount: 3
-  m_PoolColumns: 3
-  m_PoolRows: 3
-  m_TruckCapacity: 20
-  m_MinTruckCapacity: 10
+  m_SlotCount: 1
+  m_PoolColumns: 1
+  m_PoolRows: 1
+  m_TruckCapacity: 16
+  m_MinTruckCapacity: 4
   m_PeakTruckCapacity: 10
   m_UseRoundCapacities: 1
   m_RoundCapacityRatio: 0.8
   m_UseCustomWagonSequence: 1
   m_WagonSequence:
-  - wagonColor: {r: 0.7254902, g: 0.4901961, b: 0.1333333, a: 1}
-    capacity: 20
+  - wagonColor: {r: 0.83921576, g: 0.2509804, b: 0.18823531, a: 1}
+    capacity: 13
     paletteIndex: 0
-    label: Renk #1 (1)
+    label: Gemi 1 (R0)
     linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.8, b: 0.1254902, a: 1}
-    capacity: 15
-    paletteIndex: 1
-    label: Renk #2 (1)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.9882353, b: 0.8431373, a: 1}
-    capacity: 1
-    paletteIndex: 2
-    label: Renk #3 (1)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.7254902, g: 0.4901961, b: 0.1333333, a: 1}
-    capacity: 20
-    paletteIndex: 0
-    label: Renk #1 (2)
-    linkId: 0
-    isHidden: 1
-  - wagonColor: {r: 1, g: 0.8, b: 0.1254902, a: 1}
-    capacity: 10
-    paletteIndex: 1
-    label: Renk #2 (2)
-    linkId: 1
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.8, b: 0.1254902, a: 1}
-    capacity: 12
-    paletteIndex: 1
-    label: Renk #2 (3)
-    linkId: 1
     isHidden: 0
   m_FigureShadowTexture: {fileID: 0}
   m_UseCustomColorTheme: 0

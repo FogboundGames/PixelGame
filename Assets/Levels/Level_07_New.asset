@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_07_New
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Kedi
-  m_LevelIndex: 7
+  m_LevelIndex: 10
   m_DifficultyTier: 0
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: b10472e976fb635018457d0b7b24157d, type: 3}

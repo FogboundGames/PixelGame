@@ -473,7 +473,7 @@ namespace PixelGame.Editor
                         raw = tex.GetPixel(px, py);
                     }
 
-                    if (level.SkipTransparent && raw.a < 0.1f) continue;
+                    if (raw.a < 0.1f) continue;
 
                     Color piped = level.ApplyColorPipeline(raw);
                     Color shown = PixelCube.AdjustColor(piped, level.ColorBrightness, level.ColorSaturation, level.ColorContrast);

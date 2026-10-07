@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_10_New
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: "B\xF6l\xFCm 10"
-  m_LevelIndex: 13
+  m_LevelIndex: 7
   m_DifficultyTier: 1
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: 4a93fbc73a0e96130a3d742d6b1121b8, type: 3}
