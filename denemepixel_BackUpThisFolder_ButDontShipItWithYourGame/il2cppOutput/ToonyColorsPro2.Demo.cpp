@@ -1,0 +1,7961 @@
+﻿#include "pch-cpp.hpp"
+
+
+
+
+
+template <typename T1>
+struct VirtualActionInvoker1
+{
+	typedef void (*Action)(void*, T1, const RuntimeMethod*);
+
+	static inline void Invoke (Il2CppMethodSlot slot, RuntimeObject* obj, T1 p1)
+	{
+		const VirtualInvokeData& invokeData = il2cpp_codegen_get_virtual_invoke_data(slot, obj);
+		((Action)invokeData.methodPtr)(obj, p1, invokeData.method);
+	}
+};
+template <typename R>
+struct VirtualFuncInvoker0
+{
+	typedef R (*Func)(void*, const RuntimeMethod*);
+
+	static inline R Invoke (Il2CppMethodSlot slot, RuntimeObject* obj)
+	{
+		const VirtualInvokeData& invokeData = il2cpp_codegen_get_virtual_invoke_data(slot, obj);
+		return ((Func)invokeData.methodPtr)(obj, invokeData.method);
+	}
+};
+
+struct Action_1_tC95790E55CF4D5C803FAD201917F7CB367351E3F;
+struct Action_1_tB4B0D0DB16148980518A9D58761727D77FA1F1D3;
+struct Action_1_tD69A6DC9FBE94131E52F5A73B2A9D4AB51EEC404;
+struct Action_1_t6F9EB113EB3F16226AEF811A2744F4111C116C87;
+struct Action_1_tEB0353AA1A112B6F2D921B58DCC9D9D4C0498E6E;
+struct Action_2_tD7438462601D3939500ED67463331FE00CFFBDB8;
+struct Comparison_1_t9FCAC8C8CE160A96C5AAD2DE1D353DCE8A2FEEFC;
+struct Dictionary_2_t609CD6E7E686007E5CF00E6A12C74A3B3106EF96;
+struct HashSet_1_t4A2F2B74276D0AD3ED0F873045BD61E9504ECAE2;
+struct InputControl_1_t7A35A4AF63A7AA94678E000D4F3265A1FD84288A;
+struct InputControl_1_tC164085710F2FAA9161295C9B7FE273AF893CF66;
+struct InputProcessor_1_tFE49B42CB371A9A2A3F29802695BD251947AD0B4;
+struct InputProcessor_1_tD1A40E0E5825AAABC3416EC96E087FF6E6351DD2;
+struct List_1_tC3125D359B5BFC11439B1C3D9D6620A529B03EF0;
+struct List_1_tA5BDE435C735A082941CD33D212F97F4AE9FA55F;
+struct List_1_tFED1C27AA4B8AC9813FF4858B3ABB1B3F74558EF;
+struct List_1_t2CDCA768E7F493F5EDEBC75AEB200FD621354E35;
+struct List_1_tF2FE88545EFEC788CAAE6C74EC2F78E937FCCAC3;
+struct List_1_tE6BB71ABF15905EFA2BE92C38A2716547AEADB19;
+struct List_1_t8292C421BBB00D7661DC07462822936152BAB446;
+struct List_1_t5ED555E220A2C0CA4F1CC393401AF0D7BA5B456B;
+struct TweenRunner_1_t5BB0582F926E75E2FE795492679A6CF55A4B4BC4;
+struct Action_1U5BU5D_t525E90B5D1212F32F34CD47670B3553347DFB133;
+struct Action_1U5BU5D_t22E45C2BFF8C89B61E349730E6255288D35F6B88;
+struct InputProcessor_1U5BU5D_tFEE411B67EEAA6B997AF875A65D072993C8C809C;
+struct InputProcessor_1U5BU5D_t5083205703ED9D1A4B8037E3BBE765389957231A;
+struct ButtonU5BU5D_t0D512FF2FF5A72DAC04754F2C10182F850328BEF;
+struct ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031;
+struct CharU5BU5D_t799905CF001DD5F13F7DBB310181FC4D8B7D0AAB;
+struct DelegateU5BU5D_tC5AB7E8F745616680F337909D3A8E6C722CDF771;
+struct InputControlU5BU5D_t0B951FEF1504D6340387C4735F5D6F426F40FE17;
+struct Int32U5BU5D_t19C97395396A72ECAF310612F0760F165060314C;
+struct IntPtrU5BU5D_tFD177F8C806A6921AD7150264CCC62FA00CAD832;
+struct InternedStringU5BU5D_t0B851758733FC0B118D84BE83AED10A0404C18D5;
+struct KeyControlU5BU5D_t247D92FAA9E46BA28BB54BB6E38E7F99BD2C02DA;
+struct LightU5BU5D_tDA7C763E668D91E53318509D94BC0CF10B8AB990;
+struct ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918;
+struct PointerModelU5BU5D_tE7B1CA281F392BD0840E1A81754AC94AF44FEE81;
+struct SecondarySpriteTextureU5BU5D_tC322D73EA4B9A8B747013A3584DEFEAFC0D87192;
+struct SelectableU5BU5D_t4160E135F02A40F75A63F787D36F31FEC6FE91A9;
+struct StackTraceU5BU5D_t32FBCB20930EAF5BAE3F450FF75228E5450DA0DF;
+struct TCP2_Demo_Interactive_ContentU5BU5D_tB79AA6CDA4494B6C8747A1728F83BC2310EB9194;
+struct TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360;
+struct TypeU5BU5D_t97234E1129B564EB38B8D85CAC2AD8B5B9522FFB;
+struct UIVertexU5BU5D_tBC532486B45D071A520751A90E819C77BA4E3D2F;
+struct UInt16U5BU5D_tEB7C42D811D999D2AA815BADC3FCCDD9C67B3F83;
+struct UInt32U5BU5D_t02FBD658AD156A17574ECE6106CF1FBFCC9807FA;
+struct Vector2U5BU5D_tFEBBC94BCC6C9C88277BA04047D2B3FDB6ED7FDA;
+struct Vector3U5BU5D_tFF1859CCE176131B909E2044F76443064254679C;
+struct ControlBitRangeNodeU5BU5D_t912A404149DE6D350D1735A026182C409C510F27;
+struct AnimatedPropertyU5BU5D_t62A4E770F9DDA2800712D931AEDD04C0DE6FB7BE;
+struct AnimationCurve_tCBFFAAD05CEBB35EF8D8631BD99914BE1A6BB354;
+struct AnimationTriggers_tA0DC06F89C5280C6DD972F6F4C8A56D7F4F79074;
+struct AnyKeyControl_t88E59A594CAF1E3A432C3BEC2634C0CA462D8A14;
+struct AxisControl_tD6613A2445A3C2BFA22C77E16CA3201AF72354A7;
+struct AxisEventData_t4AA742BC101B1AA300B16EE7F19E31B91F37A938;
+struct BaseEventData_tE03A848325C0AE8E76C6CA15FD86395EBF83364F;
+struct BaseInput_t69C46B0AA3C24F1CA842A0D03CACACC4EC788622;
+struct BaseInputModule_tF3B7C22AF1419B2AC9ECE6589357DC1B88ED96B1;
+struct BaseRaycaster_t7DC8158FD3CA0193455344379DD5FF7CD5F1F832;
+struct Behaviour_t01970CFBBA658497AE30F311C447DB0440BAB7FA;
+struct Binder_t91BFCE95A7057FADF4D8A1A342AFE52872246235;
+struct Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098;
+struct ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF;
+struct Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184;
+struct CancellationTokenSource_tAAE1E0033BCFC233801F8CB4CED5C852B350CB7B;
+struct Canvas_t2DB4CEFDFF732884866C83F11ABF75F5AE8FFB26;
+struct CanvasRenderer_tAB9A55A976C4E3B2B37D0CE5616E5685A8B43860;
+struct CanvasScaler_t3BC095205EAD308CF3EAC27136A73387AC32FC3B;
+struct Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3;
+struct ContentSizeFitter_tC40AED5F772F1F140F69E0F1BB7D4AE31D64A87B;
+struct Coroutine_t85EA685566A254C23F3FD77AB5BDFFFF8799596B;
+struct DefaultInputActions_t8041965208E4C6952C7969FD33249007DE96F0A6;
+struct DelegateData_t9B286B493293CD2D23A5B2B5EF0E5B1324C2B77E;
+struct DeltaControl_t63053AF5E0CD02B62F3CDE79821E4A12F72D573B;
+struct EventSystem_t61C51380B105BE9D2C39C4F15B7E655659957707;
+struct ExtendedPointerEventData_t164B462A9B123B2EE69B7DEC4F33F6AA3DE7937F;
+struct FontData_tB8E562846C6CB59C43260F69AE346B9BF3157224;
+struct GameObject_t76FEDD663AB33C991A9C9A23129337651094216F;
+struct Graphic_tCBFCA4585A19E2B75465AECFEAC43F4016BF7931;
+struct HorizontalLayoutGroup_t615DFEC1382E2E207BC9CBAA9A511F7ED93965BA;
+struct IDictionary_t6D03155AF1FA9083817AA5B6AD7DEEACC26AB220;
+struct IEnumerator_t7B609C2FFA6EB5167D9C62A0C32A21DE2F666DAA;
+struct Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E;
+struct InputActionAsset_tF217AC5223B4AAA46EBCB44B33E9259FB117417D;
+struct InputActionReference_t64730C6B41271E0983FC21BFB416169F5D6BC4A1;
+struct InputDevice_t8BCF67533E872A75779C24C93D1D7085B72D364B;
+struct InputSystemUIInputModule_tB7D5B53F656D196BB5AF712FA16FEE22B2EE0C58;
+struct IntegerControl_tA24544EFF42204852F638FF5147F754962C997AB;
+struct InvokableCallList_t309E1C8C7CE885A0D2F98C84CEA77A8935688382;
+struct KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0;
+struct Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43;
+struct Light_t1E68479B7782AF2050FAA02A5DC612FD034F18F3;
+struct Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3;
+struct MemberFilter_tF644F1AE82F611B677CE1964D5A3277DDA21D553;
+struct Mesh_t6D9C539763A09BC2B12AEAEF36F6DFFC98AE63D4;
+struct MethodInfo_t;
+struct MonoBehaviour_t532A11E69716D348D8AA7F854AFCBFCB8AD17F71;
+struct Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F;
+struct NotSupportedException_t1429765983D409BD2986508963C98D214E4EBF4A;
+struct Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C;
+struct PersistentCallGroup_tB826EDF15DC80F71BCBCD8E410FD959A04C33F25;
+struct Pointer_t800EF2832B62E889AC9C182E3B18098AF220E32A;
+struct RectMask2D_tACF92BE999C791A665BD1ADEABF5BCEB82846670;
+struct RectOffset_t6358774A0DEEABA4586840CB9BC7DC88B39660B5;
+struct RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5;
+struct RenderPipelineAsset_t5F9BF815BF931E1314B184E7F9070FB649C7054E;
+struct SafeSerializationManager_tCBB85B95DFD1634237140CD892E82D06ECB3F5E6;
+struct Selectable_t3251808068A17B8E92FB33590A4C2FA66D456712;
+struct Shader_tADC867D36B7876EE22427FAA2CE485105F4EE692;
+struct Sprite_tAFF74BC83CD68037494CB0B4F28CBDF8971CAB99;
+struct String_t;
+struct TCP2_Demo_AnimateMaterial_t52E1C4DBF1CBB11C4310D5F2C333D240E48AA041;
+struct TCP2_Demo_AutoRotate_t098592AD2049F738A2BF189D78EA7A421DF6ADDF;
+struct TCP2_Demo_Camera_t345524DB7C1DBEBBAAA2835D524355C0B47FCA68;
+struct TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06;
+struct TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4;
+struct TCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C;
+struct TCP2_Demo_InvertedMaskImage_t733DF4E89E2C6E547DC4A3B5196928061034010E;
+struct TCP2_Demo_PipelineMaterial_tEC9DA4BE7F43804789982773D7F11D57EC394241;
+struct Text_tD60B2346DAA6666BF0D822FF607F0B220C2B9E62;
+struct TextGenerator_t85D00417640A53953556C01F9D4E7DDE1ABD8FEC;
+struct Texture_t791CBB51219779964E0E8A2ED7C1AA5F92A4A700;
+struct Texture2D_tE6505BC111DD8A424A9DBE8E05D7D09E11FFFCF4;
+struct Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1;
+struct Type_t;
+struct UIDocument_t4186BEBCC01278F63B895274AA08AD9ADFBF4C77;
+struct UIToolkitInteroperabilityBridge_t8E98EE5D73E8CCAA894A1BE50049E2A06E592CDD;
+struct UnityAction_t11A1F3B953B365C072A5DCC32677EE1796A962A7;
+struct UnityEvent_tDC2C3548799DBC91D1E3F3DE60083A66F4751977;
+struct UnitySourceGeneratedAssemblyMonoScriptTypes_v1_t9C462598C38E8EB1DABBF7CB7A7D42DF3CF1FA75;
+struct Vector2Control_t8D1B4021A1D82671AF916D3C0A476AA94E46A432;
+struct VertexHelper_tB905FCB02AE67CBEE5F265FE37A5938FC5D136FE;
+struct VisualElement_t2667F9D19E62C7A315927506C06F223AB9234115;
+struct Void_t4861ACF8F4594C3437BB48B6E56783494B843915;
+struct ButtonClickedEvent_t8EA72E90B3BD1392FB3B3EF167D5121C23569E4C;
+struct CameraCallback_t844E527BFE37BC0495E7F67993E43C07642DA9DD;
+struct WillRenderCanvases_tA4A6E66DBA797DCB45B995DBA449A9D1D80D0FBC;
+struct CullStateChangedEvent_t6073CD0D951EC1256BF74B8F9107D68FC89B99B8;
+struct ReapplyDrivenProperties_t3482EA130A01FF7EE2EEFE37F66A5215D08CFE24;
+struct AnimatedProperty_t31C29CBFB2284472B89A4C75644E5578B75E45B4;
+struct U3CU3Ec__DisplayClass25_0_t96646AD8D220C0FE7538DC1A209152C6ADC9F59A;
+struct U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6;
+struct U3CCR_ResetCamPosU3Ed__33_tE8294FA068A29CD7E6B87DBFFDB551AB64260BEE;
+
+IL2CPP_EXTERN_C RuntimeClass* Application_tDB03BE91CDF0ACA614A5E0B67CFB77C44EB19B21_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* ButtonU5BU5D_t0D512FF2FF5A72DAC04754F2C10182F850328BEF_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* Cubemap_t4F2DFF70696A5CB5C1695DF8947CC60D718C4A1C_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* GraphicsSettings_t01785CE5CB5C5105CB527619AF4D74BEF417EF1A_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* Math_tEB65DE7CA8B083C412C969C92981C030865486CE_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* NotSupportedException_t1429765983D409BD2986508963C98D214E4EBF4A_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* U3CCR_ResetCamPosU3Ed__33_tE8294FA068A29CD7E6B87DBFFDB551AB64260BEE_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* U3CU3Ec__DisplayClass25_0_t96646AD8D220C0FE7538DC1A209152C6ADC9F59A_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* UnityAction_t11A1F3B953B365C072A5DCC32677EE1796A962A7_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeClass* Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3_il2cpp_TypeInfo_var;
+IL2CPP_EXTERN_C RuntimeField* U3CPrivateImplementationDetailsU3E_tADF9975A33028E19C0CEBC42D6AF316B833851C6____BFDBE633476EFBC9BECC66F82D605AA7D7773E0C9ADE85410E4238C02AF8E860_FieldInfo_var;
+IL2CPP_EXTERN_C RuntimeField* U3CPrivateImplementationDetailsU3E_tADF9975A33028E19C0CEBC42D6AF316B833851C6____D042FF988B9FEB0F41DB1FAF8111CDF01C6CC32BFAF2312159CFCB8E5FA38A21_FieldInfo_var;
+IL2CPP_EXTERN_C String_t* _stringLiteral01751C0E97110EDEF84FF041AF6DB629B27EFE56;
+IL2CPP_EXTERN_C String_t* _stringLiteral0F52C788AC4796FE5841155F7DF3896E049C051E;
+IL2CPP_EXTERN_C String_t* _stringLiteral47A3FAF17D89549FD0F0ECA7370B81F7C80DFCDE;
+IL2CPP_EXTERN_C String_t* _stringLiteral50639CAD49418C7B223CC529395C0E2A3892501C;
+IL2CPP_EXTERN_C String_t* _stringLiteral97CD35D533ED84D4C320180197C62F59090E17DB;
+IL2CPP_EXTERN_C String_t* _stringLiteralDEAC03BC08603A926530E878D97B96FA6C0CFEED;
+IL2CPP_EXTERN_C String_t* _stringLiteralFFEF3DBE279EE1F92E1E2E46F45BC18EBBF55A1A;
+IL2CPP_EXTERN_C const RuntimeMethod* Component_GetComponent_TisImage_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_mE74EE63C85A63FC34DCFC631BC229207B420BC79_RuntimeMethod_var;
+IL2CPP_EXTERN_C const RuntimeMethod* Component_GetComponentsInChildren_TisLight_t1E68479B7782AF2050FAA02A5DC612FD034F18F3_m2FE3113150DFC873296E954F0EBB0E18E096AFB5_RuntimeMethod_var;
+IL2CPP_EXTERN_C const RuntimeMethod* Component_GetComponentsInChildren_TisTCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4_m0115856B274E21068EF2ED4716CC877052F07CF6_RuntimeMethod_var;
+IL2CPP_EXTERN_C const RuntimeMethod* Component_GetComponentsInChildren_TisTCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C_m6968347F8776206E7FB4B6A6FB692471ABC012D4_RuntimeMethod_var;
+IL2CPP_EXTERN_C const RuntimeMethod* Component_GetComponentsInChildren_TisTCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C_mD4D087D7584A19E9ABD939B89C0496B778808A7C_RuntimeMethod_var;
+IL2CPP_EXTERN_C const RuntimeMethod* GameObject_AddComponent_TisInputSystemUIInputModule_tB7D5B53F656D196BB5AF712FA16FEE22B2EE0C58_mA175957B292E3F565216766FCE1E9D85836183A7_RuntimeMethod_var;
+IL2CPP_EXTERN_C const RuntimeMethod* GameObject_GetComponentInChildren_TisText_tD60B2346DAA6666BF0D822FF607F0B220C2B9E62_m4883A479F4252D21D45D5AD3140CB42598C48A13_RuntimeMethod_var;
+IL2CPP_EXTERN_C const RuntimeMethod* GameObject_GetComponent_TisButton_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098_mB997CBF78A37938DC1624352E12D0205078CB290_RuntimeMethod_var;
+IL2CPP_EXTERN_C const RuntimeMethod* InputControl_1_get_value_m3A09316CF498D9ED1A4C31890BB8870F80696EA2_RuntimeMethod_var;
+IL2CPP_EXTERN_C const RuntimeMethod* InputControl_1_get_value_mD5825506B785433FAFB0204E1FE3A7B9103B3FE5_RuntimeMethod_var;
+IL2CPP_EXTERN_C const RuntimeMethod* Object_Instantiate_TisGameObject_t76FEDD663AB33C991A9C9A23129337651094216F_m10D87C6E0708CA912BBB02555BF7D0FBC5D7A2B3_RuntimeMethod_var;
+IL2CPP_EXTERN_C const RuntimeMethod* U3CCR_MoveToContentU3Ed__35_System_Collections_IEnumerator_Reset_m73046DDC2212AA340B99D7E6858AFF1F8546D46C_RuntimeMethod_var;
+IL2CPP_EXTERN_C const RuntimeMethod* U3CCR_ResetCamPosU3Ed__33_System_Collections_IEnumerator_Reset_m2EBC8F50A8E4F83637CC47BE0BF9C544A6FF6DC4_RuntimeMethod_var;
+IL2CPP_EXTERN_C const RuntimeMethod* U3CU3Ec__DisplayClass25_0_U3CAwakeU3Eb__0_m6278DEF27CF0FB9CC95E295C10FB722AB6CEA0D2_RuntimeMethod_var;
+struct Delegate_t_marshaled_com;
+struct Delegate_t_marshaled_pinvoke;
+struct Exception_t_marshaled_com;
+struct Exception_t_marshaled_pinvoke;
+
+struct ButtonU5BU5D_t0D512FF2FF5A72DAC04754F2C10182F850328BEF;
+struct ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031;
+struct LightU5BU5D_tDA7C763E668D91E53318509D94BC0CF10B8AB990;
+struct TCP2_Demo_Interactive_ContentU5BU5D_tB79AA6CDA4494B6C8747A1728F83BC2310EB9194;
+struct TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360;
+struct AnimatedPropertyU5BU5D_t62A4E770F9DDA2800712D931AEDD04C0DE6FB7BE;
+
+IL2CPP_EXTERN_C_BEGIN
+IL2CPP_EXTERN_C_END
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+struct U3CModuleU3E_tF029220F22375E54DE2D4AA7FC4BF89DDB0B7F10 
+{
+};
+struct U3CPrivateImplementationDetailsU3E_tADF9975A33028E19C0CEBC42D6AF316B833851C6  : public RuntimeObject
+{
+};
+struct InputAbstraction_t614F18AE9661928808671791A0022C062C68A177  : public RuntimeObject
+{
+};
+struct MemberInfo_t  : public RuntimeObject
+{
+};
+struct String_t  : public RuntimeObject
+{
+	int32_t ____stringLength;
+	Il2CppChar ____firstChar;
+};
+struct UnityEventBase_t4968A4C72559F35C0923E4BD9C042C3A842E1DB8  : public RuntimeObject
+{
+	InvokableCallList_t309E1C8C7CE885A0D2F98C84CEA77A8935688382* ___m_Calls;
+	PersistentCallGroup_tB826EDF15DC80F71BCBCD8E410FD959A04C33F25* ___m_PersistentCalls;
+	bool ___m_CallsDirty;
+};
+struct UnitySourceGeneratedAssemblyMonoScriptTypes_v1_t9C462598C38E8EB1DABBF7CB7A7D42DF3CF1FA75  : public RuntimeObject
+{
+};
+struct ValueType_t6D9B272BD21782F0A9A14F2E41F85A50E97A986F  : public RuntimeObject
+{
+};
+struct ValueType_t6D9B272BD21782F0A9A14F2E41F85A50E97A986F_marshaled_pinvoke
+{
+};
+struct ValueType_t6D9B272BD21782F0A9A14F2E41F85A50E97A986F_marshaled_com
+{
+};
+struct YieldInstruction_tFCE35FD0907950EFEE9BC2890AC664E41C53728D  : public RuntimeObject
+{
+};
+struct YieldInstruction_tFCE35FD0907950EFEE9BC2890AC664E41C53728D_marshaled_pinvoke
+{
+};
+struct YieldInstruction_tFCE35FD0907950EFEE9BC2890AC664E41C53728D_marshaled_com
+{
+};
+struct U3CU3Ec__DisplayClass25_0_t96646AD8D220C0FE7538DC1A209152C6ADC9F59A  : public RuntimeObject
+{
+	int32_t ___ci;
+	TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* ___U3CU3E4__this;
+};
+struct InlinedArray_1_t031A607559EE9F23E8BC012CD9661BFB3EB2BFC1 
+{
+	int32_t ___length;
+	Action_1_tC95790E55CF4D5C803FAD201917F7CB367351E3F* ___firstValue;
+	Action_1U5BU5D_t525E90B5D1212F32F34CD47670B3553347DFB133* ___additionalValues;
+};
+struct InlinedArray_1_t8249EE706E2222F1A22F40FB70BEB230C11C5992 
+{
+	int32_t ___length;
+	Action_1_tB4B0D0DB16148980518A9D58761727D77FA1F1D3* ___firstValue;
+	Action_1U5BU5D_t22E45C2BFF8C89B61E349730E6255288D35F6B88* ___additionalValues;
+};
+struct InlinedArray_1_t2A86A6C75E0160EE14310E053C5249518871D847 
+{
+	int32_t ___length;
+	InputProcessor_1_tFE49B42CB371A9A2A3F29802695BD251947AD0B4* ___firstValue;
+	InputProcessor_1U5BU5D_tFEE411B67EEAA6B997AF875A65D072993C8C809C* ___additionalValues;
+};
+struct InlinedArray_1_tE5F1062E65707D24360CEAC52E03D32C6E5BA8BB 
+{
+	int32_t ___length;
+	InputProcessor_1_tD1A40E0E5825AAABC3416EC96E087FF6E6351DD2* ___firstValue;
+	InputProcessor_1U5BU5D_t5083205703ED9D1A4B8037E3BBE765389957231A* ___additionalValues;
+};
+struct InlinedArray_1_tC2490B07B1DD813665B621955586CF31457DB284 
+{
+	int32_t ___length;
+	int32_t ___firstValue;
+	Int32U5BU5D_t19C97395396A72ECAF310612F0760F165060314C* ___additionalValues;
+};
+struct Boolean_t09A6377A54BE2F9E6985A8149F19234FD7DDFE22 
+{
+	bool ___m_value;
+};
+struct Byte_t94D9231AC217BE4D2E004C4CD32DF6D099EA41A3 
+{
+	uint8_t ___m_value;
+};
+struct Color_tD001788D726C3A7F1379BEED0260B9591F440C1F 
+{
+	float ___r;
+	float ___g;
+	float ___b;
+	float ___a;
+};
+struct Double_tE150EF3D1D43DEE85D533810AB4C742307EEDE5F 
+{
+	double ___m_value;
+};
+struct DrivenRectTransformTracker_tFB0706C933E3C68E4F377C204FCEEF091F1EE0B1 
+{
+	union
+	{
+		struct
+		{
+		};
+		uint8_t DrivenRectTransformTracker_tFB0706C933E3C68E4F377C204FCEEF091F1EE0B1__padding[1];
+	};
+};
+struct Enum_t2A1A94B24E3B776EEF4E5E485E290BB9D4D072E2  : public ValueType_t6D9B272BD21782F0A9A14F2E41F85A50E97A986F
+{
+};
+struct Enum_t2A1A94B24E3B776EEF4E5E485E290BB9D4D072E2_marshaled_pinvoke
+{
+};
+struct Enum_t2A1A94B24E3B776EEF4E5E485E290BB9D4D072E2_marshaled_com
+{
+};
+struct FourCC_tA6CAA4015BC25A7F1053B6C512202D57A9C994ED 
+{
+	int32_t ___m_Code;
+};
+struct InputDeviceDescription_tE86DD77422AAF60ADDAC788B31E5A05E739B708F 
+{
+	String_t* ___m_InterfaceName;
+	String_t* ___m_DeviceClass;
+	String_t* ___m_Manufacturer;
+	String_t* ___m_Product;
+	String_t* ___m_Serial;
+	String_t* ___m_Version;
+	String_t* ___m_Capabilities;
+};
+struct InputDeviceDescription_tE86DD77422AAF60ADDAC788B31E5A05E739B708F_marshaled_pinvoke
+{
+	char* ___m_InterfaceName;
+	char* ___m_DeviceClass;
+	char* ___m_Manufacturer;
+	char* ___m_Product;
+	char* ___m_Serial;
+	char* ___m_Version;
+	char* ___m_Capabilities;
+};
+struct InputDeviceDescription_tE86DD77422AAF60ADDAC788B31E5A05E739B708F_marshaled_com
+{
+	Il2CppChar* ___m_InterfaceName;
+	Il2CppChar* ___m_DeviceClass;
+	Il2CppChar* ___m_Manufacturer;
+	Il2CppChar* ___m_Product;
+	Il2CppChar* ___m_Serial;
+	Il2CppChar* ___m_Version;
+	Il2CppChar* ___m_Capabilities;
+};
+struct Int32_t680FF22E76F6EFAD4375103CBBFFA0421349384C 
+{
+	int32_t ___m_value;
+};
+struct IntPtr_t 
+{
+	void* ___m_value;
+};
+struct InternedString_t8D62A48CB7D85AAE9CFCCCFB0A77AC2844905735 
+{
+	String_t* ___m_StringOriginalCase;
+	String_t* ___m_StringLowerCase;
+};
+struct InternedString_t8D62A48CB7D85AAE9CFCCCFB0A77AC2844905735_marshaled_pinvoke
+{
+	char* ___m_StringOriginalCase;
+	char* ___m_StringLowerCase;
+};
+struct InternedString_t8D62A48CB7D85AAE9CFCCCFB0A77AC2844905735_marshaled_com
+{
+	Il2CppChar* ___m_StringOriginalCase;
+	Il2CppChar* ___m_StringLowerCase;
+};
+struct Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 
+{
+	float ___x;
+	float ___y;
+	float ___z;
+	float ___w;
+};
+struct Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D 
+{
+	float ___m_XMin;
+	float ___m_YMin;
+	float ___m_Width;
+	float ___m_Height;
+};
+struct Single_t4530F2FF86FCB0DC29F35385CA1BD21BE294761C 
+{
+	float ___m_value;
+};
+struct SpriteState_tC8199570BE6337FB5C49347C97892B4222E5AACD 
+{
+	Sprite_tAFF74BC83CD68037494CB0B4F28CBDF8971CAB99* ___m_HighlightedSprite;
+	Sprite_tAFF74BC83CD68037494CB0B4F28CBDF8971CAB99* ___m_PressedSprite;
+	Sprite_tAFF74BC83CD68037494CB0B4F28CBDF8971CAB99* ___m_SelectedSprite;
+	Sprite_tAFF74BC83CD68037494CB0B4F28CBDF8971CAB99* ___m_DisabledSprite;
+};
+struct SpriteState_tC8199570BE6337FB5C49347C97892B4222E5AACD_marshaled_pinvoke
+{
+	Sprite_tAFF74BC83CD68037494CB0B4F28CBDF8971CAB99* ___m_HighlightedSprite;
+	Sprite_tAFF74BC83CD68037494CB0B4F28CBDF8971CAB99* ___m_PressedSprite;
+	Sprite_tAFF74BC83CD68037494CB0B4F28CBDF8971CAB99* ___m_SelectedSprite;
+	Sprite_tAFF74BC83CD68037494CB0B4F28CBDF8971CAB99* ___m_DisabledSprite;
+};
+struct SpriteState_tC8199570BE6337FB5C49347C97892B4222E5AACD_marshaled_com
+{
+	Sprite_tAFF74BC83CD68037494CB0B4F28CBDF8971CAB99* ___m_HighlightedSprite;
+	Sprite_tAFF74BC83CD68037494CB0B4F28CBDF8971CAB99* ___m_PressedSprite;
+	Sprite_tAFF74BC83CD68037494CB0B4F28CBDF8971CAB99* ___m_SelectedSprite;
+	Sprite_tAFF74BC83CD68037494CB0B4F28CBDF8971CAB99* ___m_DisabledSprite;
+};
+struct SubmitCancelModel_t9EE6EB92BEF49CDE76DD473E3677C344D2953C58 
+{
+	BaseEventData_tE03A848325C0AE8E76C6CA15FD86395EBF83364F* ___eventData;
+	InputDevice_t8BCF67533E872A75779C24C93D1D7085B72D364B* ___device;
+};
+struct SubmitCancelModel_t9EE6EB92BEF49CDE76DD473E3677C344D2953C58_marshaled_pinvoke
+{
+	BaseEventData_tE03A848325C0AE8E76C6CA15FD86395EBF83364F* ___eventData;
+	InputDevice_t8BCF67533E872A75779C24C93D1D7085B72D364B* ___device;
+};
+struct SubmitCancelModel_t9EE6EB92BEF49CDE76DD473E3677C344D2953C58_marshaled_com
+{
+	BaseEventData_tE03A848325C0AE8E76C6CA15FD86395EBF83364F* ___eventData;
+	InputDevice_t8BCF67533E872A75779C24C93D1D7085B72D364B* ___device;
+};
+struct UnityEvent_tDC2C3548799DBC91D1E3F3DE60083A66F4751977  : public UnityEventBase_t4968A4C72559F35C0923E4BD9C042C3A842E1DB8
+{
+	ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918* ___m_InvokeArray;
+};
+struct Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 
+{
+	float ___x;
+	float ___y;
+};
+struct Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 
+{
+	float ___x;
+	float ___y;
+	float ___z;
+};
+struct Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 
+{
+	float ___x;
+	float ___y;
+	float ___z;
+	float ___w;
+};
+struct Void_t4861ACF8F4594C3437BB48B6E56783494B843915 
+{
+	union
+	{
+		struct
+		{
+		};
+		uint8_t Void_t4861ACF8F4594C3437BB48B6E56783494B843915__padding[1];
+	};
+};
+#pragma pack(push, tp, 1)
+struct __StaticArrayInitTypeSizeU3D443_t2E46644E3E80230537A29DF58400F4B6C9502031 
+{
+	union
+	{
+		struct
+		{
+			union
+			{
+			};
+		};
+		uint8_t __StaticArrayInitTypeSizeU3D443_t2E46644E3E80230537A29DF58400F4B6C9502031__padding[443];
+	};
+};
+#pragma pack(pop, tp)
+#pragma pack(push, tp, 1)
+struct __StaticArrayInitTypeSizeU3D972_t06D7AEAC89AE40F796C55E56C8CE2177D3DD8635 
+{
+	union
+	{
+		struct
+		{
+			union
+			{
+			};
+		};
+		uint8_t __StaticArrayInitTypeSizeU3D972_t06D7AEAC89AE40F796C55E56C8CE2177D3DD8635__padding[972];
+	};
+};
+#pragma pack(pop, tp)
+struct UIToolkitOverrideConfigOld_tE63BCF42BC8CC79144B2817BE309C5C19015FD88 
+{
+	EventSystem_t61C51380B105BE9D2C39C4F15B7E655659957707* ___activeEventSystem;
+	bool ___sendEvents;
+	bool ___createPanelGameObjectsOnStart;
+};
+struct UIToolkitOverrideConfigOld_tE63BCF42BC8CC79144B2817BE309C5C19015FD88_marshaled_pinvoke
+{
+	EventSystem_t61C51380B105BE9D2C39C4F15B7E655659957707* ___activeEventSystem;
+	int32_t ___sendEvents;
+	int32_t ___createPanelGameObjectsOnStart;
+};
+struct UIToolkitOverrideConfigOld_tE63BCF42BC8CC79144B2817BE309C5C19015FD88_marshaled_com
+{
+	EventSystem_t61C51380B105BE9D2C39C4F15B7E655659957707* ___activeEventSystem;
+	int32_t ___sendEvents;
+	int32_t ___createPanelGameObjectsOnStart;
+};
+struct MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B 
+{
+	ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031* ___FilePathsData;
+	ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031* ___TypesData;
+	int32_t ___TotalTypes;
+	int32_t ___TotalFiles;
+	bool ___IsEditorOnly;
+};
+struct MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B_marshaled_pinvoke
+{
+	Il2CppSafeArray* ___FilePathsData;
+	Il2CppSafeArray* ___TypesData;
+	int32_t ___TotalTypes;
+	int32_t ___TotalFiles;
+	int32_t ___IsEditorOnly;
+};
+struct MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B_marshaled_com
+{
+	Il2CppSafeArray* ___FilePathsData;
+	Il2CppSafeArray* ___TypesData;
+	int32_t ___TotalTypes;
+	int32_t ___TotalFiles;
+	int32_t ___IsEditorOnly;
+};
+struct Nullable_1_t33D5AB3CF72EDE570A226DE48EF7C3A10F25A7C4 
+{
+	bool ___hasValue;
+	UIToolkitOverrideConfigOld_tE63BCF42BC8CC79144B2817BE309C5C19015FD88 ___value;
+};
+struct AnimationCurve_tCBFFAAD05CEBB35EF8D8631BD99914BE1A6BB354  : public RuntimeObject
+{
+	intptr_t ___m_Ptr;
+	bool ___m_RequiresNativeCleanup;
+};
+struct AnimationCurve_tCBFFAAD05CEBB35EF8D8631BD99914BE1A6BB354_marshaled_pinvoke
+{
+	intptr_t ___m_Ptr;
+	int32_t ___m_RequiresNativeCleanup;
+};
+struct AnimationCurve_tCBFFAAD05CEBB35EF8D8631BD99914BE1A6BB354_marshaled_com
+{
+	intptr_t ___m_Ptr;
+	int32_t ___m_RequiresNativeCleanup;
+};
+struct ColorBlock_tDD7C62E7AFE442652FC98F8D058CE8AE6BFD7C11 
+{
+	Color_tD001788D726C3A7F1379BEED0260B9591F440C1F ___m_NormalColor;
+	Color_tD001788D726C3A7F1379BEED0260B9591F440C1F ___m_HighlightedColor;
+	Color_tD001788D726C3A7F1379BEED0260B9591F440C1F ___m_PressedColor;
+	Color_tD001788D726C3A7F1379BEED0260B9591F440C1F ___m_SelectedColor;
+	Color_tD001788D726C3A7F1379BEED0260B9591F440C1F ___m_DisabledColor;
+	float ___m_ColorMultiplier;
+	float ___m_FadeDuration;
+};
+struct ColorSpace_tD0808E0BE85FD3B9774234676F83A872F4EDA3C7 
+{
+	int32_t ___value__;
+};
+struct Coroutine_t85EA685566A254C23F3FD77AB5BDFFFF8799596B  : public YieldInstruction_tFCE35FD0907950EFEE9BC2890AC664E41C53728D
+{
+	intptr_t ___m_Ptr;
+};
+struct Coroutine_t85EA685566A254C23F3FD77AB5BDFFFF8799596B_marshaled_pinvoke : public YieldInstruction_tFCE35FD0907950EFEE9BC2890AC664E41C53728D_marshaled_pinvoke
+{
+	intptr_t ___m_Ptr;
+};
+struct Coroutine_t85EA685566A254C23F3FD77AB5BDFFFF8799596B_marshaled_com : public YieldInstruction_tFCE35FD0907950EFEE9BC2890AC664E41C53728D_marshaled_com
+{
+	intptr_t ___m_Ptr;
+};
+struct Delegate_t  : public RuntimeObject
+{
+	intptr_t ___method_ptr;
+	intptr_t ___invoke_impl;
+	RuntimeObject* ___m_target;
+	intptr_t ___method;
+	intptr_t ___delegate_trampoline;
+	intptr_t ___extra_arg;
+	intptr_t ___method_code;
+	intptr_t ___interp_method;
+	intptr_t ___interp_invoke_impl;
+	MethodInfo_t* ___method_info;
+	MethodInfo_t* ___original_method_info;
+	DelegateData_t9B286B493293CD2D23A5B2B5EF0E5B1324C2B77E* ___data;
+	bool ___method_is_virtual;
+};
+struct Delegate_t_marshaled_pinvoke
+{
+	intptr_t ___method_ptr;
+	intptr_t ___invoke_impl;
+	Il2CppIUnknown* ___m_target;
+	intptr_t ___method;
+	intptr_t ___delegate_trampoline;
+	intptr_t ___extra_arg;
+	intptr_t ___method_code;
+	intptr_t ___interp_method;
+	intptr_t ___interp_invoke_impl;
+	MethodInfo_t* ___method_info;
+	MethodInfo_t* ___original_method_info;
+	DelegateData_t9B286B493293CD2D23A5B2B5EF0E5B1324C2B77E* ___data;
+	int32_t ___method_is_virtual;
+};
+struct Delegate_t_marshaled_com
+{
+	intptr_t ___method_ptr;
+	intptr_t ___invoke_impl;
+	Il2CppIUnknown* ___m_target;
+	intptr_t ___method;
+	intptr_t ___delegate_trampoline;
+	intptr_t ___extra_arg;
+	intptr_t ___method_code;
+	intptr_t ___interp_method;
+	intptr_t ___interp_invoke_impl;
+	MethodInfo_t* ___method_info;
+	MethodInfo_t* ___original_method_info;
+	DelegateData_t9B286B493293CD2D23A5B2B5EF0E5B1324C2B77E* ___data;
+	int32_t ___method_is_virtual;
+};
+struct Exception_t  : public RuntimeObject
+{
+	String_t* ____className;
+	String_t* ____message;
+	RuntimeObject* ____data;
+	Exception_t* ____innerException;
+	String_t* ____helpURL;
+	RuntimeObject* ____stackTrace;
+	String_t* ____stackTraceString;
+	String_t* ____remoteStackTraceString;
+	int32_t ____remoteStackIndex;
+	RuntimeObject* ____dynamicMethods;
+	int32_t ____HResult;
+	String_t* ____source;
+	SafeSerializationManager_tCBB85B95DFD1634237140CD892E82D06ECB3F5E6* ____safeSerializationManager;
+	StackTraceU5BU5D_t32FBCB20930EAF5BAE3F450FF75228E5450DA0DF* ___captured_traces;
+	IntPtrU5BU5D_tFD177F8C806A6921AD7150264CCC62FA00CAD832* ___native_trace_ips;
+	int32_t ___caught_in_unmanaged;
+};
+struct Exception_t_marshaled_pinvoke
+{
+	char* ____className;
+	char* ____message;
+	RuntimeObject* ____data;
+	Exception_t_marshaled_pinvoke* ____innerException;
+	char* ____helpURL;
+	Il2CppIUnknown* ____stackTrace;
+	char* ____stackTraceString;
+	char* ____remoteStackTraceString;
+	int32_t ____remoteStackIndex;
+	Il2CppIUnknown* ____dynamicMethods;
+	int32_t ____HResult;
+	char* ____source;
+	SafeSerializationManager_tCBB85B95DFD1634237140CD892E82D06ECB3F5E6* ____safeSerializationManager;
+	StackTraceU5BU5D_t32FBCB20930EAF5BAE3F450FF75228E5450DA0DF* ___captured_traces;
+	Il2CppSafeArray* ___native_trace_ips;
+	int32_t ___caught_in_unmanaged;
+};
+struct Exception_t_marshaled_com
+{
+	Il2CppChar* ____className;
+	Il2CppChar* ____message;
+	RuntimeObject* ____data;
+	Exception_t_marshaled_com* ____innerException;
+	Il2CppChar* ____helpURL;
+	Il2CppIUnknown* ____stackTrace;
+	Il2CppChar* ____stackTraceString;
+	Il2CppChar* ____remoteStackTraceString;
+	int32_t ____remoteStackIndex;
+	Il2CppIUnknown* ____dynamicMethods;
+	int32_t ____HResult;
+	Il2CppChar* ____source;
+	SafeSerializationManager_tCBB85B95DFD1634237140CD892E82D06ECB3F5E6* ____safeSerializationManager;
+	StackTraceU5BU5D_t32FBCB20930EAF5BAE3F450FF75228E5450DA0DF* ___captured_traces;
+	Il2CppSafeArray* ___native_trace_ips;
+	int32_t ___caught_in_unmanaged;
+};
+struct InputStateBlock_t0E05211ACF29A99C0FE7FC9EA7042196BFF1F3B5 
+{
+	FourCC_tA6CAA4015BC25A7F1053B6C512202D57A9C994ED ___U3CformatU3Ek__BackingField;
+	uint32_t ___m_ByteOffset;
+	uint32_t ___U3CbitOffsetU3Ek__BackingField;
+	uint32_t ___U3CsizeInBitsU3Ek__BackingField;
+};
+struct Key_tA157C0DCB2A0D2BE58B76B3BB836A1B2E4EAF387 
+{
+	int32_t ___value__;
+};
+struct LightShape_t538BE3D1AD8C9B537615DAE1C77FA43E26295E91 
+{
+	int32_t ___value__;
+};
+struct MoveDirection_t0981B415CB2BEB70F14E647EDE5DE29F52DEC5E6 
+{
+	int32_t ___value__;
+};
+struct Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C  : public RuntimeObject
+{
+	intptr_t ___m_CachedPtr;
+};
+struct Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_marshaled_pinvoke
+{
+	intptr_t ___m_CachedPtr;
+};
+struct Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_marshaled_com
+{
+	intptr_t ___m_CachedPtr;
+};
+struct RaycastResult_tEC6A7B7CABA99C386F054F01E498AEC426CF8023 
+{
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___m_GameObject;
+	BaseRaycaster_t7DC8158FD3CA0193455344379DD5FF7CD5F1F832* ___module;
+	float ___distance;
+	float ___index;
+	int32_t ___depth;
+	int32_t ___sortingGroupID;
+	int32_t ___sortingGroupOrder;
+	int32_t ___sortingLayer;
+	int32_t ___sortingOrder;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___origin;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___worldPosition;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___worldNormal;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___screenPosition;
+	int32_t ___displayIndex;
+	UIDocument_t4186BEBCC01278F63B895274AA08AD9ADFBF4C77* ___document;
+	VisualElement_t2667F9D19E62C7A315927506C06F223AB9234115* ___element;
+};
+struct RaycastResult_tEC6A7B7CABA99C386F054F01E498AEC426CF8023_marshaled_pinvoke
+{
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___m_GameObject;
+	BaseRaycaster_t7DC8158FD3CA0193455344379DD5FF7CD5F1F832* ___module;
+	float ___distance;
+	float ___index;
+	int32_t ___depth;
+	int32_t ___sortingGroupID;
+	int32_t ___sortingGroupOrder;
+	int32_t ___sortingLayer;
+	int32_t ___sortingOrder;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___origin;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___worldPosition;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___worldNormal;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___screenPosition;
+	int32_t ___displayIndex;
+	UIDocument_t4186BEBCC01278F63B895274AA08AD9ADFBF4C77* ___document;
+	VisualElement_t2667F9D19E62C7A315927506C06F223AB9234115* ___element;
+};
+struct RaycastResult_tEC6A7B7CABA99C386F054F01E498AEC426CF8023_marshaled_com
+{
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___m_GameObject;
+	BaseRaycaster_t7DC8158FD3CA0193455344379DD5FF7CD5F1F832* ___module;
+	float ___distance;
+	float ___index;
+	int32_t ___depth;
+	int32_t ___sortingGroupID;
+	int32_t ___sortingGroupOrder;
+	int32_t ___sortingLayer;
+	int32_t ___sortingOrder;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___origin;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___worldPosition;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___worldNormal;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___screenPosition;
+	int32_t ___displayIndex;
+	UIDocument_t4186BEBCC01278F63B895274AA08AD9ADFBF4C77* ___document;
+	VisualElement_t2667F9D19E62C7A315927506C06F223AB9234115* ___element;
+};
+struct RuntimeFieldHandle_t6E4C45B6D2EA12FC99185805A7E77527899B25C5 
+{
+	intptr_t ___value;
+};
+struct RuntimeTypeHandle_t332A452B8B6179E4469B69525D0FE82A88030F7B 
+{
+	intptr_t ___value;
+};
+struct Space_tF043E93E06B702DD05199C28C6F779049B38A969 
+{
+	int32_t ___value__;
+};
+struct TextAnchor_tA46E794186AC1CD0F22888652F589EBF7DFDF830 
+{
+	int32_t ___value__;
+};
+struct TypeCode_tBEF9BE86C8BCF5A6B82F3381219738D27804EF79 
+{
+	int32_t ___value__;
+};
+struct UIPointerBehavior_tCAF2F71C525676D79B709E579FA26750E57F6E9F 
+{
+	int32_t ___value__;
+};
+struct UIPointerType_tF7BFB4984CB24DD368B1FFBC86A82CA43C1B9B1B 
+{
+	int32_t ___value__;
+};
+struct Clamp_tCB96E8D34067B0DCBED42C565F4443DF880DD284 
+{
+	int32_t ___value__;
+};
+struct ButtonClickedEvent_t8EA72E90B3BD1392FB3B3EF167D5121C23569E4C  : public UnityEvent_tDC2C3548799DBC91D1E3F3DE60083A66F4751977
+{
+};
+struct ScaleMode_t75E9A207156237F5D22C180106611A6AEB45D765 
+{
+	int32_t ___value__;
+};
+struct ScreenMatchMode_t1BE0CA4F6DE4FDCD46F417DF0B7C1E6A19AB75ED 
+{
+	int32_t ___value__;
+};
+struct Unit_tAE478BD661DB092BBD04163BD94D5868EB99666F 
+{
+	int32_t ___value__;
+};
+struct FitMode_tD6BA9D6A46E7CF5FDA8B5A3AEB7647BAEB9A6BBA 
+{
+	int32_t ___value__;
+};
+struct FillMethod_t36837ED12068DF1582CC20489D571B0BCAA7AD19 
+{
+	int32_t ___value__;
+};
+struct Type_t81D6F138C2FC745112D5247CD91BD483EDFFC041 
+{
+	int32_t ___value__;
+};
+struct ControlFlags_t9C297F208DE19CEB00A0560F7FDE59F6A2004132 
+{
+	int32_t ___value__;
+};
+struct DeviceFlags_tF02F85DA24FF16879A67B540FCA560EC955CE728 
+{
+	int32_t ___value__;
+};
+struct CursorLockBehavior_t9141355F41B4E0611F5F963716D819E6EB8C9D55 
+{
+	int32_t ___value__;
+};
+struct Mode_t2D49D0E10E2FDA0026278C2400C16033888D0542 
+{
+	int32_t ___value__;
+};
+struct FramePressState_t1C7FDAE5827219BC328972DD7E496343581BDF95 
+{
+	int32_t ___value__;
+};
+struct Transition_tF856A77C9FAC6D26EA3CA158CF68B739D35397B3 
+{
+	int32_t ___value__;
+};
+struct U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6  : public RuntimeObject
+{
+	int32_t ___U3CU3E1__state;
+	RuntimeObject* ___U3CU3E2__current;
+	TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* ___U3CU3E4__this;
+	TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* ___content;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___U3CstartPosU3E5__2;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___U3CendPosU3E5__3;
+	Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 ___U3CstartQuatU3E5__4;
+	Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 ___U3CendQuatU3E5__5;
+	float ___U3CdurationU3E5__6;
+	float ___U3CtimeU3E5__7;
+};
+struct U3CCR_ResetCamPosU3Ed__33_tE8294FA068A29CD7E6B87DBFFDB551AB64260BEE  : public RuntimeObject
+{
+	int32_t ___U3CU3E1__state;
+	RuntimeObject* ___U3CU3E2__current;
+	TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* ___U3CU3E4__this;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___U3CstartPosU3E5__2;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___U3CendPosU3E5__3;
+	Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 ___U3CstartQuatU3E5__4;
+	Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 ___U3CendQuatU3E5__5;
+	float ___U3CdurationU3E5__6;
+	float ___U3CtimeU3E5__7;
+};
+struct MaterialPropertyType_tE081794EA8BE5FBB10836A4E152AADAB2BDADE3F 
+{
+	int32_t ___value__;
+};
+struct Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3  : public Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C
+{
+};
+struct GameObject_t76FEDD663AB33C991A9C9A23129337651094216F  : public Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C
+{
+};
+struct Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3  : public Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C
+{
+};
+struct MulticastDelegate_t  : public Delegate_t
+{
+	DelegateU5BU5D_tC5AB7E8F745616680F337909D3A8E6C722CDF771* ___delegates;
+};
+struct MulticastDelegate_t_marshaled_pinvoke : public Delegate_t_marshaled_pinvoke
+{
+	Delegate_t_marshaled_pinvoke** ___delegates;
+};
+struct MulticastDelegate_t_marshaled_com : public Delegate_t_marshaled_com
+{
+	Delegate_t_marshaled_com** ___delegates;
+};
+struct Navigation_t4D2E201D65749CF4E104E8AC1232CF1D6F14795C 
+{
+	int32_t ___m_Mode;
+	bool ___m_WrapAround;
+	Selectable_t3251808068A17B8E92FB33590A4C2FA66D456712* ___m_SelectOnUp;
+	Selectable_t3251808068A17B8E92FB33590A4C2FA66D456712* ___m_SelectOnDown;
+	Selectable_t3251808068A17B8E92FB33590A4C2FA66D456712* ___m_SelectOnLeft;
+	Selectable_t3251808068A17B8E92FB33590A4C2FA66D456712* ___m_SelectOnRight;
+};
+struct Navigation_t4D2E201D65749CF4E104E8AC1232CF1D6F14795C_marshaled_pinvoke
+{
+	int32_t ___m_Mode;
+	int32_t ___m_WrapAround;
+	Selectable_t3251808068A17B8E92FB33590A4C2FA66D456712* ___m_SelectOnUp;
+	Selectable_t3251808068A17B8E92FB33590A4C2FA66D456712* ___m_SelectOnDown;
+	Selectable_t3251808068A17B8E92FB33590A4C2FA66D456712* ___m_SelectOnLeft;
+	Selectable_t3251808068A17B8E92FB33590A4C2FA66D456712* ___m_SelectOnRight;
+};
+struct Navigation_t4D2E201D65749CF4E104E8AC1232CF1D6F14795C_marshaled_com
+{
+	int32_t ___m_Mode;
+	int32_t ___m_WrapAround;
+	Selectable_t3251808068A17B8E92FB33590A4C2FA66D456712* ___m_SelectOnUp;
+	Selectable_t3251808068A17B8E92FB33590A4C2FA66D456712* ___m_SelectOnDown;
+	Selectable_t3251808068A17B8E92FB33590A4C2FA66D456712* ___m_SelectOnLeft;
+	Selectable_t3251808068A17B8E92FB33590A4C2FA66D456712* ___m_SelectOnRight;
+};
+struct NavigationModel_t6B51B0BA26B0D874FF92F039259B0E6B74E427C2 
+{
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___move;
+	int32_t ___consecutiveMoveCount;
+	int32_t ___lastMoveDirection;
+	float ___lastMoveTime;
+	AxisEventData_t4AA742BC101B1AA300B16EE7F19E31B91F37A938* ___eventData;
+	InputDevice_t8BCF67533E872A75779C24C93D1D7085B72D364B* ___device;
+};
+struct NavigationModel_t6B51B0BA26B0D874FF92F039259B0E6B74E427C2_marshaled_pinvoke
+{
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___move;
+	int32_t ___consecutiveMoveCount;
+	int32_t ___lastMoveDirection;
+	float ___lastMoveTime;
+	AxisEventData_t4AA742BC101B1AA300B16EE7F19E31B91F37A938* ___eventData;
+	InputDevice_t8BCF67533E872A75779C24C93D1D7085B72D364B* ___device;
+};
+struct NavigationModel_t6B51B0BA26B0D874FF92F039259B0E6B74E427C2_marshaled_com
+{
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___move;
+	int32_t ___consecutiveMoveCount;
+	int32_t ___lastMoveDirection;
+	float ___lastMoveTime;
+	AxisEventData_t4AA742BC101B1AA300B16EE7F19E31B91F37A938* ___eventData;
+	InputDevice_t8BCF67533E872A75779C24C93D1D7085B72D364B* ___device;
+};
+struct PrimitiveValue_t1CC37566F40746757D5E3F87474A05909D85C2D4 
+{
+	union
+	{
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			int32_t ___m_Type;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			int32_t ___m_Type_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_BoolValue_OffsetPadding[4];
+			bool ___m_BoolValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_BoolValue_OffsetPadding_forAlignmentOnly[4];
+			bool ___m_BoolValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_CharValue_OffsetPadding[4];
+			Il2CppChar ___m_CharValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_CharValue_OffsetPadding_forAlignmentOnly[4];
+			Il2CppChar ___m_CharValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_ByteValue_OffsetPadding[4];
+			uint8_t ___m_ByteValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_ByteValue_OffsetPadding_forAlignmentOnly[4];
+			uint8_t ___m_ByteValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_SByteValue_OffsetPadding[4];
+			int8_t ___m_SByteValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_SByteValue_OffsetPadding_forAlignmentOnly[4];
+			int8_t ___m_SByteValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_ShortValue_OffsetPadding[4];
+			int16_t ___m_ShortValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_ShortValue_OffsetPadding_forAlignmentOnly[4];
+			int16_t ___m_ShortValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_UShortValue_OffsetPadding[4];
+			uint16_t ___m_UShortValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_UShortValue_OffsetPadding_forAlignmentOnly[4];
+			uint16_t ___m_UShortValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_IntValue_OffsetPadding[4];
+			int32_t ___m_IntValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_IntValue_OffsetPadding_forAlignmentOnly[4];
+			int32_t ___m_IntValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_UIntValue_OffsetPadding[4];
+			uint32_t ___m_UIntValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_UIntValue_OffsetPadding_forAlignmentOnly[4];
+			uint32_t ___m_UIntValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_LongValue_OffsetPadding[4];
+			int64_t ___m_LongValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_LongValue_OffsetPadding_forAlignmentOnly[4];
+			int64_t ___m_LongValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_ULongValue_OffsetPadding[4];
+			uint64_t ___m_ULongValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_ULongValue_OffsetPadding_forAlignmentOnly[4];
+			uint64_t ___m_ULongValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_FloatValue_OffsetPadding[4];
+			float ___m_FloatValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_FloatValue_OffsetPadding_forAlignmentOnly[4];
+			float ___m_FloatValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_DoubleValue_OffsetPadding[4];
+			double ___m_DoubleValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_DoubleValue_OffsetPadding_forAlignmentOnly[4];
+			double ___m_DoubleValue_forAlignmentOnly;
+		};
+	};
+};
+struct PrimitiveValue_t1CC37566F40746757D5E3F87474A05909D85C2D4_marshaled_pinvoke
+{
+	union
+	{
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			int32_t ___m_Type;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			int32_t ___m_Type_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_BoolValue_OffsetPadding[4];
+			int32_t ___m_BoolValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_BoolValue_OffsetPadding_forAlignmentOnly[4];
+			int32_t ___m_BoolValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_CharValue_OffsetPadding[4];
+			uint8_t ___m_CharValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_CharValue_OffsetPadding_forAlignmentOnly[4];
+			uint8_t ___m_CharValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_ByteValue_OffsetPadding[4];
+			uint8_t ___m_ByteValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_ByteValue_OffsetPadding_forAlignmentOnly[4];
+			uint8_t ___m_ByteValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_SByteValue_OffsetPadding[4];
+			int8_t ___m_SByteValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_SByteValue_OffsetPadding_forAlignmentOnly[4];
+			int8_t ___m_SByteValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_ShortValue_OffsetPadding[4];
+			int16_t ___m_ShortValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_ShortValue_OffsetPadding_forAlignmentOnly[4];
+			int16_t ___m_ShortValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_UShortValue_OffsetPadding[4];
+			uint16_t ___m_UShortValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_UShortValue_OffsetPadding_forAlignmentOnly[4];
+			uint16_t ___m_UShortValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_IntValue_OffsetPadding[4];
+			int32_t ___m_IntValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_IntValue_OffsetPadding_forAlignmentOnly[4];
+			int32_t ___m_IntValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_UIntValue_OffsetPadding[4];
+			uint32_t ___m_UIntValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_UIntValue_OffsetPadding_forAlignmentOnly[4];
+			uint32_t ___m_UIntValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_LongValue_OffsetPadding[4];
+			int64_t ___m_LongValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_LongValue_OffsetPadding_forAlignmentOnly[4];
+			int64_t ___m_LongValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_ULongValue_OffsetPadding[4];
+			uint64_t ___m_ULongValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_ULongValue_OffsetPadding_forAlignmentOnly[4];
+			uint64_t ___m_ULongValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_FloatValue_OffsetPadding[4];
+			float ___m_FloatValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_FloatValue_OffsetPadding_forAlignmentOnly[4];
+			float ___m_FloatValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_DoubleValue_OffsetPadding[4];
+			double ___m_DoubleValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_DoubleValue_OffsetPadding_forAlignmentOnly[4];
+			double ___m_DoubleValue_forAlignmentOnly;
+		};
+	};
+};
+struct PrimitiveValue_t1CC37566F40746757D5E3F87474A05909D85C2D4_marshaled_com
+{
+	union
+	{
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			int32_t ___m_Type;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			int32_t ___m_Type_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_BoolValue_OffsetPadding[4];
+			int32_t ___m_BoolValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_BoolValue_OffsetPadding_forAlignmentOnly[4];
+			int32_t ___m_BoolValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_CharValue_OffsetPadding[4];
+			uint8_t ___m_CharValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_CharValue_OffsetPadding_forAlignmentOnly[4];
+			uint8_t ___m_CharValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_ByteValue_OffsetPadding[4];
+			uint8_t ___m_ByteValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_ByteValue_OffsetPadding_forAlignmentOnly[4];
+			uint8_t ___m_ByteValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_SByteValue_OffsetPadding[4];
+			int8_t ___m_SByteValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_SByteValue_OffsetPadding_forAlignmentOnly[4];
+			int8_t ___m_SByteValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_ShortValue_OffsetPadding[4];
+			int16_t ___m_ShortValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_ShortValue_OffsetPadding_forAlignmentOnly[4];
+			int16_t ___m_ShortValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_UShortValue_OffsetPadding[4];
+			uint16_t ___m_UShortValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_UShortValue_OffsetPadding_forAlignmentOnly[4];
+			uint16_t ___m_UShortValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_IntValue_OffsetPadding[4];
+			int32_t ___m_IntValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_IntValue_OffsetPadding_forAlignmentOnly[4];
+			int32_t ___m_IntValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_UIntValue_OffsetPadding[4];
+			uint32_t ___m_UIntValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_UIntValue_OffsetPadding_forAlignmentOnly[4];
+			uint32_t ___m_UIntValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_LongValue_OffsetPadding[4];
+			int64_t ___m_LongValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_LongValue_OffsetPadding_forAlignmentOnly[4];
+			int64_t ___m_LongValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_ULongValue_OffsetPadding[4];
+			uint64_t ___m_ULongValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_ULongValue_OffsetPadding_forAlignmentOnly[4];
+			uint64_t ___m_ULongValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_FloatValue_OffsetPadding[4];
+			float ___m_FloatValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_FloatValue_OffsetPadding_forAlignmentOnly[4];
+			float ___m_FloatValue_forAlignmentOnly;
+		};
+		#pragma pack(push, tp, 1)
+		struct
+		{
+			char ___m_DoubleValue_OffsetPadding[4];
+			double ___m_DoubleValue;
+		};
+		#pragma pack(pop, tp)
+		struct
+		{
+			char ___m_DoubleValue_OffsetPadding_forAlignmentOnly[4];
+			double ___m_DoubleValue_forAlignmentOnly;
+		};
+	};
+};
+struct ScriptableObject_tB3BFDB921A1B1795B38A5417D3B97A89A140436A  : public Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C
+{
+};
+struct ScriptableObject_tB3BFDB921A1B1795B38A5417D3B97A89A140436A_marshaled_pinvoke : public Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_marshaled_pinvoke
+{
+};
+struct ScriptableObject_tB3BFDB921A1B1795B38A5417D3B97A89A140436A_marshaled_com : public Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_marshaled_com
+{
+};
+struct Shader_tADC867D36B7876EE22427FAA2CE485105F4EE692  : public Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C
+{
+};
+struct SystemException_tCC48D868298F4C0705279823E34B00F4FBDB7295  : public Exception_t
+{
+};
+struct Texture_t791CBB51219779964E0E8A2ED7C1AA5F92A4A700  : public Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C
+{
+};
+struct Type_t  : public MemberInfo_t
+{
+	RuntimeTypeHandle_t332A452B8B6179E4469B69525D0FE82A88030F7B ____impl;
+};
+struct ButtonState_tC90005D9F1E87688352A8F97B40400D0319CFC69 
+{
+	bool ___m_IsPressed;
+	int32_t ___m_FramePressState;
+	float ___m_PressTime;
+	RaycastResult_tEC6A7B7CABA99C386F054F01E498AEC426CF8023 ___m_PressRaycast;
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___m_PressObject;
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___m_RawPressObject;
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___m_LastPressObject;
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___m_DragObject;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___m_PressPosition;
+	float ___m_ClickTime;
+	int32_t ___m_ClickCount;
+	bool ___m_Dragging;
+	bool ___m_ClickedOnSameGameObject;
+	bool ___m_IgnoreNextClick;
+};
+struct ButtonState_tC90005D9F1E87688352A8F97B40400D0319CFC69_marshaled_pinvoke
+{
+	int32_t ___m_IsPressed;
+	int32_t ___m_FramePressState;
+	float ___m_PressTime;
+	RaycastResult_tEC6A7B7CABA99C386F054F01E498AEC426CF8023_marshaled_pinvoke ___m_PressRaycast;
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___m_PressObject;
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___m_RawPressObject;
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___m_LastPressObject;
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___m_DragObject;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___m_PressPosition;
+	float ___m_ClickTime;
+	int32_t ___m_ClickCount;
+	int32_t ___m_Dragging;
+	int32_t ___m_ClickedOnSameGameObject;
+	int32_t ___m_IgnoreNextClick;
+};
+struct ButtonState_tC90005D9F1E87688352A8F97B40400D0319CFC69_marshaled_com
+{
+	int32_t ___m_IsPressed;
+	int32_t ___m_FramePressState;
+	float ___m_PressTime;
+	RaycastResult_tEC6A7B7CABA99C386F054F01E498AEC426CF8023_marshaled_com ___m_PressRaycast;
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___m_PressObject;
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___m_RawPressObject;
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___m_LastPressObject;
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___m_DragObject;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___m_PressPosition;
+	float ___m_ClickTime;
+	int32_t ___m_ClickCount;
+	int32_t ___m_Dragging;
+	int32_t ___m_ClickedOnSameGameObject;
+	int32_t ___m_IgnoreNextClick;
+};
+struct AnimatedProperty_t31C29CBFB2284472B89A4C75644E5578B75E45B4  : public RuntimeObject
+{
+	String_t* ___Name;
+	int32_t ___Type;
+	AnimationCurve_tCBFFAAD05CEBB35EF8D8631BD99914BE1A6BB354* ___Curve;
+	float ___Duration;
+	float ___FloatFrom;
+	float ___FloatTo;
+	Color_tD001788D726C3A7F1379BEED0260B9591F440C1F ___ColorFrom;
+	Color_tD001788D726C3A7F1379BEED0260B9591F440C1F ___ColorTo;
+	Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 ___VectorFrom;
+	Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 ___VectorTo;
+	int32_t ___propertyId;
+};
+struct Behaviour_t01970CFBBA658497AE30F311C447DB0440BAB7FA  : public Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3
+{
+};
+struct Cubemap_t4F2DFF70696A5CB5C1695DF8947CC60D718C4A1C  : public Texture_t791CBB51219779964E0E8A2ED7C1AA5F92A4A700
+{
+};
+struct InputControl_t74F06B623518F992BF8E38656A5E0857169E3E2E  : public RuntimeObject
+{
+	InputStateBlock_t0E05211ACF29A99C0FE7FC9EA7042196BFF1F3B5 ___m_StateBlock;
+	InternedString_t8D62A48CB7D85AAE9CFCCCFB0A77AC2844905735 ___m_Name;
+	String_t* ___m_Path;
+	String_t* ___m_DisplayName;
+	String_t* ___m_DisplayNameFromLayout;
+	String_t* ___m_ShortDisplayName;
+	String_t* ___m_ShortDisplayNameFromLayout;
+	InternedString_t8D62A48CB7D85AAE9CFCCCFB0A77AC2844905735 ___m_Layout;
+	InternedString_t8D62A48CB7D85AAE9CFCCCFB0A77AC2844905735 ___m_Variants;
+	InputDevice_t8BCF67533E872A75779C24C93D1D7085B72D364B* ___m_Device;
+	InputControl_t74F06B623518F992BF8E38656A5E0857169E3E2E* ___m_Parent;
+	int32_t ___m_UsageCount;
+	int32_t ___m_UsageStartIndex;
+	int32_t ___m_AliasCount;
+	int32_t ___m_AliasStartIndex;
+	int32_t ___m_ChildCount;
+	int32_t ___m_ChildStartIndex;
+	int32_t ___m_ControlFlags;
+	bool ___m_CachedValueIsStale;
+	bool ___m_UnprocessedCachedValueIsStale;
+	PrimitiveValue_t1CC37566F40746757D5E3F87474A05909D85C2D4 ___m_DefaultState;
+	PrimitiveValue_t1CC37566F40746757D5E3F87474A05909D85C2D4 ___m_MinValue;
+	PrimitiveValue_t1CC37566F40746757D5E3F87474A05909D85C2D4 ___m_MaxValue;
+	FourCC_tA6CAA4015BC25A7F1053B6C512202D57A9C994ED ___m_OptimizedControlDataType;
+};
+struct NotSupportedException_t1429765983D409BD2986508963C98D214E4EBF4A  : public SystemException_tCC48D868298F4C0705279823E34B00F4FBDB7295
+{
+};
+struct PointerModel_t6E979AA49D01ACA529A68AF8F48624E73484CD42 
+{
+	bool ___changedThisFrame;
+	ButtonState_tC90005D9F1E87688352A8F97B40400D0319CFC69 ___leftButton;
+	ButtonState_tC90005D9F1E87688352A8F97B40400D0319CFC69 ___rightButton;
+	ButtonState_tC90005D9F1E87688352A8F97B40400D0319CFC69 ___middleButton;
+	ExtendedPointerEventData_t164B462A9B123B2EE69B7DEC4F33F6AA3DE7937F* ___eventData;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___m_ScreenPosition;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___m_ScrollDelta;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___m_WorldPosition;
+	Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 ___m_WorldOrientation;
+	float ___m_Pressure;
+	float ___m_AzimuthAngle;
+	float ___m_AltitudeAngle;
+	float ___m_Twist;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___m_Radius;
+};
+struct PointerModel_t6E979AA49D01ACA529A68AF8F48624E73484CD42_marshaled_pinvoke
+{
+	int32_t ___changedThisFrame;
+	ButtonState_tC90005D9F1E87688352A8F97B40400D0319CFC69_marshaled_pinvoke ___leftButton;
+	ButtonState_tC90005D9F1E87688352A8F97B40400D0319CFC69_marshaled_pinvoke ___rightButton;
+	ButtonState_tC90005D9F1E87688352A8F97B40400D0319CFC69_marshaled_pinvoke ___middleButton;
+	ExtendedPointerEventData_t164B462A9B123B2EE69B7DEC4F33F6AA3DE7937F* ___eventData;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___m_ScreenPosition;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___m_ScrollDelta;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___m_WorldPosition;
+	Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 ___m_WorldOrientation;
+	float ___m_Pressure;
+	float ___m_AzimuthAngle;
+	float ___m_AltitudeAngle;
+	float ___m_Twist;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___m_Radius;
+};
+struct PointerModel_t6E979AA49D01ACA529A68AF8F48624E73484CD42_marshaled_com
+{
+	int32_t ___changedThisFrame;
+	ButtonState_tC90005D9F1E87688352A8F97B40400D0319CFC69_marshaled_com ___leftButton;
+	ButtonState_tC90005D9F1E87688352A8F97B40400D0319CFC69_marshaled_com ___rightButton;
+	ButtonState_tC90005D9F1E87688352A8F97B40400D0319CFC69_marshaled_com ___middleButton;
+	ExtendedPointerEventData_t164B462A9B123B2EE69B7DEC4F33F6AA3DE7937F* ___eventData;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___m_ScreenPosition;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___m_ScrollDelta;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___m_WorldPosition;
+	Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 ___m_WorldOrientation;
+	float ___m_Pressure;
+	float ___m_AzimuthAngle;
+	float ___m_AltitudeAngle;
+	float ___m_Twist;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___m_Radius;
+};
+struct RenderPipelineAsset_t5F9BF815BF931E1314B184E7F9070FB649C7054E  : public ScriptableObject_tB3BFDB921A1B1795B38A5417D3B97A89A140436A
+{
+	bool ___U3CrequiresCompatibleRenderPipelineGlobalSettingsU3Ek__BackingField;
+};
+struct Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1  : public Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3
+{
+};
+struct UnityAction_t11A1F3B953B365C072A5DCC32677EE1796A962A7  : public MulticastDelegate_t
+{
+};
+struct InlinedArray_1_t6E2851F85C23093EDE233F71F5CE3D6D08FAE920 
+{
+	int32_t ___length;
+	PointerModel_t6E979AA49D01ACA529A68AF8F48624E73484CD42 ___firstValue;
+	PointerModelU5BU5D_tE7B1CA281F392BD0840E1A81754AC94AF44FEE81* ___additionalValues;
+};
+struct InputControl_1_t7A35A4AF63A7AA94678E000D4F3265A1FD84288A  : public InputControl_t74F06B623518F992BF8E38656A5E0857169E3E2E
+{
+	InlinedArray_1_t2A86A6C75E0160EE14310E053C5249518871D847 ___m_ProcessorStack;
+	float ___m_CachedValue;
+	float ___m_UnprocessedCachedValue;
+	bool ___evaluateProcessorsEveryRead;
+};
+struct InputControl_1_tC164085710F2FAA9161295C9B7FE273AF893CF66  : public InputControl_t74F06B623518F992BF8E38656A5E0857169E3E2E
+{
+	InlinedArray_1_tE5F1062E65707D24360CEAC52E03D32C6E5BA8BB ___m_ProcessorStack;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___m_CachedValue;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___m_UnprocessedCachedValue;
+	bool ___evaluateProcessorsEveryRead;
+};
+struct Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184  : public Behaviour_t01970CFBBA658497AE30F311C447DB0440BAB7FA
+{
+	uint32_t ___m_NonSerializedVersion;
+};
+struct Canvas_t2DB4CEFDFF732884866C83F11ABF75F5AE8FFB26  : public Behaviour_t01970CFBBA658497AE30F311C447DB0440BAB7FA
+{
+};
+struct InputDevice_t8BCF67533E872A75779C24C93D1D7085B72D364B  : public InputControl_t74F06B623518F992BF8E38656A5E0857169E3E2E
+{
+	int32_t ___m_DeviceFlags;
+	int32_t ___m_DeviceId;
+	int32_t ___m_ParticipantId;
+	int32_t ___m_DeviceIndex;
+	uint32_t ___m_CurrentProcessedEventBytesOnUpdate;
+	InputDeviceDescription_tE86DD77422AAF60ADDAC788B31E5A05E739B708F ___m_Description;
+	double ___m_LastUpdateTimeInternal;
+	uint32_t ___m_CurrentUpdateStepCount;
+	InternedStringU5BU5D_t0B851758733FC0B118D84BE83AED10A0404C18D5* ___m_AliasesForEachControl;
+	InternedStringU5BU5D_t0B851758733FC0B118D84BE83AED10A0404C18D5* ___m_UsagesForEachControl;
+	InputControlU5BU5D_t0B951FEF1504D6340387C4735F5D6F426F40FE17* ___m_UsageToControl;
+	InputControlU5BU5D_t0B951FEF1504D6340387C4735F5D6F426F40FE17* ___m_ChildrenForEachControl;
+	HashSet_1_t4A2F2B74276D0AD3ED0F873045BD61E9504ECAE2* ___m_UpdatedButtons;
+	List_1_tFED1C27AA4B8AC9813FF4858B3ABB1B3F74558EF* ___m_ButtonControlsCheckingPressState;
+	bool ___m_UseCachePathForButtonPresses;
+	UInt32U5BU5D_t02FBD658AD156A17574ECE6106CF1FBFCC9807FA* ___m_StateOffsetToControlMap;
+	ControlBitRangeNodeU5BU5D_t912A404149DE6D350D1735A026182C409C510F27* ___m_ControlTreeNodes;
+	UInt16U5BU5D_tEB7C42D811D999D2AA815BADC3FCCDD9C67B3F83* ___m_ControlTreeIndices;
+};
+struct Light_t1E68479B7782AF2050FAA02A5DC612FD034F18F3  : public Behaviour_t01970CFBBA658497AE30F311C447DB0440BAB7FA
+{
+	int32_t ___U3CshapeU3Ek__BackingField;
+	int32_t ___m_BakedIndex;
+};
+struct MonoBehaviour_t532A11E69716D348D8AA7F854AFCBFCB8AD17F71  : public Behaviour_t01970CFBBA658497AE30F311C447DB0440BAB7FA
+{
+	CancellationTokenSource_tAAE1E0033BCFC233801F8CB4CED5C852B350CB7B* ___m_CancellationTokenSource;
+};
+struct RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5  : public Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1
+{
+};
+struct AxisControl_tD6613A2445A3C2BFA22C77E16CA3201AF72354A7  : public InputControl_1_t7A35A4AF63A7AA94678E000D4F3265A1FD84288A
+{
+	int32_t ___clamp;
+	float ___clampMin;
+	float ___clampMax;
+	float ___clampConstant;
+	bool ___invert;
+	bool ___normalize;
+	float ___normalizeMin;
+	float ___normalizeMax;
+	float ___normalizeZero;
+	bool ___scale;
+	float ___scaleFactor;
+};
+struct Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43  : public InputDevice_t8BCF67533E872A75779C24C93D1D7085B72D364B
+{
+	AnyKeyControl_t88E59A594CAF1E3A432C3BEC2634C0CA462D8A14* ___U3CanyKeyU3Ek__BackingField;
+	ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* ___U3CshiftKeyU3Ek__BackingField;
+	ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* ___U3CctrlKeyU3Ek__BackingField;
+	ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* ___U3CaltKeyU3Ek__BackingField;
+	ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* ___U3CimeSelectedU3Ek__BackingField;
+	InlinedArray_1_t031A607559EE9F23E8BC012CD9661BFB3EB2BFC1 ___m_TextInputListeners;
+	String_t* ___m_KeyboardLayoutName;
+	KeyControlU5BU5D_t247D92FAA9E46BA28BB54BB6E38E7F99BD2C02DA* ___m_Keys;
+	InlinedArray_1_t8249EE706E2222F1A22F40FB70BEB230C11C5992 ___m_ImeCompositionListeners;
+};
+struct Pointer_t800EF2832B62E889AC9C182E3B18098AF220E32A  : public InputDevice_t8BCF67533E872A75779C24C93D1D7085B72D364B
+{
+	Vector2Control_t8D1B4021A1D82671AF916D3C0A476AA94E46A432* ___U3CpositionU3Ek__BackingField;
+	DeltaControl_t63053AF5E0CD02B62F3CDE79821E4A12F72D573B* ___U3CdeltaU3Ek__BackingField;
+	Vector2Control_t8D1B4021A1D82671AF916D3C0A476AA94E46A432* ___U3CradiusU3Ek__BackingField;
+	AxisControl_tD6613A2445A3C2BFA22C77E16CA3201AF72354A7* ___U3CpressureU3Ek__BackingField;
+	ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* ___U3CpressU3Ek__BackingField;
+	IntegerControl_tA24544EFF42204852F638FF5147F754962C997AB* ___U3CdisplayIndexU3Ek__BackingField;
+};
+struct TCP2_Demo_AnimateMaterial_t52E1C4DBF1CBB11C4310D5F2C333D240E48AA041  : public MonoBehaviour_t532A11E69716D348D8AA7F854AFCBFCB8AD17F71
+{
+	Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* ___material;
+	AnimatedPropertyU5BU5D_t62A4E770F9DDA2800712D931AEDD04C0DE6FB7BE* ___animatedProperties;
+};
+struct TCP2_Demo_AutoRotate_t098592AD2049F738A2BF189D78EA7A421DF6ADDF  : public MonoBehaviour_t532A11E69716D348D8AA7F854AFCBFCB8AD17F71
+{
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___axis;
+	float ___Speed;
+};
+struct TCP2_Demo_Camera_t345524DB7C1DBEBBAAA2835D524355C0B47FCA68  : public MonoBehaviour_t532A11E69716D348D8AA7F854AFCBFCB8AD17F71
+{
+	Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* ___Pivot;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___pivotOffset;
+	float ___OrbitStrg;
+	float ___OrbitClamp;
+	float ___PanStrgMin;
+	float ___PanStrgMax;
+	float ___ZoomStrg;
+	float ___ZoomClamp;
+	float ___ZoomDistMin;
+	float ___ZoomDistMax;
+	float ___Decceleration;
+	RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* ___ignoreMouseRect;
+	EventSystem_t61C51380B105BE9D2C39C4F15B7E655659957707* ___uiEventSystem;
+	Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D ___ignoreMouseActualRect;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___mouseDelta;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___lastMousePos;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___orbitAcceleration;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___panAcceleration;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___moveAcceleration;
+	float ___zoomAcceleration;
+	float ___zoomDistance;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___mResetCamPos;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___mResetPivotPos;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___mResetCamRot;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___mResetPivotRot;
+};
+struct TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06  : public MonoBehaviour_t532A11E69716D348D8AA7F854AFCBFCB8AD17F71
+{
+	TCP2_Demo_Camera_t345524DB7C1DBEBBAAA2835D524355C0B47FCA68* ___demoCamera;
+	Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184* ___camera;
+	Canvas_t2DB4CEFDFF732884866C83F11ABF75F5AE8FFB26* ___canvas;
+	CanvasScaler_t3BC095205EAD308CF3EAC27136A73387AC32FC3B* ___canvasScaler;
+	HorizontalLayoutGroup_t615DFEC1382E2E207BC9CBAA9A511F7ED93965BA* ___layoutGroup;
+	ContentSizeFitter_tC40AED5F772F1F140F69E0F1BB7D4AE31D64A87B* ___sizeFitter;
+	RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* ___textBox;
+	Text_tD60B2346DAA6666BF0D822FF607F0B220C2B9E62* ___text;
+	Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* ___line;
+	float ___camAnimDuration;
+	float ___maxCamAnimDuration;
+	bool ___camAnimBasedOnDistance;
+	float ___uiAnimDuration;
+	Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* ___envButtonTemplate;
+	ButtonU5BU5D_t0D512FF2FF5A72DAC04754F2C10182F850328BEF* ___envButtons;
+	Text_tD60B2346DAA6666BF0D822FF607F0B220C2B9E62* ___highlightLabel;
+	TCP2_Demo_Interactive_ContentU5BU5D_tB79AA6CDA4494B6C8747A1728F83BC2310EB9194* ___contents;
+	TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* ___currentContent;
+	int32_t ___index;
+	TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360* ___lightings;
+	int32_t ___lightingIndex;
+	Color_tD001788D726C3A7F1379BEED0260B9591F440C1F ___envButtonColor;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___cameraResetPos;
+	Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 ___cameraResetQuat;
+	Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* ___resetPivot;
+	bool ___coroutineActive;
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___infoBox;
+};
+struct TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4  : public MonoBehaviour_t532A11E69716D348D8AA7F854AFCBFCB8AD17F71
+{
+	Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* ___pivot;
+	Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* ___textBox;
+	String_t* ___Text;
+};
+struct TCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C  : public MonoBehaviour_t532A11E69716D348D8AA7F854AFCBFCB8AD17F71
+{
+	Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* ___skybox;
+};
+struct TCP2_Demo_PipelineMaterial_tEC9DA4BE7F43804789982773D7F11D57EC394241  : public MonoBehaviour_t532A11E69716D348D8AA7F854AFCBFCB8AD17F71
+{
+	Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* ___material;
+	Shader_tADC867D36B7876EE22427FAA2CE485105F4EE692* ___birpShader;
+	Shader_tADC867D36B7876EE22427FAA2CE485105F4EE692* ___urpShader;
+};
+struct UIBehaviour_tB9D4295827BD2EEDEF0749200C6CA7090C742A9D  : public MonoBehaviour_t532A11E69716D348D8AA7F854AFCBFCB8AD17F71
+{
+};
+struct Vector2Control_t8D1B4021A1D82671AF916D3C0A476AA94E46A432  : public InputControl_1_tC164085710F2FAA9161295C9B7FE273AF893CF66
+{
+	AxisControl_tD6613A2445A3C2BFA22C77E16CA3201AF72354A7* ___U3CxU3Ek__BackingField;
+	AxisControl_tD6613A2445A3C2BFA22C77E16CA3201AF72354A7* ___U3CyU3Ek__BackingField;
+};
+struct BaseInputModule_tF3B7C22AF1419B2AC9ECE6589357DC1B88ED96B1  : public UIBehaviour_tB9D4295827BD2EEDEF0749200C6CA7090C742A9D
+{
+	List_1_t8292C421BBB00D7661DC07462822936152BAB446* ___m_RaycastResultCache;
+	bool ___m_SendPointerHoverToParent;
+	AxisEventData_t4AA742BC101B1AA300B16EE7F19E31B91F37A938* ___m_AxisEventData;
+	EventSystem_t61C51380B105BE9D2C39C4F15B7E655659957707* ___m_EventSystem;
+	BaseEventData_tE03A848325C0AE8E76C6CA15FD86395EBF83364F* ___m_BaseEventData;
+	BaseInput_t69C46B0AA3C24F1CA842A0D03CACACC4EC788622* ___m_InputOverride;
+	BaseInput_t69C46B0AA3C24F1CA842A0D03CACACC4EC788622* ___m_DefaultInput;
+};
+struct ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF  : public AxisControl_tD6613A2445A3C2BFA22C77E16CA3201AF72354A7
+{
+	bool ___m_NeedsToCheckFramePress;
+	uint32_t ___m_UpdateCountLastPressed;
+	uint32_t ___m_UpdateCountLastReleased;
+	bool ___m_LastUpdateWasPress;
+	bool ___U3CneedsToCheckFramePressU3Ek__BackingField;
+	float ___pressPoint;
+};
+struct CanvasScaler_t3BC095205EAD308CF3EAC27136A73387AC32FC3B  : public UIBehaviour_tB9D4295827BD2EEDEF0749200C6CA7090C742A9D
+{
+	int32_t ___m_UiScaleMode;
+	float ___m_ReferencePixelsPerUnit;
+	float ___m_ScaleFactor;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___m_ReferenceResolution;
+	int32_t ___m_ScreenMatchMode;
+	float ___m_MatchWidthOrHeight;
+	int32_t ___m_PhysicalUnit;
+	float ___m_FallbackScreenDPI;
+	float ___m_DefaultSpriteDPI;
+	float ___m_DynamicPixelsPerUnit;
+	Canvas_t2DB4CEFDFF732884866C83F11ABF75F5AE8FFB26* ___m_Canvas;
+	float ___m_PrevScaleFactor;
+	float ___m_PrevReferencePixelsPerUnit;
+	bool ___m_PresetInfoIsWorld;
+};
+struct ContentSizeFitter_tC40AED5F772F1F140F69E0F1BB7D4AE31D64A87B  : public UIBehaviour_tB9D4295827BD2EEDEF0749200C6CA7090C742A9D
+{
+	int32_t ___m_HorizontalFit;
+	int32_t ___m_VerticalFit;
+	RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* ___m_Rect;
+	DrivenRectTransformTracker_tFB0706C933E3C68E4F377C204FCEEF091F1EE0B1 ___m_Tracker;
+};
+struct DeltaControl_t63053AF5E0CD02B62F3CDE79821E4A12F72D573B  : public Vector2Control_t8D1B4021A1D82671AF916D3C0A476AA94E46A432
+{
+	AxisControl_tD6613A2445A3C2BFA22C77E16CA3201AF72354A7* ___U3CupU3Ek__BackingField;
+	AxisControl_tD6613A2445A3C2BFA22C77E16CA3201AF72354A7* ___U3CdownU3Ek__BackingField;
+	AxisControl_tD6613A2445A3C2BFA22C77E16CA3201AF72354A7* ___U3CleftU3Ek__BackingField;
+	AxisControl_tD6613A2445A3C2BFA22C77E16CA3201AF72354A7* ___U3CrightU3Ek__BackingField;
+};
+struct EventSystem_t61C51380B105BE9D2C39C4F15B7E655659957707  : public UIBehaviour_tB9D4295827BD2EEDEF0749200C6CA7090C742A9D
+{
+	List_1_tA5BDE435C735A082941CD33D212F97F4AE9FA55F* ___m_SystemInputModules;
+	BaseInputModule_tF3B7C22AF1419B2AC9ECE6589357DC1B88ED96B1* ___m_CurrentInputModule;
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___m_FirstSelected;
+	bool ___m_sendNavigationEvents;
+	int32_t ___m_DragThreshold;
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___m_CurrentSelected;
+	bool ___m_HasFocus;
+	bool ___m_SelectionGuard;
+	BaseEventData_tE03A848325C0AE8E76C6CA15FD86395EBF83364F* ___m_DummyData;
+	UIToolkitInteroperabilityBridge_t8E98EE5D73E8CCAA894A1BE50049E2A06E592CDD* ___m_UIToolkitInterop;
+};
+struct Graphic_tCBFCA4585A19E2B75465AECFEAC43F4016BF7931  : public UIBehaviour_tB9D4295827BD2EEDEF0749200C6CA7090C742A9D
+{
+	Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* ___m_Material;
+	Color_tD001788D726C3A7F1379BEED0260B9591F440C1F ___m_Color;
+	bool ___m_SkipLayoutUpdate;
+	bool ___m_SkipMaterialUpdate;
+	bool ___m_RaycastTarget;
+	bool ___m_RaycastTargetCache;
+	Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 ___m_RaycastPadding;
+	RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* ___m_RectTransform;
+	CanvasRenderer_tAB9A55A976C4E3B2B37D0CE5616E5685A8B43860* ___m_CanvasRenderer;
+	Canvas_t2DB4CEFDFF732884866C83F11ABF75F5AE8FFB26* ___m_Canvas;
+	bool ___m_VertsDirty;
+	bool ___m_MaterialDirty;
+	UnityAction_t11A1F3B953B365C072A5DCC32677EE1796A962A7* ___m_OnDirtyLayoutCallback;
+	UnityAction_t11A1F3B953B365C072A5DCC32677EE1796A962A7* ___m_OnDirtyVertsCallback;
+	UnityAction_t11A1F3B953B365C072A5DCC32677EE1796A962A7* ___m_OnDirtyMaterialCallback;
+	Mesh_t6D9C539763A09BC2B12AEAEF36F6DFFC98AE63D4* ___m_CachedMesh;
+	Vector2U5BU5D_tFEBBC94BCC6C9C88277BA04047D2B3FDB6ED7FDA* ___m_CachedUvs;
+	TweenRunner_1_t5BB0582F926E75E2FE795492679A6CF55A4B4BC4* ___m_ColorTweenRunner;
+	bool ___U3CuseLegacyMeshGenerationU3Ek__BackingField;
+};
+struct LayoutGroup_t32417833C700E77EDFA7C20034DAFD26604E05CE  : public UIBehaviour_tB9D4295827BD2EEDEF0749200C6CA7090C742A9D
+{
+	RectOffset_t6358774A0DEEABA4586840CB9BC7DC88B39660B5* ___m_Padding;
+	int32_t ___m_ChildAlignment;
+	RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* ___m_Rect;
+	DrivenRectTransformTracker_tFB0706C933E3C68E4F377C204FCEEF091F1EE0B1 ___m_Tracker;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___m_TotalMinSize;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___m_TotalPreferredSize;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___m_TotalFlexibleSize;
+	List_1_t5ED555E220A2C0CA4F1CC393401AF0D7BA5B456B* ___m_RectChildren;
+};
+struct Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F  : public Pointer_t800EF2832B62E889AC9C182E3B18098AF220E32A
+{
+	DeltaControl_t63053AF5E0CD02B62F3CDE79821E4A12F72D573B* ___U3CscrollU3Ek__BackingField;
+	ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* ___U3CleftButtonU3Ek__BackingField;
+	ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* ___U3CmiddleButtonU3Ek__BackingField;
+	ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* ___U3CrightButtonU3Ek__BackingField;
+	ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* ___U3CbackButtonU3Ek__BackingField;
+	ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* ___U3CforwardButtonU3Ek__BackingField;
+	IntegerControl_tA24544EFF42204852F638FF5147F754962C997AB* ___U3CclickCountU3Ek__BackingField;
+};
+struct Selectable_t3251808068A17B8E92FB33590A4C2FA66D456712  : public UIBehaviour_tB9D4295827BD2EEDEF0749200C6CA7090C742A9D
+{
+	bool ___m_EnableCalled;
+	Navigation_t4D2E201D65749CF4E104E8AC1232CF1D6F14795C ___m_Navigation;
+	int32_t ___m_Transition;
+	ColorBlock_tDD7C62E7AFE442652FC98F8D058CE8AE6BFD7C11 ___m_Colors;
+	SpriteState_tC8199570BE6337FB5C49347C97892B4222E5AACD ___m_SpriteState;
+	AnimationTriggers_tA0DC06F89C5280C6DD972F6F4C8A56D7F4F79074* ___m_AnimationTriggers;
+	bool ___m_Interactable;
+	Graphic_tCBFCA4585A19E2B75465AECFEAC43F4016BF7931* ___m_TargetGraphic;
+	bool ___m_GroupsAllowInteraction;
+	int32_t ___m_CurrentIndex;
+	bool ___U3CisPointerInsideU3Ek__BackingField;
+	bool ___U3CisPointerDownU3Ek__BackingField;
+	bool ___U3ChasSelectionU3Ek__BackingField;
+	List_1_t2CDCA768E7F493F5EDEBC75AEB200FD621354E35* ___m_CanvasGroupCache;
+};
+struct Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098  : public Selectable_t3251808068A17B8E92FB33590A4C2FA66D456712
+{
+	ButtonClickedEvent_t8EA72E90B3BD1392FB3B3EF167D5121C23569E4C* ___m_OnClick;
+};
+struct HorizontalOrVerticalLayoutGroup_tF1A06BC885BD6E7F38A8C43815549C111EEDEF2E  : public LayoutGroup_t32417833C700E77EDFA7C20034DAFD26604E05CE
+{
+	float ___m_Spacing;
+	bool ___m_ChildForceExpandWidth;
+	bool ___m_ChildForceExpandHeight;
+	bool ___m_ChildControlWidth;
+	bool ___m_ChildControlHeight;
+	bool ___m_ChildScaleWidth;
+	bool ___m_ChildScaleHeight;
+	bool ___m_ReverseArrangement;
+};
+struct InputSystemUIInputModule_tB7D5B53F656D196BB5AF712FA16FEE22B2EE0C58  : public BaseInputModule_tF3B7C22AF1419B2AC9ECE6589357DC1B88ED96B1
+{
+	float ___m_MoveRepeatDelay;
+	float ___m_MoveRepeatRate;
+	float ___m_TrackedDeviceDragThresholdMultiplier;
+	Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* ___m_XRTrackingOrigin;
+	InputActionAsset_tF217AC5223B4AAA46EBCB44B33E9259FB117417D* ___m_ActionsAsset;
+	InputActionReference_t64730C6B41271E0983FC21BFB416169F5D6BC4A1* ___m_PointAction;
+	InputActionReference_t64730C6B41271E0983FC21BFB416169F5D6BC4A1* ___m_MoveAction;
+	InputActionReference_t64730C6B41271E0983FC21BFB416169F5D6BC4A1* ___m_SubmitAction;
+	InputActionReference_t64730C6B41271E0983FC21BFB416169F5D6BC4A1* ___m_CancelAction;
+	InputActionReference_t64730C6B41271E0983FC21BFB416169F5D6BC4A1* ___m_LeftClickAction;
+	InputActionReference_t64730C6B41271E0983FC21BFB416169F5D6BC4A1* ___m_MiddleClickAction;
+	InputActionReference_t64730C6B41271E0983FC21BFB416169F5D6BC4A1* ___m_RightClickAction;
+	InputActionReference_t64730C6B41271E0983FC21BFB416169F5D6BC4A1* ___m_ScrollWheelAction;
+	InputActionReference_t64730C6B41271E0983FC21BFB416169F5D6BC4A1* ___m_TrackedDevicePositionAction;
+	InputActionReference_t64730C6B41271E0983FC21BFB416169F5D6BC4A1* ___m_TrackedDeviceOrientationAction;
+	bool ___m_DeselectOnBackgroundClick;
+	int32_t ___m_PointerBehavior;
+	int32_t ___m_CursorLockBehavior;
+	float ___m_ScrollDeltaPerTick;
+	bool ___m_ActionsHooked;
+	bool ___m_NeedToPurgeStalePointers;
+	Action_1_tEB0353AA1A112B6F2D921B58DCC9D9D4C0498E6E* ___m_OnPointDelegate;
+	Action_1_tEB0353AA1A112B6F2D921B58DCC9D9D4C0498E6E* ___m_OnMoveDelegate;
+	Action_1_tEB0353AA1A112B6F2D921B58DCC9D9D4C0498E6E* ___m_OnSubmitCancelDelegate;
+	Action_1_tEB0353AA1A112B6F2D921B58DCC9D9D4C0498E6E* ___m_OnLeftClickDelegate;
+	Action_1_tEB0353AA1A112B6F2D921B58DCC9D9D4C0498E6E* ___m_OnRightClickDelegate;
+	Action_1_tEB0353AA1A112B6F2D921B58DCC9D9D4C0498E6E* ___m_OnMiddleClickDelegate;
+	Action_1_tEB0353AA1A112B6F2D921B58DCC9D9D4C0498E6E* ___m_OnScrollWheelDelegate;
+	Action_1_tEB0353AA1A112B6F2D921B58DCC9D9D4C0498E6E* ___m_OnTrackedDevicePositionDelegate;
+	Action_1_tEB0353AA1A112B6F2D921B58DCC9D9D4C0498E6E* ___m_OnTrackedDeviceOrientationDelegate;
+	Action_1_t6F9EB113EB3F16226AEF811A2744F4111C116C87* ___m_OnControlsChangedDelegate;
+	int32_t ___m_CurrentPointerId;
+	int32_t ___m_CurrentPointerIndex;
+	int32_t ___m_CurrentPointerType;
+	InlinedArray_1_tC2490B07B1DD813665B621955586CF31457DB284 ___m_PointerIds;
+	InlinedArray_1_t6E2851F85C23093EDE233F71F5CE3D6D08FAE920 ___m_PointerStates;
+	NavigationModel_t6B51B0BA26B0D874FF92F039259B0E6B74E427C2 ___m_NavigationState;
+	SubmitCancelModel_t9EE6EB92BEF49CDE76DD473E3677C344D2953C58 ___m_SubmitCancelState;
+	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___m_LocalMultiPlayerRoot;
+};
+struct KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0  : public ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF
+{
+	int32_t ___U3CkeyCodeU3Ek__BackingField;
+	int32_t ___m_ScanCode;
+};
+struct MaskableGraphic_tFC5B6BE351C90DE53744DF2A70940242774B361E  : public Graphic_tCBFCA4585A19E2B75465AECFEAC43F4016BF7931
+{
+	bool ___m_ShouldRecalculateStencil;
+	Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* ___m_MaskMaterial;
+	RectMask2D_tACF92BE999C791A665BD1ADEABF5BCEB82846670* ___m_ParentMask;
+	bool ___m_Maskable;
+	bool ___m_IsMaskingGraphic;
+	bool ___m_IncludeForMasking;
+	CullStateChangedEvent_t6073CD0D951EC1256BF74B8F9107D68FC89B99B8* ___m_OnCullStateChanged;
+	bool ___m_ShouldRecalculate;
+	int32_t ___m_StencilValue;
+	Vector3U5BU5D_tFF1859CCE176131B909E2044F76443064254679C* ___m_Corners;
+};
+struct HorizontalLayoutGroup_t615DFEC1382E2E207BC9CBAA9A511F7ED93965BA  : public HorizontalOrVerticalLayoutGroup_tF1A06BC885BD6E7F38A8C43815549C111EEDEF2E
+{
+};
+struct Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E  : public MaskableGraphic_tFC5B6BE351C90DE53744DF2A70940242774B361E
+{
+	Sprite_tAFF74BC83CD68037494CB0B4F28CBDF8971CAB99* ___m_Sprite;
+	Sprite_tAFF74BC83CD68037494CB0B4F28CBDF8971CAB99* ___m_OverrideSprite;
+	int32_t ___m_Type;
+	bool ___m_PreserveAspect;
+	bool ___m_FillCenter;
+	int32_t ___m_FillMethod;
+	float ___m_FillAmount;
+	bool ___m_FillClockwise;
+	int32_t ___m_FillOrigin;
+	float ___m_AlphaHitTestMinimumThreshold;
+	bool ___m_Tracked;
+	bool ___m_UseSpriteMesh;
+	float ___m_PixelsPerUnitMultiplier;
+	float ___m_CachedReferencePixelsPerUnit;
+	SecondarySpriteTextureU5BU5D_tC322D73EA4B9A8B747013A3584DEFEAFC0D87192* ___m_SecondaryTextures;
+};
+struct Text_tD60B2346DAA6666BF0D822FF607F0B220C2B9E62  : public MaskableGraphic_tFC5B6BE351C90DE53744DF2A70940242774B361E
+{
+	FontData_tB8E562846C6CB59C43260F69AE346B9BF3157224* ___m_FontData;
+	String_t* ___m_Text;
+	TextGenerator_t85D00417640A53953556C01F9D4E7DDE1ABD8FEC* ___m_TextCache;
+	TextGenerator_t85D00417640A53953556C01F9D4E7DDE1ABD8FEC* ___m_TextCacheForLayout;
+	bool ___m_DisableFontTextureRebuiltCallback;
+	UIVertexU5BU5D_tBC532486B45D071A520751A90E819C77BA4E3D2F* ___m_TempVerts;
+};
+struct TCP2_Demo_InvertedMaskImage_t733DF4E89E2C6E547DC4A3B5196928061034010E  : public Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E
+{
+};
+struct U3CPrivateImplementationDetailsU3E_tADF9975A33028E19C0CEBC42D6AF316B833851C6_StaticFields
+{
+	__StaticArrayInitTypeSizeU3D443_t2E46644E3E80230537A29DF58400F4B6C9502031 ___BFDBE633476EFBC9BECC66F82D605AA7D7773E0C9ADE85410E4238C02AF8E860;
+	__StaticArrayInitTypeSizeU3D972_t06D7AEAC89AE40F796C55E56C8CE2177D3DD8635 ___D042FF988B9FEB0F41DB1FAF8111CDF01C6CC32BFAF2312159CFCB8E5FA38A21;
+};
+struct String_t_StaticFields
+{
+	String_t* ___Empty;
+};
+struct Boolean_t09A6377A54BE2F9E6985A8149F19234FD7DDFE22_StaticFields
+{
+	String_t* ___TrueString;
+	String_t* ___FalseString;
+};
+struct IntPtr_t_StaticFields
+{
+	intptr_t ___Zero;
+};
+struct Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974_StaticFields
+{
+	Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 ___identityQuaternion;
+};
+struct Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D_StaticFields
+{
+	Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D ___kZero;
+};
+struct Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7_StaticFields
+{
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___zeroVector;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___oneVector;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___upVector;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___downVector;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___leftVector;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___rightVector;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___positiveInfinityVector;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___negativeInfinityVector;
+};
+struct Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2_StaticFields
+{
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___zeroVector;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___oneVector;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___upVector;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___downVector;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___leftVector;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___rightVector;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___forwardVector;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___backVector;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___positiveInfinityVector;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___negativeInfinityVector;
+};
+struct Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3_StaticFields
+{
+	Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 ___zeroVector;
+	Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 ___oneVector;
+	Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 ___positiveInfinityVector;
+	Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 ___negativeInfinityVector;
+};
+struct Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_StaticFields
+{
+	int32_t ___OffsetOfInstanceIDInCPlusPlusObject;
+};
+struct Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3_StaticFields
+{
+	int32_t ___k_ColorId;
+	int32_t ___k_MainTexId;
+};
+struct Texture_t791CBB51219779964E0E8A2ED7C1AA5F92A4A700_StaticFields
+{
+	int32_t ___GenerateAllMips;
+};
+struct Type_t_StaticFields
+{
+	Binder_t91BFCE95A7057FADF4D8A1A342AFE52872246235* ___s_defaultBinder;
+	Il2CppChar ___Delimiter;
+	TypeU5BU5D_t97234E1129B564EB38B8D85CAC2AD8B5B9522FFB* ___EmptyTypes;
+	RuntimeObject* ___Missing;
+	MemberFilter_tF644F1AE82F611B677CE1964D5A3277DDA21D553* ___FilterAttribute;
+	MemberFilter_tF644F1AE82F611B677CE1964D5A3277DDA21D553* ___FilterName;
+	MemberFilter_tF644F1AE82F611B677CE1964D5A3277DDA21D553* ___FilterNameIgnoreCase;
+};
+struct Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184_StaticFields
+{
+	CameraCallback_t844E527BFE37BC0495E7F67993E43C07642DA9DD* ___onPreCull;
+	CameraCallback_t844E527BFE37BC0495E7F67993E43C07642DA9DD* ___onPreRender;
+	CameraCallback_t844E527BFE37BC0495E7F67993E43C07642DA9DD* ___onPostRender;
+};
+struct Canvas_t2DB4CEFDFF732884866C83F11ABF75F5AE8FFB26_StaticFields
+{
+	WillRenderCanvases_tA4A6E66DBA797DCB45B995DBA449A9D1D80D0FBC* ___preWillRenderCanvases;
+	WillRenderCanvases_tA4A6E66DBA797DCB45B995DBA449A9D1D80D0FBC* ___willRenderCanvases;
+	Action_1_tD69A6DC9FBE94131E52F5A73B2A9D4AB51EEC404* ___U3CexternBeginRenderOverlaysU3Ek__BackingField;
+	Action_2_tD7438462601D3939500ED67463331FE00CFFBDB8* ___U3CexternRenderOverlaysBeforeU3Ek__BackingField;
+	Action_1_tD69A6DC9FBE94131E52F5A73B2A9D4AB51EEC404* ___U3CexternEndRenderOverlaysU3Ek__BackingField;
+};
+struct RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5_StaticFields
+{
+	ReapplyDrivenProperties_t3482EA130A01FF7EE2EEFE37F66A5215D08CFE24* ___reapplyDrivenProperties;
+};
+struct Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43_StaticFields
+{
+	Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* ___U3CcurrentU3Ek__BackingField;
+};
+struct Pointer_t800EF2832B62E889AC9C182E3B18098AF220E32A_StaticFields
+{
+	Pointer_t800EF2832B62E889AC9C182E3B18098AF220E32A* ___U3CcurrentU3Ek__BackingField;
+};
+struct ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF_StaticFields
+{
+	float ___s_GlobalDefaultButtonPressPoint;
+	float ___s_GlobalDefaultButtonReleaseThreshold;
+};
+struct EventSystem_t61C51380B105BE9D2C39C4F15B7E655659957707_StaticFields
+{
+	List_1_tF2FE88545EFEC788CAAE6C74EC2F78E937FCCAC3* ___m_EventSystems;
+	Comparison_1_t9FCAC8C8CE160A96C5AAD2DE1D353DCE8A2FEEFC* ___s_RaycastComparer;
+	Nullable_1_t33D5AB3CF72EDE570A226DE48EF7C3A10F25A7C4 ___s_UIToolkitOverrideConfigOld;
+};
+struct Graphic_tCBFCA4585A19E2B75465AECFEAC43F4016BF7931_StaticFields
+{
+	Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* ___s_DefaultUI;
+	Texture2D_tE6505BC111DD8A424A9DBE8E05D7D09E11FFFCF4* ___s_WhiteTexture;
+	Mesh_t6D9C539763A09BC2B12AEAEF36F6DFFC98AE63D4* ___s_Mesh;
+	VertexHelper_tB905FCB02AE67CBEE5F265FE37A5938FC5D136FE* ___s_VertexHelper;
+};
+struct Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F_StaticFields
+{
+	Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* ___U3CcurrentU3Ek__BackingField;
+	Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* ___s_PlatformMouseDevice;
+};
+struct InputSystemUIInputModule_tB7D5B53F656D196BB5AF712FA16FEE22B2EE0C58_StaticFields
+{
+	DefaultInputActions_t8041965208E4C6952C7969FD33249007DE96F0A6* ___defaultActions;
+	Dictionary_2_t609CD6E7E686007E5CF00E6A12C74A3B3106EF96* ___s_InputActionReferenceCounts;
+};
+struct Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_StaticFields
+{
+	Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* ___s_ETC1DefaultUI;
+	SecondarySpriteTextureU5BU5D_tC322D73EA4B9A8B747013A3584DEFEAFC0D87192* ___s_TempNewSecondaryTextures;
+	Vector2U5BU5D_tFEBBC94BCC6C9C88277BA04047D2B3FDB6ED7FDA* ___s_VertScratch;
+	Vector2U5BU5D_tFEBBC94BCC6C9C88277BA04047D2B3FDB6ED7FDA* ___s_UVScratch;
+	Vector3U5BU5D_tFF1859CCE176131B909E2044F76443064254679C* ___s_Xy;
+	Vector3U5BU5D_tFF1859CCE176131B909E2044F76443064254679C* ___s_Uv;
+	List_1_tE6BB71ABF15905EFA2BE92C38A2716547AEADB19* ___m_TrackedTexturelessImages;
+	bool ___s_Initialized;
+};
+struct Text_tD60B2346DAA6666BF0D822FF607F0B220C2B9E62_StaticFields
+{
+	Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* ___s_DefaultText;
+};
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+struct ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031  : public RuntimeArray
+{
+	ALIGN_FIELD (8) uint8_t m_Items[1];
+
+	inline uint8_t GetAt(il2cpp_array_size_t index) const
+	{
+		IL2CPP_ARRAY_BOUNDS_CHECK(index, (uint32_t)(this)->max_length);
+		return m_Items[index];
+	}
+	inline uint8_t* GetAddressAt(il2cpp_array_size_t index)
+	{
+		IL2CPP_ARRAY_BOUNDS_CHECK(index, (uint32_t)(this)->max_length);
+		return m_Items + index;
+	}
+	inline void SetAt(il2cpp_array_size_t index, uint8_t value)
+	{
+		IL2CPP_ARRAY_BOUNDS_CHECK(index, (uint32_t)(this)->max_length);
+		m_Items[index] = value;
+	}
+	inline uint8_t GetAtUnchecked(il2cpp_array_size_t index) const
+	{
+		return m_Items[index];
+	}
+	inline uint8_t* GetAddressAtUnchecked(il2cpp_array_size_t index)
+	{
+		return m_Items + index;
+	}
+	inline void SetAtUnchecked(il2cpp_array_size_t index, uint8_t value)
+	{
+		m_Items[index] = value;
+	}
+};
+struct AnimatedPropertyU5BU5D_t62A4E770F9DDA2800712D931AEDD04C0DE6FB7BE  : public RuntimeArray
+{
+	ALIGN_FIELD (8) AnimatedProperty_t31C29CBFB2284472B89A4C75644E5578B75E45B4* m_Items[1];
+
+	inline AnimatedProperty_t31C29CBFB2284472B89A4C75644E5578B75E45B4* GetAt(il2cpp_array_size_t index) const
+	{
+		IL2CPP_ARRAY_BOUNDS_CHECK(index, (uint32_t)(this)->max_length);
+		return m_Items[index];
+	}
+	inline AnimatedProperty_t31C29CBFB2284472B89A4C75644E5578B75E45B4** GetAddressAt(il2cpp_array_size_t index)
+	{
+		IL2CPP_ARRAY_BOUNDS_CHECK(index, (uint32_t)(this)->max_length);
+		return m_Items + index;
+	}
+	inline void SetAt(il2cpp_array_size_t index, AnimatedProperty_t31C29CBFB2284472B89A4C75644E5578B75E45B4* value)
+	{
+		IL2CPP_ARRAY_BOUNDS_CHECK(index, (uint32_t)(this)->max_length);
+		m_Items[index] = value;
+		Il2CppCodeGenWriteBarrier((void**)m_Items + index, (void*)value);
+	}
+	inline AnimatedProperty_t31C29CBFB2284472B89A4C75644E5578B75E45B4* GetAtUnchecked(il2cpp_array_size_t index) const
+	{
+		return m_Items[index];
+	}
+	inline AnimatedProperty_t31C29CBFB2284472B89A4C75644E5578B75E45B4** GetAddressAtUnchecked(il2cpp_array_size_t index)
+	{
+		return m_Items + index;
+	}
+	inline void SetAtUnchecked(il2cpp_array_size_t index, AnimatedProperty_t31C29CBFB2284472B89A4C75644E5578B75E45B4* value)
+	{
+		m_Items[index] = value;
+		Il2CppCodeGenWriteBarrier((void**)m_Items + index, (void*)value);
+	}
+};
+struct TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360  : public RuntimeArray
+{
+	ALIGN_FIELD (8) TCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C* m_Items[1];
+
+	inline TCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C* GetAt(il2cpp_array_size_t index) const
+	{
+		IL2CPP_ARRAY_BOUNDS_CHECK(index, (uint32_t)(this)->max_length);
+		return m_Items[index];
+	}
+	inline TCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C** GetAddressAt(il2cpp_array_size_t index)
+	{
+		IL2CPP_ARRAY_BOUNDS_CHECK(index, (uint32_t)(this)->max_length);
+		return m_Items + index;
+	}
+	inline void SetAt(il2cpp_array_size_t index, TCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C* value)
+	{
+		IL2CPP_ARRAY_BOUNDS_CHECK(index, (uint32_t)(this)->max_length);
+		m_Items[index] = value;
+		Il2CppCodeGenWriteBarrier((void**)m_Items + index, (void*)value);
+	}
+	inline TCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C* GetAtUnchecked(il2cpp_array_size_t index) const
+	{
+		return m_Items[index];
+	}
+	inline TCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C** GetAddressAtUnchecked(il2cpp_array_size_t index)
+	{
+		return m_Items + index;
+	}
+	inline void SetAtUnchecked(il2cpp_array_size_t index, TCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C* value)
+	{
+		m_Items[index] = value;
+		Il2CppCodeGenWriteBarrier((void**)m_Items + index, (void*)value);
+	}
+};
+struct LightU5BU5D_tDA7C763E668D91E53318509D94BC0CF10B8AB990  : public RuntimeArray
+{
+	ALIGN_FIELD (8) Light_t1E68479B7782AF2050FAA02A5DC612FD034F18F3* m_Items[1];
+
+	inline Light_t1E68479B7782AF2050FAA02A5DC612FD034F18F3* GetAt(il2cpp_array_size_t index) const
+	{
+		IL2CPP_ARRAY_BOUNDS_CHECK(index, (uint32_t)(this)->max_length);
+		return m_Items[index];
+	}
+	inline Light_t1E68479B7782AF2050FAA02A5DC612FD034F18F3** GetAddressAt(il2cpp_array_size_t index)
+	{
+		IL2CPP_ARRAY_BOUNDS_CHECK(index, (uint32_t)(this)->max_length);
+		return m_Items + index;
+	}
+	inline void SetAt(il2cpp_array_size_t index, Light_t1E68479B7782AF2050FAA02A5DC612FD034F18F3* value)
+	{
+		IL2CPP_ARRAY_BOUNDS_CHECK(index, (uint32_t)(this)->max_length);
+		m_Items[index] = value;
+		Il2CppCodeGenWriteBarrier((void**)m_Items + index, (void*)value);
+	}
+	inline Light_t1E68479B7782AF2050FAA02A5DC612FD034F18F3* GetAtUnchecked(il2cpp_array_size_t index) const
+	{
+		return m_Items[index];
+	}
+	inline Light_t1E68479B7782AF2050FAA02A5DC612FD034F18F3** GetAddressAtUnchecked(il2cpp_array_size_t index)
+	{
+		return m_Items + index;
+	}
+	inline void SetAtUnchecked(il2cpp_array_size_t index, Light_t1E68479B7782AF2050FAA02A5DC612FD034F18F3* value)
+	{
+		m_Items[index] = value;
+		Il2CppCodeGenWriteBarrier((void**)m_Items + index, (void*)value);
+	}
+};
+struct TCP2_Demo_Interactive_ContentU5BU5D_tB79AA6CDA4494B6C8747A1728F83BC2310EB9194  : public RuntimeArray
+{
+	ALIGN_FIELD (8) TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* m_Items[1];
+
+	inline TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* GetAt(il2cpp_array_size_t index) const
+	{
+		IL2CPP_ARRAY_BOUNDS_CHECK(index, (uint32_t)(this)->max_length);
+		return m_Items[index];
+	}
+	inline TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4** GetAddressAt(il2cpp_array_size_t index)
+	{
+		IL2CPP_ARRAY_BOUNDS_CHECK(index, (uint32_t)(this)->max_length);
+		return m_Items + index;
+	}
+	inline void SetAt(il2cpp_array_size_t index, TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* value)
+	{
+		IL2CPP_ARRAY_BOUNDS_CHECK(index, (uint32_t)(this)->max_length);
+		m_Items[index] = value;
+		Il2CppCodeGenWriteBarrier((void**)m_Items + index, (void*)value);
+	}
+	inline TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* GetAtUnchecked(il2cpp_array_size_t index) const
+	{
+		return m_Items[index];
+	}
+	inline TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4** GetAddressAtUnchecked(il2cpp_array_size_t index)
+	{
+		return m_Items + index;
+	}
+	inline void SetAtUnchecked(il2cpp_array_size_t index, TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* value)
+	{
+		m_Items[index] = value;
+		Il2CppCodeGenWriteBarrier((void**)m_Items + index, (void*)value);
+	}
+};
+struct ButtonU5BU5D_t0D512FF2FF5A72DAC04754F2C10182F850328BEF  : public RuntimeArray
+{
+	ALIGN_FIELD (8) Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* m_Items[1];
+
+	inline Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* GetAt(il2cpp_array_size_t index) const
+	{
+		IL2CPP_ARRAY_BOUNDS_CHECK(index, (uint32_t)(this)->max_length);
+		return m_Items[index];
+	}
+	inline Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098** GetAddressAt(il2cpp_array_size_t index)
+	{
+		IL2CPP_ARRAY_BOUNDS_CHECK(index, (uint32_t)(this)->max_length);
+		return m_Items + index;
+	}
+	inline void SetAt(il2cpp_array_size_t index, Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* value)
+	{
+		IL2CPP_ARRAY_BOUNDS_CHECK(index, (uint32_t)(this)->max_length);
+		m_Items[index] = value;
+		Il2CppCodeGenWriteBarrier((void**)m_Items + index, (void*)value);
+	}
+	inline Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* GetAtUnchecked(il2cpp_array_size_t index) const
+	{
+		return m_Items[index];
+	}
+	inline Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098** GetAddressAtUnchecked(il2cpp_array_size_t index)
+	{
+		return m_Items + index;
+	}
+	inline void SetAtUnchecked(il2cpp_array_size_t index, Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* value)
+	{
+		m_Items[index] = value;
+		Il2CppCodeGenWriteBarrier((void**)m_Items + index, (void*)value);
+	}
+};
+
+
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* GameObject_AddComponent_TisRuntimeObject_m69B93700FACCF372F5753371C6E8FB780800B824_gshared (GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918* Component_GetComponentsInChildren_TisRuntimeObject_m1F5B6FC0689B07D4FAAC0C605D9B2933A9B32543_gshared (Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918* Component_GetComponentsInChildren_TisRuntimeObject_m90734C3A39A158985239CB90DE2F0792F1D99926_gshared (Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3* __this, bool ___0_includeInactive, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* Component_GetComponent_TisRuntimeObject_m7181F81CAEC2CF53F5D2BC79B7425C16E1F80D33_gshared (Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* Object_Instantiate_TisRuntimeObject_m90A1E6C4C2B445D2E848DB75C772D1B95AAC046A_gshared (RuntimeObject* ___0_original, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* GameObject_GetComponentInChildren_TisRuntimeObject_mED181B37054A10395CA356010754C7DFC685893C_gshared (GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* GameObject_GetComponent_TisRuntimeObject_m6EAED4AA356F0F48288F67899E5958792395563B_gshared (GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* InputControl_1_get_value_m3A09316CF498D9ED1A4C31890BB8870F80696EA2_gshared (InputControl_1_tC164085710F2FAA9161295C9B7FE273AF893CF66* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR float* InputControl_1_get_value_mD5825506B785433FAFB0204E1FE3A7B9103B3FE5_gshared (InputControl_1_t7A35A4AF63A7AA94678E000D4F3265A1FD84288A* __this, const RuntimeMethod* method) ;
+
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371 (Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR float Time_get_deltaTime_mC3195000401F0FD167DD2F948FD2BC58330D0865 (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Transform_Rotate_m35B44707FE16FF8015D519D8C162C0B4A85D6D1F (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_axis, float ___1_angle, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Vector3_get_up_m128AF3FDC820BF59D5DE86D973E7DE3F20C3AEBA_inline (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void MonoBehaviour__ctor_m592DB0105CA0BC97AA1C5F4AD27B12D68A3B7C1E (MonoBehaviour_t532A11E69716D348D8AA7F854AFCBFCB8AD17F71* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* Graphic_get_materialForRendering_m4B0017B2B59D2EF578D32ABFCF84A97A835B6B22 (Graphic_tCBFCA4585A19E2B75465AECFEAC43F4016BF7931* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Material__ctor_mFCC42FB90257F1E8F7516A8640A79C465A39961C (Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* __this, Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* ___0_source, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Material_SetInt_m41DF5404A9942239265888105E1DC83F2FBF901A (Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* __this, String_t* ___0_name, int32_t ___1_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Image__ctor_m8F922348981CDB74700D89D833FE39611FA4BC37 (Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool Object_op_Equality_mB6120F782D83091EF56A198FCEBCF066DB4A9605 (Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C* ___0_x, Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C* ___1_y, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RenderPipelineAsset_t5F9BF815BF931E1314B184E7F9070FB649C7054E* GraphicsSettings_get_currentRenderPipeline_mEC94DC23DE4F901D6A629E2DE882982686AF75F1 (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool Object_op_Inequality_mD0BE578448EAA61948F25C32F8DD55AB1F778602 (Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C* ___0_x, Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C* ___1_y, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Type_t* Object_GetType_mE10A8FC1E57F3DF29972CCBC026C2DC3942263B3 (RuntimeObject* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool String_Contains_m6D77B121FADA7CA5F397C0FABB65DA62DF03B6C3 (String_t* __this, String_t* ___0_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Material_set_shader_mBD3A0D9AB14DE2F7CD5F2775E9AD58E15424C171 (Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* __this, Shader_tADC867D36B7876EE22427FAA2CE485105F4EE692* ___0_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void RuntimeHelpers_InitializeArray_m751372AA3F24FBF6DA9B9D687CBFA2DE436CAB9B (RuntimeArray* ___0_array, RuntimeFieldHandle_t6E4C45B6D2EA12FC99185805A7E77527899B25C5 ___1_fldHandle, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Object__ctor_mE837C6B9FA8C6D5D109F4B2EC885D79919AC0EA2 (RuntimeObject* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void AnimatedProperty_Init_mF9E052E9520363DDFE2799CC180A5C02E9AC8F48 (AnimatedProperty_t31C29CBFB2284472B89A4C75644E5578B75E45B4* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void AnimatedProperty_Update_mEE0EC4A2D2F47211D74ECBA00487BCCCF3437668 (AnimatedProperty_t31C29CBFB2284472B89A4C75644E5578B75E45B4* __this, Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* ___0_material, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR int32_t Shader_PropertyToID_mE98523D50F5656CAE89B30695C458253EB8956CA (String_t* ___0_name, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR float Time_get_time_m3A271BB1B20041144AC5B7863B71AB1F0150374B (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR float AnimationCurve_Evaluate_m50B857043DE251A186032ADBCBB4CEF817F4EE3C (AnimationCurve_tCBFFAAD05CEBB35EF8D8631BD99914BE1A6BB354* __this, float ___0_time, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Mathf_Lerp_m47EF2FFB7647BD0A1FDC26DC03E28B19812139B5_inline (float ___0_a, float ___1_b, float ___2_t, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Material_SetFloat_m3ECFD92072347A8620254F014865984FA68211A8 (Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* __this, int32_t ___0_nameID, float ___1_value, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Color_tD001788D726C3A7F1379BEED0260B9591F440C1F Color_Lerp_mE79F87889843ECDC188E4CB5B5E1F1B2256E5EBE_inline (Color_tD001788D726C3A7F1379BEED0260B9591F440C1F ___0_a, Color_tD001788D726C3A7F1379BEED0260B9591F440C1F ___1_b, float ___2_t, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Material_SetColor_m573C88F2FB1B5A978C53A197B414F9E9C6AC5B9A (Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* __this, int32_t ___0_nameID, Color_tD001788D726C3A7F1379BEED0260B9591F440C1F ___1_value, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 Vector4_Lerp_mE5FFF3D013F0880F7DF8C613E7CB44EBD7349DAB_inline (Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 ___0_a, Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 ___1_b, float ___2_t, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Material_SetVector_m44CD02D4555E2AF391C30700F0AEC36BA04CFEA7 (Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* __this, int32_t ___0_nameID, Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 ___1_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR AnimationCurve_tCBFFAAD05CEBB35EF8D8631BD99914BE1A6BB354* AnimationCurve_EaseInOut_m01DD06E6C8962F8F62F293C9EAE491C3D3F2CAF3 (float ___0_timeStart, float ___1_valueStart, float ___2_timeEnd, float ___3_valueEnd, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Color_tD001788D726C3A7F1379BEED0260B9591F440C1F Color_get_black_mB50217951591A045844C61E7FF31EEE3FEF16737_inline (const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Color_tD001788D726C3A7F1379BEED0260B9591F440C1F Color_get_white_m068F5AF879B0FCA584E3693F762EA41BB65532C6_inline (const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 Vector4_get_zero_m3D61F5FA9483CD9C08977D9D8852FB448B4CE6D1_inline (const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 Vector4_get_one_m0AA55064B3C47D9D94E5BC4EE6AEC5B6E4F2D151_inline (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Transform_get_position_m69CD5FA214FDAE7BB701552943674846C220FDE1 (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Transform_get_eulerAngles_mCAAF48EFCF628F1ED91C2FFE75A4FD19C039DD6A (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B (Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3* __this, const RuntimeMethod* method) ;
+inline InputSystemUIInputModule_tB7D5B53F656D196BB5AF712FA16FEE22B2EE0C58* GameObject_AddComponent_TisInputSystemUIInputModule_tB7D5B53F656D196BB5AF712FA16FEE22B2EE0C58_mA175957B292E3F565216766FCE1E9D85836183A7 (GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* __this, const RuntimeMethod* method)
+{
+	return ((  InputSystemUIInputModule_tB7D5B53F656D196BB5AF712FA16FEE22B2EE0C58* (*) (GameObject_t76FEDD663AB33C991A9C9A23129337651094216F*, const RuntimeMethod*))GameObject_AddComponent_TisRuntimeObject_m69B93700FACCF372F5753371C6E8FB780800B824_gshared)(__this, method);
+}
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 InputAbstraction_get_Mouse_Position_m44EB96795ED517DF0B20770C3D436F1F90357329 (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D RectTransform_get_rect_mC82A60F8C3805ED9833508CCC233689641207488 (RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* __this, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 Rect_get_size_mFB990FFC0FE0152179C8C74A59E4AC258CB44267_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Transform_get_lossyScale_mFF740DA4BE1489C6882CD2F3A37B7321176E5D07 (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 Vector2_op_Implicit_mE8EBEE9291F11BB02F062D6E000F4798968CBD96_inline (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_v, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 Vector2_Scale_m8D61A8D2272549F1EF41256F7E8A206C6500EA6C_inline (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___0_a, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___1_b, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR void Rect__ctor_m18C3033D135097BEE424AAA68D91C706D2647F23_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, float ___0_x, float ___1_y, float ___2_width, float ___3_height, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Rect_get_x_mB267B718E0D067F2BAE31BA477647FBF964916EB_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 RectTransform_get_pivot_mA8334AF05AA7FF09A173A2430F2BB9E85E5CBFFF (RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* __this, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR void Rect_set_x_mAB91AB71898A20762BC66FD0723C4C739C4C3406_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, float ___0_value, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Rect_get_y_mC733E8D49F3CE21B2A3D40A1B72D687F22C97F49_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR void Rect_set_y_mDE91F4B98A6E8623EFB1250FF6526D5DB5855629_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, float ___0_value, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 Vector2_op_Subtraction_m44475FCDAD2DA2F98D78A6625EC2DCDFE8803837_inline (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___0_a, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___1_b, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Mathf_Clamp_mEB9AEA827D27D20FCC787F7375156AF46BB12BBF_inline (float ___0_value, float ___1_min, float ___2_max, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR bool Rect_Contains_mAB270D6B7E3B0009A50D142C569D63E8FE59F48B_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___0_point, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_Mouse_LeftDown_mD9A2371EA1E26981B4EEAB3AD04067FF4DA7F6CE (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_Mouse_MiddleDown_mFEA082EF6526D8590A414DB50C4AC408507CA562 (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_Mouse_RightDown_m1FA8C6F2CD0297D65AC7DAD0378404C1050B5B94 (const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Mathf_Clamp01_mA7E048DBDA832D399A581BE4D6DED9FA44CE0F14_inline (float ___0_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_R_m046201A1D9D63F8762A82DBFA5930FE2BA8DE8CA (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Camera_ResetView_mC8F7614A51119FFA3DA106C260B5F228FAFFBEC4 (TCP2_Demo_Camera_t345524DB7C1DBEBBAAA2835D524355C0B47FCA68* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Transform_get_localEulerAngles_m358AA9AE8FA24FD1BB7842D231C8644D1C2910C6 (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Vector3_op_Addition_m78C0EC70CB66E8DCAC225743D82B268DAEE92067_inline (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_a, Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___1_b, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Transform_get_right_mC6DC057C23313802E2186A9E0DB760D795A758A4 (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Transform_RotateAround_m489C5BE8B8B15D0A5F4863DE6D23FF2CC8FA76C6 (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_point, Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___1_axis, float ___2_angle, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Transform_TransformDirection_m9BE1261DF2D48B7A4A27D31EE24D2D97F89E7757 (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_direction, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Vector3_op_Multiply_m87BA7C578F96C8E49BB07088DAAC4649F83B0353_inline (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_a, float ___1_d, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Transform_Translate_m282D807F4F1D1EEE51A8B91AC1DE5EB4F5296CED (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_translation, Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* ___1_relativeTo, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR float InputAbstraction_get_Mouse_ScrollWheel_mAC5E7E4B5E50EB73F64BE975DD7BAAB782392FC3 (const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Vector3_Distance_m2314DB9B8BD01157E013DF87BEA557375C7F9FF9_inline (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_a, Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___1_b, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Vector3_get_forward_mAA55A7034304DF8B2152EAD49AE779FC4CA2EB4A_inline (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Transform_Translate_m4A9E3D8836586E7562F6A18EBF5F5B6089D8B649 (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_translation, int32_t ___1_relativeTo, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Vector3_get_zero_m0C1249C3F25B1C70EAD3CC8B31259975A457AE39_inline (const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Vector3_Lerp_m3A906D0530A94FAABB94F0F905E84D99BE85C3F8_inline (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_a, Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___1_b, float ___2_t, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Transform_set_position_mA1A817124BB41B685043DED2A9BA48CDF37C4156 (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Transform_set_eulerAngles_m9F0BC484A7915A51FAB87230644229B75BACA004 (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_value, const RuntimeMethod* method) ;
+inline TCP2_Demo_Interactive_ContentU5BU5D_tB79AA6CDA4494B6C8747A1728F83BC2310EB9194* Component_GetComponentsInChildren_TisTCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4_m0115856B274E21068EF2ED4716CC877052F07CF6 (Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3* __this, const RuntimeMethod* method)
+{
+	return ((  TCP2_Demo_Interactive_ContentU5BU5D_tB79AA6CDA4494B6C8747A1728F83BC2310EB9194* (*) (Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*, const RuntimeMethod*))Component_GetComponentsInChildren_TisRuntimeObject_m1F5B6FC0689B07D4FAAC0C605D9B2933A9B32543_gshared)(__this, method);
+}
+inline TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360* Component_GetComponentsInChildren_TisTCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C_mD4D087D7584A19E9ABD939B89C0496B778808A7C (Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3* __this, bool ___0_includeInactive, const RuntimeMethod* method)
+{
+	return ((  TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360* (*) (Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*, bool, const RuntimeMethod*))Component_GetComponentsInChildren_TisRuntimeObject_m90734C3A39A158985239CB90DE2F0792F1D99926_gshared)(__this, ___0_includeInactive, method);
+}
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR int32_t QualitySettings_get_activeColorSpace_m4F47784E7B0FE0A5497C8BAB9CA86BD576FB92F9 (const RuntimeMethod* method) ;
+inline LightU5BU5D_tDA7C763E668D91E53318509D94BC0CF10B8AB990* Component_GetComponentsInChildren_TisLight_t1E68479B7782AF2050FAA02A5DC612FD034F18F3_m2FE3113150DFC873296E954F0EBB0E18E096AFB5 (Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3* __this, const RuntimeMethod* method)
+{
+	return ((  LightU5BU5D_tDA7C763E668D91E53318509D94BC0CF10B8AB990* (*) (Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*, const RuntimeMethod*))Component_GetComponentsInChildren_TisRuntimeObject_m1F5B6FC0689B07D4FAAC0C605D9B2933A9B32543_gshared)(__this, method);
+}
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR float Light_get_intensity_m8FA28D515853068A93FA68B2148809BBEE4E710F (Light_t1E68479B7782AF2050FAA02A5DC612FD034F18F3* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Light_set_intensity_mE4820C7F39F490B92ED5EA0C3AADA7C0775BE854 (Light_t1E68479B7782AF2050FAA02A5DC612FD034F18F3* __this, float ___0_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void RenderSettings_set_ambientIntensity_m27875436E47E2D28C13F362DAE9C24D0DEC4A844 (float ___0_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void RenderSettings_set_reflectionIntensity_m70A9545EBFEE2100AEB017149034592AF23D224E (float ___0_value, const RuntimeMethod* method) ;
+inline Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* Component_GetComponent_TisImage_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_mE74EE63C85A63FC34DCFC631BC229207B420BC79 (Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3* __this, const RuntimeMethod* method)
+{
+	return ((  Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* (*) (Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*, const RuntimeMethod*))Component_GetComponent_TisRuntimeObject_m7181F81CAEC2CF53F5D2BC79B7425C16E1F80D33_gshared)(__this, method);
+}
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void U3CU3Ec__DisplayClass25_0__ctor_m4C6D5957E4AC4E2561D2241FFBFAC517E2E4B825 (U3CU3Ec__DisplayClass25_0_t96646AD8D220C0FE7538DC1A209152C6ADC9F59A* __this, const RuntimeMethod* method) ;
+inline GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* Object_Instantiate_TisGameObject_t76FEDD663AB33C991A9C9A23129337651094216F_m10D87C6E0708CA912BBB02555BF7D0FBC5D7A2B3 (GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___0_original, const RuntimeMethod* method)
+{
+	return ((  GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* (*) (GameObject_t76FEDD663AB33C991A9C9A23129337651094216F*, const RuntimeMethod*))Object_Instantiate_TisRuntimeObject_m90A1E6C4C2B445D2E848DB75C772D1B95AAC046A_gshared)(___0_original, method);
+}
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR String_t* Object_get_name_mAC2F6B897CF1303BA4249B4CB55271AFACBB6392 (Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR String_t* Int32_ToString_m030E01C24E294D6762FB0B6F37CB541581F55CA5 (int32_t* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR String_t* String_Concat_m8855A6DE10F84DA7F4EC113CADDB59873A25573B (String_t* ___0_str0, String_t* ___1_str1, String_t* ___2_str2, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Object_set_name_mC79E6DC8FFD72479C90F0C4CC7F42A0FEAF5AE47 (Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C* __this, String_t* ___0_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* GameObject_get_transform_m0BC10ADFA1632166AE5544BDF9038A2650C2AE56 (GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* Transform_get_parent_m65354E28A4C94EC00EBCF03532F7B0718380791E (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Transform_SetParent_m6677538B60246D958DD91F931C50F969CCBB5250 (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* ___0_p, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR int32_t Transform_GetSiblingIndex_m45EE497589C36D1FBED87FB802BD80A95CE68575 (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Transform_SetSiblingIndex_m8A3B81F08B93991C05BFA89ADA2146836C4FC4B2 (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, int32_t ___0_index, const RuntimeMethod* method) ;
+inline Text_tD60B2346DAA6666BF0D822FF607F0B220C2B9E62* GameObject_GetComponentInChildren_TisText_tD60B2346DAA6666BF0D822FF607F0B220C2B9E62_m4883A479F4252D21D45D5AD3140CB42598C48A13 (GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* __this, const RuntimeMethod* method)
+{
+	return ((  Text_tD60B2346DAA6666BF0D822FF607F0B220C2B9E62* (*) (GameObject_t76FEDD663AB33C991A9C9A23129337651094216F*, const RuntimeMethod*))GameObject_GetComponentInChildren_TisRuntimeObject_mED181B37054A10395CA356010754C7DFC685893C_gshared)(__this, method);
+}
+inline Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* GameObject_GetComponent_TisButton_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098_mB997CBF78A37938DC1624352E12D0205078CB290 (GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* __this, const RuntimeMethod* method)
+{
+	return ((  Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* (*) (GameObject_t76FEDD663AB33C991A9C9A23129337651094216F*, const RuntimeMethod*))GameObject_GetComponent_TisRuntimeObject_m6EAED4AA356F0F48288F67899E5958792395563B_gshared)(__this, method);
+}
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR ButtonClickedEvent_t8EA72E90B3BD1392FB3B3EF167D5121C23569E4C* Button_get_onClick_m701712A7F7F000CC80D517C4510697E15722C35C_inline (Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void UnityAction__ctor_mC53E20D6B66E0D5688CD81B88DBB34F5A58B7131 (UnityAction_t11A1F3B953B365C072A5DCC32677EE1796A962A7* __this, RuntimeObject* ___0_object, intptr_t ___1_method, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void UnityEvent_AddListener_m8AA4287C16628486B41DA41CA5E7A856A706D302 (UnityEvent_tDC2C3548799DBC91D1E3F3DE60083A66F4751977* __this, UnityAction_t11A1F3B953B365C072A5DCC32677EE1796A962A7* ___0_call, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92 (GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* __this, bool ___0_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_OnSelectLightingSettings_m5FC680CE96EF10C879ADE1EAFDE68D9B70729B24 (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, int32_t ___0_index, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 Transform_get_rotation_m32AF40CA0D50C797DA639A696F8EAEC7524C179C (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_HandleKeyboard_m8A1EFA7533315A83902C0BBFCCDB2AB84348E309 (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_UpdateViewToCurrentContent_m522349C9F6D20CDDC63EA3E3C68F8C9E4A9474B0 (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, float ___0_lengthPercent, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_Delete_mF7B1924E7D3B83B13DBF776AC39E315590016753 (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_H_mA2B47744EE3E73C07C73B94D50434E1592E570C5 (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool Behaviour_get_enabled_mAAC9F15E9EBF552217A5AE2681589CC0BFA300C1 (Behaviour_t01970CFBBA658497AE30F311C447DB0440BAB7FA* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Behaviour_set_enabled_mF1DCFE60EB09E0529FE9476CA804A3AA2D72B16A (Behaviour_t01970CFBBA658497AE30F311C447DB0440BAB7FA* __this, bool ___0_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_Escape_mC8BDF09A982DEB3B6ABAEAA22F1989666C45704D (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_ResetView_mDA99336859AA2946D2D90ECFD805CB4C1FE13AEA (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_RightArrow_m4FD79FDE408B0BF682C510C8591F66487FD1A0B1 (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_NextHighlight_m7E479C0F3BCE3E038CE39ABC6E6CF17514F48B6F (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_LeftArrow_mE1BA9E2C68F890C9B7B652B3D3AE01D91340B891 (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_PrevHighlight_m21348200BDBD1B4E01B8957FB4792AD4A6E0BB93 (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_Tab_m1BD864699C69D9F73EE5731DA0252ABBB10C66C6 (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_Key_LeftShift_m788B2F959D8761A61AFBF65A7DD3F25383BBD534 (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_Key_RightShift_m872D92B3452E35EC310FE4A3606395C3E02F175F (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void MonoBehaviour_StopAllCoroutines_m872033451D42013A99867D09337490017E9ED318 (MonoBehaviour_t532A11E69716D348D8AA7F854AFCBFCB8AD17F71* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* TCP2_Demo_Interactive_CR_MoveToContent_mC42E377253ADE0188F20C2AE122FCEAA3E396790 (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* ___0_content, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Coroutine_t85EA685566A254C23F3FD77AB5BDFFFF8799596B* MonoBehaviour_StartCoroutine_m4CAFF732AA28CD3BDC5363B44A863575530EC812 (MonoBehaviour_t532A11E69716D348D8AA7F854AFCBFCB8AD17F71* __this, RuntimeObject* ___0_routine, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Camera_WorldToScreenPoint_m26B4C8945C3B5731F1CC5944CFD96BF17126BAA3 (Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184* __this, Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_position, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Rect_get_width_m620D67551372073C9C32C4C4624C2A5713F7F9A9_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Rect_get_height_mE1AA6C6C725CCD2D317BD2157396D3CF7D47C9D8_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR int32_t Screen_get_width_mF608FF3252213E7EFA1F0D2F744C28110E9E5AC9 (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR int32_t Screen_get_height_m01A3102DE71EE1FBEA51D09D6B0261CF864FE8F9 (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_PlaceLine_mDA643C21BA431A12B31099C50538E6A05E04B7E3 (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___0_start, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___1_end, float ___2_lengthPercentage, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* Graphic_get_rectTransform_mF4752E8934267D630810E84CE02CDFB81EB1FD6D (Graphic_tCBFCA4585A19E2B75465AECFEAC43F4016BF7931* __this, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Vector2_op_Implicit_m6D9CABB2C791A192867D7A4559D132BE86DD3EB7_inline (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___0_v, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 Vector2_get_normalized_mF6722883AEFB5027690A778DF8ACC20F0FA65297_inline (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* __this, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 Vector2_get_up_m41067879408BB378593EF7406AF2525F176F0ABF_inline (const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Vector2_SignedAngle_mAE9940DA6BC6B2182BA95C299B2EC19967B7D438_inline (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___0_from, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___1_to, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Transform_set_localEulerAngles_m0458551662A1A51FDCA4C0417282B25D391661DF (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_value, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 CanvasScaler_get_referenceResolution_m79C03DD8CE6759B045928C5339A3C5E6220276B5_inline (CanvasScaler_t3BC095205EAD308CF3EAC27136A73387AC32FC3B* __this, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Vector2_Distance_mBACBB1609E1894D68F882D86A93519E311810C89_inline (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___0_a, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___1_b, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 RectTransform_get_sizeDelta_m822A8493F2035677384F1540A2E9E5ACE63010BB (RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void RectTransform_set_sizeDelta_mC9A980EA6036E6725EF24CEDF3EE80A9B2B50EE5 (RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* __this, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___0_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* TCP2_Demo_Interactive_CR_ResetCamPos_m1072A96E99DB6E7CA74784E16E80DFCD7C8C73D9 (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void U3CCR_ResetCamPosU3Ed__33__ctor_m4E348FAA43126971717AEF9E1EA1EC9FA7022FEA (U3CCR_ResetCamPosU3Ed__33_tE8294FA068A29CD7E6B87DBFFDB551AB64260BEE* __this, int32_t ___0_U3CU3E1__state, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void U3CCR_MoveToContentU3Ed__35__ctor_mE2F7FECAE8FF56B25342F9C3651895198C9B8CE8 (U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6* __this, int32_t ___0_U3CU3E1__state, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_Environment_ApplyEnvironment_mFD147601DE9207A3B87DC5F46831570B014FFBDA (TCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C* __this, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR void Color__ctor_mCD6889CDE39F18704CD6EA8E2EFBFA48BA3E13B0_inline (Color_tD001788D726C3A7F1379BEED0260B9591F440C1F* __this, float ___0_r, float ___1_g, float ___2_b, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Mathf_Min_m747CA71A9483CDB394B13BD0AD048EE17E48FFE4_inline (float ___0_a, float ___1_b, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Mathf_SmoothStep_mEFDC738EB0AA162D71013BDBBDD157B080A8E524_inline (float ___0_from, float ___1_to, float ___2_t, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 Quaternion_Slerp_m0A9969F500E7716EA4F6BC4E7D5464372D8E9E15_inline (Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 ___0_a, Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 ___1_b, float ___2_t, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Transform_set_rotation_m61340DE74726CF0F9946743A727C4D444397331D (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 ___0_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Transform_set_localScale_mBA79E811BAF6C47B80FF76414C12B47B3CD03633 (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_value, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Vector3_get_one_mC9B289F1E15C42C597180C9FE6FB492495B51D02_inline (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Transform_get_localScale_m804A002A53A645CDFCD15BB0F37209162720363F (Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* __this, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR void Vector3__ctor_m376936E6B999EF1ECBE57D990A386303E2283DE0_inline (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2* __this, float ___0_x, float ___1_y, float ___2_z, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void NotSupportedException__ctor_m1398D0CDE19B36AA3DE9392879738C1EA2439CDF (NotSupportedException_t1429765983D409BD2986508963C98D214E4EBF4A* __this, const RuntimeMethod* method) ;
+inline TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360* Component_GetComponentsInChildren_TisTCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C_m6968347F8776206E7FB4B6A6FB692471ABC012D4 (Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3* __this, const RuntimeMethod* method)
+{
+	return ((  TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360* (*) (Component_t39FBE53E5EFCF4409111FB22C15FF73717632EC3*, const RuntimeMethod*))Component_GetComponentsInChildren_TisRuntimeObject_m1F5B6FC0689B07D4FAAC0C605D9B2933A9B32543_gshared)(__this, method);
+}
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void RenderSettings_set_skybox_m7988CC3217B1456CA0A7294127527BFC18EEC872 (Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* ___0_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Texture_t791CBB51219779964E0E8A2ED7C1AA5F92A4A700* Material_GetTexture_mBA07A377A7DDD29CD53E6F687DE6D49A42C0C719 (Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* __this, String_t* ___0_name, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void RenderSettings_set_customReflectionTexture_m384360FA35AA855AF9579D0A8B68EE6BDCFC9DB3 (Texture_t791CBB51219779964E0E8A2ED7C1AA5F92A4A700* ___0_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool Application_get_isPlaying_m25B0ABDFEF54F5370CD3F263A813540843D00F34 (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DynamicGI_UpdateEnvironment_m70AC224196548AC7A7FD7E6182591F692E98CF06 (const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline (const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_deleteKey_m7C5F02CBAD407FAEE6555425E300C9C34E6A5242 (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B (ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_escapeKey_mA4371467E72AA14713681C30A9B3AC41F3C9D707 (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_rightArrowKey_mECEFE3645349708104CB154806BD4F04F24B3439 (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_leftArrowKey_m892B16258F44B124B9ECC1D6F0EB53E9947597EB (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_tabKey_mB8D8CA9803AD3BD0C58A51B7D4E1A3E4B625AC38 (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_hKey_m3174CBE2187E080C75E20167DCD3EC8F9265822B (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_rKey_mB8A3122E9EA7EF4FFB24B4DDFC25CFF4D2EDABAC (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_digit1Key_mF14196ECA5F74A57E43B84F5D225757C762724F5 (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_numpad1Key_m253A012ADACBDFECBC08DA75B8A3A06132C6BD9D (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_digit2Key_mC32B4CA11662D54938BCA30AF16F9A4C995458E8 (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_numpad2Key_m40E763A9FB87BBDD763A1A0DCED88019DD6F537B (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_digit3Key_m28B12C574A44ED910551A1CB1CAB8220065F6A3C (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_numpad3Key_m963CDFD3E812886C07858A5AB99B90E0D1AD434D (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_digit4Key_mDC335D2E5536EBF0583C70B86066D34B6DCAEE33 (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_numpad4Key_mA5F0721DB5B78BAA7ACDD1AF088071FA4AD1CF07 (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_digit5Key_m40EFB11A1F6BACE4888718E61371D1B13832CAF1 (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_numpad5Key_m17CB134063780970E864C011F3162763D56DA102 (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_digit6Key_m3CF26095FC5D3B0313BDDBA77DB2E90C312AF59D (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_numpad6Key_mCEA93F85A8ECADA792E872137EAEFC82214D03AB (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_leftShiftKey_mD0E48DA49D8EE54E82721974646BAD69B9B1457C (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool ButtonControl_get_isPressed_m947621402F6EC1B957C2DE984806A6500D422EA6 (ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* Keyboard_get_rightShiftKey_mED4C7C1DC43F62C9CEBB3D7422467FE7C5A1B143 (Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* __this, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* Mouse_get_current_m410C1F9ABC5AA77353574E8815F7E63289707986_inline (const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 Vector2_get_zero_m32506C40EC2EE7D5D4410BF40D3EE683A3D5F32C_inline (const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2Control_t8D1B4021A1D82671AF916D3C0A476AA94E46A432* Pointer_get_position_m4286004169788483EEDA6AF833CEFDB04FEDF3D8_inline (Pointer_t800EF2832B62E889AC9C182E3B18098AF220E32A* __this, const RuntimeMethod* method) ;
+inline Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* InputControl_1_get_value_m3A09316CF498D9ED1A4C31890BB8870F80696EA2 (InputControl_1_tC164085710F2FAA9161295C9B7FE273AF893CF66* __this, const RuntimeMethod* method)
+{
+	return ((  Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* (*) (InputControl_1_tC164085710F2FAA9161295C9B7FE273AF893CF66*, const RuntimeMethod*))InputControl_1_get_value_m3A09316CF498D9ED1A4C31890BB8870F80696EA2_gshared)(__this, method);
+}
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR DeltaControl_t63053AF5E0CD02B62F3CDE79821E4A12F72D573B* Mouse_get_scroll_mB17E8A9038C866A29701595E06B8806E945ACA00_inline (Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* __this, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR AxisControl_tD6613A2445A3C2BFA22C77E16CA3201AF72354A7* Vector2Control_get_y_mC1161E90D2869FC71970828495EAEB702AF44CBE_inline (Vector2Control_t8D1B4021A1D82671AF916D3C0A476AA94E46A432* __this, const RuntimeMethod* method) ;
+inline float* InputControl_1_get_value_mD5825506B785433FAFB0204E1FE3A7B9103B3FE5 (InputControl_1_t7A35A4AF63A7AA94678E000D4F3265A1FD84288A* __this, const RuntimeMethod* method)
+{
+	return ((  float* (*) (InputControl_1_t7A35A4AF63A7AA94678E000D4F3265A1FD84288A*, const RuntimeMethod*))InputControl_1_get_value_mD5825506B785433FAFB0204E1FE3A7B9103B3FE5_gshared)(__this, method);
+}
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* Mouse_get_leftButton_m1015BCBE6BE30B1D1D2702736A4E64120F6B5DFB_inline (Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* __this, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* Mouse_get_rightButton_mFA0FD700624C0DE1B858F9516426414767F09D98_inline (Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* __this, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* Mouse_get_middleButton_m1E9EB13B53CAA15CD49C6861A6CD542452B3A8A9_inline (Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* __this, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR void Color__ctor_m3786F0D6E510D9CFA544523A955870BD2A514C8C_inline (Color_tD001788D726C3A7F1379BEED0260B9591F440C1F* __this, float ___0_r, float ___1_g, float ___2_b, float ___3_a, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Rect_get_xMax_m2339C7D2FCDA98A9B007F815F6E2059BA6BE425F_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Rect_get_yMax_mBC37BEE1CD632AADD8B9EAF9FE3BA143F79CAF8E_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 Vector2_Normalize_m52526AC1D25ED668DF8A5DE540769FA7D5671FC7 (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* ___0_value, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Vector2_Angle_mB5E31E6EB5E445A53B8E777BD9647B02DCB49931_inline (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* ___0_from, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* ___1_to, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Mathf_Sign_m42EE1F0BC041AF14F89DED7F762BE996E2C50D8A_inline (float ___0_f, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 Quaternion_Internal_Slerp_mDD63B8384FB0F0AAD4B59635B1D66D6ECB49E763 (Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974* ___0_a, Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974* ___1_b, float ___2_t, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Vector2_get_sqrMagnitude_mA16336720C14EEF8BA9B55AE33B98C9EE2082BDC_inline (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* __this, const RuntimeMethod* method) ;
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Vector2_Dot_mD510FC4765B9CF4F06E6AC6FEC0215F401EFD4FB_inline (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* ___0_lhs, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* ___1_rhs, const RuntimeMethod* method) ;
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+// Method Definition Index: 72120
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_AutoRotate_Update_m983B3CDA6BC4C2C2A12AC0AA959E165E7F63A14A (TCP2_Demo_AutoRotate_t098592AD2049F738A2BF189D78EA7A421DF6ADDF* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AutoRotate.cs:12>
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_0;
+		L_0 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(__this, NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_1 = __this->___axis;
+		float L_2;
+		L_2 = Time_get_deltaTime_mC3195000401F0FD167DD2F948FD2BC58330D0865(NULL);
+		float L_3 = __this->___Speed;
+		NullCheck(L_0);
+		Transform_Rotate_m35B44707FE16FF8015D519D8C162C0B4A85D6D1F(L_0, L_1, ((float)il2cpp_codegen_multiply(L_2, L_3)), NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AutoRotate.cs:13>
+		return;
+	}
+}
+// Method Definition Index: 72121
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_AutoRotate__ctor_m9D9B08BA53910C031D365C2D4F5F1459E49C07F7 (TCP2_Demo_AutoRotate_t098592AD2049F738A2BF189D78EA7A421DF6ADDF* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AutoRotate.cs:7>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_0;
+		L_0 = Vector3_get_up_m128AF3FDC820BF59D5DE86D973E7DE3F20C3AEBA_inline(NULL);
+		__this->___axis = L_0;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AutoRotate.cs:8>
+		__this->___Speed = (-50.0f);
+		MonoBehaviour__ctor_m592DB0105CA0BC97AA1C5F4AD27B12D68A3B7C1E(__this, NULL);
+		return;
+	}
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+// Method Definition Index: 72122
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* TCP2_Demo_InvertedMaskImage_get_materialForRendering_mE6D20D0BF359E6A29A4463D80DDDE635A3A64676 (TCP2_Demo_InvertedMaskImage_t733DF4E89E2C6E547DC4A3B5196928061034010E* __this, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3_il2cpp_TypeInfo_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&_stringLiteral0F52C788AC4796FE5841155F7DF3896E049C051E);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_InvertedMaskImage.cs:11>
+		Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* L_0;
+		L_0 = Graphic_get_materialForRendering_m4B0017B2B59D2EF578D32ABFCF84A97A835B6B22(__this, NULL);
+		Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* L_1 = (Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3*)il2cpp_codegen_object_new(Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3_il2cpp_TypeInfo_var);
+		Material__ctor_mFCC42FB90257F1E8F7516A8640A79C465A39961C(L_1, L_0, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_InvertedMaskImage.cs:12>
+		Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* L_2 = L_1;
+		NullCheck(L_2);
+		Material_SetInt_m41DF5404A9942239265888105E1DC83F2FBF901A(L_2, _stringLiteral0F52C788AC4796FE5841155F7DF3896E049C051E, 6, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_InvertedMaskImage.cs:13>
+		return L_2;
+	}
+}
+// Method Definition Index: 72123
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_InvertedMaskImage__ctor_mBF9F07418B0A1488CB00805F84295B20BBBA8F43 (TCP2_Demo_InvertedMaskImage_t733DF4E89E2C6E547DC4A3B5196928061034010E* __this, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		il2cpp_codegen_runtime_class_init_inline(Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_il2cpp_TypeInfo_var);
+		Image__ctor_m8F922348981CDB74700D89D833FE39611FA4BC37(__this, NULL);
+		return;
+	}
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+// Method Definition Index: 72124
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_PipelineMaterial_OnEnable_m827B33775ED710112AE65103B9F18432380DF184 (TCP2_Demo_PipelineMaterial_tEC9DA4BE7F43804789982773D7F11D57EC394241* __this, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&GraphicsSettings_t01785CE5CB5C5105CB527619AF4D74BEF417EF1A_il2cpp_TypeInfo_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_il2cpp_TypeInfo_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&_stringLiteralDEAC03BC08603A926530E878D97B96FA6C0CFEED);
+		s_Il2CppMethodInitialized = true;
+	}
+	RenderPipelineAsset_t5F9BF815BF931E1314B184E7F9070FB649C7054E* V_0 = NULL;
+	bool V_1 = false;
+	int32_t G_B7_0 = 0;
+	Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* G_B9_0 = NULL;
+	Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* G_B8_0 = NULL;
+	Shader_tADC867D36B7876EE22427FAA2CE485105F4EE692* G_B10_0 = NULL;
+	Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* G_B10_1 = NULL;
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_PipelineShader.cs:13>
+		Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* L_0 = __this->___material;
+		il2cpp_codegen_runtime_class_init_inline(Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_il2cpp_TypeInfo_var);
+		bool L_1;
+		L_1 = Object_op_Equality_mB6120F782D83091EF56A198FCEBCF066DB4A9605(L_0, (Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C*)NULL, NULL);
+		if (L_1)
+		{
+			goto IL_002a;
+		}
+	}
+	{
+		Shader_tADC867D36B7876EE22427FAA2CE485105F4EE692* L_2 = __this->___birpShader;
+		il2cpp_codegen_runtime_class_init_inline(Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_il2cpp_TypeInfo_var);
+		bool L_3;
+		L_3 = Object_op_Equality_mB6120F782D83091EF56A198FCEBCF066DB4A9605(L_2, (Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C*)NULL, NULL);
+		if (L_3)
+		{
+			goto IL_002a;
+		}
+	}
+	{
+		Shader_tADC867D36B7876EE22427FAA2CE485105F4EE692* L_4 = __this->___urpShader;
+		il2cpp_codegen_runtime_class_init_inline(Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_il2cpp_TypeInfo_var);
+		bool L_5;
+		L_5 = Object_op_Equality_mB6120F782D83091EF56A198FCEBCF066DB4A9605(L_4, (Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C*)NULL, NULL);
+		if (!L_5)
+		{
+			goto IL_002b;
+		}
+	}
+
+IL_002a:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_PipelineShader.cs:14>
+		return;
+	}
+
+IL_002b:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_PipelineShader.cs:16>
+		il2cpp_codegen_runtime_class_init_inline(GraphicsSettings_t01785CE5CB5C5105CB527619AF4D74BEF417EF1A_il2cpp_TypeInfo_var);
+		RenderPipelineAsset_t5F9BF815BF931E1314B184E7F9070FB649C7054E* L_6;
+		L_6 = GraphicsSettings_get_currentRenderPipeline_mEC94DC23DE4F901D6A629E2DE882982686AF75F1(NULL);
+		V_0 = L_6;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_PipelineShader.cs:17>
+		RenderPipelineAsset_t5F9BF815BF931E1314B184E7F9070FB649C7054E* L_7 = V_0;
+		il2cpp_codegen_runtime_class_init_inline(Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_il2cpp_TypeInfo_var);
+		bool L_8;
+		L_8 = Object_op_Inequality_mD0BE578448EAA61948F25C32F8DD55AB1F778602(L_7, (Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C*)NULL, NULL);
+		if (!L_8)
+		{
+			goto IL_0051;
+		}
+	}
+	{
+		RenderPipelineAsset_t5F9BF815BF931E1314B184E7F9070FB649C7054E* L_9 = V_0;
+		NullCheck(L_9);
+		Type_t* L_10;
+		L_10 = Object_GetType_mE10A8FC1E57F3DF29972CCBC026C2DC3942263B3(L_9, NULL);
+		NullCheck(L_10);
+		String_t* L_11;
+		L_11 = VirtualFuncInvoker0< String_t* >::Invoke(3, L_10);
+		NullCheck(L_11);
+		bool L_12;
+		L_12 = String_Contains_m6D77B121FADA7CA5F397C0FABB65DA62DF03B6C3(L_11, _stringLiteralDEAC03BC08603A926530E878D97B96FA6C0CFEED, NULL);
+		G_B7_0 = ((int32_t)(L_12));
+		goto IL_0052;
+	}
+
+IL_0051:
+	{
+		G_B7_0 = 0;
+	}
+
+IL_0052:
+	{
+		V_1 = (bool)G_B7_0;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_PipelineShader.cs:18>
+		Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* L_13 = __this->___material;
+		bool L_14 = V_1;
+		if (L_14)
+		{
+			G_B9_0 = L_13;
+			goto IL_0064;
+		}
+		G_B8_0 = L_13;
+	}
+	{
+		Shader_tADC867D36B7876EE22427FAA2CE485105F4EE692* L_15 = __this->___birpShader;
+		G_B10_0 = L_15;
+		G_B10_1 = G_B8_0;
+		goto IL_006a;
+	}
+
+IL_0064:
+	{
+		Shader_tADC867D36B7876EE22427FAA2CE485105F4EE692* L_16 = __this->___urpShader;
+		G_B10_0 = L_16;
+		G_B10_1 = G_B9_0;
+	}
+
+IL_006a:
+	{
+		NullCheck(G_B10_1);
+		Material_set_shader_mBD3A0D9AB14DE2F7CD5F2775E9AD58E15424C171(G_B10_1, G_B10_0, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_PipelineShader.cs:19>
+		return;
+	}
+}
+// Method Definition Index: 72125
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_PipelineMaterial__ctor_m55E2E7E366CA4C88EA82FA339D66EFD7FE8C7A56 (TCP2_Demo_PipelineMaterial_tEC9DA4BE7F43804789982773D7F11D57EC394241* __this, const RuntimeMethod* method) 
+{
+	{
+		MonoBehaviour__ctor_m592DB0105CA0BC97AA1C5F4AD27B12D68A3B7C1E(__this, NULL);
+		return;
+	}
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+// Method Definition Index: 72126
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B UnitySourceGeneratedAssemblyMonoScriptTypes_v1_Get_m7EFFDA9D626A1B28484D88FB2A017868621C9986 (const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031_il2cpp_TypeInfo_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&U3CPrivateImplementationDetailsU3E_tADF9975A33028E19C0CEBC42D6AF316B833851C6____BFDBE633476EFBC9BECC66F82D605AA7D7773E0C9ADE85410E4238C02AF8E860_FieldInfo_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&U3CPrivateImplementationDetailsU3E_tADF9975A33028E19C0CEBC42D6AF316B833851C6____D042FF988B9FEB0F41DB1FAF8111CDF01C6CC32BFAF2312159CFCB8E5FA38A21_FieldInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B V_0;
+	memset((&V_0), 0, sizeof(V_0));
+	{
+		il2cpp_codegen_initobj((&V_0), sizeof(MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B));
+		ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031* L_0 = (ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031*)(ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031*)SZArrayNew(ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031_il2cpp_TypeInfo_var, (uint32_t)((int32_t)972));
+		ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031* L_1 = L_0;
+		RuntimeFieldHandle_t6E4C45B6D2EA12FC99185805A7E77527899B25C5 L_2 = { reinterpret_cast<intptr_t> (U3CPrivateImplementationDetailsU3E_tADF9975A33028E19C0CEBC42D6AF316B833851C6____D042FF988B9FEB0F41DB1FAF8111CDF01C6CC32BFAF2312159CFCB8E5FA38A21_FieldInfo_var) };
+		RuntimeHelpers_InitializeArray_m751372AA3F24FBF6DA9B9D687CBFA2DE436CAB9B((RuntimeArray*)L_1, L_2, NULL);
+		(&V_0)->___FilePathsData = L_1;
+		Il2CppCodeGenWriteBarrier((void**)(&(&V_0)->___FilePathsData), (void*)L_1);
+		ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031* L_3 = (ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031*)(ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031*)SZArrayNew(ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031_il2cpp_TypeInfo_var, (uint32_t)((int32_t)443));
+		ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031* L_4 = L_3;
+		RuntimeFieldHandle_t6E4C45B6D2EA12FC99185805A7E77527899B25C5 L_5 = { reinterpret_cast<intptr_t> (U3CPrivateImplementationDetailsU3E_tADF9975A33028E19C0CEBC42D6AF316B833851C6____BFDBE633476EFBC9BECC66F82D605AA7D7773E0C9ADE85410E4238C02AF8E860_FieldInfo_var) };
+		RuntimeHelpers_InitializeArray_m751372AA3F24FBF6DA9B9D687CBFA2DE436CAB9B((RuntimeArray*)L_4, L_5, NULL);
+		(&V_0)->___TypesData = L_4;
+		Il2CppCodeGenWriteBarrier((void**)(&(&V_0)->___TypesData), (void*)L_4);
+		(&V_0)->___TotalFiles = ((int32_t)9);
+		(&V_0)->___TotalTypes = ((int32_t)10);
+		(&V_0)->___IsEditorOnly = (bool)0;
+		MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B L_6 = V_0;
+		return L_6;
+	}
+}
+// Method Definition Index: 72127
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void UnitySourceGeneratedAssemblyMonoScriptTypes_v1__ctor_m6D5CE17ABCBA7F5477680D6504B602B42A9D966D (UnitySourceGeneratedAssemblyMonoScriptTypes_v1_t9C462598C38E8EB1DABBF7CB7A7D42DF3CF1FA75* __this, const RuntimeMethod* method) 
+{
+	{
+		Object__ctor_mE837C6B9FA8C6D5D109F4B2EC885D79919AC0EA2(__this, NULL);
+		return;
+	}
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+IL2CPP_EXTERN_C void MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B_marshal_pinvoke(const MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B& unmarshaled, MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B_marshaled_pinvoke& marshaled)
+{
+	marshaled.___FilePathsData = il2cpp_codegen_com_marshal_safe_array(IL2CPP_VT_I1, unmarshaled.___FilePathsData);
+	marshaled.___TypesData = il2cpp_codegen_com_marshal_safe_array(IL2CPP_VT_I1, unmarshaled.___TypesData);
+	marshaled.___TotalTypes = unmarshaled.___TotalTypes;
+	marshaled.___TotalFiles = unmarshaled.___TotalFiles;
+	marshaled.___IsEditorOnly = static_cast<int32_t>(unmarshaled.___IsEditorOnly);
+}
+IL2CPP_EXTERN_C void MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B_marshal_pinvoke_back(const MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B_marshaled_pinvoke& marshaled, MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B& unmarshaled)
+{
+	unmarshaled.___FilePathsData = (ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031*)il2cpp_codegen_com_marshal_safe_array_result(IL2CPP_VT_I1, il2cpp_defaults.byte_class, marshaled.___FilePathsData);
+	Il2CppCodeGenWriteBarrier((void**)(&unmarshaled.___FilePathsData), (void*)(ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031*)il2cpp_codegen_com_marshal_safe_array_result(IL2CPP_VT_I1, il2cpp_defaults.byte_class, marshaled.___FilePathsData));
+	unmarshaled.___TypesData = (ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031*)il2cpp_codegen_com_marshal_safe_array_result(IL2CPP_VT_I1, il2cpp_defaults.byte_class, marshaled.___TypesData);
+	Il2CppCodeGenWriteBarrier((void**)(&unmarshaled.___TypesData), (void*)(ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031*)il2cpp_codegen_com_marshal_safe_array_result(IL2CPP_VT_I1, il2cpp_defaults.byte_class, marshaled.___TypesData));
+	int32_t unmarshaledTotalTypes_temp_2 = 0;
+	unmarshaledTotalTypes_temp_2 = marshaled.___TotalTypes;
+	unmarshaled.___TotalTypes = unmarshaledTotalTypes_temp_2;
+	int32_t unmarshaledTotalFiles_temp_3 = 0;
+	unmarshaledTotalFiles_temp_3 = marshaled.___TotalFiles;
+	unmarshaled.___TotalFiles = unmarshaledTotalFiles_temp_3;
+	bool unmarshaledIsEditorOnly_temp_4 = false;
+	unmarshaledIsEditorOnly_temp_4 = static_cast<bool>(marshaled.___IsEditorOnly);
+	unmarshaled.___IsEditorOnly = unmarshaledIsEditorOnly_temp_4;
+}
+IL2CPP_EXTERN_C void MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B_marshal_pinvoke_cleanup(MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B_marshaled_pinvoke& marshaled)
+{
+	il2cpp_codegen_com_destroy_safe_array(marshaled.___FilePathsData);
+	marshaled.___FilePathsData = NULL;
+	il2cpp_codegen_com_destroy_safe_array(marshaled.___TypesData);
+	marshaled.___TypesData = NULL;
+}
+IL2CPP_EXTERN_C void MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B_marshal_com(const MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B& unmarshaled, MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B_marshaled_com& marshaled)
+{
+	marshaled.___FilePathsData = il2cpp_codegen_com_marshal_safe_array(IL2CPP_VT_I1, unmarshaled.___FilePathsData);
+	marshaled.___TypesData = il2cpp_codegen_com_marshal_safe_array(IL2CPP_VT_I1, unmarshaled.___TypesData);
+	marshaled.___TotalTypes = unmarshaled.___TotalTypes;
+	marshaled.___TotalFiles = unmarshaled.___TotalFiles;
+	marshaled.___IsEditorOnly = static_cast<int32_t>(unmarshaled.___IsEditorOnly);
+}
+IL2CPP_EXTERN_C void MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B_marshal_com_back(const MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B_marshaled_com& marshaled, MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B& unmarshaled)
+{
+	unmarshaled.___FilePathsData = (ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031*)il2cpp_codegen_com_marshal_safe_array_result(IL2CPP_VT_I1, il2cpp_defaults.byte_class, marshaled.___FilePathsData);
+	Il2CppCodeGenWriteBarrier((void**)(&unmarshaled.___FilePathsData), (void*)(ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031*)il2cpp_codegen_com_marshal_safe_array_result(IL2CPP_VT_I1, il2cpp_defaults.byte_class, marshaled.___FilePathsData));
+	unmarshaled.___TypesData = (ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031*)il2cpp_codegen_com_marshal_safe_array_result(IL2CPP_VT_I1, il2cpp_defaults.byte_class, marshaled.___TypesData);
+	Il2CppCodeGenWriteBarrier((void**)(&unmarshaled.___TypesData), (void*)(ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031*)il2cpp_codegen_com_marshal_safe_array_result(IL2CPP_VT_I1, il2cpp_defaults.byte_class, marshaled.___TypesData));
+	int32_t unmarshaledTotalTypes_temp_2 = 0;
+	unmarshaledTotalTypes_temp_2 = marshaled.___TotalTypes;
+	unmarshaled.___TotalTypes = unmarshaledTotalTypes_temp_2;
+	int32_t unmarshaledTotalFiles_temp_3 = 0;
+	unmarshaledTotalFiles_temp_3 = marshaled.___TotalFiles;
+	unmarshaled.___TotalFiles = unmarshaledTotalFiles_temp_3;
+	bool unmarshaledIsEditorOnly_temp_4 = false;
+	unmarshaledIsEditorOnly_temp_4 = static_cast<bool>(marshaled.___IsEditorOnly);
+	unmarshaled.___IsEditorOnly = unmarshaledIsEditorOnly_temp_4;
+}
+IL2CPP_EXTERN_C void MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B_marshal_com_cleanup(MonoScriptData_t9DE3A62DD96BFF76F49501E71AFDDF3A2DFBD30B_marshaled_com& marshaled)
+{
+	il2cpp_codegen_com_destroy_safe_array(marshaled.___FilePathsData);
+	marshaled.___FilePathsData = NULL;
+	il2cpp_codegen_com_destroy_safe_array(marshaled.___TypesData);
+	marshaled.___TypesData = NULL;
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+// Method Definition Index: 72128
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_Content__ctor_mCF833CA38BB27622809CDEDFF284848797ADC474 (TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* __this, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&_stringLiteral97CD35D533ED84D4C320180197C62F59090E17DB);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive_Content.cs:13>
+		__this->___Text = _stringLiteral97CD35D533ED84D4C320180197C62F59090E17DB;
+		Il2CppCodeGenWriteBarrier((void**)(&__this->___Text), (void*)_stringLiteral97CD35D533ED84D4C320180197C62F59090E17DB);
+		MonoBehaviour__ctor_m592DB0105CA0BC97AA1C5F4AD27B12D68A3B7C1E(__this, NULL);
+		return;
+	}
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+// Method Definition Index: 72129
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_AnimateMaterial_Awake_m42FE1D1A0566C0CF7B12EA402860F251CB9AD00F (TCP2_Demo_AnimateMaterial_t52E1C4DBF1CBB11C4310D5F2C333D240E48AA041* __this, const RuntimeMethod* method) 
+{
+	AnimatedPropertyU5BU5D_t62A4E770F9DDA2800712D931AEDD04C0DE6FB7BE* V_0 = NULL;
+	int32_t V_1 = 0;
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:69>
+		AnimatedPropertyU5BU5D_t62A4E770F9DDA2800712D931AEDD04C0DE6FB7BE* L_0 = __this->___animatedProperties;
+		if (!L_0)
+		{
+			goto IL_0025;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:71>
+		AnimatedPropertyU5BU5D_t62A4E770F9DDA2800712D931AEDD04C0DE6FB7BE* L_1 = __this->___animatedProperties;
+		V_0 = L_1;
+		V_1 = 0;
+		goto IL_001f;
+	}
+
+IL_0013:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:71>
+		AnimatedPropertyU5BU5D_t62A4E770F9DDA2800712D931AEDD04C0DE6FB7BE* L_2 = V_0;
+		int32_t L_3 = V_1;
+		NullCheck(L_2);
+		int32_t L_4 = L_3;
+		AnimatedProperty_t31C29CBFB2284472B89A4C75644E5578B75E45B4* L_5 = (L_2)->GetAt(static_cast<il2cpp_array_size_t>(L_4));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:73>
+		NullCheck(L_5);
+		AnimatedProperty_Init_mF9E052E9520363DDFE2799CC180A5C02E9AC8F48(L_5, NULL);
+		int32_t L_6 = V_1;
+		V_1 = ((int32_t)il2cpp_codegen_add(L_6, 1));
+	}
+
+IL_001f:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:71>
+		int32_t L_7 = V_1;
+		AnimatedPropertyU5BU5D_t62A4E770F9DDA2800712D931AEDD04C0DE6FB7BE* L_8 = V_0;
+		NullCheck(L_8);
+		if ((((int32_t)L_7) < ((int32_t)((int32_t)(((RuntimeArray*)L_8)->max_length)))))
+		{
+			goto IL_0013;
+		}
+	}
+
+IL_0025:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:76>
+		return;
+	}
+}
+// Method Definition Index: 72130
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_AnimateMaterial_Update_mB1520538DA9AD39A8077F97383B739BEEE94E9C4 (TCP2_Demo_AnimateMaterial_t52E1C4DBF1CBB11C4310D5F2C333D240E48AA041* __this, const RuntimeMethod* method) 
+{
+	AnimatedPropertyU5BU5D_t62A4E770F9DDA2800712D931AEDD04C0DE6FB7BE* V_0 = NULL;
+	int32_t V_1 = 0;
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:80>
+		AnimatedPropertyU5BU5D_t62A4E770F9DDA2800712D931AEDD04C0DE6FB7BE* L_0 = __this->___animatedProperties;
+		if (!L_0)
+		{
+			goto IL_002b;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:82>
+		AnimatedPropertyU5BU5D_t62A4E770F9DDA2800712D931AEDD04C0DE6FB7BE* L_1 = __this->___animatedProperties;
+		V_0 = L_1;
+		V_1 = 0;
+		goto IL_0025;
+	}
+
+IL_0013:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:82>
+		AnimatedPropertyU5BU5D_t62A4E770F9DDA2800712D931AEDD04C0DE6FB7BE* L_2 = V_0;
+		int32_t L_3 = V_1;
+		NullCheck(L_2);
+		int32_t L_4 = L_3;
+		AnimatedProperty_t31C29CBFB2284472B89A4C75644E5578B75E45B4* L_5 = (L_2)->GetAt(static_cast<il2cpp_array_size_t>(L_4));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:84>
+		Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* L_6 = __this->___material;
+		NullCheck(L_5);
+		AnimatedProperty_Update_mEE0EC4A2D2F47211D74ECBA00487BCCCF3437668(L_5, L_6, NULL);
+		int32_t L_7 = V_1;
+		V_1 = ((int32_t)il2cpp_codegen_add(L_7, 1));
+	}
+
+IL_0025:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:82>
+		int32_t L_8 = V_1;
+		AnimatedPropertyU5BU5D_t62A4E770F9DDA2800712D931AEDD04C0DE6FB7BE* L_9 = V_0;
+		NullCheck(L_9);
+		if ((((int32_t)L_8) < ((int32_t)((int32_t)(((RuntimeArray*)L_9)->max_length)))))
+		{
+			goto IL_0013;
+		}
+	}
+
+IL_002b:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:87>
+		return;
+	}
+}
+// Method Definition Index: 72131
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_AnimateMaterial__ctor_m316A06AED413AFBB4E9BF8E9DB06D565ACBA8529 (TCP2_Demo_AnimateMaterial_t52E1C4DBF1CBB11C4310D5F2C333D240E48AA041* __this, const RuntimeMethod* method) 
+{
+	{
+		MonoBehaviour__ctor_m592DB0105CA0BC97AA1C5F4AD27B12D68A3B7C1E(__this, NULL);
+		return;
+	}
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+// Method Definition Index: 72132
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void AnimatedProperty_Init_mF9E052E9520363DDFE2799CC180A5C02E9AC8F48 (AnimatedProperty_t31C29CBFB2284472B89A4C75644E5578B75E45B4* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:42>
+		String_t* L_0 = __this->___Name;
+		int32_t L_1;
+		L_1 = Shader_PropertyToID_mE98523D50F5656CAE89B30695C458253EB8956CA(L_0, NULL);
+		__this->___propertyId = L_1;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:43>
+		return;
+	}
+}
+// Method Definition Index: 72133
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void AnimatedProperty_Update_mEE0EC4A2D2F47211D74ECBA00487BCCCF3437668 (AnimatedProperty_t31C29CBFB2284472B89A4C75644E5578B75E45B4* __this, Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* ___0_material, const RuntimeMethod* method) 
+{
+	float V_0 = 0.0f;
+	int32_t V_1 = 0;
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:47>
+		AnimationCurve_tCBFFAAD05CEBB35EF8D8631BD99914BE1A6BB354* L_0 = __this->___Curve;
+		float L_1;
+		L_1 = Time_get_time_m3A271BB1B20041144AC5B7863B71AB1F0150374B(NULL);
+		float L_2 = __this->___Duration;
+		float L_3 = __this->___Duration;
+		NullCheck(L_0);
+		float L_4;
+		L_4 = AnimationCurve_Evaluate_m50B857043DE251A186032ADBCBB4CEF817F4EE3C(L_0, ((float)((fmodf(L_1, L_2))/L_3)), NULL);
+		V_0 = L_4;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:49>
+		int32_t L_5 = __this->___Type;
+		V_1 = L_5;
+		int32_t L_6 = V_1;
+		switch (L_6)
+		{
+			case 0:
+			{
+				goto IL_0039;
+			}
+			case 1:
+			{
+				goto IL_0058;
+			}
+			case 2:
+			{
+				goto IL_0077;
+			}
+		}
+	}
+	{
+		return;
+	}
+
+IL_0039:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:52>
+		Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* L_7 = ___0_material;
+		int32_t L_8 = __this->___propertyId;
+		float L_9 = __this->___FloatFrom;
+		float L_10 = __this->___FloatTo;
+		float L_11 = V_0;
+		float L_12;
+		L_12 = Mathf_Lerp_m47EF2FFB7647BD0A1FDC26DC03E28B19812139B5_inline(L_9, L_10, L_11, NULL);
+		NullCheck(L_7);
+		Material_SetFloat_m3ECFD92072347A8620254F014865984FA68211A8(L_7, L_8, L_12, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:53>
+		return;
+	}
+
+IL_0058:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:55>
+		Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* L_13 = ___0_material;
+		int32_t L_14 = __this->___propertyId;
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_15 = __this->___ColorFrom;
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_16 = __this->___ColorTo;
+		float L_17 = V_0;
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_18;
+		L_18 = Color_Lerp_mE79F87889843ECDC188E4CB5B5E1F1B2256E5EBE_inline(L_15, L_16, L_17, NULL);
+		NullCheck(L_13);
+		Material_SetColor_m573C88F2FB1B5A978C53A197B414F9E9C6AC5B9A(L_13, L_14, L_18, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:56>
+		return;
+	}
+
+IL_0077:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:58>
+		Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* L_19 = ___0_material;
+		int32_t L_20 = __this->___propertyId;
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_21 = __this->___VectorFrom;
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_22 = __this->___VectorTo;
+		float L_23 = V_0;
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_24;
+		L_24 = Vector4_Lerp_mE5FFF3D013F0880F7DF8C613E7CB44EBD7349DAB_inline(L_21, L_22, L_23, NULL);
+		NullCheck(L_19);
+		Material_SetVector_m44CD02D4555E2AF391C30700F0AEC36BA04CFEA7(L_19, L_20, L_24, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:61>
+		return;
+	}
+}
+// Method Definition Index: 72134
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void AnimatedProperty__ctor_m4CCD97DFFE803EC8559AF20811287A5FC5B0844C (AnimatedProperty_t31C29CBFB2284472B89A4C75644E5578B75E45B4* __this, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&_stringLiteral47A3FAF17D89549FD0F0ECA7370B81F7C80DFCDE);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:24>
+		__this->___Name = _stringLiteral47A3FAF17D89549FD0F0ECA7370B81F7C80DFCDE;
+		Il2CppCodeGenWriteBarrier((void**)(&__this->___Name), (void*)_stringLiteral47A3FAF17D89549FD0F0ECA7370B81F7C80DFCDE);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:26>
+		AnimationCurve_tCBFFAAD05CEBB35EF8D8631BD99914BE1A6BB354* L_0;
+		L_0 = AnimationCurve_EaseInOut_m01DD06E6C8962F8F62F293C9EAE491C3D3F2CAF3((0.0f), (0.0f), (1.0f), (1.0f), NULL);
+		__this->___Curve = L_0;
+		Il2CppCodeGenWriteBarrier((void**)(&__this->___Curve), (void*)L_0);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:27>
+		__this->___Duration = (1.0f);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:30>
+		__this->___FloatTo = (1.0f);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:32>
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_1;
+		L_1 = Color_get_black_mB50217951591A045844C61E7FF31EEE3FEF16737_inline(NULL);
+		__this->___ColorFrom = L_1;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:33>
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_2;
+		L_2 = Color_get_white_m068F5AF879B0FCA584E3693F762EA41BB65532C6_inline(NULL);
+		__this->___ColorTo = L_2;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:35>
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_3;
+		L_3 = Vector4_get_zero_m3D61F5FA9483CD9C08977D9D8852FB448B4CE6D1_inline(NULL);
+		__this->___VectorFrom = L_3;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_AnimateMaterial.cs:36>
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_4;
+		L_4 = Vector4_get_one_m0AA55064B3C47D9D94E5BC4EE6AEC5B6E4F2D151_inline(NULL);
+		__this->___VectorTo = L_4;
+		Object__ctor_mE837C6B9FA8C6D5D109F4B2EC885D79919AC0EA2(__this, NULL);
+		return;
+	}
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+// Method Definition Index: 72135
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Camera_Awake_m857DAA5D39F5EA96A0F960E8AC34C808A0EACDA2 (TCP2_Demo_Camera_t345524DB7C1DBEBBAAA2835D524355C0B47FCA68* __this, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&GameObject_AddComponent_TisInputSystemUIInputModule_tB7D5B53F656D196BB5AF712FA16FEE22B2EE0C58_mA175957B292E3F565216766FCE1E9D85836183A7_RuntimeMethod_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:57>
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_0;
+		L_0 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(__this, NULL);
+		NullCheck(L_0);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_1;
+		L_1 = Transform_get_position_m69CD5FA214FDAE7BB701552943674846C220FDE1(L_0, NULL);
+		__this->___mResetCamPos = L_1;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:58>
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_2;
+		L_2 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(__this, NULL);
+		NullCheck(L_2);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_3;
+		L_3 = Transform_get_eulerAngles_mCAAF48EFCF628F1ED91C2FFE75A4FD19C039DD6A(L_2, NULL);
+		__this->___mResetCamRot = L_3;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:59>
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_4 = __this->___Pivot;
+		NullCheck(L_4);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_5;
+		L_5 = Transform_get_position_m69CD5FA214FDAE7BB701552943674846C220FDE1(L_4, NULL);
+		__this->___mResetPivotPos = L_5;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:60>
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_6 = __this->___Pivot;
+		NullCheck(L_6);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_7;
+		L_7 = Transform_get_eulerAngles_mCAAF48EFCF628F1ED91C2FFE75A4FD19C039DD6A(L_6, NULL);
+		__this->___mResetPivotRot = L_7;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:62>
+		EventSystem_t61C51380B105BE9D2C39C4F15B7E655659957707* L_8 = __this->___uiEventSystem;
+		il2cpp_codegen_runtime_class_init_inline(Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_il2cpp_TypeInfo_var);
+		bool L_9;
+		L_9 = Object_op_Inequality_mD0BE578448EAA61948F25C32F8DD55AB1F778602(L_8, (Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C*)NULL, NULL);
+		if (!L_9)
+		{
+			goto IL_0063;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:65>
+		EventSystem_t61C51380B105BE9D2C39C4F15B7E655659957707* L_10 = __this->___uiEventSystem;
+		NullCheck(L_10);
+		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_11;
+		L_11 = Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B(L_10, NULL);
+		NullCheck(L_11);
+		InputSystemUIInputModule_tB7D5B53F656D196BB5AF712FA16FEE22B2EE0C58* L_12;
+		L_12 = GameObject_AddComponent_TisInputSystemUIInputModule_tB7D5B53F656D196BB5AF712FA16FEE22B2EE0C58_mA175957B292E3F565216766FCE1E9D85836183A7(L_11, GameObject_AddComponent_TisInputSystemUIInputModule_tB7D5B53F656D196BB5AF712FA16FEE22B2EE0C58_mA175957B292E3F565216766FCE1E9D85836183A7_RuntimeMethod_var);
+	}
+
+IL_0063:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:70>
+		return;
+	}
+}
+// Method Definition Index: 72136
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Camera_OnEnable_m0887A044219D30A034E5161177AFE14F208E79D3 (TCP2_Demo_Camera_t345524DB7C1DBEBBAAA2835D524355C0B47FCA68* __this, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 V_0;
+	memset((&V_0), 0, sizeof(V_0));
+	Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D V_1;
+	memset((&V_1), 0, sizeof(V_1));
+	Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D V_2;
+	memset((&V_2), 0, sizeof(V_2));
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:74>
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_0;
+		L_0 = InputAbstraction_get_Mouse_Position_m44EB96795ED517DF0B20770C3D436F1F90357329(NULL);
+		__this->___lastMousePos = L_0;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:76>
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_1 = __this->___ignoreMouseRect;
+		NullCheck(L_1);
+		Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D L_2;
+		L_2 = RectTransform_get_rect_mC82A60F8C3805ED9833508CCC233689641207488(L_1, NULL);
+		V_2 = L_2;
+		il2cpp_codegen_runtime_class_init_inline(Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D_il2cpp_TypeInfo_var);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_3;
+		L_3 = Rect_get_size_mFB990FFC0FE0152179C8C74A59E4AC258CB44267_inline((&V_2), NULL);
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_4 = __this->___ignoreMouseRect;
+		NullCheck(L_4);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_5;
+		L_5 = Transform_get_lossyScale_mFF740DA4BE1489C6882CD2F3A37B7321176E5D07(L_4, NULL);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_6;
+		L_6 = Vector2_op_Implicit_mE8EBEE9291F11BB02F062D6E000F4798968CBD96_inline(L_5, NULL);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_7;
+		L_7 = Vector2_Scale_m8D61A8D2272549F1EF41256F7E8A206C6500EA6C_inline(L_3, L_6, NULL);
+		V_0 = L_7;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:77>
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_8 = __this->___ignoreMouseRect;
+		NullCheck(L_8);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_9;
+		L_9 = Transform_get_position_m69CD5FA214FDAE7BB701552943674846C220FDE1(L_8, NULL);
+		float L_10 = L_9.___x;
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_11 = __this->___ignoreMouseRect;
+		NullCheck(L_11);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_12;
+		L_12 = Transform_get_position_m69CD5FA214FDAE7BB701552943674846C220FDE1(L_11, NULL);
+		float L_13 = L_12.___y;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_14 = V_0;
+		float L_15 = L_14.___x;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_16 = V_0;
+		float L_17 = L_16.___y;
+		Rect__ctor_m18C3033D135097BEE424AAA68D91C706D2647F23_inline((&V_1), L_10, L_13, L_15, L_17, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:78>
+		Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* L_18 = (&V_1);
+		float L_19;
+		L_19 = Rect_get_x_mB267B718E0D067F2BAE31BA477647FBF964916EB_inline(L_18, NULL);
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_20 = __this->___ignoreMouseRect;
+		NullCheck(L_20);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_21;
+		L_21 = RectTransform_get_pivot_mA8334AF05AA7FF09A173A2430F2BB9E85E5CBFFF(L_20, NULL);
+		float L_22 = L_21.___x;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_23 = V_0;
+		float L_24 = L_23.___x;
+		Rect_set_x_mAB91AB71898A20762BC66FD0723C4C739C4C3406_inline(L_18, ((float)il2cpp_codegen_subtract(L_19, ((float)il2cpp_codegen_multiply(L_22, L_24)))), NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:79>
+		Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* L_25 = (&V_1);
+		float L_26;
+		L_26 = Rect_get_y_mC733E8D49F3CE21B2A3D40A1B72D687F22C97F49_inline(L_25, NULL);
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_27 = __this->___ignoreMouseRect;
+		NullCheck(L_27);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_28;
+		L_28 = RectTransform_get_pivot_mA8334AF05AA7FF09A173A2430F2BB9E85E5CBFFF(L_27, NULL);
+		float L_29 = L_28.___y;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_30 = V_0;
+		float L_31 = L_30.___y;
+		Rect_set_y_mDE91F4B98A6E8623EFB1250FF6526D5DB5855629_inline(L_25, ((float)il2cpp_codegen_subtract(L_26, ((float)il2cpp_codegen_multiply(((-L_29)), L_31)))), NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:81>
+		Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D L_32 = V_1;
+		__this->___ignoreMouseActualRect = L_32;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:82>
+		return;
+	}
+}
+// Method Definition Index: 72137
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Camera_FixedUpdate_m5321ADBEFBF5D220D553CFE47F68078288363DF7 (TCP2_Demo_Camera_t345524DB7C1DBEBBAAA2835D524355C0B47FCA68* __this, const RuntimeMethod* method) 
+{
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 V_0;
+	memset((&V_0), 0, sizeof(V_0));
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:86>
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_0;
+		L_0 = InputAbstraction_get_Mouse_Position_m44EB96795ED517DF0B20770C3D436F1F90357329(NULL);
+		V_0 = L_0;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:87>
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_1 = V_0;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_2 = __this->___lastMousePos;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_3;
+		L_3 = Vector2_op_Subtraction_m44475FCDAD2DA2F98D78A6625EC2DCDFE8803837_inline(L_1, L_2, NULL);
+		__this->___mouseDelta = L_3;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:88>
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* L_4 = (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7*)(&__this->___mouseDelta);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* L_5 = (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7*)(&__this->___mouseDelta);
+		float L_6 = L_5->___x;
+		float L_7;
+		L_7 = Mathf_Clamp_mEB9AEA827D27D20FCC787F7375156AF46BB12BBF_inline(L_6, (-150.0f), (150.0f), NULL);
+		L_4->___x = L_7;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:89>
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* L_8 = (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7*)(&__this->___mouseDelta);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* L_9 = (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7*)(&__this->___mouseDelta);
+		float L_10 = L_9->___y;
+		float L_11;
+		L_11 = Mathf_Clamp_mEB9AEA827D27D20FCC787F7375156AF46BB12BBF_inline(L_10, (-150.0f), (150.0f), NULL);
+		L_8->___y = L_11;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:90>
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_12 = V_0;
+		__this->___lastMousePos = L_12;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:91>
+		return;
+	}
+}
+// Method Definition Index: 72138
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Camera_Update_mB8ECA5C4116C1205E93147D5450F4D4E3BA1027D (TCP2_Demo_Camera_t345524DB7C1DBEBBAAA2835D524355C0B47FCA68* __this, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_il2cpp_TypeInfo_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	bool V_0 = false;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 V_1;
+	memset((&V_1), 0, sizeof(V_1));
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 V_2;
+	memset((&V_2), 0, sizeof(V_2));
+	float V_3 = 0.0f;
+	float V_4 = 0.0f;
+	int32_t G_B3_0 = 0;
+	float G_B25_0 = 0.0f;
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:97>
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_0 = __this->___ignoreMouseRect;
+		il2cpp_codegen_runtime_class_init_inline(Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_il2cpp_TypeInfo_var);
+		bool L_1;
+		L_1 = Object_op_Inequality_mD0BE578448EAA61948F25C32F8DD55AB1F778602(L_0, (Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C*)NULL, NULL);
+		if (!L_1)
+		{
+			goto IL_0020;
+		}
+	}
+	{
+		Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* L_2 = (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D*)(&__this->___ignoreMouseActualRect);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_3;
+		L_3 = InputAbstraction_get_Mouse_Position_m44EB96795ED517DF0B20770C3D436F1F90357329(NULL);
+		il2cpp_codegen_runtime_class_init_inline(Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D_il2cpp_TypeInfo_var);
+		bool L_4;
+		L_4 = Rect_Contains_mAB270D6B7E3B0009A50D142C569D63E8FE59F48B_inline(L_2, L_3, NULL);
+		G_B3_0 = ((int32_t)(L_4));
+		goto IL_0021;
+	}
+
+IL_0020:
+	{
+		G_B3_0 = 0;
+	}
+
+IL_0021:
+	{
+		V_0 = (bool)G_B3_0;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:100>
+		bool L_5 = V_0;
+		if (L_5)
+		{
+			goto IL_0095;
+		}
+	}
+	{
+		bool L_6;
+		L_6 = InputAbstraction_get_Mouse_LeftDown_mD9A2371EA1E26981B4EEAB3AD04067FF4DA7F6CE(NULL);
+		if (!L_6)
+		{
+			goto IL_0095;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:102>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2* L_7 = (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2*)(&__this->___orbitAcceleration);
+		float* L_8 = (float*)(&L_7->___x);
+		float* L_9 = L_8;
+		float L_10 = *((float*)L_9);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* L_11 = (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7*)(&__this->___mouseDelta);
+		float L_12 = L_11->___x;
+		float L_13 = __this->___OrbitStrg;
+		float L_14 = __this->___OrbitClamp;
+		float L_15 = __this->___OrbitClamp;
+		float L_16;
+		L_16 = Mathf_Clamp_mEB9AEA827D27D20FCC787F7375156AF46BB12BBF_inline(((float)il2cpp_codegen_multiply(L_12, L_13)), ((-L_14)), L_15, NULL);
+		*((float*)L_9) = (float)((float)il2cpp_codegen_add(L_10, L_16));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:103>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2* L_17 = (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2*)(&__this->___orbitAcceleration);
+		float* L_18 = (float*)(&L_17->___y);
+		float* L_19 = L_18;
+		float L_20 = *((float*)L_19);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* L_21 = (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7*)(&__this->___mouseDelta);
+		float L_22 = L_21->___y;
+		float L_23 = __this->___OrbitStrg;
+		float L_24 = __this->___OrbitClamp;
+		float L_25 = __this->___OrbitClamp;
+		float L_26;
+		L_26 = Mathf_Clamp_mEB9AEA827D27D20FCC787F7375156AF46BB12BBF_inline(((float)il2cpp_codegen_multiply(((-L_22)), L_23)), ((-L_24)), L_25, NULL);
+		*((float*)L_19) = (float)((float)il2cpp_codegen_add(L_20, L_26));
+		goto IL_010d;
+	}
+
+IL_0095:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:106>
+		bool L_27 = V_0;
+		if (L_27)
+		{
+			goto IL_010d;
+		}
+	}
+	{
+		bool L_28;
+		L_28 = InputAbstraction_get_Mouse_MiddleDown_mFEA082EF6526D8590A414DB50C4AC408507CA562(NULL);
+		if (L_28)
+		{
+			goto IL_00a6;
+		}
+	}
+	{
+		bool L_29;
+		L_29 = InputAbstraction_get_Mouse_RightDown_m1FA8C6F2CD0297D65AC7DAD0378404C1050B5B94(NULL);
+		if (!L_29)
+		{
+			goto IL_010d;
+		}
+	}
+
+IL_00a6:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:108>
+		float L_30 = __this->___PanStrgMin;
+		float L_31 = __this->___PanStrgMax;
+		float L_32 = __this->___zoomDistance;
+		float L_33 = __this->___ZoomDistMin;
+		float L_34 = __this->___ZoomDistMax;
+		float L_35 = __this->___ZoomDistMin;
+		float L_36;
+		L_36 = Mathf_Clamp01_mA7E048DBDA832D399A581BE4D6DED9FA44CE0F14_inline(((float)(((float)il2cpp_codegen_subtract(L_32, L_33))/((float)il2cpp_codegen_subtract(L_34, L_35)))), NULL);
+		float L_37;
+		L_37 = Mathf_Lerp_m47EF2FFB7647BD0A1FDC26DC03E28B19812139B5_inline(L_30, L_31, L_36, NULL);
+		V_4 = L_37;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:109>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2* L_38 = (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2*)(&__this->___panAcceleration);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* L_39 = (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7*)(&__this->___mouseDelta);
+		float L_40 = L_39->___x;
+		float L_41 = V_4;
+		L_38->___x = ((float)il2cpp_codegen_multiply(((-L_40)), L_41));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:110>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2* L_42 = (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2*)(&__this->___panAcceleration);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* L_43 = (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7*)(&__this->___mouseDelta);
+		float L_44 = L_43->___y;
+		float L_45 = V_4;
+		L_42->___y = ((float)il2cpp_codegen_multiply(((-L_44)), L_45));
+	}
+
+IL_010d:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:117>
+		bool L_46;
+		L_46 = InputAbstraction_get_KeyDown_R_m046201A1D9D63F8762A82DBFA5930FE2BA8DE8CA(NULL);
+		if (!L_46)
+		{
+			goto IL_011a;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:119>
+		TCP2_Demo_Camera_ResetView_mC8F7614A51119FFA3DA106C260B5F228FAFFBEC4(__this, NULL);
+	}
+
+IL_011a:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:123>
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_47;
+		L_47 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(__this, NULL);
+		NullCheck(L_47);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_48;
+		L_48 = Transform_get_localEulerAngles_m358AA9AE8FA24FD1BB7842D231C8644D1C2910C6(L_47, NULL);
+		V_1 = L_48;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:124>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_49 = V_1;
+		float L_50 = L_49.___x;
+		if ((!(((float)L_50) < ((float)(180.0f)))))
+		{
+			goto IL_0162;
+		}
+	}
+	{
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_51 = V_1;
+		float L_52 = L_51.___x;
+		if ((!(((float)L_52) >= ((float)(60.0f)))))
+		{
+			goto IL_0162;
+		}
+	}
+	{
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2* L_53 = (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2*)(&__this->___orbitAcceleration);
+		float L_54 = L_53->___y;
+		if ((!(((float)L_54) > ((float)(0.0f)))))
+		{
+			goto IL_0162;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:124>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2* L_55 = (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2*)(&__this->___orbitAcceleration);
+		L_55->___y = (0.0f);
+	}
+
+IL_0162:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:125>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_56 = V_1;
+		float L_57 = L_56.___x;
+		if ((!(((float)L_57) > ((float)(180.0f)))))
+		{
+			goto IL_019e;
+		}
+	}
+	{
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_58 = V_1;
+		float L_59 = L_58.___x;
+		if ((!(((float)L_59) <= ((float)(300.0f)))))
+		{
+			goto IL_019e;
+		}
+	}
+	{
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2* L_60 = (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2*)(&__this->___orbitAcceleration);
+		float L_61 = L_60->___y;
+		if ((!(((float)L_61) < ((float)(0.0f)))))
+		{
+			goto IL_019e;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:125>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2* L_62 = (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2*)(&__this->___orbitAcceleration);
+		L_62->___y = (0.0f);
+	}
+
+IL_019e:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:127>
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_63 = __this->___Pivot;
+		NullCheck(L_63);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_64;
+		L_64 = Transform_get_position_m69CD5FA214FDAE7BB701552943674846C220FDE1(L_63, NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_65 = __this->___pivotOffset;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_66;
+		L_66 = Vector3_op_Addition_m78C0EC70CB66E8DCAC225743D82B268DAEE92067_inline(L_64, L_65, NULL);
+		V_2 = L_66;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:130>
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_67;
+		L_67 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(__this, NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_68 = V_2;
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_69;
+		L_69 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(__this, NULL);
+		NullCheck(L_69);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_70;
+		L_70 = Transform_get_right_mC6DC057C23313802E2186A9E0DB760D795A758A4(L_69, NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2* L_71 = (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2*)(&__this->___orbitAcceleration);
+		float L_72 = L_71->___y;
+		float L_73;
+		L_73 = Time_get_deltaTime_mC3195000401F0FD167DD2F948FD2BC58330D0865(NULL);
+		NullCheck(L_67);
+		Transform_RotateAround_m489C5BE8B8B15D0A5F4863DE6D23FF2CC8FA76C6(L_67, L_68, L_70, ((float)il2cpp_codegen_multiply(L_72, L_73)), NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:131>
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_74;
+		L_74 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(__this, NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_75 = V_2;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_76;
+		L_76 = Vector3_get_up_m128AF3FDC820BF59D5DE86D973E7DE3F20C3AEBA_inline(NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2* L_77 = (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2*)(&__this->___orbitAcceleration);
+		float L_78 = L_77->___x;
+		float L_79;
+		L_79 = Time_get_deltaTime_mC3195000401F0FD167DD2F948FD2BC58330D0865(NULL);
+		NullCheck(L_74);
+		Transform_RotateAround_m489C5BE8B8B15D0A5F4863DE6D23FF2CC8FA76C6(L_74, L_75, L_76, ((float)il2cpp_codegen_multiply(L_78, L_79)), NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:134>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_80 = __this->___pivotOffset;
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_81;
+		L_81 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(__this, NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_82 = __this->___panAcceleration;
+		NullCheck(L_81);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_83;
+		L_83 = Transform_TransformDirection_m9BE1261DF2D48B7A4A27D31EE24D2D97F89E7757(L_81, L_82, NULL);
+		float L_84;
+		L_84 = Time_get_deltaTime_mC3195000401F0FD167DD2F948FD2BC58330D0865(NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_85;
+		L_85 = Vector3_op_Multiply_m87BA7C578F96C8E49BB07088DAAC4649F83B0353_inline(L_83, L_84, NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_86;
+		L_86 = Vector3_op_Addition_m78C0EC70CB66E8DCAC225743D82B268DAEE92067_inline(L_80, L_85, NULL);
+		__this->___pivotOffset = L_86;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:136>
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_87;
+		L_87 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(__this, NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_88 = __this->___panAcceleration;
+		float L_89;
+		L_89 = Time_get_deltaTime_mC3195000401F0FD167DD2F948FD2BC58330D0865(NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_90;
+		L_90 = Vector3_op_Multiply_m87BA7C578F96C8E49BB07088DAAC4649F83B0353_inline(L_88, L_89, NULL);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_91;
+		L_91 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(__this, NULL);
+		NullCheck(L_87);
+		Transform_Translate_m282D807F4F1D1EEE51A8B91AC1DE5EB4F5296CED(L_87, L_90, L_91, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:139>
+		float L_92;
+		L_92 = InputAbstraction_get_Mouse_ScrollWheel_mAC5E7E4B5E50EB73F64BE975DD7BAAB782392FC3(NULL);
+		V_3 = L_92;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:140>
+		float L_93 = V_3;
+		if ((((float)L_93) > ((float)(0.0f))))
+		{
+			goto IL_0270;
+		}
+	}
+	{
+		float L_94 = V_3;
+		if ((((float)L_94) < ((float)(0.0f))))
+		{
+			goto IL_0269;
+		}
+	}
+	{
+		G_B25_0 = (0.0f);
+		goto IL_0275;
+	}
+
+IL_0269:
+	{
+		G_B25_0 = (-0.100000001f);
+		goto IL_0275;
+	}
+
+IL_0270:
+	{
+		G_B25_0 = (0.100000001f);
+	}
+
+IL_0275:
+	{
+		V_3 = G_B25_0;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:142>
+		float L_95 = __this->___zoomAcceleration;
+		float L_96 = V_3;
+		float L_97 = __this->___ZoomStrg;
+		__this->___zoomAcceleration = ((float)il2cpp_codegen_add(L_95, ((float)il2cpp_codegen_multiply(L_96, L_97))));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:143>
+		float L_98 = __this->___zoomAcceleration;
+		float L_99 = __this->___ZoomClamp;
+		float L_100 = __this->___ZoomClamp;
+		float L_101;
+		L_101 = Mathf_Clamp_mEB9AEA827D27D20FCC787F7375156AF46BB12BBF_inline(L_98, ((-L_99)), L_100, NULL);
+		__this->___zoomAcceleration = L_101;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:144>
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_102;
+		L_102 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(__this, NULL);
+		NullCheck(L_102);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_103;
+		L_103 = Transform_get_position_m69CD5FA214FDAE7BB701552943674846C220FDE1(L_102, NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_104 = V_2;
+		float L_105;
+		L_105 = Vector3_Distance_m2314DB9B8BD01157E013DF87BEA557375C7F9FF9_inline(L_103, L_104, NULL);
+		__this->___zoomDistance = L_105;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:145>
+		float L_106 = __this->___zoomDistance;
+		float L_107 = __this->___ZoomDistMin;
+		if ((!(((float)L_106) >= ((float)L_107))))
+		{
+			goto IL_02db;
+		}
+	}
+	{
+		float L_108 = __this->___zoomAcceleration;
+		if ((((float)L_108) > ((float)(0.0f))))
+		{
+			goto IL_02f6;
+		}
+	}
+
+IL_02db:
+	{
+		float L_109 = __this->___zoomDistance;
+		float L_110 = __this->___ZoomDistMax;
+		if ((!(((float)L_109) <= ((float)L_110))))
+		{
+			goto IL_0318;
+		}
+	}
+	{
+		float L_111 = __this->___zoomAcceleration;
+		if ((!(((float)L_111) < ((float)(0.0f)))))
+		{
+			goto IL_0318;
+		}
+	}
+
+IL_02f6:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:147>
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_112;
+		L_112 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(__this, NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_113;
+		L_113 = Vector3_get_forward_mAA55A7034304DF8B2152EAD49AE779FC4CA2EB4A_inline(NULL);
+		float L_114 = __this->___zoomAcceleration;
+		float L_115;
+		L_115 = Time_get_deltaTime_mC3195000401F0FD167DD2F948FD2BC58330D0865(NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_116;
+		L_116 = Vector3_op_Multiply_m87BA7C578F96C8E49BB07088DAAC4649F83B0353_inline(L_113, ((float)il2cpp_codegen_multiply(L_114, L_115)), NULL);
+		NullCheck(L_112);
+		Transform_Translate_m4A9E3D8836586E7562F6A18EBF5F5B6089D8B649(L_112, L_116, 1, NULL);
+	}
+
+IL_0318:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:151>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_117 = __this->___orbitAcceleration;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_118;
+		L_118 = Vector3_get_zero_m0C1249C3F25B1C70EAD3CC8B31259975A457AE39_inline(NULL);
+		float L_119 = __this->___Decceleration;
+		float L_120;
+		L_120 = Time_get_deltaTime_mC3195000401F0FD167DD2F948FD2BC58330D0865(NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_121;
+		L_121 = Vector3_Lerp_m3A906D0530A94FAABB94F0F905E84D99BE85C3F8_inline(L_117, L_118, ((float)il2cpp_codegen_multiply(L_119, L_120)), NULL);
+		__this->___orbitAcceleration = L_121;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:152>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_122 = __this->___panAcceleration;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_123;
+		L_123 = Vector3_get_zero_m0C1249C3F25B1C70EAD3CC8B31259975A457AE39_inline(NULL);
+		float L_124 = __this->___Decceleration;
+		float L_125;
+		L_125 = Time_get_deltaTime_mC3195000401F0FD167DD2F948FD2BC58330D0865(NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_126;
+		L_126 = Vector3_Lerp_m3A906D0530A94FAABB94F0F905E84D99BE85C3F8_inline(L_122, L_123, ((float)il2cpp_codegen_multiply(L_124, L_125)), NULL);
+		__this->___panAcceleration = L_126;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:153>
+		float L_127 = __this->___zoomAcceleration;
+		float L_128 = __this->___Decceleration;
+		float L_129;
+		L_129 = Time_get_deltaTime_mC3195000401F0FD167DD2F948FD2BC58330D0865(NULL);
+		float L_130;
+		L_130 = Mathf_Lerp_m47EF2FFB7647BD0A1FDC26DC03E28B19812139B5_inline(L_127, (0.0f), ((float)il2cpp_codegen_multiply(L_128, L_129)), NULL);
+		__this->___zoomAcceleration = L_130;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:154>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_131 = __this->___moveAcceleration;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_132;
+		L_132 = Vector3_get_zero_m0C1249C3F25B1C70EAD3CC8B31259975A457AE39_inline(NULL);
+		float L_133 = __this->___Decceleration;
+		float L_134;
+		L_134 = Time_get_deltaTime_mC3195000401F0FD167DD2F948FD2BC58330D0865(NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_135;
+		L_135 = Vector3_Lerp_m3A906D0530A94FAABB94F0F905E84D99BE85C3F8_inline(L_131, L_132, ((float)il2cpp_codegen_multiply(L_133, L_134)), NULL);
+		__this->___moveAcceleration = L_135;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:157>
+		return;
+	}
+}
+// Method Definition Index: 72139
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Camera_ResetView_mC8F7614A51119FFA3DA106C260B5F228FAFFBEC4 (TCP2_Demo_Camera_t345524DB7C1DBEBBAAA2835D524355C0B47FCA68* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:164>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_0;
+		L_0 = Vector3_get_zero_m0C1249C3F25B1C70EAD3CC8B31259975A457AE39_inline(NULL);
+		__this->___moveAcceleration = L_0;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:165>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_1;
+		L_1 = Vector3_get_zero_m0C1249C3F25B1C70EAD3CC8B31259975A457AE39_inline(NULL);
+		__this->___orbitAcceleration = L_1;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:166>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_2;
+		L_2 = Vector3_get_zero_m0C1249C3F25B1C70EAD3CC8B31259975A457AE39_inline(NULL);
+		__this->___panAcceleration = L_2;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:167>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_3;
+		L_3 = Vector3_get_zero_m0C1249C3F25B1C70EAD3CC8B31259975A457AE39_inline(NULL);
+		__this->___pivotOffset = L_3;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:168>
+		__this->___zoomAcceleration = (0.0f);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:170>
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_4;
+		L_4 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(__this, NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_5 = __this->___mResetCamPos;
+		NullCheck(L_4);
+		Transform_set_position_mA1A817124BB41B685043DED2A9BA48CDF37C4156(L_4, L_5, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:171>
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_6;
+		L_6 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(__this, NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_7 = __this->___mResetCamRot;
+		NullCheck(L_6);
+		Transform_set_eulerAngles_m9F0BC484A7915A51FAB87230644229B75BACA004(L_6, L_7, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:172>
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_8 = __this->___Pivot;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_9 = __this->___mResetPivotPos;
+		NullCheck(L_8);
+		Transform_set_position_mA1A817124BB41B685043DED2A9BA48CDF37C4156(L_8, L_9, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:173>
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_10 = __this->___Pivot;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_11 = __this->___mResetPivotRot;
+		NullCheck(L_10);
+		Transform_set_eulerAngles_m9F0BC484A7915A51FAB87230644229B75BACA004(L_10, L_11, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:174>
+		return;
+	}
+}
+// Method Definition Index: 72140
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Camera__ctor_mD04CF39BBB59E4BE650E48041DFF845C539CBFAD (TCP2_Demo_Camera_t345524DB7C1DBEBBAAA2835D524355C0B47FCA68* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:22>
+		__this->___OrbitStrg = (3.0f);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:23>
+		__this->___OrbitClamp = (50.0f);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:25>
+		__this->___PanStrgMin = (0.100000001f);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:26>
+		__this->___PanStrgMax = (0.5f);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:28>
+		__this->___ZoomStrg = (40.0f);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:29>
+		__this->___ZoomClamp = (30.0f);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:30>
+		__this->___ZoomDistMin = (1.0f);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:31>
+		__this->___ZoomDistMax = (2.0f);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Camera.cs:33>
+		__this->___Decceleration = (8.0f);
+		MonoBehaviour__ctor_m592DB0105CA0BC97AA1C5F4AD27B12D68A3B7C1E(__this, NULL);
+		return;
+	}
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+// Method Definition Index: 72141
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_Awake_m0114F7A0BC3A752F157A807E5F70D93757318C33 (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&ButtonU5BU5D_t0D512FF2FF5A72DAC04754F2C10182F850328BEF_il2cpp_TypeInfo_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Component_GetComponent_TisImage_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_mE74EE63C85A63FC34DCFC631BC229207B420BC79_RuntimeMethod_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Component_GetComponentsInChildren_TisLight_t1E68479B7782AF2050FAA02A5DC612FD034F18F3_m2FE3113150DFC873296E954F0EBB0E18E096AFB5_RuntimeMethod_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Component_GetComponentsInChildren_TisTCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4_m0115856B274E21068EF2ED4716CC877052F07CF6_RuntimeMethod_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Component_GetComponentsInChildren_TisTCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C_mD4D087D7584A19E9ABD939B89C0496B778808A7C_RuntimeMethod_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&GameObject_GetComponentInChildren_TisText_tD60B2346DAA6666BF0D822FF607F0B220C2B9E62_m4883A479F4252D21D45D5AD3140CB42598C48A13_RuntimeMethod_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&GameObject_GetComponent_TisButton_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098_mB997CBF78A37938DC1624352E12D0205078CB290_RuntimeMethod_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Object_Instantiate_TisGameObject_t76FEDD663AB33C991A9C9A23129337651094216F_m10D87C6E0708CA912BBB02555BF7D0FBC5D7A2B3_RuntimeMethod_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_il2cpp_TypeInfo_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&U3CU3Ec__DisplayClass25_0_U3CAwakeU3Eb__0_m6278DEF27CF0FB9CC95E295C10FB722AB6CEA0D2_RuntimeMethod_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&U3CU3Ec__DisplayClass25_0_t96646AD8D220C0FE7538DC1A209152C6ADC9F59A_il2cpp_TypeInfo_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&UnityAction_t11A1F3B953B365C072A5DCC32677EE1796A962A7_il2cpp_TypeInfo_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&_stringLiteral50639CAD49418C7B223CC529395C0E2A3892501C);
+		s_Il2CppMethodInitialized = true;
+	}
+	TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360* V_0 = NULL;
+	int32_t V_1 = 0;
+	LightU5BU5D_tDA7C763E668D91E53318509D94BC0CF10B8AB990* V_2 = NULL;
+	int32_t V_3 = 0;
+	int32_t V_4 = 0;
+	U3CU3Ec__DisplayClass25_0_t96646AD8D220C0FE7538DC1A209152C6ADC9F59A* V_5 = NULL;
+	Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* V_6 = NULL;
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:48>
+		TCP2_Demo_Interactive_ContentU5BU5D_tB79AA6CDA4494B6C8747A1728F83BC2310EB9194* L_0;
+		L_0 = Component_GetComponentsInChildren_TisTCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4_m0115856B274E21068EF2ED4716CC877052F07CF6(__this, Component_GetComponentsInChildren_TisTCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4_m0115856B274E21068EF2ED4716CC877052F07CF6_RuntimeMethod_var);
+		__this->___contents = L_0;
+		Il2CppCodeGenWriteBarrier((void**)(&__this->___contents), (void*)L_0);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:49>
+		TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360* L_1;
+		L_1 = Component_GetComponentsInChildren_TisTCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C_mD4D087D7584A19E9ABD939B89C0496B778808A7C(__this, (bool)1, Component_GetComponentsInChildren_TisTCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C_mD4D087D7584A19E9ABD939B89C0496B778808A7C_RuntimeMethod_var);
+		__this->___lightings = L_1;
+		Il2CppCodeGenWriteBarrier((void**)(&__this->___lightings), (void*)L_1);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:51>
+		int32_t L_2;
+		L_2 = QualitySettings_get_activeColorSpace_m4F47784E7B0FE0A5497C8BAB9CA86BD576FB92F9(NULL);
+		if (L_2)
+		{
+			goto IL_0074;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:53>
+		TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360* L_3 = __this->___lightings;
+		V_0 = L_3;
+		V_1 = 0;
+		goto IL_005a;
+	}
+
+IL_002b:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:53>
+		TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360* L_4 = V_0;
+		int32_t L_5 = V_1;
+		NullCheck(L_4);
+		int32_t L_6 = L_5;
+		TCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C* L_7 = (L_4)->GetAt(static_cast<il2cpp_array_size_t>(L_6));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:55>
+		NullCheck(L_7);
+		LightU5BU5D_tDA7C763E668D91E53318509D94BC0CF10B8AB990* L_8;
+		L_8 = Component_GetComponentsInChildren_TisLight_t1E68479B7782AF2050FAA02A5DC612FD034F18F3_m2FE3113150DFC873296E954F0EBB0E18E096AFB5(L_7, Component_GetComponentsInChildren_TisLight_t1E68479B7782AF2050FAA02A5DC612FD034F18F3_m2FE3113150DFC873296E954F0EBB0E18E096AFB5_RuntimeMethod_var);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:56>
+		V_2 = L_8;
+		V_3 = 0;
+		goto IL_0050;
+	}
+
+IL_0038:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:56>
+		LightU5BU5D_tDA7C763E668D91E53318509D94BC0CF10B8AB990* L_9 = V_2;
+		int32_t L_10 = V_3;
+		NullCheck(L_9);
+		int32_t L_11 = L_10;
+		Light_t1E68479B7782AF2050FAA02A5DC612FD034F18F3* L_12 = (L_9)->GetAt(static_cast<il2cpp_array_size_t>(L_11));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:58>
+		Light_t1E68479B7782AF2050FAA02A5DC612FD034F18F3* L_13 = L_12;
+		NullCheck(L_13);
+		float L_14;
+		L_14 = Light_get_intensity_m8FA28D515853068A93FA68B2148809BBEE4E710F(L_13, NULL);
+		NullCheck(L_13);
+		Light_set_intensity_mE4820C7F39F490B92ED5EA0C3AADA7C0775BE854(L_13, ((float)il2cpp_codegen_multiply(L_14, (0.600000024f))), NULL);
+		int32_t L_15 = V_3;
+		V_3 = ((int32_t)il2cpp_codegen_add(L_15, 1));
+	}
+
+IL_0050:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:56>
+		int32_t L_16 = V_3;
+		LightU5BU5D_tDA7C763E668D91E53318509D94BC0CF10B8AB990* L_17 = V_2;
+		NullCheck(L_17);
+		if ((((int32_t)L_16) < ((int32_t)((int32_t)(((RuntimeArray*)L_17)->max_length)))))
+		{
+			goto IL_0038;
+		}
+	}
+	{
+		int32_t L_18 = V_1;
+		V_1 = ((int32_t)il2cpp_codegen_add(L_18, 1));
+	}
+
+IL_005a:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:53>
+		int32_t L_19 = V_1;
+		TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360* L_20 = V_0;
+		NullCheck(L_20);
+		if ((((int32_t)L_19) < ((int32_t)((int32_t)(((RuntimeArray*)L_20)->max_length)))))
+		{
+			goto IL_002b;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:62>
+		RenderSettings_set_ambientIntensity_m27875436E47E2D28C13F362DAE9C24D0DEC4A844((0.600000024f), NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:63>
+		RenderSettings_set_reflectionIntensity_m70A9545EBFEE2100AEB017149034592AF23D224E((0.600000024f), NULL);
+	}
+
+IL_0074:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:66>
+		Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* L_21 = __this->___envButtonTemplate;
+		NullCheck(L_21);
+		Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* L_22;
+		L_22 = Component_GetComponent_TisImage_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_mE74EE63C85A63FC34DCFC631BC229207B420BC79(L_21, Component_GetComponent_TisImage_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_mE74EE63C85A63FC34DCFC631BC229207B420BC79_RuntimeMethod_var);
+		NullCheck(L_22);
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_23;
+		L_23 = VirtualFuncInvoker0< Color_tD001788D726C3A7F1379BEED0260B9591F440C1F >::Invoke(22, L_22);
+		__this->___envButtonColor = L_23;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:67>
+		TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360* L_24 = __this->___lightings;
+		NullCheck(L_24);
+		ButtonU5BU5D_t0D512FF2FF5A72DAC04754F2C10182F850328BEF* L_25 = (ButtonU5BU5D_t0D512FF2FF5A72DAC04754F2C10182F850328BEF*)(ButtonU5BU5D_t0D512FF2FF5A72DAC04754F2C10182F850328BEF*)SZArrayNew(ButtonU5BU5D_t0D512FF2FF5A72DAC04754F2C10182F850328BEF_il2cpp_TypeInfo_var, (uint32_t)((int32_t)(((RuntimeArray*)L_24)->max_length)));
+		__this->___envButtons = L_25;
+		Il2CppCodeGenWriteBarrier((void**)(&__this->___envButtons), (void*)L_25);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:68>
+		V_4 = 0;
+		goto IL_016f;
+	}
+
+IL_00a5:
+	{
+		U3CU3Ec__DisplayClass25_0_t96646AD8D220C0FE7538DC1A209152C6ADC9F59A* L_26 = (U3CU3Ec__DisplayClass25_0_t96646AD8D220C0FE7538DC1A209152C6ADC9F59A*)il2cpp_codegen_object_new(U3CU3Ec__DisplayClass25_0_t96646AD8D220C0FE7538DC1A209152C6ADC9F59A_il2cpp_TypeInfo_var);
+		U3CU3Ec__DisplayClass25_0__ctor_m4C6D5957E4AC4E2561D2241FFBFAC517E2E4B825(L_26, NULL);
+		V_5 = L_26;
+		U3CU3Ec__DisplayClass25_0_t96646AD8D220C0FE7538DC1A209152C6ADC9F59A* L_27 = V_5;
+		NullCheck(L_27);
+		L_27->___U3CU3E4__this = __this;
+		Il2CppCodeGenWriteBarrier((void**)(&L_27->___U3CU3E4__this), (void*)__this);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:70>
+		Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* L_28 = __this->___envButtonTemplate;
+		NullCheck(L_28);
+		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_29;
+		L_29 = Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B(L_28, NULL);
+		il2cpp_codegen_runtime_class_init_inline(Object_tC12DECB6760A7F2CBF65D9DCF18D044C2D97152C_il2cpp_TypeInfo_var);
+		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_30;
+		L_30 = Object_Instantiate_TisGameObject_t76FEDD663AB33C991A9C9A23129337651094216F_m10D87C6E0708CA912BBB02555BF7D0FBC5D7A2B3(L_29, Object_Instantiate_TisGameObject_t76FEDD663AB33C991A9C9A23129337651094216F_m10D87C6E0708CA912BBB02555BF7D0FBC5D7A2B3_RuntimeMethod_var);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:71>
+		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_31 = L_30;
+		Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* L_32 = __this->___envButtonTemplate;
+		NullCheck(L_32);
+		String_t* L_33;
+		L_33 = Object_get_name_mAC2F6B897CF1303BA4249B4CB55271AFACBB6392(L_32, NULL);
+		String_t* L_34;
+		L_34 = Int32_ToString_m030E01C24E294D6762FB0B6F37CB541581F55CA5((&V_4), NULL);
+		String_t* L_35;
+		L_35 = String_Concat_m8855A6DE10F84DA7F4EC113CADDB59873A25573B(L_33, _stringLiteral50639CAD49418C7B223CC529395C0E2A3892501C, L_34, NULL);
+		NullCheck(L_31);
+		Object_set_name_mC79E6DC8FFD72479C90F0C4CC7F42A0FEAF5AE47(L_31, L_35, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:72>
+		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_36 = L_31;
+		NullCheck(L_36);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_37;
+		L_37 = GameObject_get_transform_m0BC10ADFA1632166AE5544BDF9038A2650C2AE56(L_36, NULL);
+		Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* L_38 = __this->___envButtonTemplate;
+		NullCheck(L_38);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_39;
+		L_39 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(L_38, NULL);
+		NullCheck(L_39);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_40;
+		L_40 = Transform_get_parent_m65354E28A4C94EC00EBCF03532F7B0718380791E(L_39, NULL);
+		NullCheck(L_37);
+		Transform_SetParent_m6677538B60246D958DD91F931C50F969CCBB5250(L_37, L_40, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:73>
+		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_41 = L_36;
+		NullCheck(L_41);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_42;
+		L_42 = GameObject_get_transform_m0BC10ADFA1632166AE5544BDF9038A2650C2AE56(L_41, NULL);
+		Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* L_43 = __this->___envButtonTemplate;
+		NullCheck(L_43);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_44;
+		L_44 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(L_43, NULL);
+		NullCheck(L_44);
+		int32_t L_45;
+		L_45 = Transform_GetSiblingIndex_m45EE497589C36D1FBED87FB802BD80A95CE68575(L_44, NULL);
+		NullCheck(L_42);
+		Transform_SetSiblingIndex_m8A3B81F08B93991C05BFA89ADA2146836C4FC4B2(L_42, L_45, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:75>
+		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_46 = L_41;
+		NullCheck(L_46);
+		Text_tD60B2346DAA6666BF0D822FF607F0B220C2B9E62* L_47;
+		L_47 = GameObject_GetComponentInChildren_TisText_tD60B2346DAA6666BF0D822FF607F0B220C2B9E62_m4883A479F4252D21D45D5AD3140CB42598C48A13(L_46, GameObject_GetComponentInChildren_TisText_tD60B2346DAA6666BF0D822FF607F0B220C2B9E62_m4883A479F4252D21D45D5AD3140CB42598C48A13_RuntimeMethod_var);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:76>
+		TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360* L_48 = __this->___lightings;
+		int32_t L_49 = V_4;
+		NullCheck(L_48);
+		int32_t L_50 = L_49;
+		TCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C* L_51 = (L_48)->GetAt(static_cast<il2cpp_array_size_t>(L_50));
+		NullCheck(L_51);
+		String_t* L_52;
+		L_52 = Object_get_name_mAC2F6B897CF1303BA4249B4CB55271AFACBB6392(L_51, NULL);
+		NullCheck(L_47);
+		VirtualActionInvoker1< String_t* >::Invoke(75, L_47, L_52);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:78>
+		NullCheck(L_46);
+		Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* L_53;
+		L_53 = GameObject_GetComponent_TisButton_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098_mB997CBF78A37938DC1624352E12D0205078CB290(L_46, GameObject_GetComponent_TisButton_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098_mB997CBF78A37938DC1624352E12D0205078CB290_RuntimeMethod_var);
+		V_6 = L_53;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:79>
+		U3CU3Ec__DisplayClass25_0_t96646AD8D220C0FE7538DC1A209152C6ADC9F59A* L_54 = V_5;
+		int32_t L_55 = V_4;
+		NullCheck(L_54);
+		L_54->___ci = L_55;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:80>
+		Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* L_56 = V_6;
+		NullCheck(L_56);
+		ButtonClickedEvent_t8EA72E90B3BD1392FB3B3EF167D5121C23569E4C* L_57;
+		L_57 = Button_get_onClick_m701712A7F7F000CC80D517C4510697E15722C35C_inline(L_56, NULL);
+		U3CU3Ec__DisplayClass25_0_t96646AD8D220C0FE7538DC1A209152C6ADC9F59A* L_58 = V_5;
+		UnityAction_t11A1F3B953B365C072A5DCC32677EE1796A962A7* L_59 = (UnityAction_t11A1F3B953B365C072A5DCC32677EE1796A962A7*)il2cpp_codegen_object_new(UnityAction_t11A1F3B953B365C072A5DCC32677EE1796A962A7_il2cpp_TypeInfo_var);
+		UnityAction__ctor_mC53E20D6B66E0D5688CD81B88DBB34F5A58B7131(L_59, L_58, (intptr_t)((void*)U3CU3Ec__DisplayClass25_0_U3CAwakeU3Eb__0_m6278DEF27CF0FB9CC95E295C10FB722AB6CEA0D2_RuntimeMethod_var), NULL);
+		NullCheck(L_57);
+		UnityEvent_AddListener_m8AA4287C16628486B41DA41CA5E7A856A706D302(L_57, L_59, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:82>
+		ButtonU5BU5D_t0D512FF2FF5A72DAC04754F2C10182F850328BEF* L_60 = __this->___envButtons;
+		int32_t L_61 = V_4;
+		Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* L_62 = V_6;
+		NullCheck(L_60);
+		ArrayElementTypeCheck (L_60, L_62);
+		(L_60)->SetAt(static_cast<il2cpp_array_size_t>(L_61), (Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098*)L_62);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:68>
+		int32_t L_63 = V_4;
+		V_4 = ((int32_t)il2cpp_codegen_add(L_63, 1));
+	}
+
+IL_016f:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:68>
+		int32_t L_64 = V_4;
+		TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360* L_65 = __this->___lightings;
+		NullCheck(L_65);
+		if ((((int32_t)L_64) < ((int32_t)((int32_t)(((RuntimeArray*)L_65)->max_length)))))
+		{
+			goto IL_00a5;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:84>
+		Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* L_66 = __this->___envButtonTemplate;
+		NullCheck(L_66);
+		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_67;
+		L_67 = Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B(L_66, NULL);
+		NullCheck(L_67);
+		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(L_67, (bool)0, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:85>
+		TCP2_Demo_Interactive_OnSelectLightingSettings_m5FC680CE96EF10C879ADE1EAFDE68D9B70729B24(__this, 0, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:87>
+		Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184* L_68 = __this->___camera;
+		NullCheck(L_68);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_69;
+		L_69 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(L_68, NULL);
+		NullCheck(L_69);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_70;
+		L_70 = Transform_get_position_m69CD5FA214FDAE7BB701552943674846C220FDE1(L_69, NULL);
+		__this->___cameraResetPos = L_70;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:88>
+		Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184* L_71 = __this->___camera;
+		NullCheck(L_71);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_72;
+		L_72 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(L_71, NULL);
+		NullCheck(L_72);
+		Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 L_73;
+		L_73 = Transform_get_rotation_m32AF40CA0D50C797DA639A696F8EAEC7524C179C(L_72, NULL);
+		__this->___cameraResetQuat = L_73;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:89>
+		TCP2_Demo_Camera_t345524DB7C1DBEBBAAA2835D524355C0B47FCA68* L_74 = __this->___demoCamera;
+		NullCheck(L_74);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_75 = L_74->___Pivot;
+		__this->___resetPivot = L_75;
+		Il2CppCodeGenWriteBarrier((void**)(&__this->___resetPivot), (void*)L_75);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:91>
+		return;
+	}
+}
+// Method Definition Index: 72142
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_LateUpdate_m79A81E79CDC4A1D51D7F141586D39F75F97CFF85 (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:95>
+		TCP2_Demo_Interactive_HandleKeyboard_m8A1EFA7533315A83902C0BBFCCDB2AB84348E309(__this, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:97>
+		int32_t L_0 = __this->___index;
+		if ((((int32_t)L_0) < ((int32_t)0)))
+		{
+			goto IL_0022;
+		}
+	}
+	{
+		bool L_1 = __this->___coroutineActive;
+		if (L_1)
+		{
+			goto IL_0022;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:99>
+		TCP2_Demo_Interactive_UpdateViewToCurrentContent_m522349C9F6D20CDDC63EA3E3C68F8C9E4A9474B0(__this, (1.0f), NULL);
+	}
+
+IL_0022:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:101>
+		return;
+	}
+}
+// Method Definition Index: 72143
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_HandleKeyboard_m8A1EFA7533315A83902C0BBFCCDB2AB84348E309 (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:105>
+		bool L_0;
+		L_0 = InputAbstraction_get_KeyDown_Delete_mF7B1924E7D3B83B13DBF776AC39E315590016753(NULL);
+		if (L_0)
+		{
+			goto IL_000e;
+		}
+	}
+	{
+		bool L_1;
+		L_1 = InputAbstraction_get_KeyDown_H_mA2B47744EE3E73C07C73B94D50434E1592E570C5(NULL);
+		if (!L_1)
+		{
+			goto IL_0027;
+		}
+	}
+
+IL_000e:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:107>
+		Canvas_t2DB4CEFDFF732884866C83F11ABF75F5AE8FFB26* L_2 = __this->___canvas;
+		Canvas_t2DB4CEFDFF732884866C83F11ABF75F5AE8FFB26* L_3 = __this->___canvas;
+		NullCheck(L_3);
+		bool L_4;
+		L_4 = Behaviour_get_enabled_mAAC9F15E9EBF552217A5AE2681589CC0BFA300C1(L_3, NULL);
+		NullCheck(L_2);
+		Behaviour_set_enabled_mF1DCFE60EB09E0529FE9476CA804A3AA2D72B16A(L_2, (bool)((((int32_t)L_4) == ((int32_t)0))? 1 : 0), NULL);
+	}
+
+IL_0027:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:110>
+		bool L_5;
+		L_5 = InputAbstraction_get_KeyDown_Escape_mC8BDF09A982DEB3B6ABAEAA22F1989666C45704D(NULL);
+		if (!L_5)
+		{
+			goto IL_0034;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:112>
+		TCP2_Demo_Interactive_ResetView_mDA99336859AA2946D2D90ECFD805CB4C1FE13AEA(__this, NULL);
+	}
+
+IL_0034:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:115>
+		bool L_6;
+		L_6 = InputAbstraction_get_KeyDown_RightArrow_m4FD79FDE408B0BF682C510C8591F66487FD1A0B1(NULL);
+		if (!L_6)
+		{
+			goto IL_0041;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:117>
+		TCP2_Demo_Interactive_NextHighlight_m7E479C0F3BCE3E038CE39ABC6E6CF17514F48B6F(__this, NULL);
+	}
+
+IL_0041:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:120>
+		bool L_7;
+		L_7 = InputAbstraction_get_KeyDown_LeftArrow_mE1BA9E2C68F890C9B7B652B3D3AE01D91340B891(NULL);
+		if (!L_7)
+		{
+			goto IL_004e;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:122>
+		TCP2_Demo_Interactive_PrevHighlight_m21348200BDBD1B4E01B8957FB4792AD4A6E0BB93(__this, NULL);
+	}
+
+IL_004e:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:125>
+		bool L_8;
+		L_8 = InputAbstraction_get_KeyDown_Tab_m1BD864699C69D9F73EE5731DA0252ABBB10C66C6(NULL);
+		if (!L_8)
+		{
+			goto IL_00bd;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:127>
+		bool L_9;
+		L_9 = InputAbstraction_get_Key_LeftShift_m788B2F959D8761A61AFBF65A7DD3F25383BBD534(NULL);
+		if (L_9)
+		{
+			goto IL_0063;
+		}
+	}
+	{
+		bool L_10;
+		L_10 = InputAbstraction_get_Key_RightShift_m872D92B3452E35EC310FE4A3606395C3E02F175F(NULL);
+		if (!L_10)
+		{
+			goto IL_008c;
+		}
+	}
+
+IL_0063:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:129>
+		int32_t L_11 = __this->___lightingIndex;
+		__this->___lightingIndex = ((int32_t)il2cpp_codegen_subtract(L_11, 1));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:130>
+		int32_t L_12 = __this->___lightingIndex;
+		if ((((int32_t)L_12) >= ((int32_t)0)))
+		{
+			goto IL_00b1;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:130>
+		ButtonU5BU5D_t0D512FF2FF5A72DAC04754F2C10182F850328BEF* L_13 = __this->___envButtons;
+		NullCheck(L_13);
+		__this->___lightingIndex = ((int32_t)il2cpp_codegen_subtract(((int32_t)(((RuntimeArray*)L_13)->max_length)), 1));
+		goto IL_00b1;
+	}
+
+IL_008c:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:134>
+		int32_t L_14 = __this->___lightingIndex;
+		__this->___lightingIndex = ((int32_t)il2cpp_codegen_add(L_14, 1));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:135>
+		int32_t L_15 = __this->___lightingIndex;
+		ButtonU5BU5D_t0D512FF2FF5A72DAC04754F2C10182F850328BEF* L_16 = __this->___envButtons;
+		NullCheck(L_16);
+		if ((((int32_t)L_15) < ((int32_t)((int32_t)(((RuntimeArray*)L_16)->max_length)))))
+		{
+			goto IL_00b1;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:135>
+		__this->___lightingIndex = 0;
+	}
+
+IL_00b1:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:138>
+		int32_t L_17 = __this->___lightingIndex;
+		TCP2_Demo_Interactive_OnSelectLightingSettings_m5FC680CE96EF10C879ADE1EAFDE68D9B70729B24(__this, L_17, NULL);
+	}
+
+IL_00bd:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:140>
+		return;
+	}
+}
+// Method Definition Index: 72144
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_PrevHighlight_m21348200BDBD1B4E01B8957FB4792AD4A6E0BB93 (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:144>
+		int32_t L_0 = __this->___index;
+		__this->___index = ((int32_t)il2cpp_codegen_subtract(L_0, 1));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:145>
+		int32_t L_1 = __this->___index;
+		if ((((int32_t)L_1) >= ((int32_t)0)))
+		{
+			goto IL_0027;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:145>
+		TCP2_Demo_Interactive_ContentU5BU5D_tB79AA6CDA4494B6C8747A1728F83BC2310EB9194* L_2 = __this->___contents;
+		NullCheck(L_2);
+		__this->___index = ((int32_t)il2cpp_codegen_subtract(((int32_t)(((RuntimeArray*)L_2)->max_length)), 1));
+	}
+
+IL_0027:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:147>
+		MonoBehaviour_StopAllCoroutines_m872033451D42013A99867D09337490017E9ED318(__this, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:148>
+		TCP2_Demo_Interactive_ContentU5BU5D_tB79AA6CDA4494B6C8747A1728F83BC2310EB9194* L_3 = __this->___contents;
+		int32_t L_4 = __this->___index;
+		NullCheck(L_3);
+		int32_t L_5 = L_4;
+		TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* L_6 = (L_3)->GetAt(static_cast<il2cpp_array_size_t>(L_5));
+		RuntimeObject* L_7;
+		L_7 = TCP2_Demo_Interactive_CR_MoveToContent_mC42E377253ADE0188F20C2AE122FCEAA3E396790(__this, L_6, NULL);
+		Coroutine_t85EA685566A254C23F3FD77AB5BDFFFF8799596B* L_8;
+		L_8 = MonoBehaviour_StartCoroutine_m4CAFF732AA28CD3BDC5363B44A863575530EC812(__this, L_7, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:150>
+		Text_tD60B2346DAA6666BF0D822FF607F0B220C2B9E62* L_9 = __this->___highlightLabel;
+		TCP2_Demo_Interactive_ContentU5BU5D_tB79AA6CDA4494B6C8747A1728F83BC2310EB9194* L_10 = __this->___contents;
+		int32_t L_11 = __this->___index;
+		NullCheck(L_10);
+		int32_t L_12 = L_11;
+		TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* L_13 = (L_10)->GetAt(static_cast<il2cpp_array_size_t>(L_12));
+		NullCheck(L_13);
+		String_t* L_14;
+		L_14 = Object_get_name_mAC2F6B897CF1303BA4249B4CB55271AFACBB6392(L_13, NULL);
+		NullCheck(L_9);
+		VirtualActionInvoker1< String_t* >::Invoke(75, L_9, L_14);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:151>
+		return;
+	}
+}
+// Method Definition Index: 72145
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_NextHighlight_m7E479C0F3BCE3E038CE39ABC6E6CF17514F48B6F (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:155>
+		int32_t L_0 = __this->___index;
+		__this->___index = ((int32_t)il2cpp_codegen_add(L_0, 1));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:156>
+		int32_t L_1 = __this->___index;
+		TCP2_Demo_Interactive_ContentU5BU5D_tB79AA6CDA4494B6C8747A1728F83BC2310EB9194* L_2 = __this->___contents;
+		NullCheck(L_2);
+		if ((((int32_t)L_1) < ((int32_t)((int32_t)(((RuntimeArray*)L_2)->max_length)))))
+		{
+			goto IL_0025;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:156>
+		__this->___index = 0;
+	}
+
+IL_0025:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:158>
+		MonoBehaviour_StopAllCoroutines_m872033451D42013A99867D09337490017E9ED318(__this, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:159>
+		TCP2_Demo_Interactive_ContentU5BU5D_tB79AA6CDA4494B6C8747A1728F83BC2310EB9194* L_3 = __this->___contents;
+		int32_t L_4 = __this->___index;
+		NullCheck(L_3);
+		int32_t L_5 = L_4;
+		TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* L_6 = (L_3)->GetAt(static_cast<il2cpp_array_size_t>(L_5));
+		RuntimeObject* L_7;
+		L_7 = TCP2_Demo_Interactive_CR_MoveToContent_mC42E377253ADE0188F20C2AE122FCEAA3E396790(__this, L_6, NULL);
+		Coroutine_t85EA685566A254C23F3FD77AB5BDFFFF8799596B* L_8;
+		L_8 = MonoBehaviour_StartCoroutine_m4CAFF732AA28CD3BDC5363B44A863575530EC812(__this, L_7, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:161>
+		Text_tD60B2346DAA6666BF0D822FF607F0B220C2B9E62* L_9 = __this->___highlightLabel;
+		TCP2_Demo_Interactive_ContentU5BU5D_tB79AA6CDA4494B6C8747A1728F83BC2310EB9194* L_10 = __this->___contents;
+		int32_t L_11 = __this->___index;
+		NullCheck(L_10);
+		int32_t L_12 = L_11;
+		TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* L_13 = (L_10)->GetAt(static_cast<il2cpp_array_size_t>(L_12));
+		NullCheck(L_13);
+		String_t* L_14;
+		L_14 = Object_get_name_mAC2F6B897CF1303BA4249B4CB55271AFACBB6392(L_13, NULL);
+		NullCheck(L_9);
+		VirtualActionInvoker1< String_t* >::Invoke(75, L_9, L_14);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:162>
+		return;
+	}
+}
+// Method Definition Index: 72146
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_UpdateViewToCurrentContent_m522349C9F6D20CDDC63EA3E3C68F8C9E4A9474B0 (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, float ___0_lengthPercent, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 V_0;
+	memset((&V_0), 0, sizeof(V_0));
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 V_1;
+	memset((&V_1), 0, sizeof(V_1));
+	float V_2 = 0.0f;
+	float V_3 = 0.0f;
+	Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D V_4;
+	memset((&V_4), 0, sizeof(V_4));
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:166>
+		Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184* L_0 = __this->___camera;
+		TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* L_1 = __this->___currentContent;
+		NullCheck(L_1);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_2 = L_1->___pivot;
+		NullCheck(L_2);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_3;
+		L_3 = Transform_get_position_m69CD5FA214FDAE7BB701552943674846C220FDE1(L_2, NULL);
+		NullCheck(L_0);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_4;
+		L_4 = Camera_WorldToScreenPoint_m26B4C8945C3B5731F1CC5944CFD96BF17126BAA3(L_0, L_3, NULL);
+		V_0 = L_4;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:167>
+		Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184* L_5 = __this->___camera;
+		TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* L_6 = __this->___currentContent;
+		NullCheck(L_6);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_7 = L_6->___textBox;
+		NullCheck(L_7);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_8;
+		L_8 = Transform_get_position_m69CD5FA214FDAE7BB701552943674846C220FDE1(L_7, NULL);
+		NullCheck(L_5);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_9;
+		L_9 = Camera_WorldToScreenPoint_m26B4C8945C3B5731F1CC5944CFD96BF17126BAA3(L_5, L_8, NULL);
+		V_1 = L_9;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:168>
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_10 = __this->___textBox;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_11 = V_1;
+		NullCheck(L_10);
+		Transform_set_position_mA1A817124BB41B685043DED2A9BA48CDF37C4156(L_10, L_11, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:170>
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_12 = __this->___textBox;
+		NullCheck(L_12);
+		Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D L_13;
+		L_13 = RectTransform_get_rect_mC82A60F8C3805ED9833508CCC233689641207488(L_12, NULL);
+		V_4 = L_13;
+		il2cpp_codegen_runtime_class_init_inline(Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D_il2cpp_TypeInfo_var);
+		float L_14;
+		L_14 = Rect_get_width_m620D67551372073C9C32C4C4624C2A5713F7F9A9_inline((&V_4), NULL);
+		V_2 = ((float)(L_14/(2.0f)));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:171>
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_15 = __this->___textBox;
+		NullCheck(L_15);
+		Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D L_16;
+		L_16 = RectTransform_get_rect_mC82A60F8C3805ED9833508CCC233689641207488(L_15, NULL);
+		V_4 = L_16;
+		float L_17;
+		L_17 = Rect_get_height_mE1AA6C6C725CCD2D317BD2157396D3CF7D47C9D8_inline((&V_4), NULL);
+		V_3 = ((float)(L_17/(2.0f)));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:174>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_18 = V_1;
+		float L_19 = L_18.___x;
+		float L_20 = V_2;
+		if ((!(((float)((float)il2cpp_codegen_subtract(L_19, L_20))) < ((float)(0.0f)))))
+		{
+			goto IL_0091;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:176>
+		float L_21 = V_2;
+		(&V_1)->___x = L_21;
+	}
+
+IL_0091:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:178>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_22 = V_1;
+		float L_23 = L_22.___x;
+		float L_24 = V_2;
+		int32_t L_25;
+		L_25 = Screen_get_width_mF608FF3252213E7EFA1F0D2F744C28110E9E5AC9(NULL);
+		if ((!(((float)((float)il2cpp_codegen_add(L_23, L_24))) > ((float)((float)L_25)))))
+		{
+			goto IL_00b0;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:180>
+		int32_t L_26;
+		L_26 = Screen_get_width_mF608FF3252213E7EFA1F0D2F744C28110E9E5AC9(NULL);
+		float L_27 = V_2;
+		(&V_1)->___x = ((float)il2cpp_codegen_subtract(((float)L_26), L_27));
+	}
+
+IL_00b0:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:183>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_28 = V_1;
+		float L_29 = L_28.___y;
+		float L_30 = V_3;
+		if ((!(((float)((float)il2cpp_codegen_subtract(L_29, L_30))) < ((float)(0.0f)))))
+		{
+			goto IL_00c7;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:185>
+		float L_31 = V_3;
+		(&V_1)->___y = L_31;
+	}
+
+IL_00c7:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:187>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_32 = V_1;
+		float L_33 = L_32.___y;
+		float L_34 = V_3;
+		int32_t L_35;
+		L_35 = Screen_get_height_m01A3102DE71EE1FBEA51D09D6B0261CF864FE8F9(NULL);
+		if ((!(((float)((float)il2cpp_codegen_add(L_33, L_34))) > ((float)((float)L_35)))))
+		{
+			goto IL_00e6;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:189>
+		int32_t L_36;
+		L_36 = Screen_get_height_m01A3102DE71EE1FBEA51D09D6B0261CF864FE8F9(NULL);
+		float L_37 = V_3;
+		(&V_1)->___y = ((float)il2cpp_codegen_subtract(((float)L_36), L_37));
+	}
+
+IL_00e6:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:192>
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_38 = __this->___textBox;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_39 = V_1;
+		NullCheck(L_38);
+		Transform_set_position_mA1A817124BB41B685043DED2A9BA48CDF37C4156(L_38, L_39, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:194>
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_40 = V_1;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_41;
+		L_41 = Vector2_op_Implicit_mE8EBEE9291F11BB02F062D6E000F4798968CBD96_inline(L_40, NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_42 = V_0;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_43;
+		L_43 = Vector2_op_Implicit_mE8EBEE9291F11BB02F062D6E000F4798968CBD96_inline(L_42, NULL);
+		float L_44 = ___0_lengthPercent;
+		TCP2_Demo_Interactive_PlaceLine_mDA643C21BA431A12B31099C50538E6A05E04B7E3(__this, L_41, L_43, L_44, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:195>
+		return;
+	}
+}
+// Method Definition Index: 72147
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_PlaceLine_mDA643C21BA431A12B31099C50538E6A05E04B7E3 (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___0_start, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___1_end, float ___2_lengthPercentage, const RuntimeMethod* method) 
+{
+	float V_0 = 0.0f;
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 V_1;
+	memset((&V_1), 0, sizeof(V_1));
+	float V_2 = 0.0f;
+	float V_3 = 0.0f;
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 V_4;
+	memset((&V_4), 0, sizeof(V_4));
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 V_5;
+	memset((&V_5), 0, sizeof(V_5));
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:199>
+		Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* L_0 = __this->___line;
+		NullCheck(L_0);
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_1;
+		L_1 = Graphic_get_rectTransform_mF4752E8934267D630810E84CE02CDFB81EB1FD6D(L_0, NULL);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_2 = ___0_start;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_3;
+		L_3 = Vector2_op_Implicit_m6D9CABB2C791A192867D7A4559D132BE86DD3EB7_inline(L_2, NULL);
+		NullCheck(L_1);
+		Transform_set_position_mA1A817124BB41B685043DED2A9BA48CDF37C4156(L_1, L_3, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:201>
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_4 = ___0_start;
+		float L_5 = L_4.___y;
+		(&___0_start)->___y = ((-L_5));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:202>
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_6 = ___1_end;
+		float L_7 = L_6.___y;
+		(&___1_end)->___y = ((-L_7));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:203>
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_8 = ___0_start;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_9 = ___1_end;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_10;
+		L_10 = Vector2_op_Subtraction_m44475FCDAD2DA2F98D78A6625EC2DCDFE8803837_inline(L_8, L_9, NULL);
+		V_5 = L_10;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_11;
+		L_11 = Vector2_get_normalized_mF6722883AEFB5027690A778DF8ACC20F0FA65297_inline((&V_5), NULL);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_12;
+		L_12 = Vector2_get_up_m41067879408BB378593EF7406AF2525F176F0ABF_inline(NULL);
+		float L_13;
+		L_13 = Vector2_SignedAngle_mAE9940DA6BC6B2182BA95C299B2EC19967B7D438_inline(L_11, L_12, NULL);
+		V_0 = L_13;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:204>
+		Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* L_14 = __this->___line;
+		NullCheck(L_14);
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_15;
+		L_15 = Graphic_get_rectTransform_mF4752E8934267D630810E84CE02CDFB81EB1FD6D(L_14, NULL);
+		NullCheck(L_15);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_16;
+		L_16 = Transform_get_localEulerAngles_m358AA9AE8FA24FD1BB7842D231C8644D1C2910C6(L_15, NULL);
+		V_1 = L_16;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:205>
+		float L_17 = V_0;
+		(&V_1)->___z = L_17;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:206>
+		Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* L_18 = __this->___line;
+		NullCheck(L_18);
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_19;
+		L_19 = Graphic_get_rectTransform_mF4752E8934267D630810E84CE02CDFB81EB1FD6D(L_18, NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_20 = V_1;
+		NullCheck(L_19);
+		Transform_set_localEulerAngles_m0458551662A1A51FDCA4C0417282B25D391661DF(L_19, L_20, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:209>
+		CanvasScaler_t3BC095205EAD308CF3EAC27136A73387AC32FC3B* L_21 = __this->___canvasScaler;
+		NullCheck(L_21);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_22;
+		L_22 = CanvasScaler_get_referenceResolution_m79C03DD8CE6759B045928C5339A3C5E6220276B5_inline(L_21, NULL);
+		float L_23 = L_22.___x;
+		int32_t L_24;
+		L_24 = Screen_get_width_mF608FF3252213E7EFA1F0D2F744C28110E9E5AC9(NULL);
+		V_2 = ((float)(L_23/((float)L_24)));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:210>
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_25 = ___0_start;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_26 = ___1_end;
+		float L_27;
+		L_27 = Vector2_Distance_mBACBB1609E1894D68F882D86A93519E311810C89_inline(L_25, L_26, NULL);
+		float L_28 = ___2_lengthPercentage;
+		V_3 = ((float)il2cpp_codegen_multiply(L_27, L_28));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:211>
+		float L_29 = V_3;
+		float L_30 = V_2;
+		V_3 = ((float)il2cpp_codegen_multiply(L_29, L_30));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:212>
+		Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* L_31 = __this->___line;
+		NullCheck(L_31);
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_32;
+		L_32 = Graphic_get_rectTransform_mF4752E8934267D630810E84CE02CDFB81EB1FD6D(L_31, NULL);
+		NullCheck(L_32);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_33;
+		L_33 = RectTransform_get_sizeDelta_m822A8493F2035677384F1540A2E9E5ACE63010BB(L_32, NULL);
+		V_4 = L_33;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:213>
+		float L_34 = V_3;
+		(&V_4)->___y = L_34;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:214>
+		Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* L_35 = __this->___line;
+		NullCheck(L_35);
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_36;
+		L_36 = Graphic_get_rectTransform_mF4752E8934267D630810E84CE02CDFB81EB1FD6D(L_35, NULL);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_37 = V_4;
+		NullCheck(L_36);
+		RectTransform_set_sizeDelta_mC9A980EA6036E6725EF24CEDF3EE80A9B2B50EE5(L_36, L_37, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:215>
+		return;
+	}
+}
+// Method Definition Index: 72148
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_ResetView_mDA99336859AA2946D2D90ECFD805CB4C1FE13AEA (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&_stringLiteralFFEF3DBE279EE1F92E1E2E46F45BC18EBBF55A1A);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:219>
+		Canvas_t2DB4CEFDFF732884866C83F11ABF75F5AE8FFB26* L_0 = __this->___canvas;
+		NullCheck(L_0);
+		Behaviour_set_enabled_mF1DCFE60EB09E0529FE9476CA804A3AA2D72B16A(L_0, (bool)0, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:220>
+		MonoBehaviour_StopAllCoroutines_m872033451D42013A99867D09337490017E9ED318(__this, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:221>
+		RuntimeObject* L_1;
+		L_1 = TCP2_Demo_Interactive_CR_ResetCamPos_m1072A96E99DB6E7CA74784E16E80DFCD7C8C73D9(__this, NULL);
+		Coroutine_t85EA685566A254C23F3FD77AB5BDFFFF8799596B* L_2;
+		L_2 = MonoBehaviour_StartCoroutine_m4CAFF732AA28CD3BDC5363B44A863575530EC812(__this, L_1, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:223>
+		Text_tD60B2346DAA6666BF0D822FF607F0B220C2B9E62* L_3 = __this->___highlightLabel;
+		NullCheck(L_3);
+		VirtualActionInvoker1< String_t* >::Invoke(75, L_3, _stringLiteralFFEF3DBE279EE1F92E1E2E46F45BC18EBBF55A1A);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:224>
+		return;
+	}
+}
+// Method Definition Index: 72149
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* TCP2_Demo_Interactive_CR_ResetCamPos_m1072A96E99DB6E7CA74784E16E80DFCD7C8C73D9 (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&U3CCR_ResetCamPosU3Ed__33_tE8294FA068A29CD7E6B87DBFFDB551AB64260BEE_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		U3CCR_ResetCamPosU3Ed__33_tE8294FA068A29CD7E6B87DBFFDB551AB64260BEE* L_0 = (U3CCR_ResetCamPosU3Ed__33_tE8294FA068A29CD7E6B87DBFFDB551AB64260BEE*)il2cpp_codegen_object_new(U3CCR_ResetCamPosU3Ed__33_tE8294FA068A29CD7E6B87DBFFDB551AB64260BEE_il2cpp_TypeInfo_var);
+		U3CCR_ResetCamPosU3Ed__33__ctor_m4E348FAA43126971717AEF9E1EA1EC9FA7022FEA(L_0, 0, NULL);
+		U3CCR_ResetCamPosU3Ed__33_tE8294FA068A29CD7E6B87DBFFDB551AB64260BEE* L_1 = L_0;
+		NullCheck(L_1);
+		L_1->___U3CU3E4__this = __this;
+		Il2CppCodeGenWriteBarrier((void**)(&L_1->___U3CU3E4__this), (void*)__this);
+		return L_1;
+	}
+}
+// Method Definition Index: 72150
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* TCP2_Demo_Interactive_CR_MoveToContent_mC42E377253ADE0188F20C2AE122FCEAA3E396790 (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* ___0_content, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6* L_0 = (U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6*)il2cpp_codegen_object_new(U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6_il2cpp_TypeInfo_var);
+		U3CCR_MoveToContentU3Ed__35__ctor_mE2F7FECAE8FF56B25342F9C3651895198C9B8CE8(L_0, 0, NULL);
+		U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6* L_1 = L_0;
+		NullCheck(L_1);
+		L_1->___U3CU3E4__this = __this;
+		Il2CppCodeGenWriteBarrier((void**)(&L_1->___U3CU3E4__this), (void*)__this);
+		U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6* L_2 = L_1;
+		TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* L_3 = ___0_content;
+		NullCheck(L_2);
+		L_2->___content = L_3;
+		Il2CppCodeGenWriteBarrier((void**)(&L_2->___content), (void*)L_3);
+		return L_2;
+	}
+}
+// Method Definition Index: 72151
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_OnSelectLightingSettings_m5FC680CE96EF10C879ADE1EAFDE68D9B70729B24 (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, int32_t ___0_index, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Component_GetComponent_TisImage_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_mE74EE63C85A63FC34DCFC631BC229207B420BC79_RuntimeMethod_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	int32_t V_0 = 0;
+	Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* G_B3_0 = NULL;
+	Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* G_B2_0 = NULL;
+	Color_tD001788D726C3A7F1379BEED0260B9591F440C1F G_B4_0;
+	memset((&G_B4_0), 0, sizeof(G_B4_0));
+	Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* G_B4_1 = NULL;
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:341>
+		int32_t L_0 = ___0_index;
+		__this->___lightingIndex = L_0;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:342>
+		TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360* L_1 = __this->___lightings;
+		int32_t L_2 = ___0_index;
+		NullCheck(L_1);
+		int32_t L_3 = L_2;
+		TCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C* L_4 = (L_1)->GetAt(static_cast<il2cpp_array_size_t>(L_3));
+		NullCheck(L_4);
+		TCP2_Demo_Interactive_Environment_ApplyEnvironment_mFD147601DE9207A3B87DC5F46831570B014FFBDA(L_4, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:344>
+		V_0 = 0;
+		goto IL_004e;
+	}
+
+IL_0018:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:346>
+		ButtonU5BU5D_t0D512FF2FF5A72DAC04754F2C10182F850328BEF* L_5 = __this->___envButtons;
+		int32_t L_6 = V_0;
+		NullCheck(L_5);
+		int32_t L_7 = L_6;
+		Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* L_8 = (L_5)->GetAt(static_cast<il2cpp_array_size_t>(L_7));
+		NullCheck(L_8);
+		Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* L_9;
+		L_9 = Component_GetComponent_TisImage_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_mE74EE63C85A63FC34DCFC631BC229207B420BC79(L_8, Component_GetComponent_TisImage_tBC1D03F63BF71132E9A5E472B8742F172A011E7E_mE74EE63C85A63FC34DCFC631BC229207B420BC79_RuntimeMethod_var);
+		int32_t L_10 = V_0;
+		int32_t L_11 = ___0_index;
+		if ((((int32_t)L_10) == ((int32_t)L_11)))
+		{
+			G_B3_0 = L_9;
+			goto IL_0031;
+		}
+		G_B2_0 = L_9;
+	}
+	{
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_12 = __this->___envButtonColor;
+		G_B4_0 = L_12;
+		G_B4_1 = G_B2_0;
+		goto IL_0045;
+	}
+
+IL_0031:
+	{
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_13;
+		memset((&L_13), 0, sizeof(L_13));
+		Color__ctor_mCD6889CDE39F18704CD6EA8E2EFBFA48BA3E13B0_inline((&L_13), (0.600000024f), (0.200000003f), (0.0f), NULL);
+		G_B4_0 = L_13;
+		G_B4_1 = G_B3_0;
+	}
+
+IL_0045:
+	{
+		NullCheck(G_B4_1);
+		VirtualActionInvoker1< Color_tD001788D726C3A7F1379BEED0260B9591F440C1F >::Invoke(23, G_B4_1, G_B4_0);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:344>
+		int32_t L_14 = V_0;
+		V_0 = ((int32_t)il2cpp_codegen_add(L_14, 1));
+	}
+
+IL_004e:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:344>
+		int32_t L_15 = V_0;
+		ButtonU5BU5D_t0D512FF2FF5A72DAC04754F2C10182F850328BEF* L_16 = __this->___envButtons;
+		NullCheck(L_16);
+		if ((((int32_t)L_15) < ((int32_t)((int32_t)(((RuntimeArray*)L_16)->max_length)))))
+		{
+			goto IL_0018;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:348>
+		return;
+	}
+}
+// Method Definition Index: 72152
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_HideInfoBox_mB1E2031D5C31BDBEEC3837B9377A4F789D5B3502 (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:353>
+		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_0 = __this->___infoBox;
+		NullCheck(L_0);
+		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(L_0, (bool)0, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:354>
+		return;
+	}
+}
+// Method Definition Index: 72153
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive__ctor_m07AA50DA27BC12C2A03BF410FC0CB7E589B53FD6 (TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:25>
+		__this->___camAnimDuration = (0.5f);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:26>
+		__this->___maxCamAnimDuration = (1.0f);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:28>
+		__this->___uiAnimDuration = (0.5f);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:36>
+		__this->___index = (-1);
+		MonoBehaviour__ctor_m592DB0105CA0BC97AA1C5F4AD27B12D68A3B7C1E(__this, NULL);
+		return;
+	}
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+// Method Definition Index: 72154
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void U3CU3Ec__DisplayClass25_0__ctor_m4C6D5957E4AC4E2561D2241FFBFAC517E2E4B825 (U3CU3Ec__DisplayClass25_0_t96646AD8D220C0FE7538DC1A209152C6ADC9F59A* __this, const RuntimeMethod* method) 
+{
+	{
+		Object__ctor_mE837C6B9FA8C6D5D109F4B2EC885D79919AC0EA2(__this, NULL);
+		return;
+	}
+}
+// Method Definition Index: 72155
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void U3CU3Ec__DisplayClass25_0_U3CAwakeU3Eb__0_m6278DEF27CF0FB9CC95E295C10FB722AB6CEA0D2 (U3CU3Ec__DisplayClass25_0_t96646AD8D220C0FE7538DC1A209152C6ADC9F59A* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:80>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_0 = __this->___U3CU3E4__this;
+		int32_t L_1 = __this->___ci;
+		NullCheck(L_0);
+		TCP2_Demo_Interactive_OnSelectLightingSettings_m5FC680CE96EF10C879ADE1EAFDE68D9B70729B24(L_0, L_1, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:80>
+		return;
+	}
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+// Method Definition Index: 72156
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void U3CCR_MoveToContentU3Ed__35__ctor_mE2F7FECAE8FF56B25342F9C3651895198C9B8CE8 (U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6* __this, int32_t ___0_U3CU3E1__state, const RuntimeMethod* method) 
+{
+	{
+		Object__ctor_mE837C6B9FA8C6D5D109F4B2EC885D79919AC0EA2(__this, NULL);
+		int32_t L_0 = ___0_U3CU3E1__state;
+		__this->___U3CU3E1__state = L_0;
+		return;
+	}
+}
+// Method Definition Index: 72157
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void U3CCR_MoveToContentU3Ed__35_System_IDisposable_Dispose_mAFB0146BC13CD2BCCEA173A299C859E10D997B21 (U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6* __this, const RuntimeMethod* method) 
+{
+	{
+		return;
+	}
+}
+// Method Definition Index: 72158
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool U3CCR_MoveToContentU3Ed__35_MoveNext_m626E54FCCAF61D6B791797D1EDF6D3A6DAF52B85 (U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6* __this, const RuntimeMethod* method) 
+{
+	int32_t V_0 = 0;
+	TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* V_1 = NULL;
+	float V_2 = 0.0f;
+	float V_3 = 0.0f;
+	U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6* G_B4_0 = NULL;
+	U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6* G_B3_0 = NULL;
+	float G_B5_0 = 0.0f;
+	U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6* G_B5_1 = NULL;
+	{
+		int32_t L_0 = __this->___U3CU3E1__state;
+		V_0 = L_0;
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_1 = __this->___U3CU3E4__this;
+		V_1 = L_1;
+		int32_t L_2 = V_0;
+		switch (L_2)
+		{
+			case 0:
+			{
+				goto IL_002e;
+			}
+			case 1:
+			{
+				goto IL_0118;
+			}
+			case 2:
+			{
+				goto IL_0245;
+			}
+			case 3:
+			{
+				goto IL_0267;
+			}
+			case 4:
+			{
+				goto IL_02a1;
+			}
+			case 5:
+			{
+				goto IL_031b;
+			}
+		}
+	}
+	{
+		return (bool)0;
+	}
+
+IL_002e:
+	{
+		__this->___U3CU3E1__state = (-1);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:257>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_3 = V_1;
+		NullCheck(L_3);
+		L_3->___coroutineActive = (bool)1;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:260>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_4 = V_1;
+		NullCheck(L_4);
+		Canvas_t2DB4CEFDFF732884866C83F11ABF75F5AE8FFB26* L_5 = L_4->___canvas;
+		NullCheck(L_5);
+		Behaviour_set_enabled_mF1DCFE60EB09E0529FE9476CA804A3AA2D72B16A(L_5, (bool)0, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:265>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_6 = V_1;
+		NullCheck(L_6);
+		Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184* L_7 = L_6->___camera;
+		NullCheck(L_7);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_8;
+		L_8 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(L_7, NULL);
+		NullCheck(L_8);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_9;
+		L_9 = Transform_get_position_m69CD5FA214FDAE7BB701552943674846C220FDE1(L_8, NULL);
+		__this->___U3CstartPosU3E5__2 = L_9;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:266>
+		TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* L_10 = __this->___content;
+		NullCheck(L_10);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_11;
+		L_11 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(L_10, NULL);
+		NullCheck(L_11);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_12;
+		L_12 = Transform_get_position_m69CD5FA214FDAE7BB701552943674846C220FDE1(L_11, NULL);
+		__this->___U3CendPosU3E5__3 = L_12;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:267>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_13 = V_1;
+		NullCheck(L_13);
+		Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184* L_14 = L_13->___camera;
+		NullCheck(L_14);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_15;
+		L_15 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(L_14, NULL);
+		NullCheck(L_15);
+		Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 L_16;
+		L_16 = Transform_get_rotation_m32AF40CA0D50C797DA639A696F8EAEC7524C179C(L_15, NULL);
+		__this->___U3CstartQuatU3E5__4 = L_16;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:268>
+		TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* L_17 = __this->___content;
+		NullCheck(L_17);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_18;
+		L_18 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(L_17, NULL);
+		NullCheck(L_18);
+		Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 L_19;
+		L_19 = Transform_get_rotation_m32AF40CA0D50C797DA639A696F8EAEC7524C179C(L_18, NULL);
+		__this->___U3CendQuatU3E5__5 = L_19;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:270>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_20 = V_1;
+		NullCheck(L_20);
+		bool L_21 = L_20->___camAnimBasedOnDistance;
+		if (L_21)
+		{
+			G_B4_0 = __this;
+			goto IL_00b1;
+		}
+		G_B3_0 = __this;
+	}
+	{
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_22 = V_1;
+		NullCheck(L_22);
+		float L_23 = L_22->___camAnimDuration;
+		G_B5_0 = L_23;
+		G_B5_1 = G_B3_0;
+		goto IL_00c9;
+	}
+
+IL_00b1:
+	{
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_24 = __this->___U3CstartPosU3E5__2;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_25 = __this->___U3CendPosU3E5__3;
+		float L_26;
+		L_26 = Vector3_Distance_m2314DB9B8BD01157E013DF87BEA557375C7F9FF9_inline(L_24, L_25, NULL);
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_27 = V_1;
+		NullCheck(L_27);
+		float L_28 = L_27->___camAnimDuration;
+		G_B5_0 = ((float)il2cpp_codegen_multiply(L_26, L_28));
+		G_B5_1 = G_B4_0;
+	}
+
+IL_00c9:
+	{
+		NullCheck(G_B5_1);
+		G_B5_1->___U3CdurationU3E5__6 = G_B5_0;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:271>
+		float L_29 = __this->___U3CdurationU3E5__6;
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_30 = V_1;
+		NullCheck(L_30);
+		float L_31 = L_30->___maxCamAnimDuration;
+		float L_32;
+		L_32 = Mathf_Min_m747CA71A9483CDB394B13BD0AD048EE17E48FFE4_inline(L_29, L_31, NULL);
+		__this->___U3CdurationU3E5__6 = L_32;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:272>
+		float L_33 = __this->___U3CdurationU3E5__6;
+		__this->___U3CtimeU3E5__7 = L_33;
+		goto IL_018b;
+	}
+
+IL_00f6:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:276>
+		float L_34 = __this->___U3CtimeU3E5__7;
+		float L_35;
+		L_35 = Time_get_deltaTime_mC3195000401F0FD167DD2F948FD2BC58330D0865(NULL);
+		__this->___U3CtimeU3E5__7 = ((float)il2cpp_codegen_subtract(L_34, L_35));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:277>
+		__this->___U3CU3E2__current = NULL;
+		Il2CppCodeGenWriteBarrier((void**)(&__this->___U3CU3E2__current), (void*)NULL);
+		__this->___U3CU3E1__state = 1;
+		return (bool)1;
+	}
+
+IL_0118:
+	{
+		__this->___U3CU3E1__state = (-1);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:279>
+		float L_36 = __this->___U3CtimeU3E5__7;
+		float L_37 = __this->___U3CdurationU3E5__6;
+		float L_38;
+		L_38 = Mathf_Clamp01_mA7E048DBDA832D399A581BE4D6DED9FA44CE0F14_inline(((float)(L_36/L_37)), NULL);
+		float L_39;
+		L_39 = Mathf_SmoothStep_mEFDC738EB0AA162D71013BDBBDD157B080A8E524_inline((0.0f), (1.0f), ((float)il2cpp_codegen_subtract((1.0f), L_38)), NULL);
+		V_2 = L_39;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:280>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_40 = V_1;
+		NullCheck(L_40);
+		Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184* L_41 = L_40->___camera;
+		NullCheck(L_41);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_42;
+		L_42 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(L_41, NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_43 = __this->___U3CstartPosU3E5__2;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_44 = __this->___U3CendPosU3E5__3;
+		float L_45 = V_2;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_46;
+		L_46 = Vector3_Lerp_m3A906D0530A94FAABB94F0F905E84D99BE85C3F8_inline(L_43, L_44, L_45, NULL);
+		NullCheck(L_42);
+		Transform_set_position_mA1A817124BB41B685043DED2A9BA48CDF37C4156(L_42, L_46, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:281>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_47 = V_1;
+		NullCheck(L_47);
+		Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184* L_48 = L_47->___camera;
+		NullCheck(L_48);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_49;
+		L_49 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(L_48, NULL);
+		Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 L_50 = __this->___U3CstartQuatU3E5__4;
+		Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 L_51 = __this->___U3CendQuatU3E5__5;
+		float L_52 = V_2;
+		Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 L_53;
+		L_53 = Quaternion_Slerp_m0A9969F500E7716EA4F6BC4E7D5464372D8E9E15_inline(L_50, L_51, L_52, NULL);
+		NullCheck(L_49);
+		Transform_set_rotation_m61340DE74726CF0F9946743A727C4D444397331D(L_49, L_53, NULL);
+	}
+
+IL_018b:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:274>
+		float L_54 = __this->___U3CtimeU3E5__7;
+		if ((((float)L_54) > ((float)(0.0f))))
+		{
+			goto IL_00f6;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:284>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_55 = V_1;
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_56 = V_1;
+		NullCheck(L_56);
+		TCP2_Demo_Interactive_ContentU5BU5D_tB79AA6CDA4494B6C8747A1728F83BC2310EB9194* L_57 = L_56->___contents;
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_58 = V_1;
+		NullCheck(L_58);
+		int32_t L_59 = L_58->___index;
+		NullCheck(L_57);
+		int32_t L_60 = L_59;
+		TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* L_61 = (L_57)->GetAt(static_cast<il2cpp_array_size_t>(L_60));
+		NullCheck(L_55);
+		L_55->___currentContent = L_61;
+		Il2CppCodeGenWriteBarrier((void**)(&L_55->___currentContent), (void*)L_61);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:285>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_62 = V_1;
+		NullCheck(L_62);
+		Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184* L_63 = L_62->___camera;
+		NullCheck(L_63);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_64;
+		L_64 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(L_63, NULL);
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_65 = V_1;
+		NullCheck(L_65);
+		TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* L_66 = L_65->___currentContent;
+		NullCheck(L_66);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_67;
+		L_67 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(L_66, NULL);
+		NullCheck(L_67);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_68;
+		L_68 = Transform_get_position_m69CD5FA214FDAE7BB701552943674846C220FDE1(L_67, NULL);
+		NullCheck(L_64);
+		Transform_set_position_mA1A817124BB41B685043DED2A9BA48CDF37C4156(L_64, L_68, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:286>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_69 = V_1;
+		NullCheck(L_69);
+		Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184* L_70 = L_69->___camera;
+		NullCheck(L_70);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_71;
+		L_71 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(L_70, NULL);
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_72 = V_1;
+		NullCheck(L_72);
+		TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* L_73 = L_72->___currentContent;
+		NullCheck(L_73);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_74;
+		L_74 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(L_73, NULL);
+		NullCheck(L_74);
+		Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 L_75;
+		L_75 = Transform_get_rotation_m32AF40CA0D50C797DA639A696F8EAEC7524C179C(L_74, NULL);
+		NullCheck(L_71);
+		Transform_set_rotation_m61340DE74726CF0F9946743A727C4D444397331D(L_71, L_75, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:287>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_76 = V_1;
+		NullCheck(L_76);
+		TCP2_Demo_Camera_t345524DB7C1DBEBBAAA2835D524355C0B47FCA68* L_77 = L_76->___demoCamera;
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_78 = V_1;
+		NullCheck(L_78);
+		TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* L_79 = L_78->___currentContent;
+		NullCheck(L_79);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_80 = L_79->___pivot;
+		NullCheck(L_77);
+		L_77->___Pivot = L_80;
+		Il2CppCodeGenWriteBarrier((void**)(&L_77->___Pivot), (void*)L_80);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:288>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_81 = V_1;
+		NullCheck(L_81);
+		TCP2_Demo_Camera_t345524DB7C1DBEBBAAA2835D524355C0B47FCA68* L_82 = L_81->___demoCamera;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_83;
+		L_83 = Vector3_get_zero_m0C1249C3F25B1C70EAD3CC8B31259975A457AE39_inline(NULL);
+		NullCheck(L_82);
+		L_82->___pivotOffset = L_83;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:289>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_84 = V_1;
+		NullCheck(L_84);
+		Text_tD60B2346DAA6666BF0D822FF607F0B220C2B9E62* L_85 = L_84->___text;
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_86 = V_1;
+		NullCheck(L_86);
+		TCP2_Demo_Interactive_Content_t2E4F12558B8DF88979CBDEC5231CD89C2DF54AE4* L_87 = L_86->___currentContent;
+		NullCheck(L_87);
+		String_t* L_88 = L_87->___Text;
+		NullCheck(L_85);
+		VirtualActionInvoker1< String_t* >::Invoke(75, L_85, L_88);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:291>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_89 = V_1;
+		NullCheck(L_89);
+		TCP2_Demo_Interactive_UpdateViewToCurrentContent_m522349C9F6D20CDDC63EA3E3C68F8C9E4A9474B0(L_89, (0.0f), NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:292>
+		__this->___U3CU3E2__current = NULL;
+		Il2CppCodeGenWriteBarrier((void**)(&__this->___U3CU3E2__current), (void*)NULL);
+		__this->___U3CU3E1__state = 2;
+		return (bool)1;
+	}
+
+IL_0245:
+	{
+		__this->___U3CU3E1__state = (-1);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:293>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_90 = V_1;
+		NullCheck(L_90);
+		TCP2_Demo_Interactive_UpdateViewToCurrentContent_m522349C9F6D20CDDC63EA3E3C68F8C9E4A9474B0(L_90, (0.0f), NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:294>
+		__this->___U3CU3E2__current = NULL;
+		Il2CppCodeGenWriteBarrier((void**)(&__this->___U3CU3E2__current), (void*)NULL);
+		__this->___U3CU3E1__state = 3;
+		return (bool)1;
+	}
+
+IL_0267:
+	{
+		__this->___U3CU3E1__state = (-1);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:295>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_91 = V_1;
+		NullCheck(L_91);
+		TCP2_Demo_Interactive_UpdateViewToCurrentContent_m522349C9F6D20CDDC63EA3E3C68F8C9E4A9474B0(L_91, (0.0f), NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:300>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_92 = V_1;
+		NullCheck(L_92);
+		HorizontalLayoutGroup_t615DFEC1382E2E207BC9CBAA9A511F7ED93965BA* L_93 = L_92->___layoutGroup;
+		NullCheck(L_93);
+		Behaviour_set_enabled_mF1DCFE60EB09E0529FE9476CA804A3AA2D72B16A(L_93, (bool)1, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:301>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_94 = V_1;
+		NullCheck(L_94);
+		ContentSizeFitter_tC40AED5F772F1F140F69E0F1BB7D4AE31D64A87B* L_95 = L_94->___sizeFitter;
+		NullCheck(L_95);
+		Behaviour_set_enabled_mF1DCFE60EB09E0529FE9476CA804A3AA2D72B16A(L_95, (bool)1, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:303>
+		__this->___U3CU3E2__current = NULL;
+		Il2CppCodeGenWriteBarrier((void**)(&__this->___U3CU3E2__current), (void*)NULL);
+		__this->___U3CU3E1__state = 4;
+		return (bool)1;
+	}
+
+IL_02a1:
+	{
+		__this->___U3CU3E1__state = (-1);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:306>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_96 = V_1;
+		NullCheck(L_96);
+		HorizontalLayoutGroup_t615DFEC1382E2E207BC9CBAA9A511F7ED93965BA* L_97 = L_96->___layoutGroup;
+		NullCheck(L_97);
+		Behaviour_set_enabled_mF1DCFE60EB09E0529FE9476CA804A3AA2D72B16A(L_97, (bool)0, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:307>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_98 = V_1;
+		NullCheck(L_98);
+		ContentSizeFitter_tC40AED5F772F1F140F69E0F1BB7D4AE31D64A87B* L_99 = L_98->___sizeFitter;
+		NullCheck(L_99);
+		Behaviour_set_enabled_mF1DCFE60EB09E0529FE9476CA804A3AA2D72B16A(L_99, (bool)0, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:310>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_100 = V_1;
+		NullCheck(L_100);
+		Canvas_t2DB4CEFDFF732884866C83F11ABF75F5AE8FFB26* L_101 = L_100->___canvas;
+		NullCheck(L_101);
+		Behaviour_set_enabled_mF1DCFE60EB09E0529FE9476CA804A3AA2D72B16A(L_101, (bool)1, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:315>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_102 = V_1;
+		NullCheck(L_102);
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_103 = L_102->___textBox;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_104;
+		L_104 = Vector3_get_zero_m0C1249C3F25B1C70EAD3CC8B31259975A457AE39_inline(NULL);
+		NullCheck(L_103);
+		Transform_set_localScale_mBA79E811BAF6C47B80FF76414C12B47B3CD03633(L_103, L_104, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:317>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_105 = V_1;
+		NullCheck(L_105);
+		float L_106 = L_105->___uiAnimDuration;
+		__this->___U3CdurationU3E5__6 = L_106;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:318>
+		float L_107 = __this->___U3CdurationU3E5__6;
+		__this->___U3CtimeU3E5__7 = L_107;
+		goto IL_03b2;
+	}
+
+IL_02f9:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:321>
+		float L_108 = __this->___U3CtimeU3E5__7;
+		float L_109;
+		L_109 = Time_get_deltaTime_mC3195000401F0FD167DD2F948FD2BC58330D0865(NULL);
+		__this->___U3CtimeU3E5__7 = ((float)il2cpp_codegen_subtract(L_108, L_109));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:322>
+		__this->___U3CU3E2__current = NULL;
+		Il2CppCodeGenWriteBarrier((void**)(&__this->___U3CU3E2__current), (void*)NULL);
+		__this->___U3CU3E1__state = 5;
+		return (bool)1;
+	}
+
+IL_031b:
+	{
+		__this->___U3CU3E1__state = (-1);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:324>
+		float L_110 = __this->___U3CtimeU3E5__7;
+		float L_111 = __this->___U3CdurationU3E5__6;
+		float L_112;
+		L_112 = Mathf_Clamp01_mA7E048DBDA832D399A581BE4D6DED9FA44CE0F14_inline(((float)(L_110/L_111)), NULL);
+		float L_113;
+		L_113 = Mathf_SmoothStep_mEFDC738EB0AA162D71013BDBBDD157B080A8E524_inline((0.0f), (1.0f), ((float)il2cpp_codegen_subtract((1.0f), L_112)), NULL);
+		V_3 = L_113;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:327>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_114 = V_1;
+		NullCheck(L_114);
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_115 = L_114->___textBox;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_116;
+		L_116 = Vector3_get_zero_m0C1249C3F25B1C70EAD3CC8B31259975A457AE39_inline(NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_117;
+		L_117 = Vector3_get_one_mC9B289F1E15C42C597180C9FE6FB492495B51D02_inline(NULL);
+		float L_118 = V_3;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_119;
+		L_119 = Vector3_Lerp_m3A906D0530A94FAABB94F0F905E84D99BE85C3F8_inline(L_116, L_117, L_118, NULL);
+		NullCheck(L_115);
+		Transform_set_localScale_mBA79E811BAF6C47B80FF76414C12B47B3CD03633(L_115, L_119, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:328>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_120 = V_1;
+		NullCheck(L_120);
+		Image_tBC1D03F63BF71132E9A5E472B8742F172A011E7E* L_121 = L_120->___line;
+		NullCheck(L_121);
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_122;
+		L_122 = Graphic_get_rectTransform_mF4752E8934267D630810E84CE02CDFB81EB1FD6D(L_121, NULL);
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_123 = V_1;
+		NullCheck(L_123);
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_124 = L_123->___textBox;
+		NullCheck(L_124);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_125;
+		L_125 = Transform_get_localScale_m804A002A53A645CDFCD15BB0F37209162720363F(L_124, NULL);
+		float L_126 = L_125.___x;
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_127 = V_1;
+		NullCheck(L_127);
+		RectTransform_t6C5DA5E41A89E0F488B001E45E58963480E543A5* L_128 = L_127->___textBox;
+		NullCheck(L_128);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_129;
+		L_129 = Transform_get_localScale_m804A002A53A645CDFCD15BB0F37209162720363F(L_128, NULL);
+		float L_130 = L_129.___y;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_131;
+		memset((&L_131), 0, sizeof(L_131));
+		Vector3__ctor_m376936E6B999EF1ECBE57D990A386303E2283DE0_inline((&L_131), ((float)((1.0f)/L_126)), ((float)((1.0f)/L_130)), (1.0f), NULL);
+		NullCheck(L_122);
+		Transform_set_localScale_mBA79E811BAF6C47B80FF76414C12B47B3CD03633(L_122, L_131, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:331>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_132 = V_1;
+		float L_133 = V_3;
+		NullCheck(L_132);
+		TCP2_Demo_Interactive_UpdateViewToCurrentContent_m522349C9F6D20CDDC63EA3E3C68F8C9E4A9474B0(L_132, L_133, NULL);
+	}
+
+IL_03b2:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:319>
+		float L_134 = __this->___U3CtimeU3E5__7;
+		if ((((float)L_134) > ((float)(0.0f))))
+		{
+			goto IL_02f9;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:336>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_135 = V_1;
+		NullCheck(L_135);
+		L_135->___coroutineActive = (bool)0;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:337>
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72159
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* U3CCR_MoveToContentU3Ed__35_System_Collections_Generic_IEnumeratorU3CSystem_ObjectU3E_get_Current_m37F75E4132672F55F267C3E8E82637B1AD5F15D3 (U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6* __this, const RuntimeMethod* method) 
+{
+	{
+		RuntimeObject* L_0 = __this->___U3CU3E2__current;
+		return L_0;
+	}
+}
+// Method Definition Index: 72160
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void U3CCR_MoveToContentU3Ed__35_System_Collections_IEnumerator_Reset_m73046DDC2212AA340B99D7E6858AFF1F8546D46C (U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6* __this, const RuntimeMethod* method) 
+{
+	{
+		NotSupportedException_t1429765983D409BD2986508963C98D214E4EBF4A* L_0 = (NotSupportedException_t1429765983D409BD2986508963C98D214E4EBF4A*)il2cpp_codegen_object_new(((RuntimeClass*)il2cpp_codegen_initialize_runtime_metadata_inline((uintptr_t*)&NotSupportedException_t1429765983D409BD2986508963C98D214E4EBF4A_il2cpp_TypeInfo_var)));
+		NotSupportedException__ctor_m1398D0CDE19B36AA3DE9392879738C1EA2439CDF(L_0, NULL);
+		IL2CPP_RAISE_MANAGED_EXCEPTION(L_0, ((RuntimeMethod*)il2cpp_codegen_initialize_runtime_metadata_inline((uintptr_t*)&U3CCR_MoveToContentU3Ed__35_System_Collections_IEnumerator_Reset_m73046DDC2212AA340B99D7E6858AFF1F8546D46C_RuntimeMethod_var)));
+	}
+}
+// Method Definition Index: 72161
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* U3CCR_MoveToContentU3Ed__35_System_Collections_IEnumerator_get_Current_m0D15BD881C81694302E1B7676B24979DEA8DE762 (U3CCR_MoveToContentU3Ed__35_t0C1DF0349A093B8C852D10F371DAAF0A96D5DAE6* __this, const RuntimeMethod* method) 
+{
+	{
+		RuntimeObject* L_0 = __this->___U3CU3E2__current;
+		return L_0;
+	}
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+// Method Definition Index: 72162
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void U3CCR_ResetCamPosU3Ed__33__ctor_m4E348FAA43126971717AEF9E1EA1EC9FA7022FEA (U3CCR_ResetCamPosU3Ed__33_tE8294FA068A29CD7E6B87DBFFDB551AB64260BEE* __this, int32_t ___0_U3CU3E1__state, const RuntimeMethod* method) 
+{
+	{
+		Object__ctor_mE837C6B9FA8C6D5D109F4B2EC885D79919AC0EA2(__this, NULL);
+		int32_t L_0 = ___0_U3CU3E1__state;
+		__this->___U3CU3E1__state = L_0;
+		return;
+	}
+}
+// Method Definition Index: 72163
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void U3CCR_ResetCamPosU3Ed__33_System_IDisposable_Dispose_mA34BBC37E7CF77DE2274E4E3B870DD1CF9CB03C6 (U3CCR_ResetCamPosU3Ed__33_tE8294FA068A29CD7E6B87DBFFDB551AB64260BEE* __this, const RuntimeMethod* method) 
+{
+	{
+		return;
+	}
+}
+// Method Definition Index: 72164
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool U3CCR_ResetCamPosU3Ed__33_MoveNext_m76DBA9415DE3CFF9BE3165960CF42B19BDB46845 (U3CCR_ResetCamPosU3Ed__33_tE8294FA068A29CD7E6B87DBFFDB551AB64260BEE* __this, const RuntimeMethod* method) 
+{
+	int32_t V_0 = 0;
+	TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* V_1 = NULL;
+	float V_2 = 0.0f;
+	U3CCR_ResetCamPosU3Ed__33_tE8294FA068A29CD7E6B87DBFFDB551AB64260BEE* G_B5_0 = NULL;
+	U3CCR_ResetCamPosU3Ed__33_tE8294FA068A29CD7E6B87DBFFDB551AB64260BEE* G_B4_0 = NULL;
+	float G_B6_0 = 0.0f;
+	U3CCR_ResetCamPosU3Ed__33_tE8294FA068A29CD7E6B87DBFFDB551AB64260BEE* G_B6_1 = NULL;
+	{
+		int32_t L_0 = __this->___U3CU3E1__state;
+		V_0 = L_0;
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_1 = __this->___U3CU3E4__this;
+		V_1 = L_1;
+		int32_t L_2 = V_0;
+		if (!L_2)
+		{
+			goto IL_001a;
+		}
+	}
+	{
+		int32_t L_3 = V_0;
+		if ((((int32_t)L_3) == ((int32_t)1)))
+		{
+			goto IL_00fe;
+		}
+	}
+	{
+		return (bool)0;
+	}
+
+IL_001a:
+	{
+		__this->___U3CU3E1__state = (-1);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:231>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_4 = V_1;
+		NullCheck(L_4);
+		TCP2_Demo_Camera_t345524DB7C1DBEBBAAA2835D524355C0B47FCA68* L_5 = L_4->___demoCamera;
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_6 = V_1;
+		NullCheck(L_6);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_7 = L_6->___resetPivot;
+		NullCheck(L_5);
+		L_5->___Pivot = L_7;
+		Il2CppCodeGenWriteBarrier((void**)(&L_5->___Pivot), (void*)L_7);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:232>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_8 = V_1;
+		NullCheck(L_8);
+		TCP2_Demo_Camera_t345524DB7C1DBEBBAAA2835D524355C0B47FCA68* L_9 = L_8->___demoCamera;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_10;
+		L_10 = Vector3_get_zero_m0C1249C3F25B1C70EAD3CC8B31259975A457AE39_inline(NULL);
+		NullCheck(L_9);
+		L_9->___pivotOffset = L_10;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:234>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_11 = V_1;
+		NullCheck(L_11);
+		Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184* L_12 = L_11->___camera;
+		NullCheck(L_12);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_13;
+		L_13 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(L_12, NULL);
+		NullCheck(L_13);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_14;
+		L_14 = Transform_get_position_m69CD5FA214FDAE7BB701552943674846C220FDE1(L_13, NULL);
+		__this->___U3CstartPosU3E5__2 = L_14;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:235>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_15 = V_1;
+		NullCheck(L_15);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_16 = L_15->___cameraResetPos;
+		__this->___U3CendPosU3E5__3 = L_16;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:236>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_17 = V_1;
+		NullCheck(L_17);
+		Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184* L_18 = L_17->___camera;
+		NullCheck(L_18);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_19;
+		L_19 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(L_18, NULL);
+		NullCheck(L_19);
+		Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 L_20;
+		L_20 = Transform_get_rotation_m32AF40CA0D50C797DA639A696F8EAEC7524C179C(L_19, NULL);
+		__this->___U3CstartQuatU3E5__4 = L_20;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:237>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_21 = V_1;
+		NullCheck(L_21);
+		Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 L_22 = L_21->___cameraResetQuat;
+		__this->___U3CendQuatU3E5__5 = L_22;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:239>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_23 = V_1;
+		NullCheck(L_23);
+		bool L_24 = L_23->___camAnimBasedOnDistance;
+		if (L_24)
+		{
+			G_B5_0 = __this;
+			goto IL_0097;
+		}
+		G_B4_0 = __this;
+	}
+	{
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_25 = V_1;
+		NullCheck(L_25);
+		float L_26 = L_25->___camAnimDuration;
+		G_B6_0 = L_26;
+		G_B6_1 = G_B4_0;
+		goto IL_00af;
+	}
+
+IL_0097:
+	{
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_27 = __this->___U3CstartPosU3E5__2;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_28 = __this->___U3CendPosU3E5__3;
+		float L_29;
+		L_29 = Vector3_Distance_m2314DB9B8BD01157E013DF87BEA557375C7F9FF9_inline(L_27, L_28, NULL);
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_30 = V_1;
+		NullCheck(L_30);
+		float L_31 = L_30->___camAnimDuration;
+		G_B6_0 = ((float)il2cpp_codegen_multiply(L_29, L_31));
+		G_B6_1 = G_B5_0;
+	}
+
+IL_00af:
+	{
+		NullCheck(G_B6_1);
+		G_B6_1->___U3CdurationU3E5__6 = G_B6_0;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:240>
+		float L_32 = __this->___U3CdurationU3E5__6;
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_33 = V_1;
+		NullCheck(L_33);
+		float L_34 = L_33->___maxCamAnimDuration;
+		float L_35;
+		L_35 = Mathf_Min_m747CA71A9483CDB394B13BD0AD048EE17E48FFE4_inline(L_32, L_34, NULL);
+		__this->___U3CdurationU3E5__6 = L_35;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:241>
+		float L_36 = __this->___U3CdurationU3E5__6;
+		__this->___U3CtimeU3E5__7 = L_36;
+		goto IL_0171;
+	}
+
+IL_00dc:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:245>
+		float L_37 = __this->___U3CtimeU3E5__7;
+		float L_38;
+		L_38 = Time_get_deltaTime_mC3195000401F0FD167DD2F948FD2BC58330D0865(NULL);
+		__this->___U3CtimeU3E5__7 = ((float)il2cpp_codegen_subtract(L_37, L_38));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:246>
+		__this->___U3CU3E2__current = NULL;
+		Il2CppCodeGenWriteBarrier((void**)(&__this->___U3CU3E2__current), (void*)NULL);
+		__this->___U3CU3E1__state = 1;
+		return (bool)1;
+	}
+
+IL_00fe:
+	{
+		__this->___U3CU3E1__state = (-1);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:248>
+		float L_39 = __this->___U3CtimeU3E5__7;
+		float L_40 = __this->___U3CdurationU3E5__6;
+		float L_41;
+		L_41 = Mathf_Clamp01_mA7E048DBDA832D399A581BE4D6DED9FA44CE0F14_inline(((float)(L_39/L_40)), NULL);
+		float L_42;
+		L_42 = Mathf_SmoothStep_mEFDC738EB0AA162D71013BDBBDD157B080A8E524_inline((0.0f), (1.0f), ((float)il2cpp_codegen_subtract((1.0f), L_41)), NULL);
+		V_2 = L_42;
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:249>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_43 = V_1;
+		NullCheck(L_43);
+		Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184* L_44 = L_43->___camera;
+		NullCheck(L_44);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_45;
+		L_45 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(L_44, NULL);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_46 = __this->___U3CstartPosU3E5__2;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_47 = __this->___U3CendPosU3E5__3;
+		float L_48 = V_2;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_49;
+		L_49 = Vector3_Lerp_m3A906D0530A94FAABB94F0F905E84D99BE85C3F8_inline(L_46, L_47, L_48, NULL);
+		NullCheck(L_45);
+		Transform_set_position_mA1A817124BB41B685043DED2A9BA48CDF37C4156(L_45, L_49, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:250>
+		TCP2_Demo_Interactive_tC61436914EAA6C0565B259DD504E24DD23DD4A06* L_50 = V_1;
+		NullCheck(L_50);
+		Camera_tA92CC927D7439999BC82DBEDC0AA45B470F9E184* L_51 = L_50->___camera;
+		NullCheck(L_51);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_52;
+		L_52 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(L_51, NULL);
+		Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 L_53 = __this->___U3CstartQuatU3E5__4;
+		Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 L_54 = __this->___U3CendQuatU3E5__5;
+		float L_55 = V_2;
+		Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 L_56;
+		L_56 = Quaternion_Slerp_m0A9969F500E7716EA4F6BC4E7D5464372D8E9E15_inline(L_53, L_54, L_55, NULL);
+		NullCheck(L_52);
+		Transform_set_rotation_m61340DE74726CF0F9946743A727C4D444397331D(L_52, L_56, NULL);
+	}
+
+IL_0171:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:243>
+		float L_57 = __this->___U3CtimeU3E5__7;
+		if ((((float)L_57) > ((float)(0.0f))))
+		{
+			goto IL_00dc;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive.cs:252>
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72165
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* U3CCR_ResetCamPosU3Ed__33_System_Collections_Generic_IEnumeratorU3CSystem_ObjectU3E_get_Current_m5BA64DBE87F8C31F4908BDC9EB61306F51BA8293 (U3CCR_ResetCamPosU3Ed__33_tE8294FA068A29CD7E6B87DBFFDB551AB64260BEE* __this, const RuntimeMethod* method) 
+{
+	{
+		RuntimeObject* L_0 = __this->___U3CU3E2__current;
+		return L_0;
+	}
+}
+// Method Definition Index: 72166
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void U3CCR_ResetCamPosU3Ed__33_System_Collections_IEnumerator_Reset_m2EBC8F50A8E4F83637CC47BE0BF9C544A6FF6DC4 (U3CCR_ResetCamPosU3Ed__33_tE8294FA068A29CD7E6B87DBFFDB551AB64260BEE* __this, const RuntimeMethod* method) 
+{
+	{
+		NotSupportedException_t1429765983D409BD2986508963C98D214E4EBF4A* L_0 = (NotSupportedException_t1429765983D409BD2986508963C98D214E4EBF4A*)il2cpp_codegen_object_new(((RuntimeClass*)il2cpp_codegen_initialize_runtime_metadata_inline((uintptr_t*)&NotSupportedException_t1429765983D409BD2986508963C98D214E4EBF4A_il2cpp_TypeInfo_var)));
+		NotSupportedException__ctor_m1398D0CDE19B36AA3DE9392879738C1EA2439CDF(L_0, NULL);
+		IL2CPP_RAISE_MANAGED_EXCEPTION(L_0, ((RuntimeMethod*)il2cpp_codegen_initialize_runtime_metadata_inline((uintptr_t*)&U3CCR_ResetCamPosU3Ed__33_System_Collections_IEnumerator_Reset_m2EBC8F50A8E4F83637CC47BE0BF9C544A6FF6DC4_RuntimeMethod_var)));
+	}
+}
+// Method Definition Index: 72167
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* U3CCR_ResetCamPosU3Ed__33_System_Collections_IEnumerator_get_Current_m3037B2710B6A1DD694AA325F7EDF36B8247904ED (U3CCR_ResetCamPosU3Ed__33_tE8294FA068A29CD7E6B87DBFFDB551AB64260BEE* __this, const RuntimeMethod* method) 
+{
+	{
+		RuntimeObject* L_0 = __this->___U3CU3E2__current;
+		return L_0;
+	}
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+// Method Definition Index: 72168
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_Environment_ApplyEnvironment_mFD147601DE9207A3B87DC5F46831570B014FFBDA (TCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C* __this, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Application_tDB03BE91CDF0ACA614A5E0B67CFB77C44EB19B21_il2cpp_TypeInfo_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Component_GetComponentsInChildren_TisTCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C_m6968347F8776206E7FB4B6A6FB692471ABC012D4_RuntimeMethod_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Cubemap_t4F2DFF70696A5CB5C1695DF8947CC60D718C4A1C_il2cpp_TypeInfo_var);
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&_stringLiteral01751C0E97110EDEF84FF041AF6DB629B27EFE56);
+		s_Il2CppMethodInitialized = true;
+	}
+	TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360* V_0 = NULL;
+	int32_t V_1 = 0;
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive_Environment.cs:16>
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_0;
+		L_0 = Component_get_transform_m2919A1D81931E6932C7F06D4C2F0AB8DDA9A5371(__this, NULL);
+		NullCheck(L_0);
+		Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* L_1;
+		L_1 = Transform_get_parent_m65354E28A4C94EC00EBCF03532F7B0718380791E(L_0, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive_Environment.cs:17>
+		NullCheck(L_1);
+		TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360* L_2;
+		L_2 = Component_GetComponentsInChildren_TisTCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C_m6968347F8776206E7FB4B6A6FB692471ABC012D4(L_1, Component_GetComponentsInChildren_TisTCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C_m6968347F8776206E7FB4B6A6FB692471ABC012D4_RuntimeMethod_var);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive_Environment.cs:18>
+		V_0 = L_2;
+		V_1 = 0;
+		goto IL_0027;
+	}
+
+IL_0015:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive_Environment.cs:18>
+		TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360* L_3 = V_0;
+		int32_t L_4 = V_1;
+		NullCheck(L_3);
+		int32_t L_5 = L_4;
+		TCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C* L_6 = (L_3)->GetAt(static_cast<il2cpp_array_size_t>(L_5));
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive_Environment.cs:20>
+		NullCheck(L_6);
+		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_7;
+		L_7 = Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B(L_6, NULL);
+		NullCheck(L_7);
+		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(L_7, (bool)0, NULL);
+		int32_t L_8 = V_1;
+		V_1 = ((int32_t)il2cpp_codegen_add(L_8, 1));
+	}
+
+IL_0027:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive_Environment.cs:18>
+		int32_t L_9 = V_1;
+		TCP2_Demo_Interactive_EnvironmentU5BU5D_t9236CCE32B8023DB6CE89DE9F606FBD1ADC6B360* L_10 = V_0;
+		NullCheck(L_10);
+		if ((((int32_t)L_9) < ((int32_t)((int32_t)(((RuntimeArray*)L_10)->max_length)))))
+		{
+			goto IL_0015;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive_Environment.cs:23>
+		GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* L_11;
+		L_11 = Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B(__this, NULL);
+		NullCheck(L_11);
+		GameObject_SetActive_m638E92E1E75E519E5B24CF150B08CA8E0CDFAB92(L_11, (bool)1, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive_Environment.cs:24>
+		Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* L_12 = __this->___skybox;
+		RenderSettings_set_skybox_m7988CC3217B1456CA0A7294127527BFC18EEC872(L_12, NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive_Environment.cs:26>
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive_Environment.cs:27>
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive_Environment.cs:28>
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive_Environment.cs:29>
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive_Environment.cs:30>
+		Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* L_13 = __this->___skybox;
+		NullCheck(L_13);
+		Texture_t791CBB51219779964E0E8A2ED7C1AA5F92A4A700* L_14;
+		L_14 = Material_GetTexture_mBA07A377A7DDD29CD53E6F687DE6D49A42C0C719(L_13, _stringLiteral01751C0E97110EDEF84FF041AF6DB629B27EFE56, NULL);
+		RenderSettings_set_customReflectionTexture_m384360FA35AA855AF9579D0A8B68EE6BDCFC9DB3(((Cubemap_t4F2DFF70696A5CB5C1695DF8947CC60D718C4A1C*)CastclassSealed((RuntimeObject*)L_14, Cubemap_t4F2DFF70696A5CB5C1695DF8947CC60D718C4A1C_il2cpp_TypeInfo_var)), NULL);
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive_Environment.cs:32>
+		il2cpp_codegen_runtime_class_init_inline(Application_tDB03BE91CDF0ACA614A5E0B67CFB77C44EB19B21_il2cpp_TypeInfo_var);
+		bool L_15;
+		L_15 = Application_get_isPlaying_m25B0ABDFEF54F5370CD3F263A813540843D00F34(NULL);
+		if (!L_15)
+		{
+			goto IL_006a;
+		}
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive_Environment.cs:34>
+		DynamicGI_UpdateEnvironment_m70AC224196548AC7A7FD7E6182591F692E98CF06(NULL);
+	}
+
+IL_006a:
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_Demo_Interactive_Environment.cs:36>
+		return;
+	}
+}
+// Method Definition Index: 72169
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void TCP2_Demo_Interactive_Environment__ctor_mE1E4C2002A9B22C3D7432D867C4709F6497837C3 (TCP2_Demo_Interactive_Environment_t97A2599842EF43C410AE96FFE78E368137B8DF6C* __this, const RuntimeMethod* method) 
+{
+	{
+		MonoBehaviour__ctor_m592DB0105CA0BC97AA1C5F4AD27B12D68A3B7C1E(__this, NULL);
+		return;
+	}
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+// Method Definition Index: 72170
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_Delete_mF7B1924E7D3B83B13DBF776AC39E315590016753 (const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:14>
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_0;
+		L_0 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		if (!L_0)
+		{
+			goto IL_0017;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_1;
+		L_1 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_1);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_2;
+		L_2 = Keyboard_get_deleteKey_m7C5F02CBAD407FAEE6555425E300C9C34E6A5242(L_1, NULL);
+		NullCheck(L_2);
+		bool L_3;
+		L_3 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_2, NULL);
+		return L_3;
+	}
+
+IL_0017:
+	{
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72171
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_Escape_mC8BDF09A982DEB3B6ABAEAA22F1989666C45704D (const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:15>
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_0;
+		L_0 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		if (!L_0)
+		{
+			goto IL_0017;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_1;
+		L_1 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_1);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_2;
+		L_2 = Keyboard_get_escapeKey_mA4371467E72AA14713681C30A9B3AC41F3C9D707(L_1, NULL);
+		NullCheck(L_2);
+		bool L_3;
+		L_3 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_2, NULL);
+		return L_3;
+	}
+
+IL_0017:
+	{
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72172
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_RightArrow_m4FD79FDE408B0BF682C510C8591F66487FD1A0B1 (const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:16>
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_0;
+		L_0 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		if (!L_0)
+		{
+			goto IL_0017;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_1;
+		L_1 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_1);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_2;
+		L_2 = Keyboard_get_rightArrowKey_mECEFE3645349708104CB154806BD4F04F24B3439(L_1, NULL);
+		NullCheck(L_2);
+		bool L_3;
+		L_3 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_2, NULL);
+		return L_3;
+	}
+
+IL_0017:
+	{
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72173
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_LeftArrow_mE1BA9E2C68F890C9B7B652B3D3AE01D91340B891 (const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:17>
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_0;
+		L_0 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		if (!L_0)
+		{
+			goto IL_0017;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_1;
+		L_1 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_1);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_2;
+		L_2 = Keyboard_get_leftArrowKey_m892B16258F44B124B9ECC1D6F0EB53E9947597EB(L_1, NULL);
+		NullCheck(L_2);
+		bool L_3;
+		L_3 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_2, NULL);
+		return L_3;
+	}
+
+IL_0017:
+	{
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72174
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_Tab_m1BD864699C69D9F73EE5731DA0252ABBB10C66C6 (const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:18>
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_0;
+		L_0 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		if (!L_0)
+		{
+			goto IL_0017;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_1;
+		L_1 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_1);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_2;
+		L_2 = Keyboard_get_tabKey_mB8D8CA9803AD3BD0C58A51B7D4E1A3E4B625AC38(L_1, NULL);
+		NullCheck(L_2);
+		bool L_3;
+		L_3 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_2, NULL);
+		return L_3;
+	}
+
+IL_0017:
+	{
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72175
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_H_mA2B47744EE3E73C07C73B94D50434E1592E570C5 (const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:19>
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_0;
+		L_0 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		if (!L_0)
+		{
+			goto IL_0017;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_1;
+		L_1 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_1);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_2;
+		L_2 = Keyboard_get_hKey_m3174CBE2187E080C75E20167DCD3EC8F9265822B(L_1, NULL);
+		NullCheck(L_2);
+		bool L_3;
+		L_3 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_2, NULL);
+		return L_3;
+	}
+
+IL_0017:
+	{
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72176
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_R_m046201A1D9D63F8762A82DBFA5930FE2BA8DE8CA (const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:20>
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_0;
+		L_0 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		if (!L_0)
+		{
+			goto IL_0017;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_1;
+		L_1 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_1);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_2;
+		L_2 = Keyboard_get_rKey_mB8A3122E9EA7EF4FFB24B4DDFC25CFF4D2EDABAC(L_1, NULL);
+		NullCheck(L_2);
+		bool L_3;
+		L_3 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_2, NULL);
+		return L_3;
+	}
+
+IL_0017:
+	{
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72177
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_1_m2752D1134852B4D76B4EB766FC92AF2EA150FBF9 (const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:22>
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_0;
+		L_0 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		if (!L_0)
+		{
+			goto IL_002a;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_1;
+		L_1 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_1);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_2;
+		L_2 = Keyboard_get_digit1Key_mF14196ECA5F74A57E43B84F5D225757C762724F5(L_1, NULL);
+		NullCheck(L_2);
+		bool L_3;
+		L_3 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_2, NULL);
+		if (L_3)
+		{
+			goto IL_0028;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_4;
+		L_4 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_4);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_5;
+		L_5 = Keyboard_get_numpad1Key_m253A012ADACBDFECBC08DA75B8A3A06132C6BD9D(L_4, NULL);
+		NullCheck(L_5);
+		bool L_6;
+		L_6 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_5, NULL);
+		return L_6;
+	}
+
+IL_0028:
+	{
+		return (bool)1;
+	}
+
+IL_002a:
+	{
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72178
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_2_m849055AC5D3C83E8DE3559CF0A98C19D089AEF63 (const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:23>
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_0;
+		L_0 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		if (!L_0)
+		{
+			goto IL_002a;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_1;
+		L_1 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_1);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_2;
+		L_2 = Keyboard_get_digit2Key_mC32B4CA11662D54938BCA30AF16F9A4C995458E8(L_1, NULL);
+		NullCheck(L_2);
+		bool L_3;
+		L_3 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_2, NULL);
+		if (L_3)
+		{
+			goto IL_0028;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_4;
+		L_4 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_4);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_5;
+		L_5 = Keyboard_get_numpad2Key_m40E763A9FB87BBDD763A1A0DCED88019DD6F537B(L_4, NULL);
+		NullCheck(L_5);
+		bool L_6;
+		L_6 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_5, NULL);
+		return L_6;
+	}
+
+IL_0028:
+	{
+		return (bool)1;
+	}
+
+IL_002a:
+	{
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72179
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_3_m0B1E29F4D4F712F2A8F9A80BD7CCC0FCE1BFD651 (const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:24>
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_0;
+		L_0 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		if (!L_0)
+		{
+			goto IL_002a;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_1;
+		L_1 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_1);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_2;
+		L_2 = Keyboard_get_digit3Key_m28B12C574A44ED910551A1CB1CAB8220065F6A3C(L_1, NULL);
+		NullCheck(L_2);
+		bool L_3;
+		L_3 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_2, NULL);
+		if (L_3)
+		{
+			goto IL_0028;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_4;
+		L_4 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_4);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_5;
+		L_5 = Keyboard_get_numpad3Key_m963CDFD3E812886C07858A5AB99B90E0D1AD434D(L_4, NULL);
+		NullCheck(L_5);
+		bool L_6;
+		L_6 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_5, NULL);
+		return L_6;
+	}
+
+IL_0028:
+	{
+		return (bool)1;
+	}
+
+IL_002a:
+	{
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72180
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_4_m16709F8C6D19B36D0878F347E81C6C422CF31AAA (const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:25>
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_0;
+		L_0 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		if (!L_0)
+		{
+			goto IL_002a;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_1;
+		L_1 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_1);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_2;
+		L_2 = Keyboard_get_digit4Key_mDC335D2E5536EBF0583C70B86066D34B6DCAEE33(L_1, NULL);
+		NullCheck(L_2);
+		bool L_3;
+		L_3 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_2, NULL);
+		if (L_3)
+		{
+			goto IL_0028;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_4;
+		L_4 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_4);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_5;
+		L_5 = Keyboard_get_numpad4Key_mA5F0721DB5B78BAA7ACDD1AF088071FA4AD1CF07(L_4, NULL);
+		NullCheck(L_5);
+		bool L_6;
+		L_6 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_5, NULL);
+		return L_6;
+	}
+
+IL_0028:
+	{
+		return (bool)1;
+	}
+
+IL_002a:
+	{
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72181
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_5_m863B0C13C8399795932DD13CCC10D6A9EE6F5E08 (const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:26>
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_0;
+		L_0 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		if (!L_0)
+		{
+			goto IL_002a;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_1;
+		L_1 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_1);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_2;
+		L_2 = Keyboard_get_digit5Key_m40EFB11A1F6BACE4888718E61371D1B13832CAF1(L_1, NULL);
+		NullCheck(L_2);
+		bool L_3;
+		L_3 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_2, NULL);
+		if (L_3)
+		{
+			goto IL_0028;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_4;
+		L_4 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_4);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_5;
+		L_5 = Keyboard_get_numpad5Key_m17CB134063780970E864C011F3162763D56DA102(L_4, NULL);
+		NullCheck(L_5);
+		bool L_6;
+		L_6 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_5, NULL);
+		return L_6;
+	}
+
+IL_0028:
+	{
+		return (bool)1;
+	}
+
+IL_002a:
+	{
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72182
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_KeyDown_6_mC2C0FE9847537263718756BED520BC19F0064F96 (const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:27>
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_0;
+		L_0 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		if (!L_0)
+		{
+			goto IL_002a;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_1;
+		L_1 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_1);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_2;
+		L_2 = Keyboard_get_digit6Key_m3CF26095FC5D3B0313BDDBA77DB2E90C312AF59D(L_1, NULL);
+		NullCheck(L_2);
+		bool L_3;
+		L_3 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_2, NULL);
+		if (L_3)
+		{
+			goto IL_0028;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_4;
+		L_4 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_4);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_5;
+		L_5 = Keyboard_get_numpad6Key_mCEA93F85A8ECADA792E872137EAEFC82214D03AB(L_4, NULL);
+		NullCheck(L_5);
+		bool L_6;
+		L_6 = ButtonControl_get_wasPressedThisFrame_m6ED1DB185035A406B0659A055C3096A5058DBD5B(L_5, NULL);
+		return L_6;
+	}
+
+IL_0028:
+	{
+		return (bool)1;
+	}
+
+IL_002a:
+	{
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72183
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_Key_LeftShift_m788B2F959D8761A61AFBF65A7DD3F25383BBD534 (const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:29>
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_0;
+		L_0 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		if (!L_0)
+		{
+			goto IL_0017;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_1;
+		L_1 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_1);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_2;
+		L_2 = Keyboard_get_leftShiftKey_mD0E48DA49D8EE54E82721974646BAD69B9B1457C(L_1, NULL);
+		NullCheck(L_2);
+		bool L_3;
+		L_3 = ButtonControl_get_isPressed_m947621402F6EC1B957C2DE984806A6500D422EA6(L_2, NULL);
+		return L_3;
+	}
+
+IL_0017:
+	{
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72184
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_Key_RightShift_m872D92B3452E35EC310FE4A3606395C3E02F175F (const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:30>
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_0;
+		L_0 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		if (!L_0)
+		{
+			goto IL_0017;
+		}
+	}
+	{
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_1;
+		L_1 = Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline(NULL);
+		NullCheck(L_1);
+		KeyControl_t1686D14A78AEC9364B8C7628DD482DE99CC20FE0* L_2;
+		L_2 = Keyboard_get_rightShiftKey_mED4C7C1DC43F62C9CEBB3D7422467FE7C5A1B143(L_1, NULL);
+		NullCheck(L_2);
+		bool L_3;
+		L_3 = ButtonControl_get_isPressed_m947621402F6EC1B957C2DE984806A6500D422EA6(L_2, NULL);
+		return L_3;
+	}
+
+IL_0017:
+	{
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72185
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 InputAbstraction_get_Mouse_Position_m44EB96795ED517DF0B20770C3D436F1F90357329 (const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&InputControl_1_get_value_m3A09316CF498D9ED1A4C31890BB8870F80696EA2_RuntimeMethod_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:32>
+		Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* L_0;
+		L_0 = Mouse_get_current_m410C1F9ABC5AA77353574E8815F7E63289707986_inline(NULL);
+		if (L_0)
+		{
+			goto IL_000d;
+		}
+	}
+	{
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_1;
+		L_1 = Vector2_get_zero_m32506C40EC2EE7D5D4410BF40D3EE683A3D5F32C_inline(NULL);
+		return L_1;
+	}
+
+IL_000d:
+	{
+		Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* L_2;
+		L_2 = Mouse_get_current_m410C1F9ABC5AA77353574E8815F7E63289707986_inline(NULL);
+		NullCheck(L_2);
+		Vector2Control_t8D1B4021A1D82671AF916D3C0A476AA94E46A432* L_3;
+		L_3 = Pointer_get_position_m4286004169788483EEDA6AF833CEFDB04FEDF3D8_inline(L_2, NULL);
+		NullCheck(L_3);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* L_4;
+		L_4 = InputControl_1_get_value_m3A09316CF498D9ED1A4C31890BB8870F80696EA2(L_3, InputControl_1_get_value_m3A09316CF498D9ED1A4C31890BB8870F80696EA2_RuntimeMethod_var);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_5 = (*(Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7*)L_4);
+		return L_5;
+	}
+}
+// Method Definition Index: 72186
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR float InputAbstraction_get_Mouse_ScrollWheel_mAC5E7E4B5E50EB73F64BE975DD7BAAB782392FC3 (const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&InputControl_1_get_value_mD5825506B785433FAFB0204E1FE3A7B9103B3FE5_RuntimeMethod_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:33>
+		Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* L_0;
+		L_0 = Mouse_get_current_m410C1F9ABC5AA77353574E8815F7E63289707986_inline(NULL);
+		if (L_0)
+		{
+			goto IL_000d;
+		}
+	}
+	{
+		return (0.0f);
+	}
+
+IL_000d:
+	{
+		Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* L_1;
+		L_1 = Mouse_get_current_m410C1F9ABC5AA77353574E8815F7E63289707986_inline(NULL);
+		NullCheck(L_1);
+		DeltaControl_t63053AF5E0CD02B62F3CDE79821E4A12F72D573B* L_2;
+		L_2 = Mouse_get_scroll_mB17E8A9038C866A29701595E06B8806E945ACA00_inline(L_1, NULL);
+		NullCheck(L_2);
+		AxisControl_tD6613A2445A3C2BFA22C77E16CA3201AF72354A7* L_3;
+		L_3 = Vector2Control_get_y_mC1161E90D2869FC71970828495EAEB702AF44CBE_inline(L_2, NULL);
+		NullCheck(L_3);
+		float* L_4;
+		L_4 = InputControl_1_get_value_mD5825506B785433FAFB0204E1FE3A7B9103B3FE5(L_3, InputControl_1_get_value_mD5825506B785433FAFB0204E1FE3A7B9103B3FE5_RuntimeMethod_var);
+		float L_5 = *((float*)L_4);
+		return L_5;
+	}
+}
+// Method Definition Index: 72187
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_Mouse_LeftDown_mD9A2371EA1E26981B4EEAB3AD04067FF4DA7F6CE (const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:34>
+		Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* L_0;
+		L_0 = Mouse_get_current_m410C1F9ABC5AA77353574E8815F7E63289707986_inline(NULL);
+		if (!L_0)
+		{
+			goto IL_0017;
+		}
+	}
+	{
+		Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* L_1;
+		L_1 = Mouse_get_current_m410C1F9ABC5AA77353574E8815F7E63289707986_inline(NULL);
+		NullCheck(L_1);
+		ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* L_2;
+		L_2 = Mouse_get_leftButton_m1015BCBE6BE30B1D1D2702736A4E64120F6B5DFB_inline(L_1, NULL);
+		NullCheck(L_2);
+		bool L_3;
+		L_3 = ButtonControl_get_isPressed_m947621402F6EC1B957C2DE984806A6500D422EA6(L_2, NULL);
+		return L_3;
+	}
+
+IL_0017:
+	{
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72188
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_Mouse_RightDown_m1FA8C6F2CD0297D65AC7DAD0378404C1050B5B94 (const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:35>
+		Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* L_0;
+		L_0 = Mouse_get_current_m410C1F9ABC5AA77353574E8815F7E63289707986_inline(NULL);
+		if (!L_0)
+		{
+			goto IL_0017;
+		}
+	}
+	{
+		Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* L_1;
+		L_1 = Mouse_get_current_m410C1F9ABC5AA77353574E8815F7E63289707986_inline(NULL);
+		NullCheck(L_1);
+		ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* L_2;
+		L_2 = Mouse_get_rightButton_mFA0FD700624C0DE1B858F9516426414767F09D98_inline(L_1, NULL);
+		NullCheck(L_2);
+		bool L_3;
+		L_3 = ButtonControl_get_isPressed_m947621402F6EC1B957C2DE984806A6500D422EA6(L_2, NULL);
+		return L_3;
+	}
+
+IL_0017:
+	{
+		return (bool)0;
+	}
+}
+// Method Definition Index: 72189
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool InputAbstraction_get_Mouse_MiddleDown_mFEA082EF6526D8590A414DB50C4AC408507CA562 (const RuntimeMethod* method) 
+{
+	{
+		//<source_info:/home/emre/Belgeler/GitHub/PixelGame/Assets/JMO Assets/Toony Colors Pro/Demo TCP2/Common Demo Assets/Scripts/TCP2_InputAbstraction.cs:36>
+		Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* L_0;
+		L_0 = Mouse_get_current_m410C1F9ABC5AA77353574E8815F7E63289707986_inline(NULL);
+		if (!L_0)
+		{
+			goto IL_0017;
+		}
+	}
+	{
+		Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* L_1;
+		L_1 = Mouse_get_current_m410C1F9ABC5AA77353574E8815F7E63289707986_inline(NULL);
+		NullCheck(L_1);
+		ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* L_2;
+		L_2 = Mouse_get_middleButton_m1E9EB13B53CAA15CD49C6861A6CD542452B3A8A9_inline(L_1, NULL);
+		NullCheck(L_2);
+		bool L_3;
+		L_3 = ButtonControl_get_isPressed_m947621402F6EC1B957C2DE984806A6500D422EA6(L_2, NULL);
+		return L_3;
+	}
+
+IL_0017:
+	{
+		return (bool)0;
+	}
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+// Method Definition Index: 35193
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Vector3_get_up_m128AF3FDC820BF59D5DE86D973E7DE3F20C3AEBA_inline (const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_0 = ((Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2_StaticFields*)il2cpp_codegen_static_fields_for(Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2_il2cpp_TypeInfo_var))->___upVector;
+		return L_0;
+	}
+}
+// Method Definition Index: 35286
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Mathf_Lerp_m47EF2FFB7647BD0A1FDC26DC03E28B19812139B5_inline (float ___0_a, float ___1_b, float ___2_t, const RuntimeMethod* method) 
+{
+	float V_0 = 0.0f;
+	{
+		float L_0 = ___0_a;
+		float L_1 = ___1_b;
+		float L_2 = ___0_a;
+		float L_3 = ___2_t;
+		float L_4;
+		L_4 = Mathf_Clamp01_mA7E048DBDA832D399A581BE4D6DED9FA44CE0F14_inline(L_3, NULL);
+		V_0 = ((float)il2cpp_codegen_add(L_0, ((float)il2cpp_codegen_multiply(((float)il2cpp_codegen_subtract(L_1, L_2)), L_4))));
+		goto IL_0010;
+	}
+
+IL_0010:
+	{
+		float L_5 = V_0;
+		return L_5;
+	}
+}
+// Method Definition Index: 35023
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Color_tD001788D726C3A7F1379BEED0260B9591F440C1F Color_Lerp_mE79F87889843ECDC188E4CB5B5E1F1B2256E5EBE_inline (Color_tD001788D726C3A7F1379BEED0260B9591F440C1F ___0_a, Color_tD001788D726C3A7F1379BEED0260B9591F440C1F ___1_b, float ___2_t, const RuntimeMethod* method) 
+{
+	Color_tD001788D726C3A7F1379BEED0260B9591F440C1F V_0;
+	memset((&V_0), 0, sizeof(V_0));
+	Color_tD001788D726C3A7F1379BEED0260B9591F440C1F V_1;
+	memset((&V_1), 0, sizeof(V_1));
+	{
+		float L_0 = ___2_t;
+		float L_1;
+		L_1 = Mathf_Clamp01_mA7E048DBDA832D399A581BE4D6DED9FA44CE0F14_inline(L_0, NULL);
+		___2_t = L_1;
+		il2cpp_codegen_initobj((&V_0), sizeof(Color_tD001788D726C3A7F1379BEED0260B9591F440C1F));
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_2 = ___0_a;
+		float L_3 = L_2.___r;
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_4 = ___1_b;
+		float L_5 = L_4.___r;
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_6 = ___0_a;
+		float L_7 = L_6.___r;
+		float L_8 = ___2_t;
+		(&V_0)->___r = ((float)il2cpp_codegen_add(L_3, ((float)il2cpp_codegen_multiply(((float)il2cpp_codegen_subtract(L_5, L_7)), L_8))));
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_9 = ___0_a;
+		float L_10 = L_9.___g;
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_11 = ___1_b;
+		float L_12 = L_11.___g;
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_13 = ___0_a;
+		float L_14 = L_13.___g;
+		float L_15 = ___2_t;
+		(&V_0)->___g = ((float)il2cpp_codegen_add(L_10, ((float)il2cpp_codegen_multiply(((float)il2cpp_codegen_subtract(L_12, L_14)), L_15))));
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_16 = ___0_a;
+		float L_17 = L_16.___b;
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_18 = ___1_b;
+		float L_19 = L_18.___b;
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_20 = ___0_a;
+		float L_21 = L_20.___b;
+		float L_22 = ___2_t;
+		(&V_0)->___b = ((float)il2cpp_codegen_add(L_17, ((float)il2cpp_codegen_multiply(((float)il2cpp_codegen_subtract(L_19, L_21)), L_22))));
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_23 = ___0_a;
+		float L_24 = L_23.___a;
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_25 = ___1_b;
+		float L_26 = L_25.___a;
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_27 = ___0_a;
+		float L_28 = L_27.___a;
+		float L_29 = ___2_t;
+		(&V_0)->___a = ((float)il2cpp_codegen_add(L_24, ((float)il2cpp_codegen_multiply(((float)il2cpp_codegen_subtract(L_26, L_28)), L_29))));
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_30 = V_0;
+		V_1 = L_30;
+		goto IL_0089;
+	}
+
+IL_0089:
+	{
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_31 = V_1;
+		return L_31;
+	}
+}
+// Method Definition Index: 35408
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 Vector4_Lerp_mE5FFF3D013F0880F7DF8C613E7CB44EBD7349DAB_inline (Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 ___0_a, Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 ___1_b, float ___2_t, const RuntimeMethod* method) 
+{
+	Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 V_0;
+	memset((&V_0), 0, sizeof(V_0));
+	Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 V_1;
+	memset((&V_1), 0, sizeof(V_1));
+	{
+		float L_0 = ___2_t;
+		float L_1;
+		L_1 = Mathf_Clamp01_mA7E048DBDA832D399A581BE4D6DED9FA44CE0F14_inline(L_0, NULL);
+		___2_t = L_1;
+		il2cpp_codegen_initobj((&V_0), sizeof(Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3));
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_2 = ___0_a;
+		float L_3 = L_2.___x;
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_4 = ___1_b;
+		float L_5 = L_4.___x;
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_6 = ___0_a;
+		float L_7 = L_6.___x;
+		float L_8 = ___2_t;
+		(&V_0)->___x = ((float)il2cpp_codegen_add(L_3, ((float)il2cpp_codegen_multiply(((float)il2cpp_codegen_subtract(L_5, L_7)), L_8))));
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_9 = ___0_a;
+		float L_10 = L_9.___y;
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_11 = ___1_b;
+		float L_12 = L_11.___y;
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_13 = ___0_a;
+		float L_14 = L_13.___y;
+		float L_15 = ___2_t;
+		(&V_0)->___y = ((float)il2cpp_codegen_add(L_10, ((float)il2cpp_codegen_multiply(((float)il2cpp_codegen_subtract(L_12, L_14)), L_15))));
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_16 = ___0_a;
+		float L_17 = L_16.___z;
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_18 = ___1_b;
+		float L_19 = L_18.___z;
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_20 = ___0_a;
+		float L_21 = L_20.___z;
+		float L_22 = ___2_t;
+		(&V_0)->___z = ((float)il2cpp_codegen_add(L_17, ((float)il2cpp_codegen_multiply(((float)il2cpp_codegen_subtract(L_19, L_21)), L_22))));
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_23 = ___0_a;
+		float L_24 = L_23.___w;
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_25 = ___1_b;
+		float L_26 = L_25.___w;
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_27 = ___0_a;
+		float L_28 = L_27.___w;
+		float L_29 = ___2_t;
+		(&V_0)->___w = ((float)il2cpp_codegen_add(L_24, ((float)il2cpp_codegen_multiply(((float)il2cpp_codegen_subtract(L_26, L_28)), L_29))));
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_30 = V_0;
+		V_1 = L_30;
+		goto IL_0089;
+	}
+
+IL_0089:
+	{
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_31 = V_1;
+		return L_31;
+	}
+}
+// Method Definition Index: 35035
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Color_tD001788D726C3A7F1379BEED0260B9591F440C1F Color_get_black_mB50217951591A045844C61E7FF31EEE3FEF16737_inline (const RuntimeMethod* method) 
+{
+	{
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_0;
+		memset((&L_0), 0, sizeof(L_0));
+		Color__ctor_m3786F0D6E510D9CFA544523A955870BD2A514C8C_inline((&L_0), (0.0f), (0.0f), (0.0f), (1.0f), NULL);
+		return L_0;
+	}
+}
+// Method Definition Index: 35044
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Color_tD001788D726C3A7F1379BEED0260B9591F440C1F Color_get_white_m068F5AF879B0FCA584E3693F762EA41BB65532C6_inline (const RuntimeMethod* method) 
+{
+	{
+		Color_tD001788D726C3A7F1379BEED0260B9591F440C1F L_0;
+		memset((&L_0), 0, sizeof(L_0));
+		Color__ctor_m3786F0D6E510D9CFA544523A955870BD2A514C8C_inline((&L_0), (1.0f), (1.0f), (1.0f), (1.0f), NULL);
+		return L_0;
+	}
+}
+// Method Definition Index: 35419
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 Vector4_get_zero_m3D61F5FA9483CD9C08977D9D8852FB448B4CE6D1_inline (const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_0 = ((Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3_StaticFields*)il2cpp_codegen_static_fields_for(Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3_il2cpp_TypeInfo_var))->___zeroVector;
+		return L_0;
+	}
+}
+// Method Definition Index: 35420
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 Vector4_get_one_m0AA55064B3C47D9D94E5BC4EE6AEC5B6E4F2D151_inline (const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3 L_0 = ((Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3_StaticFields*)il2cpp_codegen_static_fields_for(Vector4_t58B63D32F48C0DBF50DE2C60794C4676C80EDBE3_il2cpp_TypeInfo_var))->___oneVector;
+		return L_0;
+	}
+}
+// Method Definition Index: 33662
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 Rect_get_size_mFB990FFC0FE0152179C8C74A59E4AC258CB44267_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, const RuntimeMethod* method) 
+{
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 V_0;
+	memset((&V_0), 0, sizeof(V_0));
+	{
+		il2cpp_codegen_initobj((&V_0), sizeof(Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7));
+		float L_0 = __this->___m_Width;
+		(&V_0)->___x = L_0;
+		float L_1 = __this->___m_Height;
+		(&V_0)->___y = L_1;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_2 = V_0;
+		return L_2;
+	}
+}
+// Method Definition Index: 35345
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 Vector2_op_Implicit_mE8EBEE9291F11BB02F062D6E000F4798968CBD96_inline (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_v, const RuntimeMethod* method) 
+{
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 V_0;
+	memset((&V_0), 0, sizeof(V_0));
+	{
+		il2cpp_codegen_initobj((&V_0), sizeof(Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7));
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_0 = ___0_v;
+		float L_1 = L_0.___x;
+		(&V_0)->___x = L_1;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_2 = ___0_v;
+		float L_3 = L_2.___y;
+		(&V_0)->___y = L_3;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_4 = V_0;
+		return L_4;
+	}
+}
+// Method Definition Index: 35314
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 Vector2_Scale_m8D61A8D2272549F1EF41256F7E8A206C6500EA6C_inline (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___0_a, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___1_b, const RuntimeMethod* method) 
+{
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 V_0;
+	memset((&V_0), 0, sizeof(V_0));
+	{
+		il2cpp_codegen_initobj((&V_0), sizeof(Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7));
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_0 = ___0_a;
+		float L_1 = L_0.___x;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_2 = ___1_b;
+		float L_3 = L_2.___x;
+		(&V_0)->___x = ((float)il2cpp_codegen_multiply(L_1, L_3));
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_4 = ___0_a;
+		float L_5 = L_4.___y;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_6 = ___1_b;
+		float L_7 = L_6.___y;
+		(&V_0)->___y = ((float)il2cpp_codegen_multiply(L_5, L_7));
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_8 = V_0;
+		return L_8;
+	}
+}
+// Method Definition Index: 33642
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR void Rect__ctor_m18C3033D135097BEE424AAA68D91C706D2647F23_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, float ___0_x, float ___1_y, float ___2_width, float ___3_height, const RuntimeMethod* method) 
+{
+	{
+		float L_0 = ___0_x;
+		__this->___m_XMin = L_0;
+		float L_1 = ___1_y;
+		__this->___m_YMin = L_1;
+		float L_2 = ___2_width;
+		__this->___m_Width = L_2;
+		float L_3 = ___3_height;
+		__this->___m_Height = L_3;
+		return;
+	}
+}
+// Method Definition Index: 33647
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Rect_get_x_mB267B718E0D067F2BAE31BA477647FBF964916EB_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, const RuntimeMethod* method) 
+{
+	{
+		float L_0 = __this->___m_XMin;
+		return L_0;
+	}
+}
+// Method Definition Index: 33648
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR void Rect_set_x_mAB91AB71898A20762BC66FD0723C4C739C4C3406_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, float ___0_value, const RuntimeMethod* method) 
+{
+	{
+		float L_0 = ___0_value;
+		__this->___m_XMin = L_0;
+		return;
+	}
+}
+// Method Definition Index: 33649
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Rect_get_y_mC733E8D49F3CE21B2A3D40A1B72D687F22C97F49_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, const RuntimeMethod* method) 
+{
+	{
+		float L_0 = __this->___m_YMin;
+		return L_0;
+	}
+}
+// Method Definition Index: 33650
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR void Rect_set_y_mDE91F4B98A6E8623EFB1250FF6526D5DB5855629_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, float ___0_value, const RuntimeMethod* method) 
+{
+	{
+		float L_0 = ___0_value;
+		__this->___m_YMin = L_0;
+		return;
+	}
+}
+// Method Definition Index: 35336
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 Vector2_op_Subtraction_m44475FCDAD2DA2F98D78A6625EC2DCDFE8803837_inline (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___0_a, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___1_b, const RuntimeMethod* method) 
+{
+	Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 V_0;
+	memset((&V_0), 0, sizeof(V_0));
+	{
+		il2cpp_codegen_initobj((&V_0), sizeof(Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7));
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_0 = ___0_a;
+		float L_1 = L_0.___x;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_2 = ___1_b;
+		float L_3 = L_2.___x;
+		(&V_0)->___x = ((float)il2cpp_codegen_subtract(L_1, L_3));
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_4 = ___0_a;
+		float L_5 = L_4.___y;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_6 = ___1_b;
+		float L_7 = L_6.___y;
+		(&V_0)->___y = ((float)il2cpp_codegen_subtract(L_5, L_7));
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_8 = V_0;
+		return L_8;
+	}
+}
+// Method Definition Index: 35283
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Mathf_Clamp_mEB9AEA827D27D20FCC787F7375156AF46BB12BBF_inline (float ___0_value, float ___1_min, float ___2_max, const RuntimeMethod* method) 
+{
+	bool V_0 = false;
+	bool V_1 = false;
+	float V_2 = 0.0f;
+	{
+		float L_0 = ___0_value;
+		float L_1 = ___1_min;
+		V_0 = (bool)((((float)L_0) < ((float)L_1))? 1 : 0);
+		bool L_2 = V_0;
+		if (!L_2)
+		{
+			goto IL_000e;
+		}
+	}
+	{
+		float L_3 = ___1_min;
+		___0_value = L_3;
+		goto IL_0019;
+	}
+
+IL_000e:
+	{
+		float L_4 = ___0_value;
+		float L_5 = ___2_max;
+		V_1 = (bool)((((float)L_4) > ((float)L_5))? 1 : 0);
+		bool L_6 = V_1;
+		if (!L_6)
+		{
+			goto IL_0019;
+		}
+	}
+	{
+		float L_7 = ___2_max;
+		___0_value = L_7;
+	}
+
+IL_0019:
+	{
+		float L_8 = ___0_value;
+		V_2 = L_8;
+		goto IL_001d;
+	}
+
+IL_001d:
+	{
+		float L_9 = V_2;
+		return L_9;
+	}
+}
+// Method Definition Index: 33672
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR bool Rect_Contains_mAB270D6B7E3B0009A50D142C569D63E8FE59F48B_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___0_point, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	int32_t G_B5_0 = 0;
+	{
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_0 = ___0_point;
+		float L_1 = L_0.___x;
+		float L_2 = __this->___m_XMin;
+		if ((!(((float)L_1) >= ((float)L_2))))
+		{
+			goto IL_003a;
+		}
+	}
+	{
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_3 = ___0_point;
+		float L_4 = L_3.___x;
+		il2cpp_codegen_runtime_class_init_inline(Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D_il2cpp_TypeInfo_var);
+		float L_5;
+		L_5 = Rect_get_xMax_m2339C7D2FCDA98A9B007F815F6E2059BA6BE425F_inline(__this, NULL);
+		if ((!(((float)L_4) < ((float)L_5))))
+		{
+			goto IL_003a;
+		}
+	}
+	{
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_6 = ___0_point;
+		float L_7 = L_6.___y;
+		float L_8 = __this->___m_YMin;
+		if ((!(((float)L_7) >= ((float)L_8))))
+		{
+			goto IL_003a;
+		}
+	}
+	{
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_9 = ___0_point;
+		float L_10 = L_9.___y;
+		il2cpp_codegen_runtime_class_init_inline(Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D_il2cpp_TypeInfo_var);
+		float L_11;
+		L_11 = Rect_get_yMax_mBC37BEE1CD632AADD8B9EAF9FE3BA143F79CAF8E_inline(__this, NULL);
+		G_B5_0 = ((((float)L_10) < ((float)L_11))? 1 : 0);
+		goto IL_003b;
+	}
+
+IL_003a:
+	{
+		G_B5_0 = 0;
+	}
+
+IL_003b:
+	{
+		return (bool)G_B5_0;
+	}
+}
+// Method Definition Index: 35285
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Mathf_Clamp01_mA7E048DBDA832D399A581BE4D6DED9FA44CE0F14_inline (float ___0_value, const RuntimeMethod* method) 
+{
+	bool V_0 = false;
+	float V_1 = 0.0f;
+	bool V_2 = false;
+	{
+		float L_0 = ___0_value;
+		V_0 = (bool)((((float)L_0) < ((float)(0.0f)))? 1 : 0);
+		bool L_1 = V_0;
+		if (!L_1)
+		{
+			goto IL_0015;
+		}
+	}
+	{
+		V_1 = (0.0f);
+		goto IL_002d;
+	}
+
+IL_0015:
+	{
+		float L_2 = ___0_value;
+		V_2 = (bool)((((float)L_2) > ((float)(1.0f)))? 1 : 0);
+		bool L_3 = V_2;
+		if (!L_3)
+		{
+			goto IL_0029;
+		}
+	}
+	{
+		V_1 = (1.0f);
+		goto IL_002d;
+	}
+
+IL_0029:
+	{
+		float L_4 = ___0_value;
+		V_1 = L_4;
+		goto IL_002d;
+	}
+
+IL_002d:
+	{
+		float L_5 = V_1;
+		return L_5;
+	}
+}
+// Method Definition Index: 35197
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Vector3_op_Addition_m78C0EC70CB66E8DCAC225743D82B268DAEE92067_inline (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_a, Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___1_b, const RuntimeMethod* method) 
+{
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 V_0;
+	memset((&V_0), 0, sizeof(V_0));
+	{
+		il2cpp_codegen_initobj((&V_0), sizeof(Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2));
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_0 = ___0_a;
+		float L_1 = L_0.___x;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_2 = ___1_b;
+		float L_3 = L_2.___x;
+		(&V_0)->___x = ((float)il2cpp_codegen_add(L_1, L_3));
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_4 = ___0_a;
+		float L_5 = L_4.___y;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_6 = ___1_b;
+		float L_7 = L_6.___y;
+		(&V_0)->___y = ((float)il2cpp_codegen_add(L_5, L_7));
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_8 = ___0_a;
+		float L_9 = L_8.___z;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_10 = ___1_b;
+		float L_11 = L_10.___z;
+		(&V_0)->___z = ((float)il2cpp_codegen_add(L_9, L_11));
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_12 = V_0;
+		return L_12;
+	}
+}
+// Method Definition Index: 35200
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Vector3_op_Multiply_m87BA7C578F96C8E49BB07088DAAC4649F83B0353_inline (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_a, float ___1_d, const RuntimeMethod* method) 
+{
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 V_0;
+	memset((&V_0), 0, sizeof(V_0));
+	{
+		il2cpp_codegen_initobj((&V_0), sizeof(Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2));
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_0 = ___0_a;
+		float L_1 = L_0.___x;
+		float L_2 = ___1_d;
+		(&V_0)->___x = ((float)il2cpp_codegen_multiply(L_1, L_2));
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_3 = ___0_a;
+		float L_4 = L_3.___y;
+		float L_5 = ___1_d;
+		(&V_0)->___y = ((float)il2cpp_codegen_multiply(L_4, L_5));
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_6 = ___0_a;
+		float L_7 = L_6.___z;
+		float L_8 = ___1_d;
+		(&V_0)->___z = ((float)il2cpp_codegen_multiply(L_7, L_8));
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_9 = V_0;
+		return L_9;
+	}
+}
+// Method Definition Index: 35180
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Vector3_Distance_m2314DB9B8BD01157E013DF87BEA557375C7F9FF9_inline (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_a, Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___1_b, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Math_tEB65DE7CA8B083C412C969C92981C030865486CE_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	float V_0 = 0.0f;
+	float V_1 = 0.0f;
+	float V_2 = 0.0f;
+	float V_3 = 0.0f;
+	{
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_0 = ___0_a;
+		float L_1 = L_0.___x;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_2 = ___1_b;
+		float L_3 = L_2.___x;
+		V_0 = ((float)il2cpp_codegen_subtract(L_1, L_3));
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_4 = ___0_a;
+		float L_5 = L_4.___y;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_6 = ___1_b;
+		float L_7 = L_6.___y;
+		V_1 = ((float)il2cpp_codegen_subtract(L_5, L_7));
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_8 = ___0_a;
+		float L_9 = L_8.___z;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_10 = ___1_b;
+		float L_11 = L_10.___z;
+		V_2 = ((float)il2cpp_codegen_subtract(L_9, L_11));
+		float L_12 = V_0;
+		float L_13 = V_0;
+		float L_14 = V_1;
+		float L_15 = V_1;
+		float L_16 = V_2;
+		float L_17 = V_2;
+		il2cpp_codegen_runtime_class_init_inline(Math_tEB65DE7CA8B083C412C969C92981C030865486CE_il2cpp_TypeInfo_var);
+		double L_18;
+		L_18 = sqrt(((double)((float)il2cpp_codegen_add(((float)il2cpp_codegen_add(((float)il2cpp_codegen_multiply(L_12, L_13)), ((float)il2cpp_codegen_multiply(L_14, L_15)))), ((float)il2cpp_codegen_multiply(L_16, L_17))))));
+		V_3 = ((float)L_18);
+		goto IL_0040;
+	}
+
+IL_0040:
+	{
+		float L_19 = V_3;
+		return L_19;
+	}
+}
+// Method Definition Index: 35191
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Vector3_get_forward_mAA55A7034304DF8B2152EAD49AE779FC4CA2EB4A_inline (const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_0 = ((Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2_StaticFields*)il2cpp_codegen_static_fields_for(Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2_il2cpp_TypeInfo_var))->___forwardVector;
+		return L_0;
+	}
+}
+// Method Definition Index: 35189
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Vector3_get_zero_m0C1249C3F25B1C70EAD3CC8B31259975A457AE39_inline (const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_0 = ((Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2_StaticFields*)il2cpp_codegen_static_fields_for(Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2_il2cpp_TypeInfo_var))->___zeroVector;
+		return L_0;
+	}
+}
+// Method Definition Index: 35155
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Vector3_Lerp_m3A906D0530A94FAABB94F0F905E84D99BE85C3F8_inline (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___0_a, Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 ___1_b, float ___2_t, const RuntimeMethod* method) 
+{
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 V_0;
+	memset((&V_0), 0, sizeof(V_0));
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 V_1;
+	memset((&V_1), 0, sizeof(V_1));
+	{
+		float L_0 = ___2_t;
+		float L_1;
+		L_1 = Mathf_Clamp01_mA7E048DBDA832D399A581BE4D6DED9FA44CE0F14_inline(L_0, NULL);
+		___2_t = L_1;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_2 = ___0_a;
+		float L_3 = L_2.___x;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_4 = ___1_b;
+		float L_5 = L_4.___x;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_6 = ___0_a;
+		float L_7 = L_6.___x;
+		float L_8 = ___2_t;
+		(&V_0)->___x = ((float)il2cpp_codegen_add(L_3, ((float)il2cpp_codegen_multiply(((float)il2cpp_codegen_subtract(L_5, L_7)), L_8))));
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_9 = ___0_a;
+		float L_10 = L_9.___y;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_11 = ___1_b;
+		float L_12 = L_11.___y;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_13 = ___0_a;
+		float L_14 = L_13.___y;
+		float L_15 = ___2_t;
+		(&V_0)->___y = ((float)il2cpp_codegen_add(L_10, ((float)il2cpp_codegen_multiply(((float)il2cpp_codegen_subtract(L_12, L_14)), L_15))));
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_16 = ___0_a;
+		float L_17 = L_16.___z;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_18 = ___1_b;
+		float L_19 = L_18.___z;
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_20 = ___0_a;
+		float L_21 = L_20.___z;
+		float L_22 = ___2_t;
+		(&V_0)->___z = ((float)il2cpp_codegen_add(L_17, ((float)il2cpp_codegen_multiply(((float)il2cpp_codegen_subtract(L_19, L_21)), L_22))));
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_23 = V_0;
+		V_1 = L_23;
+		goto IL_0064;
+	}
+
+IL_0064:
+	{
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_24 = V_1;
+		return L_24;
+	}
+}
+// Method Definition Index: 61977
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR ButtonClickedEvent_t8EA72E90B3BD1392FB3B3EF167D5121C23569E4C* Button_get_onClick_m701712A7F7F000CC80D517C4510697E15722C35C_inline (Button_t6786514A57F7AFDEE5431112FEA0CAB24F5AE098* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:./Library/PackageCache/com.unity.ugui@79be15134724/Runtime/UGUI/UI/Core/Button.cs:60>
+		ButtonClickedEvent_t8EA72E90B3BD1392FB3B3EF167D5121C23569E4C* L_0 = __this->___m_OnClick;
+		return L_0;
+	}
+}
+// Method Definition Index: 33658
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Rect_get_width_m620D67551372073C9C32C4C4624C2A5713F7F9A9_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, const RuntimeMethod* method) 
+{
+	{
+		float L_0 = __this->___m_Width;
+		return L_0;
+	}
+}
+// Method Definition Index: 33660
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Rect_get_height_mE1AA6C6C725CCD2D317BD2157396D3CF7D47C9D8_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, const RuntimeMethod* method) 
+{
+	{
+		float L_0 = __this->___m_Height;
+		return L_0;
+	}
+}
+// Method Definition Index: 35346
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Vector2_op_Implicit_m6D9CABB2C791A192867D7A4559D132BE86DD3EB7_inline (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___0_v, const RuntimeMethod* method) 
+{
+	Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 V_0;
+	memset((&V_0), 0, sizeof(V_0));
+	{
+		il2cpp_codegen_initobj((&V_0), sizeof(Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2));
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_0 = ___0_v;
+		float L_1 = L_0.___x;
+		(&V_0)->___x = L_1;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_2 = ___0_v;
+		float L_3 = L_2.___y;
+		(&V_0)->___y = L_3;
+		(&V_0)->___z = (0.0f);
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_4 = V_0;
+		return L_4;
+	}
+}
+// Method Definition Index: 35317
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 Vector2_get_normalized_mF6722883AEFB5027690A778DF8ACC20F0FA65297_inline (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* __this, const RuntimeMethod* method) 
+{
+	{
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_0;
+		L_0 = Vector2_Normalize_m52526AC1D25ED668DF8A5DE540769FA7D5671FC7(__this, NULL);
+		return L_0;
+	}
+}
+// Method Definition Index: 35349
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 Vector2_get_up_m41067879408BB378593EF7406AF2525F176F0ABF_inline (const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_0 = ((Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7_StaticFields*)il2cpp_codegen_static_fields_for(Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7_il2cpp_TypeInfo_var))->___upVector;
+		return L_0;
+	}
+}
+// Method Definition Index: 35330
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Vector2_SignedAngle_mAE9940DA6BC6B2182BA95C299B2EC19967B7D438_inline (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___0_from, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___1_to, const RuntimeMethod* method) 
+{
+	float V_0 = 0.0f;
+	float V_1 = 0.0f;
+	float V_2 = 0.0f;
+	{
+		float L_0;
+		L_0 = Vector2_Angle_mB5E31E6EB5E445A53B8E777BD9647B02DCB49931_inline((&___0_from), (&___1_to), NULL);
+		V_0 = L_0;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_1 = ___0_from;
+		float L_2 = L_1.___x;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_3 = ___1_to;
+		float L_4 = L_3.___y;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_5 = ___0_from;
+		float L_6 = L_5.___y;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_7 = ___1_to;
+		float L_8 = L_7.___x;
+		float L_9;
+		L_9 = Mathf_Sign_m42EE1F0BC041AF14F89DED7F762BE996E2C50D8A_inline(((float)il2cpp_codegen_subtract(((float)il2cpp_codegen_multiply(L_2, L_4)), ((float)il2cpp_codegen_multiply(L_6, L_8)))), NULL);
+		V_1 = L_9;
+		float L_10 = V_0;
+		float L_11 = V_1;
+		V_2 = ((float)il2cpp_codegen_multiply(L_10, L_11));
+		goto IL_0032;
+	}
+
+IL_0032:
+	{
+		float L_12 = V_2;
+		return L_12;
+	}
+}
+// Method Definition Index: 62576
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 CanvasScaler_get_referenceResolution_m79C03DD8CE6759B045928C5339A3C5E6220276B5_inline (CanvasScaler_t3BC095205EAD308CF3EAC27136A73387AC32FC3B* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:./Library/PackageCache/com.unity.ugui@79be15134724/Runtime/UGUI/UI/Core/Layout/CanvasScaler.cs:111>
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_0 = __this->___m_ReferenceResolution;
+		return L_0;
+	}
+}
+// Method Definition Index: 35331
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Vector2_Distance_mBACBB1609E1894D68F882D86A93519E311810C89_inline (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___0_a, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 ___1_b, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Math_tEB65DE7CA8B083C412C969C92981C030865486CE_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	float V_0 = 0.0f;
+	float V_1 = 0.0f;
+	float V_2 = 0.0f;
+	{
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_0 = ___0_a;
+		float L_1 = L_0.___x;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_2 = ___1_b;
+		float L_3 = L_2.___x;
+		V_0 = ((float)il2cpp_codegen_subtract(L_1, L_3));
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_4 = ___0_a;
+		float L_5 = L_4.___y;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_6 = ___1_b;
+		float L_7 = L_6.___y;
+		V_1 = ((float)il2cpp_codegen_subtract(L_5, L_7));
+		float L_8 = V_0;
+		float L_9 = V_0;
+		float L_10 = V_1;
+		float L_11 = V_1;
+		il2cpp_codegen_runtime_class_init_inline(Math_tEB65DE7CA8B083C412C969C92981C030865486CE_il2cpp_TypeInfo_var);
+		double L_12;
+		L_12 = sqrt(((double)((float)il2cpp_codegen_add(((float)il2cpp_codegen_multiply(L_8, L_9)), ((float)il2cpp_codegen_multiply(L_10, L_11))))));
+		V_2 = ((float)L_12);
+		goto IL_002e;
+	}
+
+IL_002e:
+	{
+		float L_13 = V_2;
+		return L_13;
+	}
+}
+// Method Definition Index: 35010
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR void Color__ctor_mCD6889CDE39F18704CD6EA8E2EFBFA48BA3E13B0_inline (Color_tD001788D726C3A7F1379BEED0260B9591F440C1F* __this, float ___0_r, float ___1_g, float ___2_b, const RuntimeMethod* method) 
+{
+	{
+		float L_0 = ___0_r;
+		__this->___r = L_0;
+		float L_1 = ___1_g;
+		__this->___g = L_1;
+		float L_2 = ___2_b;
+		__this->___b = L_2;
+		__this->___a = (1.0f);
+		return;
+	}
+}
+// Method Definition Index: 35266
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Mathf_Min_m747CA71A9483CDB394B13BD0AD048EE17E48FFE4_inline (float ___0_a, float ___1_b, const RuntimeMethod* method) 
+{
+	float V_0 = 0.0f;
+	float G_B3_0 = 0.0f;
+	{
+		float L_0 = ___0_a;
+		float L_1 = ___1_b;
+		if ((((float)L_0) < ((float)L_1)))
+		{
+			goto IL_0008;
+		}
+	}
+	{
+		float L_2 = ___1_b;
+		G_B3_0 = L_2;
+		goto IL_0009;
+	}
+
+IL_0008:
+	{
+		float L_3 = ___0_a;
+		G_B3_0 = L_3;
+	}
+
+IL_0009:
+	{
+		V_0 = G_B3_0;
+		goto IL_000c;
+	}
+
+IL_000c:
+	{
+		float L_4 = V_0;
+		return L_4;
+	}
+}
+// Method Definition Index: 35290
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Mathf_SmoothStep_mEFDC738EB0AA162D71013BDBBDD157B080A8E524_inline (float ___0_from, float ___1_to, float ___2_t, const RuntimeMethod* method) 
+{
+	float V_0 = 0.0f;
+	{
+		float L_0 = ___2_t;
+		float L_1;
+		L_1 = Mathf_Clamp01_mA7E048DBDA832D399A581BE4D6DED9FA44CE0F14_inline(L_0, NULL);
+		___2_t = L_1;
+		float L_2 = ___2_t;
+		float L_3 = ___2_t;
+		float L_4 = ___2_t;
+		float L_5 = ___2_t;
+		float L_6 = ___2_t;
+		___2_t = ((float)il2cpp_codegen_add(((float)il2cpp_codegen_multiply(((float)il2cpp_codegen_multiply(((float)il2cpp_codegen_multiply((-2.0f), L_2)), L_3)), L_4)), ((float)il2cpp_codegen_multiply(((float)il2cpp_codegen_multiply((3.0f), L_5)), L_6))));
+		float L_7 = ___1_to;
+		float L_8 = ___2_t;
+		float L_9 = ___0_from;
+		float L_10 = ___2_t;
+		V_0 = ((float)il2cpp_codegen_add(((float)il2cpp_codegen_multiply(L_7, L_8)), ((float)il2cpp_codegen_multiply(L_9, ((float)il2cpp_codegen_subtract((1.0f), L_10))))));
+		goto IL_0030;
+	}
+
+IL_0030:
+	{
+		float L_11 = V_0;
+		return L_11;
+	}
+}
+// Method Definition Index: 35214
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 Quaternion_Slerp_m0A9969F500E7716EA4F6BC4E7D5464372D8E9E15_inline (Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 ___0_a, Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 ___1_b, float ___2_t, const RuntimeMethod* method) 
+{
+	{
+		float L_0 = ___2_t;
+		Quaternion_tDA59F214EF07D7700B26E40E562F267AF7306974 L_1;
+		L_1 = Quaternion_Internal_Slerp_mDD63B8384FB0F0AAD4B59635B1D66D6ECB49E763((&___0_a), (&___1_b), L_0, NULL);
+		return L_1;
+	}
+}
+// Method Definition Index: 35190
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 Vector3_get_one_mC9B289F1E15C42C597180C9FE6FB492495B51D02_inline (const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2 L_0 = ((Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2_StaticFields*)il2cpp_codegen_static_fields_for(Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2_il2cpp_TypeInfo_var))->___oneVector;
+		return L_0;
+	}
+}
+// Method Definition Index: 35162
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR void Vector3__ctor_m376936E6B999EF1ECBE57D990A386303E2283DE0_inline (Vector3_t24C512C7B96BBABAD472002D0BA2BDA40A5A80B2* __this, float ___0_x, float ___1_y, float ___2_z, const RuntimeMethod* method) 
+{
+	{
+		float L_0 = ___0_x;
+		__this->___x = L_0;
+		float L_1 = ___1_y;
+		__this->___y = L_1;
+		float L_2 = ___2_z;
+		__this->___z = L_2;
+		return;
+	}
+}
+// Method Definition Index: 28832
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* Keyboard_get_current_mDE773B54C9975CEFEAA469AD091C49E150A3FEC3_inline (const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		//<source_info:./Library/PackageCache/com.unity.inputsystem@57d0e36f6123/InputSystem/Devices/Keyboard.cs:2389>
+		Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43* L_0 = ((Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43_StaticFields*)il2cpp_codegen_static_fields_for(Keyboard_t015BD1A6508137D20B4395295F6E002773FAAF43_il2cpp_TypeInfo_var))->___U3CcurrentU3Ek__BackingField;
+		return L_0;
+	}
+}
+// Method Definition Index: 28859
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* Mouse_get_current_m410C1F9ABC5AA77353574E8815F7E63289707986_inline (const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		//<source_info:./Library/PackageCache/com.unity.inputsystem@57d0e36f6123/InputSystem/Devices/Mouse.cs:258>
+		Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* L_0 = ((Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F_StaticFields*)il2cpp_codegen_static_fields_for(Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F_il2cpp_TypeInfo_var))->___U3CcurrentU3Ek__BackingField;
+		return L_0;
+	}
+}
+// Method Definition Index: 35347
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 Vector2_get_zero_m32506C40EC2EE7D5D4410BF40D3EE683A3D5F32C_inline (const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	{
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 L_0 = ((Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7_StaticFields*)il2cpp_codegen_static_fields_for(Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7_il2cpp_TypeInfo_var))->___zeroVector;
+		return L_0;
+	}
+}
+// Method Definition Index: 28896
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2Control_t8D1B4021A1D82671AF916D3C0A476AA94E46A432* Pointer_get_position_m4286004169788483EEDA6AF833CEFDB04FEDF3D8_inline (Pointer_t800EF2832B62E889AC9C182E3B18098AF220E32A* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:./Library/PackageCache/com.unity.inputsystem@57d0e36f6123/InputSystem/Devices/Pointer.cs:84>
+		Vector2Control_t8D1B4021A1D82671AF916D3C0A476AA94E46A432* L_0 = __this->___U3CpositionU3Ek__BackingField;
+		return L_0;
+	}
+}
+// Method Definition Index: 28845
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR DeltaControl_t63053AF5E0CD02B62F3CDE79821E4A12F72D573B* Mouse_get_scroll_mB17E8A9038C866A29701595E06B8806E945ACA00_inline (Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:./Library/PackageCache/com.unity.inputsystem@57d0e36f6123/InputSystem/Devices/Mouse.cs:212>
+		DeltaControl_t63053AF5E0CD02B62F3CDE79821E4A12F72D573B* L_0 = __this->___U3CscrollU3Ek__BackingField;
+		return L_0;
+	}
+}
+// Method Definition Index: 32133
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR AxisControl_tD6613A2445A3C2BFA22C77E16CA3201AF72354A7* Vector2Control_get_y_mC1161E90D2869FC71970828495EAEB702AF44CBE_inline (Vector2Control_t8D1B4021A1D82671AF916D3C0A476AA94E46A432* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:./Library/PackageCache/com.unity.inputsystem@57d0e36f6123/InputSystem/Controls/Vector2Control.cs:37>
+		AxisControl_tD6613A2445A3C2BFA22C77E16CA3201AF72354A7* L_0 = __this->___U3CyU3Ek__BackingField;
+		return L_0;
+	}
+}
+// Method Definition Index: 28847
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* Mouse_get_leftButton_m1015BCBE6BE30B1D1D2702736A4E64120F6B5DFB_inline (Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:./Library/PackageCache/com.unity.inputsystem@57d0e36f6123/InputSystem/Devices/Mouse.cs:217>
+		ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* L_0 = __this->___U3CleftButtonU3Ek__BackingField;
+		return L_0;
+	}
+}
+// Method Definition Index: 28851
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* Mouse_get_rightButton_mFA0FD700624C0DE1B858F9516426414767F09D98_inline (Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:./Library/PackageCache/com.unity.inputsystem@57d0e36f6123/InputSystem/Devices/Mouse.cs:227>
+		ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* L_0 = __this->___U3CrightButtonU3Ek__BackingField;
+		return L_0;
+	}
+}
+// Method Definition Index: 28849
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* Mouse_get_middleButton_m1E9EB13B53CAA15CD49C6861A6CD542452B3A8A9_inline (Mouse_t9A9CC4636FA9CDBAD7FB7A02DB0D6395EDCC338F* __this, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:./Library/PackageCache/com.unity.inputsystem@57d0e36f6123/InputSystem/Devices/Mouse.cs:222>
+		ButtonControl_t85949109B98AAF5B7ADC0285F0EC98A61EC88ECF* L_0 = __this->___U3CmiddleButtonU3Ek__BackingField;
+		return L_0;
+	}
+}
+// Method Definition Index: 35009
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR void Color__ctor_m3786F0D6E510D9CFA544523A955870BD2A514C8C_inline (Color_tD001788D726C3A7F1379BEED0260B9591F440C1F* __this, float ___0_r, float ___1_g, float ___2_b, float ___3_a, const RuntimeMethod* method) 
+{
+	{
+		float L_0 = ___0_r;
+		__this->___r = L_0;
+		float L_1 = ___1_g;
+		__this->___g = L_1;
+		float L_2 = ___2_b;
+		__this->___b = L_2;
+		float L_3 = ___3_a;
+		__this->___a = L_3;
+		return;
+	}
+}
+// Method Definition Index: 33668
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Rect_get_xMax_m2339C7D2FCDA98A9B007F815F6E2059BA6BE425F_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, const RuntimeMethod* method) 
+{
+	{
+		float L_0 = __this->___m_Width;
+		float L_1 = __this->___m_XMin;
+		return ((float)il2cpp_codegen_add(L_0, L_1));
+	}
+}
+// Method Definition Index: 33670
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Rect_get_yMax_mBC37BEE1CD632AADD8B9EAF9FE3BA143F79CAF8E_inline (Rect_tA04E0F8A1830E767F40FB27ECD8D309303571F0D* __this, const RuntimeMethod* method) 
+{
+	{
+		float L_0 = __this->___m_Height;
+		float L_1 = __this->___m_YMin;
+		return ((float)il2cpp_codegen_add(L_0, L_1));
+	}
+}
+// Method Definition Index: 35329
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Vector2_Angle_mB5E31E6EB5E445A53B8E777BD9647B02DCB49931_inline (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* ___0_from, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* ___1_to, const RuntimeMethod* method) 
+{
+	static bool s_Il2CppMethodInitialized;
+	if (!s_Il2CppMethodInitialized)
+	{
+		il2cpp_codegen_initialize_runtime_metadata((uintptr_t*)&Math_tEB65DE7CA8B083C412C969C92981C030865486CE_il2cpp_TypeInfo_var);
+		s_Il2CppMethodInitialized = true;
+	}
+	float V_0 = 0.0f;
+	float V_1 = 0.0f;
+	bool V_2 = false;
+	float V_3 = 0.0f;
+	{
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* L_0 = ___0_from;
+		float L_1;
+		L_1 = Vector2_get_sqrMagnitude_mA16336720C14EEF8BA9B55AE33B98C9EE2082BDC_inline(L_0, NULL);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* L_2 = ___1_to;
+		float L_3;
+		L_3 = Vector2_get_sqrMagnitude_mA16336720C14EEF8BA9B55AE33B98C9EE2082BDC_inline(L_2, NULL);
+		V_0 = ((float)il2cpp_codegen_multiply(L_1, L_3));
+		float L_4 = V_0;
+		V_2 = (bool)((((float)L_4) < ((float)(1.0E-30f)))? 1 : 0);
+		bool L_5 = V_2;
+		if (!L_5)
+		{
+			goto IL_0023;
+		}
+	}
+	{
+		V_3 = (0.0f);
+		goto IL_0056;
+	}
+
+IL_0023:
+	{
+		float L_6 = V_0;
+		il2cpp_codegen_runtime_class_init_inline(Math_tEB65DE7CA8B083C412C969C92981C030865486CE_il2cpp_TypeInfo_var);
+		double L_7;
+		L_7 = sqrt(((double)L_6));
+		V_0 = ((float)L_7);
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* L_8 = ___0_from;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* L_9 = ___1_to;
+		float L_10;
+		L_10 = Vector2_Dot_mD510FC4765B9CF4F06E6AC6FEC0215F401EFD4FB_inline(L_8, L_9, NULL);
+		float L_11 = V_0;
+		float L_12;
+		L_12 = Mathf_Clamp_mEB9AEA827D27D20FCC787F7375156AF46BB12BBF_inline(((float)(L_10/L_11)), (-1.0f), (1.0f), NULL);
+		V_1 = L_12;
+		float L_13 = V_1;
+		double L_14;
+		L_14 = acos(((double)L_13));
+		V_3 = ((float)il2cpp_codegen_multiply(((float)L_14), (57.2957802f)));
+		goto IL_0056;
+	}
+
+IL_0056:
+	{
+		float L_15 = V_3;
+		return L_15;
+	}
+}
+// Method Definition Index: 35282
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Mathf_Sign_m42EE1F0BC041AF14F89DED7F762BE996E2C50D8A_inline (float ___0_f, const RuntimeMethod* method) 
+{
+	float V_0 = 0.0f;
+	float G_B3_0 = 0.0f;
+	{
+		float L_0 = ___0_f;
+		if ((((float)L_0) >= ((float)(0.0f))))
+		{
+			goto IL_0010;
+		}
+	}
+	{
+		G_B3_0 = (-1.0f);
+		goto IL_0015;
+	}
+
+IL_0010:
+	{
+		G_B3_0 = (1.0f);
+	}
+
+IL_0015:
+	{
+		V_0 = G_B3_0;
+		goto IL_0018;
+	}
+
+IL_0018:
+	{
+		float L_1 = V_0;
+		return L_1;
+	}
+}
+// Method Definition Index: 35327
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Vector2_get_sqrMagnitude_mA16336720C14EEF8BA9B55AE33B98C9EE2082BDC_inline (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* __this, const RuntimeMethod* method) 
+{
+	{
+		float L_0 = __this->___x;
+		float L_1 = __this->___x;
+		float L_2 = __this->___y;
+		float L_3 = __this->___y;
+		return ((float)il2cpp_codegen_add(((float)il2cpp_codegen_multiply(L_0, L_1)), ((float)il2cpp_codegen_multiply(L_2, L_3))));
+	}
+}
+// Method Definition Index: 35325
+IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Vector2_Dot_mD510FC4765B9CF4F06E6AC6FEC0215F401EFD4FB_inline (Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* ___0_lhs, Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* ___1_rhs, const RuntimeMethod* method) 
+{
+	{
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* L_0 = ___0_lhs;
+		float L_1 = L_0->___x;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* L_2 = ___1_rhs;
+		float L_3 = L_2->___x;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* L_4 = ___0_lhs;
+		float L_5 = L_4->___y;
+		Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7* L_6 = ___1_rhs;
+		float L_7 = L_6->___y;
+		return ((float)il2cpp_codegen_add(((float)il2cpp_codegen_multiply(L_1, L_3)), ((float)il2cpp_codegen_multiply(L_5, L_7))));
+	}
+}

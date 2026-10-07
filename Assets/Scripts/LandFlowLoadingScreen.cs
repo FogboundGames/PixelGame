@@ -26,7 +26,14 @@ namespace PixelGame
     public class LandFlowLoadingScreen : MonoBehaviour
     {
         private static LandFlowLoadingScreen s_Instance;
-        public static LandFlowLoadingScreen Instance => s_Instance;
+        public static LandFlowLoadingScreen Instance
+        {
+            get
+            {
+                if (s_Instance == null) s_Instance = FindFirstObjectByType<LandFlowLoadingScreen>();
+                return s_Instance;
+            }
+        }
 
         [Header("🏢 Fogbound Stüdyo Giriş Ayarları")]
         [Tooltip("Fogbound şirket logosu sprite'ı")]
@@ -35,6 +42,8 @@ namespace PixelGame
         [SerializeField] private float m_FogboundDisplayDuration = 1.2f;
         [Tooltip("Fogbound logosunun solma (fade out) süresi (sn)")]
         [SerializeField] private float m_FogboundFadeDuration = 0.45f;
+        [Tooltip("Açık: oyun içi Fogbound intro'su gösterilir. Kapalı: logo yalnız Unity splash'te görünür.")]
+        [SerializeField] private bool m_ShowFogboundIntro = false;
 
         [Header("🌊 Land Flow Yükleme Ekranı Görselleri")]
         [Tooltip("Tam ekran Land Flow yükleme ekranı arka plan görseli")]
@@ -43,6 +52,12 @@ namespace PixelGame
         [SerializeField] private Sprite m_LoadingBadgeSprite;
         [Tooltip("Dinamik metinler için font (Lilita One / Titan One SDF)")]
         [SerializeField] private TMP_FontAsset m_Font;
+
+        [Header("🕰️ Klasik Stil (Level Geçişleri - Ezgi Öncesi Tarif)")]
+        [Tooltip("Solid arka plan rengi (derin okyanus mavisi #1773D1)")]
+        [SerializeField] private Color m_ClassicBackgroundColor = new Color(0.09f, 0.45f, 0.82f, 1f);
+        [Tooltip("Ortalanmış Land Flow logosu")]
+        [SerializeField] private Sprite m_ClassicLogoSprite;
 
         [Header("⏱️ Zamanlama ve Yumuşaklık (Smooth Timings)")]
         [Tooltip("Giriş kararma süresi (sn)")]
@@ -64,6 +79,14 @@ namespace PixelGame
 
         // UI Bileşenleri
         private CanvasGroup m_CanvasGroup;
+        private GameObject m_LandFlowContent; // Resimli ağaç (yalnız açılışta görünür)
+        private GameObject m_ClassicRoot; // Klasik ağaç (yalnız level geçişlerinde görünür)
+        private Image m_ClassicLogoImage;
+        private TextMeshProUGUI m_ClassicText;
+        private TextMeshProUGUI m_ClassicSubText;
+        private RectTransform m_ClassicBarFill;
+        private RectTransform m_ClassicBarBg;
+        private Tween m_ClassicLogoPulseTween;
         private Image m_FullscreenSplashImage;
         private Image m_LoadingBadgeImage;
         private TextMeshProUGUI m_LoadingText;
@@ -87,6 +110,9 @@ namespace PixelGame
         private bool m_IsVisible = false;
         private string m_CurrentBaseMessage = "LOADING";
         private string m_CurrentSubMessage = null;
+        // İlk sahne açılışında intro göster, sonrakilerde gizli başla.
+        // (Eskiden saate bakılıyordu; Unity splash'i süreyi yiyince cihazda tutmuyordu.)
+        private static bool s_BootShown = false;
 
         public bool IsVisible => m_IsVisible;
 
@@ -104,18 +130,25 @@ namespace PixelGame
             BuildUI();
 
             // Oyun ilk açıldığında doğrudan Fogbound intro ile başla (ekran flaş yapmasın)
-            if (Time.realtimeSinceStartup < 2.5f)
+            if (!s_BootShown)
             {
+                s_BootShown = true;
+                // Açılışta resimli splash stili
+                SetClassicMode(false);
                 m_CanvasGroup.alpha = 1f;
                 m_CanvasGroup.blocksRaycasts = true;
                 m_CanvasGroup.interactable = true;
                 m_IsVisible = true;
 
-                // Fogbound ekranı aktif ve en üstte
-                if (m_FogboundOverlayObj != null)
+                // Fogbound ekranı aktif ve en üstte (bayrak açıksa)
+                if (m_ShowFogboundIntro && m_FogboundOverlayObj != null)
                 {
                     m_FogboundOverlayObj.SetActive(true);
                     m_FogboundOverlayGroup.alpha = 1f;
+                }
+                else if (m_FogboundOverlayObj != null)
+                {
+                    m_FogboundOverlayObj.SetActive(false);
                 }
             }
             else
@@ -209,7 +242,8 @@ namespace PixelGame
             UpdateProgressBarImmediate(0f);
 
             // --- 1. FAZ: FOGBOUND STÜDYO LOGOSU ---
-            if (m_FogboundOverlayObj != null && m_FogboundOverlayGroup != null)
+            // Kapalı: logo zaten Unity splash'te gösteriliyor, ikinci kez tekrar etmesin.
+            if (m_ShowFogboundIntro && m_FogboundOverlayObj != null && m_FogboundOverlayGroup != null)
             {
                 m_FogboundOverlayObj.SetActive(true);
                 m_FogboundOverlayGroup.alpha = 1f;
@@ -284,6 +318,7 @@ namespace PixelGame
             // A. LAND FLOW ANA YÜKLEME EKRANI İÇERİĞİ
             // =========================================================================
             GameObject landflowContent = new GameObject("LandFlow_Content");
+            m_LandFlowContent = landflowContent;
             landflowContent.transform.SetParent(transform, false);
             RectTransform landflowRect = landflowContent.AddComponent<RectTransform>();
             landflowRect.anchorMin = Vector2.zero;
@@ -465,10 +500,213 @@ namespace PixelGame
             m_FogboundLogoImage.raycastTarget = false;
 
             m_FogboundOverlayObj.SetActive(false); // Sadece açılışta veya özel çağrıda aktifleştirilir
+
+            // Klasik stil ağacı (Ezgi öncesi tarif, level geçişleri için)
+            BuildClassicUI();
+        }
+
+        // =========================================================================
+        // C. KLASİK STİL AĞACI (Ezgi öncesi tarif, birebir: solid zemin + ortalanmış logo)
+        //    Yalnız level geçiş/fail ekranlarında görünür.
+        // =========================================================================
+        private void BuildClassicUI()
+        {
+            m_ClassicRoot = new GameObject("Classic_Content");
+            m_ClassicRoot.transform.SetParent(transform, false);
+            RectTransform rootRect = m_ClassicRoot.AddComponent<RectTransform>();
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.sizeDelta = Vector2.zero;
+
+            // 1. Solid Renkli Tam Ekran Arka Plan
+            GameObject bgObj = new GameObject("SolidBackground");
+            bgObj.transform.SetParent(m_ClassicRoot.transform, false);
+            RectTransform bgRect = bgObj.AddComponent<RectTransform>();
+            bgRect.anchorMin = Vector2.zero;
+            bgRect.anchorMax = Vector2.one;
+            bgRect.sizeDelta = Vector2.zero;
+
+            Image bgImg = bgObj.AddComponent<Image>();
+            bgImg.color = m_ClassicBackgroundColor;
+            bgImg.raycastTarget = true;
+
+            // 2. İçerik Kapsayıcısı (Ekranın Tam Ortasında)
+            GameObject centerContainer = new GameObject("CenterContent");
+            centerContainer.transform.SetParent(m_ClassicRoot.transform, false);
+            RectTransform centerRect = centerContainer.AddComponent<RectTransform>();
+            centerRect.anchorMin = new Vector2(0.5f, 0.5f);
+            centerRect.anchorMax = new Vector2(0.5f, 0.5f);
+            centerRect.pivot = new Vector2(0.5f, 0.5f);
+            centerRect.anchoredPosition = new Vector2(0f, 40f);
+            centerRect.sizeDelta = new Vector2(900f, 800f);
+
+            // 3. Land Flow Logosu
+            if (m_ClassicLogoSprite == null)
+            {
+#if UNITY_EDITOR
+                m_ClassicLogoSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/LandFlow_Logo.png");
+#endif
+                if (m_ClassicLogoSprite == null)
+                {
+                    m_ClassicLogoSprite = Resources.Load<Sprite>("LandFlow_Logo");
+                }
+            }
+
+            GameObject logoObj = new GameObject("LandFlow_Logo");
+            logoObj.transform.SetParent(centerContainer.transform, false);
+            RectTransform logoRect = logoObj.AddComponent<RectTransform>();
+            logoRect.anchorMin = new Vector2(0.5f, 0.6f);
+            logoRect.anchorMax = new Vector2(0.5f, 0.6f);
+            logoRect.pivot = new Vector2(0.5f, 0.5f);
+            logoRect.sizeDelta = new Vector2(620f, 310f);
+            logoRect.anchoredPosition = new Vector2(0f, 50f);
+
+            m_ClassicLogoImage = logoObj.AddComponent<Image>();
+            m_ClassicLogoImage.sprite = m_ClassicLogoSprite;
+            m_ClassicLogoImage.preserveAspect = true;
+            m_ClassicLogoImage.raycastTarget = false;
+
+            // 4. "LOADING..." Yazısı (Logonun Altında)
+            if (m_Font == null)
+            {
+#if UNITY_EDITOR
+                m_Font = UnityEditor.AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/Fonts/LilitaOne-Regular SDF.asset");
+#endif
+                if (m_Font == null) m_Font = GameThemeSettings.MainFont;
+            }
+
+            GameObject textObj = new GameObject("LoadingText");
+            textObj.transform.SetParent(centerContainer.transform, false);
+            RectTransform textRect = textObj.AddComponent<RectTransform>();
+            textRect.anchorMin = new Vector2(0.5f, 0.32f);
+            textRect.anchorMax = new Vector2(0.5f, 0.32f);
+            textRect.pivot = new Vector2(0.5f, 0.5f);
+            textRect.sizeDelta = new Vector2(750f, 90f);
+            textRect.anchoredPosition = new Vector2(0f, -30f);
+
+            m_ClassicText = textObj.AddComponent<TextMeshProUGUI>();
+            if (m_Font != null) m_ClassicText.font = m_Font;
+            m_ClassicText.text = "LOADING...";
+            m_ClassicText.fontSize = 52;
+            m_ClassicText.enableAutoSizing = true;
+            m_ClassicText.fontSizeMin = 36;
+            m_ClassicText.fontSizeMax = 52;
+            m_ClassicText.fontStyle = FontStyles.Bold;
+            m_ClassicText.alignment = TextAlignmentOptions.Center;
+            m_ClassicText.color = Color.white;
+            m_ClassicText.enableVertexGradient = true;
+            m_ClassicText.colorGradient = new VertexGradient(
+                Color.white,
+                Color.white,
+                new Color(0.85f, 0.95f, 1f, 1f),
+                new Color(0.85f, 0.95f, 1f, 1f)
+            );
+            m_ClassicText.raycastTarget = false;
+
+            var outline = textObj.AddComponent<Outline>();
+            outline.effectColor = new Color(0.02f, 0.15f, 0.35f, 0.85f);
+            outline.effectDistance = new Vector2(2.5f, -2.5f);
+
+            // 5. Alt Başlık / Ödül Metni
+            GameObject subTextObj = new GameObject("SubText");
+            subTextObj.transform.SetParent(centerContainer.transform, false);
+            RectTransform subRect = subTextObj.AddComponent<RectTransform>();
+            subRect.anchorMin = new Vector2(0.5f, 0.28f);
+            subRect.anchorMax = new Vector2(0.5f, 0.28f);
+            subRect.pivot = new Vector2(0.5f, 0.5f);
+            subRect.sizeDelta = new Vector2(650f, 50f);
+            subRect.anchoredPosition = new Vector2(0f, -80f);
+
+            m_ClassicSubText = subTextObj.AddComponent<TextMeshProUGUI>();
+            if (m_Font != null) m_ClassicSubText.font = m_Font;
+            m_ClassicSubText.fontSize = 32;
+            m_ClassicSubText.fontStyle = FontStyles.Bold;
+            m_ClassicSubText.alignment = TextAlignmentOptions.Center;
+            m_ClassicSubText.color = new Color(1f, 0.88f, 0.25f, 1f);
+            m_ClassicSubText.enableVertexGradient = true;
+            m_ClassicSubText.colorGradient = new VertexGradient(
+                new Color(1f, 0.95f, 0.55f, 1f),
+                new Color(1f, 0.95f, 0.55f, 1f),
+                new Color(1f, 0.72f, 0.12f, 1f),
+                new Color(1f, 0.72f, 0.12f, 1f)
+            );
+            m_ClassicSubText.raycastTarget = false;
+
+            var subOutline = subTextObj.AddComponent<Outline>();
+            subOutline.effectColor = new Color(0.02f, 0.12f, 0.28f, 0.90f);
+            subOutline.effectDistance = new Vector2(2f, -2f);
+            subTextObj.SetActive(false);
+
+            // 6. Şık İlerleme Çubuğu (Progress Bar)
+            GameObject barBg = new GameObject("ProgressBar_BG");
+            barBg.transform.SetParent(centerContainer.transform, false);
+            m_ClassicBarBg = barBg.AddComponent<RectTransform>();
+            m_ClassicBarBg.anchorMin = new Vector2(0.5f, 0.22f);
+            m_ClassicBarBg.anchorMax = new Vector2(0.5f, 0.22f);
+            m_ClassicBarBg.pivot = new Vector2(0.5f, 0.5f);
+            m_ClassicBarBg.sizeDelta = new Vector2(520f, 26f);
+            m_ClassicBarBg.anchoredPosition = new Vector2(0f, -135f);
+
+            Image bgBarImg = barBg.AddComponent<Image>();
+            bgBarImg.color = new Color(0.04f, 0.22f, 0.45f, 0.85f);
+            bgBarImg.raycastTarget = false;
+
+            var barBorder = barBg.AddComponent<Outline>();
+            barBorder.effectColor = new Color(0.25f, 0.65f, 0.95f, 0.55f);
+            barBorder.effectDistance = new Vector2(2f, -2f);
+
+            Mask barMask = barBg.AddComponent<Mask>();
+            barMask.showMaskGraphic = true;
+
+            GameObject barFill = new GameObject("ProgressBar_Fill");
+            barFill.transform.SetParent(barBg.transform, false);
+            m_ClassicBarFill = barFill.AddComponent<RectTransform>();
+            m_ClassicBarFill.anchorMin = new Vector2(0f, 0f);
+            m_ClassicBarFill.anchorMax = new Vector2(0f, 1f);
+            m_ClassicBarFill.pivot = new Vector2(0f, 0.5f);
+            m_ClassicBarFill.sizeDelta = new Vector2(0f, 0f);
+            m_ClassicBarFill.anchoredPosition = Vector2.zero;
+
+            Image fillImg = barFill.AddComponent<Image>();
+            fillImg.color = new Color(1f, 0.85f, 0.20f, 1f);
+            fillImg.raycastTarget = false;
+
+            m_ClassicRoot.SetActive(false);
+        }
+
+        private bool IsClassicActive()
+        {
+            return m_ClassicRoot != null && m_ClassicRoot.activeSelf;
+        }
+
+        private void SetClassicMode(bool classic)
+        {
+            if (m_ClassicRoot != null) m_ClassicRoot.SetActive(classic);
+            if (m_LandFlowContent != null) m_LandFlowContent.SetActive(!classic);
         }
 
         private void StartBadgeAndTextAnimations()
         {
+            // Klasik modda: ortalanmış logo nefes alır, klasik yazı noktacıklanır
+            if (IsClassicActive())
+            {
+                if (m_ClassicLogoImage != null)
+                {
+                    m_ClassicLogoPulseTween?.Kill();
+                    m_ClassicLogoImage.transform.localScale = Vector3.one;
+                    m_ClassicLogoPulseTween = m_ClassicLogoImage.transform
+                        .DOScale(Vector3.one * 1.045f, 0.85f)
+                        .SetLoops(-1, LoopType.Yoyo)
+                        .SetEase(Ease.InOutSine)
+                        .SetUpdate(true);
+                }
+                if (m_ClassicText != null)
+                {
+                    if (m_TextDotRoutine != null) StopCoroutine(m_TextDotRoutine);
+                    m_TextDotRoutine = StartCoroutine(AnimateLoadingDots());
+                }
+                return;
+            }
             // 3D "LOADING..." rozeti için tatlı, canlı nefes alma animasyonu
             if (m_LoadingBadgeImage != null && m_LoadingBadgeImage.gameObject.activeSelf)
             {
@@ -494,6 +732,12 @@ namespace PixelGame
             m_ProgressBarTween?.Kill();
             m_BadgePulseTween?.Kill();
             m_SubTextPulseTween?.Kill();
+            m_ClassicLogoPulseTween?.Kill();
+
+            if (m_ClassicLogoImage != null)
+            {
+                m_ClassicLogoImage.transform.localScale = Vector3.one;
+            }
 
             if (m_LoadingBadgeImage != null)
             {
@@ -538,6 +782,12 @@ namespace PixelGame
                 }
             }
 
+            // Klasik ağaç: yazı her zaman görünür (rozet yok)
+            if (m_ClassicText != null)
+            {
+                m_ClassicText.text = m_CurrentBaseMessage + "...";
+            }
+
             if (m_SubText != null)
             {
                 m_SubTextPulseTween?.Kill();
@@ -557,6 +807,12 @@ namespace PixelGame
                     m_SubText.gameObject.SetActive(false);
                 }
             }
+
+            // Klasik stil: alt yazı (coin/ödül metni) gösterilmez
+            if (m_ClassicSubText != null)
+            {
+                m_ClassicSubText.gameObject.SetActive(false);
+            }
         }
 
         private IEnumerator AnimateLoadingDots()
@@ -568,6 +824,11 @@ namespace PixelGame
                 {
                     string suffix = new string('.', dots);
                     m_LoadingText.text = m_CurrentBaseMessage + suffix;
+                }
+                if (m_ClassicText != null && IsClassicActive())
+                {
+                    string suffix = new string('.', dots);
+                    m_ClassicText.text = m_CurrentBaseMessage + suffix;
                 }
                 dots = (dots + 1) % 4;
                 yield return new WaitForSecondsRealtime(0.28f);
@@ -607,6 +868,11 @@ namespace PixelGame
                 float targetWidth = m_ProgressBarBg.sizeDelta.x * Mathf.Clamp01(progress);
                 m_ProgressBarFill.sizeDelta = new Vector2(targetWidth, 0f);
             }
+            if (m_ClassicBarFill != null && m_ClassicBarBg != null)
+            {
+                float targetWidth = m_ClassicBarBg.sizeDelta.x * Mathf.Clamp01(progress);
+                m_ClassicBarFill.sizeDelta = new Vector2(targetWidth, 0f);
+            }
         }
 
         /// <summary>
@@ -626,6 +892,9 @@ namespace PixelGame
             {
                 m_FogboundOverlayObj.SetActive(false); // Normal geçişlerde Fogbound intro oynatılmaz
             }
+
+            // Level geçişleri klasik stilde (Ezgi öncesi tarif)
+            SetClassicMode(true);
 
             if (!string.IsNullOrEmpty(message))
             {

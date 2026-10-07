@@ -94,13 +94,33 @@ namespace PixelGame
         [SerializeField] private List<Transform> m_QueueSpots = new List<Transform>();
         [SerializeField] private List<ShipController> m_WaitingShips = new List<ShipController>();
 
-        private Queue<WagonSequenceEntry> m_LevelSequenceQueue = new Queue<WagonSequenceEntry>();
+        // Özel gemi sırası: sütun başına bir şerit. Tasarım listesindeki i. gemi
+        // (i % sütunSayısı). şeride düşer; her sütun yalnız kendi şeridinden beslenir.
+        // Böylece tasarımda hangi sütundaysa gemi oyunda da o sütuna gelir.
+        private List<Queue<WagonSequenceEntry>> m_LevelSequenceLanes = new List<Queue<WagonSequenceEntry>>();
         private bool m_UsingLevelSequence = false;
 
         public int Capacity => m_Columns * m_Rows;
         public List<ShipController> WaitingShips => m_WaitingShips;
         public bool UsingLevelSequence => m_UsingLevelSequence;
-        public int RemainingSequenceShipsCount => m_LevelSequenceQueue != null ? m_LevelSequenceQueue.Count : 0;
+        public int RemainingSequenceShipsCount => RemainingSequenceShipsTotal();
+
+        private int RemainingSequenceShipsTotal()
+        {
+            int n = 0;
+            if (m_LevelSequenceLanes != null)
+                foreach (var q in m_LevelSequenceLanes)
+                    if (q != null) n += q.Count;
+            return n;
+        }
+
+        private bool LevelSequenceLanesExhausted()
+        {
+            if (m_LevelSequenceLanes == null) return true;
+            foreach (var q in m_LevelSequenceLanes)
+                if (q != null && q.Count > 0) return false;
+            return true;
+        }
 
         public bool UseColumnPresets { get => m_UseColumnPresets; set => m_UseColumnPresets = value; }
         public List<ColumnLayoutPreset> ColumnPresets => m_ColumnPresets;
@@ -195,7 +215,7 @@ namespace PixelGame
         {
             if (m_UsingLevelSequence)
             {
-                return m_LevelSequenceQueue == null || m_LevelSequenceQueue.Count == 0;
+                return LevelSequenceLanesExhausted();
             }
             else
             {
@@ -221,30 +241,32 @@ namespace PixelGame
         // Son çekilen sıra girdisinin "gizli gemi" bayrağı (TryGetNextSequenceShip her çağrıda günceller)
         private bool m_LastSequenceShipHidden = false;
 
-        private bool TryGetNextSequenceShip(out Color shipColor, out int capacity, out int linkId)
+        // Spotun sütununa ait şeritten sıradaki gemiyi çeker.
+        private bool TryGetNextSequenceShip(int spotIndex, out Color shipColor, out int capacity, out int linkId)
         {
             m_LastSequenceShipHidden = false;
-            if (m_UsingLevelSequence && m_LevelSequenceQueue != null && m_LevelSequenceQueue.Count > 0)
+            if (m_UsingLevelSequence && m_LevelSequenceLanes != null && m_LevelSequenceLanes.Count > 0)
             {
-                WagonSequenceEntry entry = m_LevelSequenceQueue.Dequeue();
-                if (entry != null && entry.capacity > 0)
+                int lane = spotIndex % m_LevelSequenceLanes.Count;
+                if (lane < 0) lane += m_LevelSequenceLanes.Count;
+                Queue<WagonSequenceEntry> q = m_LevelSequenceLanes[lane];
+                if (q != null && q.Count > 0)
                 {
-                    shipColor = entry.wagonColor;
-                    capacity = entry.capacity;
-                    linkId = entry.linkId;
-                    m_LastSequenceShipHidden = entry.isHidden;
-                    return true;
+                    WagonSequenceEntry entry = q.Dequeue();
+                    if (entry != null && entry.capacity > 0)
+                    {
+                        shipColor = entry.wagonColor;
+                        capacity = entry.capacity;
+                        linkId = entry.linkId;
+                        m_LastSequenceShipHidden = entry.isHidden;
+                        return true;
+                    }
                 }
             }
             shipColor = Color.clear;
             capacity = 0;
             linkId = 0;
             return false;
-        }
-
-        private bool TryGetNextSequenceShip(out Color shipColor, out int capacity)
-        {
-            return TryGetNextSequenceShip(out shipColor, out capacity, out _);
         }
 
         private void Awake()
@@ -443,18 +465,22 @@ namespace PixelGame
             m_WaitingShips.Clear();
 
             // 1. Seviyede tanımlı özel gemi sırası var mı kontrol et
-            m_LevelSequenceQueue.Clear();
+            m_LevelSequenceLanes.Clear();
             if (level != null && level.UseCustomWagonSequence && level.WagonSequence != null && level.WagonSequence.Count > 0)
             {
                 m_UsingLevelSequence = true;
+                int laneCount = Mathf.Max(1, targetCols);
+                for (int l = 0; l < laneCount; l++) m_LevelSequenceLanes.Add(new Queue<WagonSequenceEntry>());
+                int li = 0;
                 foreach (var entry in level.WagonSequence)
                 {
                     if (entry != null && entry.capacity > 0)
                     {
-                        m_LevelSequenceQueue.Enqueue(entry);
+                        m_LevelSequenceLanes[li % laneCount].Enqueue(entry);
+                        li++;
                     }
                 }
-                Debug.Log($"<color=#00FFAA><b>[ShipQueuePool]</b></color> 🚢 Seviye özel gemi sırası devrede: {m_LevelSequenceQueue.Count} adet gemi sıralandı.");
+                Debug.Log($"<color=#00FFAA><b>[ShipQueuePool]</b></color> 🚢 Seviye özel gemi sırası devrede: {li} adet gemi {laneCount} şeride dağıtıldı.");
             }
             else
             {
@@ -467,7 +493,7 @@ namespace PixelGame
                 if (spot == null) continue;
 
                 // Eğer özel sıra kullanılıyorsa ve tüm sıra baştan az sayıda gemiden ibaretse fazla spotları doldurma
-                if (m_UsingLevelSequence && m_LevelSequenceQueue.Count == 0 && i >= level.WagonSequence.Count)
+                if (m_UsingLevelSequence && LevelSequenceLanesExhausted() && i >= level.WagonSequence.Count)
                 {
                     for (int c = spot.childCount - 1; c >= 0; c--)
                     {
@@ -490,7 +516,7 @@ namespace PixelGame
                 Color shipColor;
                 int capacity;
                 int linkId;
-                if (!TryGetNextSequenceShip(out shipColor, out capacity, out linkId))
+                if (!TryGetNextSequenceShip(i, out shipColor, out capacity, out linkId))
                 {
                     const bool preferExposed = true;
                     shipColor = GetNextNeededColor(preferExposed);
@@ -623,7 +649,7 @@ namespace PixelGame
             Color shipColor;
             int capacity;
             int linkId;
-            if (!TryGetNextSequenceShip(out shipColor, out capacity, out linkId))
+            if (!TryGetNextSequenceShip(spotIndex, out shipColor, out capacity, out linkId))
             {
                 shipColor = GetNextNeededColor(preferExposed);
                 capacity = GetRecommendedCapacity(shipColor);
@@ -990,7 +1016,7 @@ namespace PixelGame
             if (m_ShipPrefab == null) return;
 
             // Eğer özel sıra kullanılıyorsa ve sırada başka gemi kalmadıysa:
-            if (m_UsingLevelSequence && (m_LevelSequenceQueue == null || m_LevelSequenceQueue.Count == 0))
+            if (m_UsingLevelSequence && LevelSequenceLanesExhausted())
             {
                 int remainingCubes = ShipDispatcher.Instance != null ? ShipDispatcher.Instance.GetTotalRemainingCubes() : 0;
                 int currentShipCapacity = GetTotalCapacityOfActiveShips();
@@ -1004,7 +1030,7 @@ namespace PixelGame
             Color shipColor;
             int capacity;
             int linkId;
-            if (!TryGetNextSequenceShip(out shipColor, out capacity, out linkId))
+            if (!TryGetNextSequenceShip(spotIndex, out shipColor, out capacity, out linkId))
             {
                 shipColor = GetNextNeededColor(false);
                 capacity = GetRecommendedCapacity(shipColor);
