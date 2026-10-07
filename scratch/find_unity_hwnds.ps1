@@ -25,12 +25,13 @@ public class WinFinder {
     [DllImport("user32.dll")]
     public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
-    public static List<IntPtr> FindWindowsForPid(uint targetPid) {
+    public static List<IntPtr> FindWindowsForPids(uint[] targetPids) {
+        var set = new HashSet<uint>(targetPids);
         var result = new List<IntPtr>();
         EnumWindows((hWnd, lParam) => {
             uint pid;
             GetWindowThreadProcessId(hWnd, out pid);
-            if (pid == targetPid) {
+            if (set.Contains(pid)) {
                 result.Add(hWnd);
             }
             return true;
@@ -40,17 +41,17 @@ public class WinFinder {
 }
 '@
 
-$hwnds = [WinFinder]::FindWindowsForPid(18544)
-Write-Output "Found $($hwnds.Count) windows for PID 18544"
+$pids = [uint32[]](Get-Process Unity | ForEach-Object { $_.Id })
+$hwnds = [WinFinder]::FindWindowsForPids($pids)
+Write-Output "Found $($hwnds.Count) windows for Unity processes"
 foreach ($h in $hwnds) {
     $sb = New-Object System.Text.StringBuilder 256
     [WinFinder]::GetWindowText($h, $sb, 256)
     $title = $sb.ToString()
     $visible = [WinFinder]::IsWindowVisible($h)
-    Write-Output "HWND: $h, Visible: $visible, Title: $title"
-    if ($visible -or $title.Length -gt 0) {
+    if ($title.Length -gt 0 -and $visible) {
+        Write-Output "Activating HWND: $h, Title: $title"
         [WinFinder]::ShowWindow($h, 9)
         [WinFinder]::SetForegroundWindow($h)
-        Write-Output "Set foreground on $h"
     }
 }

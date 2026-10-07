@@ -9,10 +9,18 @@ using DG.Tweening;
 namespace PixelGame
 {
     /// <summary>
-    /// Land Flow oyun yükleme ve seviye geçiş ekranı.
-    /// Solid renkli arka plan üzerinde Land Flow logosu, ortalanmış animasyonlu "LOADING..." yazısı
-    /// ve pürüzsüz altın ilerleme çubuğu ile oyun açılışında, level geçişlerinde ve level fail sonrası
-    /// asenkron, takılmasız (stutter-free) ve son derece akıcı bir şekilde çalışır.
+    /// Land Flow Oyun Yükleme ve Şirket Açılış Ekranı (Studio Intro & Loading Screen).
+    /// 
+    /// 1. Faz (Oyun Açılışında):
+    ///    - Şık ve karanlık Fogbound stüdyo logosu (siyah arka plan, ortalanmış beyaz Fogbound logosu,
+    ///      hafif nefes alma animasyonu ve yumuşak geçiş).
+    /// 
+    /// 2. Faz (Land Flow Yükleme Ekranı):
+    ///    - 9:16 dikey ekranı tamamen kaplayan (edge-to-edge), sevimli gemiler ve neşeli küplerle dolu
+    ///      canlı tropikal Land Flow arka planı.
+    ///    - "LAND FLOW" logosunun font ve 3D kabartma stiline birebir uygun "LOADING..." yazısı / 3D rozeti.
+    ///    - Altın sarısı akıcı ilerleme çubuğu (Progress Bar).
+    ///    - Oyun açılışında, level geçişlerinde ve level fail sonrası tamamen asenkron, takılmasız ve pürüzsüz çalışır.
     /// </summary>
     [DisallowMultipleComponent]
     public class LandFlowLoadingScreen : MonoBehaviour
@@ -20,10 +28,20 @@ namespace PixelGame
         private static LandFlowLoadingScreen s_Instance;
         public static LandFlowLoadingScreen Instance => s_Instance;
 
-        [Header("🎨 Renk ve Görsel Ayarları")]
-        [Tooltip("Solid arka plan rengi (Land Flow su temasına uygun derin okyanus mavisi)")]
-        [SerializeField] private Color m_SolidBackgroundColor = new Color(0.09f, 0.45f, 0.82f, 1f); // #1773D1
-        [SerializeField] private Sprite m_LogoSprite;
+        [Header("🏢 Fogbound Stüdyo Giriş Ayarları")]
+        [Tooltip("Fogbound şirket logosu sprite'ı")]
+        [SerializeField] private Sprite m_FogboundLogoSprite;
+        [Tooltip("Fogbound açılış logosunun ekranda kalma süresi (sn)")]
+        [SerializeField] private float m_FogboundDisplayDuration = 1.2f;
+        [Tooltip("Fogbound logosunun solma (fade out) süresi (sn)")]
+        [SerializeField] private float m_FogboundFadeDuration = 0.45f;
+
+        [Header("🌊 Land Flow Yükleme Ekranı Görselleri")]
+        [Tooltip("Tam ekran Land Flow yükleme ekranı arka plan görseli")]
+        [SerializeField] private Sprite m_FullscreenSplashSprite;
+        [Tooltip("3D kabartmalı Land Flow stili 'LOADING...' rozeti")]
+        [SerializeField] private Sprite m_LoadingBadgeSprite;
+        [Tooltip("Dinamik metinler için font (Lilita One / Titan One SDF)")]
         [SerializeField] private TMP_FontAsset m_Font;
 
         [Header("⏱️ Zamanlama ve Yumuşaklık (Smooth Timings)")]
@@ -34,7 +52,7 @@ namespace PixelGame
         [Tooltip("Yükleme ekranının ekranda kalacağı ideal minimum süre (sn)")]
         [SerializeField] private float m_MinDisplayDuration = 1.6f;
         [Tooltip("%100 dolduktan sonra ekranda kalma nefes payı (sn)")]
-        [SerializeField] private float m_HoldBeforeFadeOut = 0.18f;
+        [SerializeField] private float m_HoldBeforeFadeOut = 0.20f;
 
         [Header("📝 Metin Ayarları (Dynamic Text)")]
         [Tooltip("Varsayılan yükleme ekranı metni")]
@@ -44,16 +62,25 @@ namespace PixelGame
         [Tooltip("Bölüm başarıyla tamamlandığında gösterilecek metin")]
         [SerializeField] private string m_LevelCompleteText = "LEVEL COMPLETED";
 
+        // UI Bileşenleri
         private CanvasGroup m_CanvasGroup;
-        private Image m_BackgroundImage;
-        private Image m_LogoImage;
+        private Image m_FullscreenSplashImage;
+        private Image m_LoadingBadgeImage;
         private TextMeshProUGUI m_LoadingText;
         private TextMeshProUGUI m_SubText;
         private RectTransform m_ProgressBarFill;
         private RectTransform m_ProgressBarBg;
+
+        // Fogbound Intro Bileşenleri
+        private GameObject m_FogboundOverlayObj;
+        private CanvasGroup m_FogboundOverlayGroup;
+        private Image m_FogboundLogoImage;
+        private Tween m_FogboundPulseTween;
+
+        // Animasyon ve Rutin Değişkenleri
         private Coroutine m_TextDotRoutine;
         private Coroutine m_ActiveLoadingRoutine;
-        private Tween m_LogoPulseTween;
+        private Tween m_BadgePulseTween;
         private Tween m_ProgressBarTween;
         private Tween m_SubTextPulseTween;
         private float m_VisualProgress = 0f;
@@ -73,38 +100,148 @@ namespace PixelGame
             s_Instance = this;
             DontDestroyOnLoad(gameObject);
 
+            LoadSpritesIfNeeded();
             BuildUI();
 
-            // Oyun ilk açıldığında doğrudan ekranda olsun (ekran flaş yapmasın)
-            if (Time.realtimeSinceStartup < 1.5f)
+            // Oyun ilk açıldığında doğrudan Fogbound intro ile başla (ekran flaş yapmasın)
+            if (Time.realtimeSinceStartup < 2.5f)
             {
                 m_CanvasGroup.alpha = 1f;
                 m_CanvasGroup.blocksRaycasts = true;
                 m_CanvasGroup.interactable = true;
                 m_IsVisible = true;
-                StartAnimations();
+
+                // Fogbound ekranı aktif ve en üstte
+                if (m_FogboundOverlayObj != null)
+                {
+                    m_FogboundOverlayObj.SetActive(true);
+                    m_FogboundOverlayGroup.alpha = 1f;
+                }
             }
             else
             {
+                // Oyun ortasında sonradan oluştuysa gizli başla
                 m_CanvasGroup.alpha = 0f;
                 m_CanvasGroup.blocksRaycasts = false;
                 m_CanvasGroup.interactable = false;
                 m_IsVisible = false;
+                if (m_FogboundOverlayObj != null)
+                {
+                    m_FogboundOverlayObj.SetActive(false);
+                }
             }
         }
 
         private void Start()
         {
-            // Oyun açılışında ilk seviye hazır olana kadar zarifçe ekranda kalıp yumuşakça gizle
+            // Oyun açılışında Fogbound intro -> Land Flow loading ekranı akışı
             if (m_IsVisible && m_ActiveLoadingRoutine == null)
             {
-                StartCoroutine(InitialStartRoutine());
+                StartCoroutine(InitialBootSequenceRoutine());
             }
         }
 
-        private IEnumerator InitialStartRoutine()
+        /// <summary>
+        /// Sprite referanslarını Resources veya AssetDatabase'den otomatik yükler.
+        /// </summary>
+        private void LoadSpritesIfNeeded()
+        {
+            if (m_FogboundLogoSprite == null)
+            {
+                m_FogboundLogoSprite = Resources.Load<Sprite>("Fogbound_Logo_Transparent");
+                if (m_FogboundLogoSprite == null)
+                {
+                    m_FogboundLogoSprite = Resources.Load<Sprite>("Fogbound_Logo");
+                }
+#if UNITY_EDITOR
+                if (m_FogboundLogoSprite == null)
+                {
+                    m_FogboundLogoSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/Fogbound_Logo_Transparent.png");
+                }
+#endif
+            }
+
+            if (m_FullscreenSplashSprite == null)
+            {
+                m_FullscreenSplashSprite = Resources.Load<Sprite>("LandFlow_Splash_Clean");
+                if (m_FullscreenSplashSprite == null)
+                {
+                    m_FullscreenSplashSprite = Resources.Load<Sprite>("LandFlow_Splash_Full");
+                }
+#if UNITY_EDITOR
+                if (m_FullscreenSplashSprite == null)
+                {
+                    m_FullscreenSplashSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/LandFlow_Splash_Clean.png");
+                }
+#endif
+            }
+
+            if (m_LoadingBadgeSprite == null)
+            {
+                m_LoadingBadgeSprite = Resources.Load<Sprite>("Loading_Badge_3D");
+#if UNITY_EDITOR
+                if (m_LoadingBadgeSprite == null)
+                {
+                    m_LoadingBadgeSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/Loading_Badge_3D.png");
+                }
+#endif
+            }
+
+            if (m_Font == null)
+            {
+#if UNITY_EDITOR
+                m_Font = UnityEditor.AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/Fonts/LilitaOne-Regular SDF.asset");
+#endif
+                if (m_Font == null)
+                {
+                    m_Font = GameThemeSettings.MainFont;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Oyun ilk açıldığında çalışan sinematik 2 fazlı başlangıç sekansı:
+        /// 1. Faz: Fogbound Şirket Logosu (Karanlık zemin, zarif nefes alma, yumuşak solma)
+        /// 2. Faz: Land Flow Tam Ekran Yükleme Ekranı (Canlı tropikal sahil, 3D 'LOADING...' yazısı, ilerleme çubuğu)
+        /// </summary>
+        private IEnumerator InitialBootSequenceRoutine()
         {
             UpdateProgressBarImmediate(0f);
+
+            // --- 1. FAZ: FOGBOUND STÜDYO LOGOSU ---
+            if (m_FogboundOverlayObj != null && m_FogboundOverlayGroup != null)
+            {
+                m_FogboundOverlayObj.SetActive(true);
+                m_FogboundOverlayGroup.alpha = 1f;
+
+                // Logoya zarif bir nefes alma animasyonu
+                if (m_FogboundLogoImage != null)
+                {
+                    m_FogboundPulseTween?.Kill();
+                    m_FogboundLogoImage.transform.localScale = Vector3.one * 0.96f;
+                    m_FogboundPulseTween = m_FogboundLogoImage.transform
+                        .DOScale(Vector3.one * 1.035f, m_FogboundDisplayDuration * 0.9f)
+                        .SetEase(Ease.OutSine)
+                        .SetUpdate(true);
+                }
+
+                // Ekranda kalış süresi
+                yield return new WaitForSecondsRealtime(m_FogboundDisplayDuration);
+
+                // Yumuşakça solarak arkasındaki Land Flow ekranına geçiş yap
+                yield return m_FogboundOverlayGroup
+                    .DOFade(0f, m_FogboundFadeDuration)
+                    .SetEase(Ease.InOutSine)
+                    .SetUpdate(true)
+                    .WaitForCompletion();
+
+                m_FogboundOverlayObj.SetActive(false);
+            }
+
+            // --- 2. FAZ: LAND FLOW YÜKLEME EKRANI ---
+            StartBadgeAndTextAnimations();
+
+            // İlerleme çubuğunu organik olarak %100'e doldur
             AnimateProgressBarTo(1.0f, m_MinDisplayDuration, Ease.InOutQuad);
 
             float elapsed = 0f;
@@ -114,13 +251,15 @@ namespace PixelGame
                 yield return null;
             }
 
-            // Sahnenin oturması için kısa nefes payı
+            // Sahnenin oturması için hafif nefes payı
             yield return new WaitForSecondsRealtime(m_HoldBeforeFadeOut);
+
+            // Oyuna yumuşak geçiş
             Hide();
         }
 
         /// <summary>
-        /// Yükleme ekranı UI hiyerarşisini kodla eksiksiz ve bağımsız olarak inşa eder.
+        /// Yükleme ekranı UI hiyerarşisini kodla eksiksiz, bağımsız ve görsel olarak kusursuz inşa eder.
         /// </summary>
         private void BuildUI()
         {
@@ -128,7 +267,7 @@ namespace PixelGame
             Canvas canvas = GetComponent<Canvas>();
             if (canvas == null) canvas = gameObject.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 9999; // En üstte görünsün
+            canvas.sortingOrder = 9999; // Her şeyin en üstünde görünsün
 
             CanvasScaler scaler = GetComponent<CanvasScaler>();
             if (scaler == null) scaler = gameObject.AddComponent<CanvasScaler>();
@@ -141,147 +280,141 @@ namespace PixelGame
             m_CanvasGroup = GetComponent<CanvasGroup>();
             if (m_CanvasGroup == null) m_CanvasGroup = gameObject.AddComponent<CanvasGroup>();
 
-            // 1. Solid Renkli Tam Ekran Arka Plan
-            GameObject bgObj = new GameObject("SolidBackground");
-            bgObj.transform.SetParent(transform, false);
-            RectTransform bgRect = bgObj.AddComponent<RectTransform>();
-            bgRect.anchorMin = Vector2.zero;
-            bgRect.anchorMax = Vector2.one;
-            bgRect.sizeDelta = Vector2.zero;
+            // =========================================================================
+            // A. LAND FLOW ANA YÜKLEME EKRANI İÇERİĞİ
+            // =========================================================================
+            GameObject landflowContent = new GameObject("LandFlow_Content");
+            landflowContent.transform.SetParent(transform, false);
+            RectTransform landflowRect = landflowContent.AddComponent<RectTransform>();
+            landflowRect.anchorMin = Vector2.zero;
+            landflowRect.anchorMax = Vector2.one;
+            landflowRect.sizeDelta = Vector2.zero;
 
-            m_BackgroundImage = bgObj.AddComponent<Image>();
-            m_BackgroundImage.color = m_SolidBackgroundColor;
-            m_BackgroundImage.raycastTarget = true;
+            // 1. Tam Ekran Arka Plan Görseli (Land Flow Splash - Edge to Edge)
+            GameObject splashObj = new GameObject("FullscreenSplash");
+            splashObj.transform.SetParent(landflowContent.transform, false);
+            RectTransform splashRect = splashObj.AddComponent<RectTransform>();
+            splashRect.anchorMin = Vector2.zero;
+            splashRect.anchorMax = Vector2.one;
+            splashRect.sizeDelta = Vector2.zero;
 
-            // 2. İçerik Kapsayıcısı (Ekranın Tam Ortasında)
-            GameObject centerContainer = new GameObject("CenterContent");
-            centerContainer.transform.SetParent(transform, false);
-            RectTransform centerRect = centerContainer.AddComponent<RectTransform>();
-            centerRect.anchorMin = new Vector2(0.5f, 0.5f);
-            centerRect.anchorMax = new Vector2(0.5f, 0.5f);
-            centerRect.pivot = new Vector2(0.5f, 0.5f);
-            centerRect.anchoredPosition = new Vector2(0f, 40f);
-            centerRect.sizeDelta = new Vector2(900f, 800f);
+            m_FullscreenSplashImage = splashObj.AddComponent<Image>();
+            m_FullscreenSplashImage.sprite = m_FullscreenSplashSprite;
+            m_FullscreenSplashImage.color = Color.white;
+            m_FullscreenSplashImage.type = Image.Type.Simple;
+            m_FullscreenSplashImage.raycastTarget = true;
 
-            // 3. Land Flow Logosu
-            if (m_LogoSprite == null)
-            {
-                #if UNITY_EDITOR
-                m_LogoSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/LandFlow_Logo.png");
-                #endif
-                if (m_LogoSprite == null)
-                {
-                    m_LogoSprite = Resources.Load<Sprite>("LandFlow_Logo");
-                }
-            }
+            // 2. Alt UI Bölgesi Kapsayıcısı (Su bölümünün alt kısmı için)
+            // 1080x1920 ekranda alt kenardan ~160px yukarıda
+            GameObject bottomUI = new GameObject("BottomUIContainer");
+            bottomUI.transform.SetParent(landflowContent.transform, false);
+            RectTransform bottomRect = bottomUI.AddComponent<RectTransform>();
+            bottomRect.anchorMin = new Vector2(0.5f, 0f);
+            bottomRect.anchorMax = new Vector2(0.5f, 0f);
+            bottomRect.pivot = new Vector2(0.5f, 0f);
+            bottomRect.anchoredPosition = new Vector2(0f, 130f);
+            bottomRect.sizeDelta = new Vector2(900f, 320f);
 
-            GameObject logoObj = new GameObject("LandFlow_Logo");
-            logoObj.transform.SetParent(centerContainer.transform, false);
-            RectTransform logoRect = logoObj.AddComponent<RectTransform>();
-            logoRect.anchorMin = new Vector2(0.5f, 0.6f);
-            logoRect.anchorMax = new Vector2(0.5f, 0.6f);
-            logoRect.pivot = new Vector2(0.5f, 0.5f);
-            logoRect.sizeDelta = new Vector2(620f, 310f); // 2:1 oranında net ve canlı
-            logoRect.anchoredPosition = new Vector2(0f, 50f);
+            // 3. 3D "LOADING..." Rozeti (Land Flow Başlık Stiliyle Birebir Eşleşen 3D Bubble Font)
+            GameObject badgeObj = new GameObject("LoadingBadge_3D");
+            badgeObj.transform.SetParent(bottomUI.transform, false);
+            RectTransform badgeRect = badgeObj.AddComponent<RectTransform>();
+            badgeRect.anchorMin = new Vector2(0.5f, 0.5f);
+            badgeRect.anchorMax = new Vector2(0.5f, 0.5f);
+            badgeRect.pivot = new Vector2(0.5f, 0.5f);
+            badgeRect.sizeDelta = new Vector2(460f, 96f);
+            badgeRect.anchoredPosition = new Vector2(0f, 65f);
 
-            m_LogoImage = logoObj.AddComponent<Image>();
-            m_LogoImage.sprite = m_LogoSprite;
-            m_LogoImage.preserveAspect = true;
-            m_LogoImage.raycastTarget = false;
+            m_LoadingBadgeImage = badgeObj.AddComponent<Image>();
+            m_LoadingBadgeImage.sprite = m_LoadingBadgeSprite;
+            m_LoadingBadgeImage.preserveAspect = true;
+            m_LoadingBadgeImage.raycastTarget = false;
 
-            // 4. "LOADING..." Yazısı (Logonun Altında)
-            if (m_Font == null)
-            {
-                #if UNITY_EDITOR
-                m_Font = UnityEditor.AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/Fonts/LilitaOne-Regular SDF.asset");
-                #endif
-                // Build'de AssetDatabase yok: font Resources'taki tema ayarlarından gelir
-                if (m_Font == null) m_Font = GameThemeSettings.MainFont;
-            }
-
-            GameObject textObj = new GameObject("LoadingText");
-            textObj.transform.SetParent(centerContainer.transform, false);
+            // 4. Dinamik Alternatif Metin (Örn: "FAIL LEVEL", "LEVEL COMPLETED")
+            // Varsayılanda gizlidir, özel bir mesaj verildiğinde 3D rozet yerine bu yazı gösterilir
+            GameObject textObj = new GameObject("LoadingText_Dynamic");
+            textObj.transform.SetParent(bottomUI.transform, false);
             RectTransform textRect = textObj.AddComponent<RectTransform>();
-            textRect.anchorMin = new Vector2(0.5f, 0.32f);
-            textRect.anchorMax = new Vector2(0.5f, 0.32f);
+            textRect.anchorMin = new Vector2(0.5f, 0.5f);
+            textRect.anchorMax = new Vector2(0.5f, 0.5f);
             textRect.pivot = new Vector2(0.5f, 0.5f);
-            textRect.sizeDelta = new Vector2(750f, 90f);
-            textRect.anchoredPosition = new Vector2(0f, -30f);
+            textRect.sizeDelta = new Vector2(800f, 90f);
+            textRect.anchoredPosition = new Vector2(0f, 65f);
 
             m_LoadingText = textObj.AddComponent<TextMeshProUGUI>();
             if (m_Font != null) m_LoadingText.font = m_Font;
             m_LoadingText.text = "LOADING...";
-            m_LoadingText.fontSize = 52;
+            m_LoadingText.fontSize = 50;
             m_LoadingText.enableAutoSizing = true;
-            m_LoadingText.fontSizeMin = 36;
+            m_LoadingText.fontSizeMin = 34;
             m_LoadingText.fontSizeMax = 52;
             m_LoadingText.fontStyle = FontStyles.Bold;
             m_LoadingText.alignment = TextAlignmentOptions.Center;
             m_LoadingText.color = Color.white;
             m_LoadingText.enableVertexGradient = true;
             m_LoadingText.colorGradient = new VertexGradient(
-                Color.white,
-                Color.white,
-                new Color(0.85f, 0.95f, 1f, 1f),
-                new Color(0.85f, 0.95f, 1f, 1f)
+                new Color(1f, 0.95f, 0.15f, 1f), // Parlak sarı tepe
+                new Color(1f, 0.95f, 0.15f, 1f),
+                new Color(1f, 0.52f, 0.00f, 1f), // Sıcak turuncu alt
+                new Color(1f, 0.52f, 0.00f, 1f)
             );
             m_LoadingText.raycastTarget = false;
 
-            // Gölgeli metin efekti
-            var outline = textObj.AddComponent<Outline>();
-            outline.effectColor = new Color(0.02f, 0.15f, 0.35f, 0.85f);
-            outline.effectDistance = new Vector2(2.5f, -2.5f);
+            // Koyu lacivert kontur (Land Flow stili)
+            var textOutline = textObj.AddComponent<Outline>();
+            textOutline.effectColor = new Color(0.03f, 0.16f, 0.42f, 0.95f);
+            textOutline.effectDistance = new Vector2(3f, -3f);
+
+            textObj.SetActive(false); // Varsayılanda 3D rozet gösterilir
 
             // 5. Alt Başlık / Ödül Metni (SubText - Örn: "+20 COINS" veya "PICTURE COMPLETED!")
             GameObject subTextObj = new GameObject("SubText");
-            subTextObj.transform.SetParent(centerContainer.transform, false);
+            subTextObj.transform.SetParent(bottomUI.transform, false);
             RectTransform subRect = subTextObj.AddComponent<RectTransform>();
-            subRect.anchorMin = new Vector2(0.5f, 0.28f);
-            subRect.anchorMax = new Vector2(0.5f, 0.28f);
+            subRect.anchorMin = new Vector2(0.5f, 0.5f);
+            subRect.anchorMax = new Vector2(0.5f, 0.5f);
             subRect.pivot = new Vector2(0.5f, 0.5f);
-            subRect.sizeDelta = new Vector2(650f, 50f);
-            subRect.anchoredPosition = new Vector2(0f, -80f);
+            subRect.sizeDelta = new Vector2(650f, 45f);
+            subRect.anchoredPosition = new Vector2(0f, 15f);
 
             m_SubText = subTextObj.AddComponent<TextMeshProUGUI>();
             if (m_Font != null) m_SubText.font = m_Font;
-            m_SubText.fontSize = 32;
+            m_SubText.fontSize = 30;
             m_SubText.fontStyle = FontStyles.Bold;
             m_SubText.alignment = TextAlignmentOptions.Center;
-            m_SubText.color = new Color(1f, 0.88f, 0.25f, 1f); // Canlı altın sarısı
+            m_SubText.color = new Color(1f, 0.92f, 0.35f, 1f);
             m_SubText.enableVertexGradient = true;
             m_SubText.colorGradient = new VertexGradient(
-                new Color(1f, 0.95f, 0.55f, 1f),
-                new Color(1f, 0.95f, 0.55f, 1f),
+                new Color(1f, 1.0f, 0.65f, 1f),
+                new Color(1f, 1.0f, 0.65f, 1f),
                 new Color(1f, 0.72f, 0.12f, 1f),
                 new Color(1f, 0.72f, 0.12f, 1f)
             );
             m_SubText.raycastTarget = false;
 
             var subOutline = subTextObj.AddComponent<Outline>();
-            subOutline.effectColor = new Color(0.02f, 0.12f, 0.28f, 0.90f);
+            subOutline.effectColor = new Color(0.02f, 0.12f, 0.30f, 0.90f);
             subOutline.effectDistance = new Vector2(2f, -2f);
-            subTextObj.SetActive(false); // Varsayılanda gizli, sadece ödül/alt metin olduğunda gösterilir
+            subTextObj.SetActive(false);
 
             // 6. Şık İlerleme Çubuğu (Progress Bar)
             GameObject barBg = new GameObject("ProgressBar_BG");
-            barBg.transform.SetParent(centerContainer.transform, false);
+            barBg.transform.SetParent(bottomUI.transform, false);
             m_ProgressBarBg = barBg.AddComponent<RectTransform>();
-            m_ProgressBarBg.anchorMin = new Vector2(0.5f, 0.22f);
-            m_ProgressBarBg.anchorMax = new Vector2(0.5f, 0.22f);
+            m_ProgressBarBg.anchorMin = new Vector2(0.5f, 0.5f);
+            m_ProgressBarBg.anchorMax = new Vector2(0.5f, 0.5f);
             m_ProgressBarBg.pivot = new Vector2(0.5f, 0.5f);
-            m_ProgressBarBg.sizeDelta = new Vector2(520f, 26f);
-            m_ProgressBarBg.anchoredPosition = new Vector2(0f, -135f);
+            m_ProgressBarBg.sizeDelta = new Vector2(460f, 22f);
+            m_ProgressBarBg.anchoredPosition = new Vector2(0f, -30f);
 
             Image bgBarImg = barBg.AddComponent<Image>();
-            bgBarImg.color = new Color(0.04f, 0.22f, 0.45f, 0.85f);
+            bgBarImg.color = new Color(0.03f, 0.16f, 0.42f, 0.92f); // Koyu okyanus laciverti
             bgBarImg.raycastTarget = false;
 
-            // Çerçeve konturu
             var barBorder = barBg.AddComponent<Outline>();
-            barBorder.effectColor = new Color(0.25f, 0.65f, 0.95f, 0.55f);
+            barBorder.effectColor = new Color(0.45f, 0.85f, 1.0f, 0.85f); // Açık camgöbeği ışıltı konturu
             barBorder.effectDistance = new Vector2(2f, -2f);
 
-            // Köşe yuvarlama için maske
             Mask barMask = barBg.AddComponent<Mask>();
             barMask.showMaskGraphic = true;
 
@@ -295,37 +428,76 @@ namespace PixelGame
             m_ProgressBarFill.anchoredPosition = Vector2.zero;
 
             Image fillImg = barFill.AddComponent<Image>();
-            fillImg.color = new Color(1f, 0.85f, 0.20f, 1f); // Canlı altın sarısı (Land Flow'un 'LAND' rengiyle uyumlu)
+            fillImg.color = new Color(1f, 0.82f, 0.15f, 1f); // Canlı altın sarısı ('LAND' rengiyle uyumlu)
             fillImg.raycastTarget = false;
+
+            // =========================================================================
+            // B. FOGBOUND STÜDYO AÇILIŞ KATMANI (Studio Intro Overlay)
+            // =========================================================================
+            m_FogboundOverlayObj = new GameObject("Fogbound_IntroOverlay");
+            m_FogboundOverlayObj.transform.SetParent(transform, false);
+            RectTransform fogRect = m_FogboundOverlayObj.AddComponent<RectTransform>();
+            fogRect.anchorMin = Vector2.zero;
+            fogRect.anchorMax = Vector2.one;
+            fogRect.sizeDelta = Vector2.zero;
+
+            m_FogboundOverlayGroup = m_FogboundOverlayObj.AddComponent<CanvasGroup>();
+
+            // Tam ekran saf siyah zemin (#000000)
+            Image fogBgImg = m_FogboundOverlayObj.AddComponent<Image>();
+            fogBgImg.color = Color.black;
+            fogBgImg.raycastTarget = true;
+
+            // Ortalanmış net Fogbound şirket logosu
+            GameObject fogLogoObj = new GameObject("Fogbound_Logo");
+            fogLogoObj.transform.SetParent(m_FogboundOverlayObj.transform, false);
+            RectTransform fogLogoRect = fogLogoObj.AddComponent<RectTransform>();
+            fogLogoRect.anchorMin = new Vector2(0.5f, 0.5f);
+            fogLogoRect.anchorMax = new Vector2(0.5f, 0.5f);
+            fogLogoRect.pivot = new Vector2(0.5f, 0.5f);
+            fogLogoRect.sizeDelta = new Vector2(740f, 185f); // 4:1 oranında net ve görkemli
+            fogLogoRect.anchoredPosition = Vector2.zero;
+
+            m_FogboundLogoImage = fogLogoObj.AddComponent<Image>();
+            m_FogboundLogoImage.sprite = m_FogboundLogoSprite;
+            m_FogboundLogoImage.color = Color.white;
+            m_FogboundLogoImage.preserveAspect = true;
+            m_FogboundLogoImage.raycastTarget = false;
+
+            m_FogboundOverlayObj.SetActive(false); // Sadece açılışta veya özel çağrıda aktifleştirilir
         }
 
-        private void StartAnimations()
+        private void StartBadgeAndTextAnimations()
         {
-            // Logo için tatlı ve yumuşak nefes alma (breathing) animasyonu
-            if (m_LogoImage != null)
+            // 3D "LOADING..." rozeti için tatlı, canlı nefes alma animasyonu
+            if (m_LoadingBadgeImage != null && m_LoadingBadgeImage.gameObject.activeSelf)
             {
-                m_LogoPulseTween?.Kill();
-                m_LogoImage.transform.localScale = Vector3.one;
-                m_LogoPulseTween = m_LogoImage.transform
-                    .DOScale(Vector3.one * 1.045f, 0.85f)
+                m_BadgePulseTween?.Kill();
+                m_LoadingBadgeImage.transform.localScale = Vector3.one;
+                m_BadgePulseTween = m_LoadingBadgeImage.transform
+                    .DOScale(Vector3.one * 1.05f, 0.85f)
                     .SetLoops(-1, LoopType.Yoyo)
                     .SetEase(Ease.InOutSine)
                     .SetUpdate(true);
             }
 
-            // "LOADING..." noktacık animasyonu
-            if (m_TextDotRoutine != null) StopCoroutine(m_TextDotRoutine);
-            m_TextDotRoutine = StartCoroutine(AnimateLoadingDots());
+            // Metin noktacık animasyonu (dinamik metin aktifse)
+            if (m_LoadingText != null && m_LoadingText.gameObject.activeSelf)
+            {
+                if (m_TextDotRoutine != null) StopCoroutine(m_TextDotRoutine);
+                m_TextDotRoutine = StartCoroutine(AnimateLoadingDots());
+            }
         }
 
-        private void StopAnimations()
+        private void StopBadgeAndTextAnimations()
         {
             m_ProgressBarTween?.Kill();
-            m_LogoPulseTween?.Kill();
+            m_BadgePulseTween?.Kill();
             m_SubTextPulseTween?.Kill();
-            if (m_LogoImage != null)
+
+            if (m_LoadingBadgeImage != null)
             {
-                m_LogoImage.transform.localScale = Vector3.one;
+                m_LoadingBadgeImage.transform.localScale = Vector3.one;
             }
             if (m_SubText != null)
             {
@@ -341,6 +513,8 @@ namespace PixelGame
 
         /// <summary>
         /// Yükleme ekranında gösterilecek ana metni ve isteğe bağlı alt metni (ödül/açıklama) ayarlar.
+        /// Standart "LOADING" ise şık 3D rozeti gösterir; "FAIL LEVEL" veya "LEVEL COMPLETED" gibi
+        /// özel durumlarda ise stillendirilmiş TextMeshPro metnini açar.
         /// </summary>
         public void SetMessage(string message, string subMessage = null)
         {
@@ -348,9 +522,20 @@ namespace PixelGame
             m_CurrentBaseMessage = message.TrimEnd('.');
             m_CurrentSubMessage = subMessage;
 
+            bool isDefaultLoading = string.Equals(m_CurrentBaseMessage, "LOADING", StringComparison.OrdinalIgnoreCase);
+
+            if (m_LoadingBadgeImage != null)
+            {
+                m_LoadingBadgeImage.gameObject.SetActive(isDefaultLoading);
+            }
+
             if (m_LoadingText != null)
             {
-                m_LoadingText.text = m_CurrentBaseMessage + "...";
+                m_LoadingText.gameObject.SetActive(!isDefaultLoading);
+                if (!isDefaultLoading)
+                {
+                    m_LoadingText.text = m_CurrentBaseMessage;
+                }
             }
 
             if (m_SubText != null)
@@ -379,7 +564,7 @@ namespace PixelGame
             int dots = 0;
             while (true)
             {
-                if (m_LoadingText != null)
+                if (m_LoadingText != null && m_LoadingText.gameObject.activeSelf)
                 {
                     string suffix = new string('.', dots);
                     m_LoadingText.text = m_CurrentBaseMessage + suffix;
@@ -400,7 +585,7 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// İlerleme çubuğunu verilen süre boyunca ipeksi bir yumuşaklıkla hedefe doğru animasyonla doldurur.
+        /// İlerleme çubuğunu verilen süre boyunca ipeksi bir yumuşaklıkla hedefe doğru doldurur.
         /// </summary>
         public void AnimateProgressBarTo(float targetProgress, float duration, Ease ease = Ease.OutQuad)
         {
@@ -437,6 +622,11 @@ namespace PixelGame
         /// </summary>
         public void Show(string message = null, Action onShown = null, string subMessage = null)
         {
+            if (m_FogboundOverlayObj != null)
+            {
+                m_FogboundOverlayObj.SetActive(false); // Normal geçişlerde Fogbound intro oynatılmaz
+            }
+
             if (!string.IsNullOrEmpty(message))
             {
                 SetMessage(message, subMessage);
@@ -454,7 +644,7 @@ namespace PixelGame
             m_CanvasGroup.blocksRaycasts = true;
             m_CanvasGroup.interactable = true;
             UpdateProgressBarImmediate(0f);
-            StartAnimations();
+            StartBadgeAndTextAnimations();
 
             m_CanvasGroup.DOKill();
             m_CanvasGroup.DOFade(1f, m_FadeInDuration).SetUpdate(true).SetEase(Ease.OutSine).OnComplete(() =>
@@ -499,7 +689,7 @@ namespace PixelGame
                 m_IsVisible = false;
                 m_CanvasGroup.blocksRaycasts = false;
                 m_CanvasGroup.interactable = false;
-                StopAnimations();
+                StopBadgeAndTextAnimations();
                 m_CurrentBaseMessage = m_DefaultLoadingText;
                 m_CurrentSubMessage = null;
                 onHidden?.Invoke();
@@ -528,7 +718,6 @@ namespace PixelGame
 
         private IEnumerator LoadSceneAsyncRoutine(int sceneBuildIndex, float minDuration)
         {
-            // 1. Ekranı mevcut mesajla ("LOADING", "FAIL LEVEL" veya "LEVEL COMPLETED") aç ve tam opak olmasını garantiye al
             Show(m_CurrentBaseMessage, null, m_CurrentSubMessage);
             if (m_CanvasGroup.alpha < 0.999f)
             {
@@ -536,18 +725,15 @@ namespace PixelGame
             }
             m_CanvasGroup.alpha = 1f;
 
-            // 2. Barı akıcı bir şekilde %20'ye doğru başlat
             UpdateProgressBarImmediate(0f);
             AnimateProgressBarTo(0.20f, 0.35f, Ease.OutQuad);
 
-            // 3. Arka planda asenkron sahne yüklemeyi başlat
             AsyncOperation asyncOp = SceneManager.LoadSceneAsync(sceneBuildIndex);
             asyncOp.allowSceneActivation = false;
 
             float elapsed = 0f;
             float targetLoadWait = Mathf.Max(0.7f, minDuration * 0.65f);
 
-            // Sahne arka planda yüklenirken ve minimum süre dolana kadar bar organik biçimde ilerlesin
             while (asyncOp.progress < 0.9f || elapsed < targetLoadWait)
             {
                 elapsed += Time.unscaledDeltaTime;
@@ -557,7 +743,6 @@ namespace PixelGame
                 yield return null;
             }
 
-            // 4. Sahne verisi hazır! Sahneyi aktifleştir
             AnimateProgressBarTo(0.92f, 0.2f, Ease.OutQuad);
             asyncOp.allowSceneActivation = true;
 
@@ -566,15 +751,12 @@ namespace PixelGame
                 yield return null;
             }
 
-            // 5. Yeni sahne kurulduktan sonra Awake/Start ve Generator ilk karelerini tamamlasın diye 2 frame bekle
             yield return null;
             yield return new WaitForEndOfFrame();
 
-            // 6. Barı tatmin edici şekilde %100'e tamamla
             AnimateProgressBarTo(1.0f, 0.35f, Ease.OutCubic);
             yield return new WaitForSecondsRealtime(0.38f);
 
-            // 7. %100'de hafif bekleme ve yumuşak fade out ile oyuna geçiş
             yield return new WaitForSecondsRealtime(m_HoldBeforeFadeOut);
 
             Hide();
@@ -583,7 +765,6 @@ namespace PixelGame
 
         /// <summary>
         /// Seviyeyi Land Flow yükleme ekranı arkasında temiz ve şık bir şekilde yükler.
-        /// Seviye geçişlerinde (NextLevel) veya özel aksiyonlarda çağrılır.
         /// </summary>
         public void ShowAndLoad(Action loadAction, float minDuration = -1f, string message = null, string subMessage = null)
         {
@@ -598,7 +779,6 @@ namespace PixelGame
 
         private IEnumerator LoadWithScreenRoutine(Action loadAction, float minDuration)
         {
-            // 1. Ekranı aç ve %100 opak olana kadar bekle
             Show(m_CurrentBaseMessage, null, m_CurrentSubMessage);
             if (m_CanvasGroup.alpha < 0.999f)
             {
@@ -617,7 +797,6 @@ namespace PixelGame
                 yield return null;
             }
 
-            // 2. Yükleme aksiyonunu (ör. LevelManager.NextLevel) çalıştır
             try
             {
                 loadAction?.Invoke();
@@ -627,11 +806,9 @@ namespace PixelGame
                 Debug.LogError($"[LandFlowLoadingScreen] Seviye yükleme hatası: {ex}");
             }
 
-            // 3. Generator'ın küpleri vs. oluşturması ve ilk render için 2 frame bekle
             yield return null;
             yield return new WaitForEndOfFrame();
 
-            // 4. Kalan sürede barı %100'e pürüzsüz taşı
             float remainingTime = Mathf.Max(0.45f, minDuration - elapsed);
             AnimateProgressBarTo(1.0f, remainingTime, Ease.OutCubic);
 
@@ -640,6 +817,19 @@ namespace PixelGame
 
             Hide();
             m_ActiveLoadingRoutine = null;
+        }
+
+        /// <summary>
+        /// İstenildiği zaman Fogbound stüdyo açılışını ve ardından Land Flow yükleme ekranını test etmek için çağrılabilir.
+        /// </summary>
+        public void PlayFullIntroSequence()
+        {
+            if (m_ActiveLoadingRoutine != null) StopCoroutine(m_ActiveLoadingRoutine);
+            m_CanvasGroup.alpha = 1f;
+            m_CanvasGroup.blocksRaycasts = true;
+            m_CanvasGroup.interactable = true;
+            m_IsVisible = true;
+            m_ActiveLoadingRoutine = StartCoroutine(InitialBootSequenceRoutine());
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]

@@ -192,6 +192,128 @@ namespace PixelGame
         }
 
         /// <summary>
+        /// Verilen kontrol noktalarından geçen, ancak KÖŞELERİ DOĞAL VE YUMUŞAK BİR BEZIER KAVİSLE
+        /// (Fillet) yuvarlatılmış akıcı yürüyüş hattı oluşturur.
+        /// Köşeler dışarıya asla taşmaz (overshoot yapmaz; konveks üçgenin içinde kalır),
+        /// ancak sivri 90° kırılmalar ortadan kalktığı için küpler virajlarda titremeden,
+        /// kayarak doğal bir kavisle döner.
+        /// </summary>
+        public static ShoreLanePath BuildFilleted(System.Collections.Generic.IList<Vector3> waypoints, float cornerRadius = 0.14f, float maxStep = 0.025f)
+        {
+            if (waypoints == null || waypoints.Count < 2)
+                return new ShoreLanePath(new[] { Vector3.zero, Vector3.zero });
+
+            // 1. Birbirine aşırı yakın ardışık noktaları temizle
+            var clean = new System.Collections.Generic.List<Vector3>(waypoints.Count);
+            clean.Add(waypoints[0]);
+            for (int i = 1; i < waypoints.Count; i++)
+            {
+                if ((waypoints[i] - clean[clean.Count - 1]).sqrMagnitude > 1e-4f)
+                {
+                    clean.Add(waypoints[i]);
+                }
+            }
+
+            if (clean.Count < 2)
+                return new ShoreLanePath(new[] { waypoints[0], waypoints[waypoints.Count - 1] });
+
+            if (clean.Count == 2)
+                return BuildLinear(clean, maxStep);
+
+            // 2. Doğrusal noktaları (aradaki aynı doğrultudaki gereksiz noktaları) ayıkla
+            var corners = new System.Collections.Generic.List<Vector3>(clean.Count);
+            corners.Add(clean[0]);
+            for (int i = 1; i < clean.Count - 1; i++)
+            {
+                Vector3 prev = corners[corners.Count - 1];
+                Vector3 curr = clean[i];
+                Vector3 next = clean[i + 1];
+
+                Vector3 d1 = (curr - prev).normalized;
+                Vector3 d2 = (next - curr).normalized;
+                // Doğrultu neredeyse aynıysa (aynı düz çizgi) köşe kabul etme
+                if (Vector3.Dot(d1, d2) > 0.998f)
+                    continue;
+
+                corners.Add(curr);
+            }
+            corners.Add(clean[clean.Count - 1]);
+
+            if (corners.Count <= 2)
+                return BuildLinear(corners, maxStep);
+
+            // 3. Her köşe için Bezier Fillet üret
+            var pts = new System.Collections.Generic.List<Vector3>(corners.Count * 16);
+            pts.Add(corners[0]);
+
+            float stepSize = Mathf.Max(0.005f, maxStep);
+
+            for (int i = 0; i < corners.Count - 1; i++)
+            {
+                Vector3 pA = corners[i];
+                Vector3 pB = corners[i + 1];
+
+                // pA noktasından çıkış
+                Vector3 startPt = pA;
+                if (i > 0)
+                {
+                    Vector3 prevCorner = corners[i - 1];
+                    Vector3 nextCorner = corners[i + 1];
+                    float lenPrev = Vector3.Distance(prevCorner, pA);
+                    float lenNext = Vector3.Distance(pA, nextCorner);
+                    float r = Mathf.Min(cornerRadius, lenPrev * 0.42f, lenNext * 0.42f);
+                    startPt = pA + (nextCorner - pA).normalized * r;
+                }
+
+                // pB noktasına varış
+                Vector3 endPt = pB;
+                bool hasNextCorner = (i + 1 < corners.Count - 1);
+                float rNext = 0f;
+                if (hasNextCorner)
+                {
+                    Vector3 afterNext = corners[i + 2];
+                    float lenThis = Vector3.Distance(pA, pB);
+                    float lenAfter = Vector3.Distance(pB, afterNext);
+                    rNext = Mathf.Min(cornerRadius, lenThis * 0.42f, lenAfter * 0.42f);
+                    endPt = pB - (pB - pA).normalized * rNext;
+                }
+
+                // Düz çizgi kısmı: startPt -> endPt
+                float straightDist = Vector3.Distance(startPt, endPt);
+                if (straightDist > 1e-4f)
+                {
+                    int straightSteps = Mathf.Max(1, Mathf.CeilToInt(straightDist / stepSize));
+                    for (int s = 1; s <= straightSteps; s++)
+                    {
+                        float t = (float)s / straightSteps;
+                        pts.Add(Vector3.Lerp(startPt, endPt, t));
+                    }
+                }
+
+                // Köşe kavis kısmı (pB köşesinde yuvarlama): endPt -> pB -> nextStart
+                if (hasNextCorner && rNext > 1e-4f)
+                {
+                    Vector3 afterNext = corners[i + 2];
+                    Vector3 nextStart = pB + (afterNext - pB).normalized * rNext;
+
+                    // Quadratic Bezier: endPt (start), pB (control), nextStart (end)
+                    float arcApprox = Vector3.Distance(endPt, pB) + Vector3.Distance(pB, nextStart);
+                    int arcSteps = Mathf.Max(4, Mathf.CeilToInt(arcApprox / stepSize));
+                    for (int s = 1; s <= arcSteps; s++)
+                    {
+                        float t = (float)s / arcSteps;
+                        float u = 1f - t;
+                        Vector3 arcPt = u * u * endPt + 2f * u * t * pB + t * t * nextStart;
+                        pts.Add(arcPt);
+                    }
+                }
+            }
+
+            if (pts.Count < 2) pts.Add(corners[corners.Count - 1]);
+            return new ShoreLanePath(pts.ToArray());
+        }
+
+        /// <summary>
         /// Verilen noktalardan GEÇEN yumuşak eğri (Catmull-Rom). Hiçbir parçası düz
         /// çizgi olmaz; köşelerde teğetler komşu noktalardan türetildiği için geçişler
         /// sürekli olur.

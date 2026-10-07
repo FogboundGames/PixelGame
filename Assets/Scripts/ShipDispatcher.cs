@@ -1168,9 +1168,11 @@ namespace PixelGame
                 cleanWpts.Add(pFinal);
             }
 
-            // Doğrusal yoğun örnekleme ile yol oluştur:
-            // Böylece Catmull-Rom eğrilerinin köşelerde pikselart içine taşması (overshoot) %100 engellenir.
-            ShoreLanePath path = ShoreLanePath.BuildLinear(cleanWpts, 0.04f);
+            // Köşeleri yumuşak ve doğal Bezier kavisle (Fillet) yuvarlatılmış akıcı yol oluştur:
+            // Dışa taşma (overshoot) %100 engellenir, 90° sivri kırılmalar kalktığı için
+            // küpler arka arkaya dönerken asla sarsılmaz ve titremez.
+            float cornerRadius = Mathf.Clamp(pitch * 0.80f, 0.10f, 0.22f);
+            ShoreLanePath path = ShoreLanePath.BuildFilleted(cleanWpts, cornerRadius, 0.025f);
             boardExitDist = path.ClosestDistance(boardExit);
             return path;
         }
@@ -1498,6 +1500,10 @@ namespace PixelGame
                 ship.TriggerWaterDipImpact(0.12f, 0.35f);
                 ShipController.SpawnWaterRipple(ship.transform.position + new Vector3(0f, -0.05f, 0.05f), 0.28f, 0.95f, 0.45f);
                 HypercasualWaterController.TriggerWaterRipple(ship.transform.position, 0.70f, 0.25f);
+
+                // ✨ Sparkle, 🔊 Tatmin Edici Melodik Chime, 📳 Hafif Mobil Titreşim
+                Color cubeColor = sourceCube != null ? sourceCube.TrueColor : Color.white;
+                HypercasualFeedbackManager.Instance.PlayCubeBoardFeedback(cargo.transform.position, cubeColor, ship.CurrentCargo);
             }
 
             // 2. Settle: sönümlü minik yaylanma, sonra güverteye ease-in ile batarak kaybolma (snap yok)
@@ -1763,9 +1769,10 @@ namespace PixelGame
                 List<ShipSlot> emptySlots = GetEmptySlots();
                 if (emptySlots == null || emptySlots.Count < 2)
                 {
-                    ship.PlayWobble();
-                    if (partner != null) partner.PlayWobble();
+                    ship.PlayDenialFeedback();
+                    if (partner != null) partner.PlayDenialFeedback();
                     if (ship.Tether != null) ship.Tether.Rattle();
+                    TriggerFullSlotsAlertFeedback();
                     return false;
                 }
 
@@ -1792,15 +1799,16 @@ namespace PixelGame
             // En ön sıra kontrolü
             if (m_QueuePool != null && !m_QueuePool.IsFrontRow(ship))
             {
-                ship.PlayWobble();
+                ship.PlayDenialFeedback();
                 return false;
             }
 
-            // Boş slot kontrolü
+            // Boş slot kontrolü (Slotlar tamamen doluysa!)
             ShipSlot emptySlot = FindEmptySlot();
             if (emptySlot == null)
             {
-                ship.PlayWobble();
+                ship.PlayDenialFeedback();
+                TriggerFullSlotsAlertFeedback();
                 return false;
             }
 
@@ -1835,6 +1843,22 @@ namespace PixelGame
                 }
             }
             return list;
+        }
+
+        /// <summary>
+        /// Slotlar doluyken oyuncu sıradaki gemiye tıkladığında yanaşma slotlarındaki gemilere ve suya uyarı dalgası yayar.
+        /// </summary>
+        private void TriggerFullSlotsAlertFeedback()
+        {
+            if (m_Slots == null) return;
+            for (int i = 0; i < m_Slots.Count; i++)
+            {
+                var slot = m_Slots[i];
+                if (slot != null && !slot.IsEmpty)
+                {
+                    slot.TriggerWaterDipImpact(-0.04f, 0.28f);
+                }
+            }
         }
 
         private bool IsAnyShipMoving()
@@ -2489,6 +2513,20 @@ namespace PixelGame
                 ShipController ship = slot.DockedShip;
                 if (ship == null) return false;
 
+                // Gemi şu anda kalkış yapabilecek durumdaysa (bağlıysa partneriyle birlikte kalkacaksa)
+                // slot boşalacak demektir -> fail DEĞİL
+                if (ship.CanDepartNow)
+                {
+                    return false;
+                }
+
+                // Dolu ama partnerini bekleyen bağlı gemi tek başına kalkıp slot boşaltamaz.
+                // Partnerin veya başka gemilerin küp çekip çekemeyeceği aşağıda kontrol edilecek:
+                if (ship.HasActiveLinkedPartner)
+                {
+                    continue;
+                }
+
                 if (ship.IsFull || !ship.CanAcceptMore)
                 {
                     return false;
@@ -2603,7 +2641,7 @@ namespace PixelGame
             {
                 if (ship != null && !ship.IsDeparting)
                 {
-                    ship.DepartAndFreeSlot();
+                    ship.DepartAndFreeSlot(force: true);
                 }
                 yield return new WaitForSeconds(staggerDelay);
             }

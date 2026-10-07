@@ -57,7 +57,9 @@ MonoBehaviour:
   m_CubeRowStepOffset: {x: 0, y: 0, z: 0}
   m_InnerPadding: 0.08
   m_SkipTransparent: 1
-  m_MysteryCubeCoordinates: []
+  m_MysteryCubeCoordinates:
+  - {x: 15, y: 18}
+  - {x: 17, y: 18}
   m_MysteryRevealCondition: 0
   m_MysteryCubeColor: {r: 0.125, g: 0.118, b: 0.306, a: 1}
   m_SlotSprite: {fileID: 0}

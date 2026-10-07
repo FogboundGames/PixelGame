@@ -525,15 +525,13 @@ namespace PixelGame
             if (moved > 1e-5f)
             {
                 Vector3 dir = delta / moved;
-                Vector3 prevDir = m_RopeDir;
                 float follow = 1f - Mathf.Exp(-dt / Mathf.Max(0.01f, s.RotationSmoothness));
                 m_RopeDir = Vector3.Slerp(m_RopeDir, dir, follow).normalized;
 
-                // Ekran düzleminde işaretli dönüş hızı (derece/sn). Saat yönü (sağa dönüş) = eksi.
-                float turnRate = Vector3.SignedAngle(prevDir, m_RopeDir, Vector3.forward) / dt;
-                // ~120°/sn dönüşte tam yatma
-                float targetTilt = Mathf.Clamp(turnRate / 120f, -1f, 1f) * s.TiltAmount * m_TiltMul;
-                float tiltFollow = 1f - Mathf.Exp(-dt / Mathf.Max(0.01f, s.TiltSmoothness));
+                // Virajda mikro yatma: dt'ye bölmeden organik açı farkından hesaplanır (titreme engellenir)
+                float angleDiff = Vector3.SignedAngle(m_RopeDir, dir, Vector3.forward);
+                float targetTilt = Mathf.Clamp(angleDiff / 32f, -1f, 1f) * s.TiltAmount * m_TiltMul;
+                float tiltFollow = 1f - Mathf.Exp(-dt / Mathf.Max(0.04f, s.TiltSmoothness));
                 m_CurrentBankAngle = Mathf.Lerp(m_CurrentBankAngle, targetTilt, tiltFollow);
             }
             else
@@ -616,25 +614,28 @@ namespace PixelGame
             m_GlideVel = (basePos - m_GlidePos) / Mathf.Max(1e-4f, dt);
             m_GlidePos = basePos;
 
-            // Hız ve yumuşatılmış ivme (kare süresi dalgalanmalarından etkilenmez)
+            // Hız ve yumuşatılmış ivme (kare süresi dalgalanmalarından ve viraj köşe geçişlerinden etkilenmez)
             float speed = m_GlideVel.magnitude;
-            float rawAccel = (speed - m_GlideSpeed) / dt;
-            m_GlideSpeed = speed;
-            m_GlideAccel = Mathf.Lerp(m_GlideAccel, rawAccel, 1f - Mathf.Exp(-dt / 0.09f));
+            if (m_GlideSpeed < 1e-4f) m_GlideSpeed = speed;
+            float smoothSpeed = Mathf.Lerp(m_GlideSpeed, speed, 1f - Mathf.Exp(-dt / 0.06f));
+            float rawAccel = (smoothSpeed - m_GlideSpeed) / Mathf.Max(1e-4f, dt);
+            m_GlideSpeed = smoothSpeed;
+            m_GlideAccel = Mathf.Lerp(m_GlideAccel, rawAccel, 1f - Mathf.Exp(-dt / 0.12f));
+            m_GlideAccel = Mathf.Clamp(m_GlideAccel, -s.Deceleration * 1.5f, s.Acceleration * 1.5f);
             float speedRatio = Mathf.Clamp01(speed / Mathf.Max(0.1f, m_RopeCruise));
 
             // --- 2. Yön Gecikmesi (Direction Lag) ve Viraja Yatma (Bank Tilt) ---
             if (speed > 1e-3f)
             {
                 Vector3 moveDir = m_GlideVel / speed;
-                Vector3 prevDir = m_RopeDir;
                 float dirFollow = 1f - Mathf.Exp(-dt / Mathf.Max(0.01f, s.DirectionLag));
                 m_RopeDir = Vector3.Slerp(m_RopeDir, moveDir, dirFollow).normalized;
 
-                // Virajda mikro yatma: viraj dönüş hızına göre gövde tatlıca yatar
-                float turnRate = Vector3.SignedAngle(prevDir, m_RopeDir, Vector3.forward) / dt;
-                float targetTilt = Mathf.Clamp(turnRate / 140f, -1f, 1f) * s.TiltAmount * micro * m_TiltMul;
-                float tiltFollow = 1f - Mathf.Exp(-dt / Mathf.Max(0.03f, s.TiltSmoothness));
+                // Virajda mikro yatma: doğrudan hareket yönü ile takip yönü arasındaki açı farkından
+                // organik ve stabil hesaplanır (dt'ye bölme yapılmaz, böylece titreme ve sıçrama tamamen engellenir)
+                float angleDiff = Vector3.SignedAngle(m_RopeDir, moveDir, Vector3.forward);
+                float targetTilt = Mathf.Clamp(angleDiff / 32f, -1f, 1f) * s.TiltAmount * micro * m_TiltMul;
+                float tiltFollow = 1f - Mathf.Exp(-dt / Mathf.Max(0.04f, s.TiltSmoothness));
                 m_CurrentBankAngle = Mathf.Lerp(m_CurrentBankAngle, targetTilt, tiltFollow);
             }
             else

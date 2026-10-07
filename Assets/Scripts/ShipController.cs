@@ -340,6 +340,14 @@ namespace PixelGame
         private Vector3 m_BaseScale = Vector3.one * DefaultShipScale;
         private static Material s_AlwaysOnTopMaterial;
 
+        // Slot dolu / geçersiz tıklama ret animasyonu değişkenleri
+        private float m_DenialWobbleAngle = 0f;
+        private float m_DenialWobbleOffsetX = 0f;
+        private Tween m_DenialWobbleTween;
+        private Tween m_DenialWobblePosTween;
+        private Tween m_TextWarningColorTween;
+        private Tween m_TextWarningScaleTween;
+
         // Her gemi örneğine özel çalışma zamanı kimliği. Aynı renkteki iki gemi bile farklı ID taşır;
         // küp sahipliği renge değil bu ID'ye göre tutulur. İlk erişimde verilir (Instantiate kopyalamaz).
         private static int s_NextShipRuntimeId = 1;
@@ -381,6 +389,59 @@ namespace PixelGame
         public void SetTether(LinkedShipTether tether)
         {
             m_Tether = tether;
+        }
+
+        /// <summary>
+        /// Geminin bağlı bir partneri var mı ve bu partner hâlâ slota yanaşık ve aktif mi?
+        /// </summary>
+        public bool HasActiveLinkedPartner =>
+            m_LinkId > 0 &&
+            m_LinkedPartner != null &&
+            m_LinkedPartner.gameObject.activeInHierarchy &&
+            !m_LinkedPartner.IsDeparting;
+
+        /// <summary>
+        /// Bağlı partnerin de kalkışa hazır (tamamen dolu veya toplanacak küpü kalmamış) olup olmadığını doğrular.
+        /// </summary>
+        public bool IsLinkedPartnerReadyToDepart
+        {
+            get
+            {
+                if (!HasActiveLinkedPartner) return true;
+                if (m_LinkedPartner.HasPendingCargo) return false;
+                if (m_LinkedPartner.IsFull) return true;
+
+                if (ShipDispatcher.Instance != null &&
+                    ShipDispatcher.Instance.GetRemainingCountForColor(m_LinkedPartner.ShipColor) == 0)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Geminin şu anda kalkış yapmaya uygun olup olmadığını doğrular.
+        /// Bağlı gemi değilse dolduğunda hemen kalkabilir; bağlı gemi ise partneri de hazır olmalıdır.
+        /// </summary>
+        public bool CanDepartNow
+        {
+            get
+            {
+                if (!m_IsDocked || m_IsDeparting) return false;
+                if (HasPendingCargo) return false;
+
+                bool isSelfReady = IsFull || (ShipDispatcher.Instance != null && ShipDispatcher.Instance.GetRemainingCountForColor(ShipColor) == 0);
+                if (!isSelfReady) return false;
+
+                if (HasActiveLinkedPartner)
+                {
+                    return IsLinkedPartnerReadyToDepart;
+                }
+
+                return true;
+            }
         }
 
         // ---------------- ❓ Gizli Gemi (Mystery Ship) ----------------
@@ -1252,19 +1313,21 @@ namespace PixelGame
                 Vector3 pickupOffset = new Vector3(0f, m_CurrentPickupLift, 0f);
                 Vector3 bobbingOffset = new Vector3(0f, dy, 0f);
                 Vector3 dipOffset = new Vector3(0f, m_CurrentDipOffset, 0f);
+                Vector3 denialOffset = new Vector3(m_DenialWobbleOffsetX, 0f, 0f);
 
-                m_VisualRoot.localPosition = pickupOffset + bobbingOffset + dipOffset;
+                m_VisualRoot.localPosition = pickupOffset + bobbingOffset + dipOffset + denialOffset;
 
                 // Aşama 4 Rotation Composition:
-                // FinalRotation = BobbingRotation * DynamicDragRotation (Pitch + Yaw + Banking Roll)
+                // FinalRotation = BobbingRotation * DynamicDragRotation * DenialWobbleRotation
                 Quaternion bobbingRot = Quaternion.Euler(dPitch, 0f, dRoll);
                 Quaternion dragRot = Quaternion.Euler(m_CurrentDragPitch, m_CurrentDragYaw, m_CurrentBankingRoll);
-                m_VisualRoot.localRotation = bobbingRot * dragRot;
+                Quaternion denialRot = Quaternion.Euler(0f, 0f, m_DenialWobbleAngle);
+                m_VisualRoot.localRotation = bobbingRot * dragRot * denialRot;
             }
             else
             {
-                transform.localPosition = m_BaseLocalPosition + new Vector3(0f, dy, 0f);
-                transform.localRotation = m_BaseLocalRotation * Quaternion.Euler(dPitch, 0f, dRoll);
+                transform.localPosition = m_BaseLocalPosition + new Vector3(m_DenialWobbleOffsetX, dy, 0f);
+                transform.localRotation = m_BaseLocalRotation * Quaternion.Euler(dPitch, 0f, dRoll + m_DenialWobbleAngle);
             }
 
             // Gemi drag ile kaldırıldığında (pickup lift) sahte gölgenin su üzerinde hafif büyüyüp yayılması
@@ -1622,11 +1685,47 @@ namespace PixelGame
 
         /// <summary>
         /// Kargo dolduğunda gemi slottan çıkar, sol tarafa doğru kavisli deniz rotasıyla hızlanarak yol alır ve yok olur.
-        /// Kullanıcının isteği: Text ve dairesel rozet gemi dolduğu an tamamen yok olur; gemi sol tarafa giderek kaybolur.
+        /// 2'li bağlı gemilerde kural: Biri dolunca tek başına gitmez; ikisi de dolana kadar bekler ve ikisi birden kalkar!
         /// </summary>
-        public void DepartAndFreeSlot()
+        public void DepartAndFreeSlot(bool force = false)
         {
             if (m_IsDeparting) return;
+
+            // 2'li bağlı gemi kuralı:
+            // Eğer gemi bağlıysa ve force == false ise, partneri de hazır (dolu) olmadan tek başına ASLA ayrılamaz!
+            if (!force && HasActiveLinkedPartner)
+            {
+                if (!IsLinkedPartnerReadyToDepart)
+                {
+                    Debug.Log($"<color=#FFAA00><b>[ShipController]</b></color> ⚓ '{name}' ({ShipColor}) doldu ama bağlı partneri '{m_LinkedPartner.name}' ({m_LinkedPartner.ShipColor}) henüz dolmadı; partnerini bekliyor!");
+                    return;
+                }
+
+                // İkisi de hazır! Partneri de birlikte kalkışa geçir:
+                ShipController partnerToDepart = m_LinkedPartner;
+
+                // Halatı kaldır
+                if (m_Tether != null)
+                {
+                    Destroy(m_Tether.gameObject);
+                    m_Tether = null;
+                }
+                if (partnerToDepart != null && partnerToDepart.Tether != null)
+                {
+                    Destroy(partnerToDepart.Tether.gameObject);
+                    partnerToDepart.SetTether(null);
+                }
+
+                m_LinkedPartner = null;
+                m_LinkId = 0;
+
+                if (partnerToDepart != null && !partnerToDepart.IsDeparting)
+                {
+                    partnerToDepart.SetLinkedPartner(null, 0, null);
+                    partnerToDepart.DepartAndFreeSlot(force: true);
+                }
+            }
+
             m_IsDeparting = true;
             m_EnableWaterBobbing = false;
 
@@ -1663,7 +1762,7 @@ namespace PixelGame
         [ContextMenu("🚢 Test Depart To Left (Test Kalkış)")]
         public void TestDepartToLeft()
         {
-            DepartAndFreeSlot();
+            DepartAndFreeSlot(force: true);
         }
 
         private IEnumerator DepartToLeftRoutine()
@@ -1701,6 +1800,9 @@ namespace PixelGame
             // Kalkış anında kıç tarafında su dalgası ve hafif motor egzoz dumanı
             SpawnWaterRipple(startPos - transform.forward * 0.30f, 0.22f, 0.75f, 0.35f);
             SpawnSmokePuff(startPos - transform.forward * 0.30f, 0.12f, 0.35f, 0.35f);
+
+            // 🔊 Neşeli Liman Düdüğü & 📳 Kalkış Titreşimi
+            HypercasualFeedbackManager.Instance.PlayShipDepartFeedback(transform.position);
 
             while (reverseElapsed < reverseDuration)
             {
@@ -2048,6 +2150,9 @@ namespace PixelGame
             TriggerWaterDipImpact(0.18f, 0.52f);
             SpawnWaterRipple(transform.position, 0.35f, 1.25f, 0.55f);
 
+            // 💦 Su Sıçraması, 🔊 İskele Darbesi Sesi & 📳 Orta Mobil Titreşim
+            HypercasualFeedbackManager.Instance.PlayShipDockFeedback(transform.position);
+
             m_IsMoving = false;
             m_IsDocked = true;
             m_EnableWaterBobbing = true;
@@ -2277,16 +2382,93 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Slotlar doluysa veya geçersiz tıklamada gemi iki yana sallanır (Wobble).
-        /// Görsel sarsıntı VisualRoot'a uygulanır, root collider stabil kalır.
+        /// Slotlar dolu olduğunda veya gemi gönderilemediğinde çalışan ret ve uyarı animasyonu:
+        /// 1. Gemi iki yana belirgin şekilde sallanır (wobble / denial shake).
+        /// 2. Kapasite metni (sayı) anında dikkat çekici kırmızıya döner (#FF3838) ve hafif büyüyüp yumuşakça eski beyaz haline döner.
+        /// </summary>
+        public void PlayDenialFeedback()
+        {
+            if (m_IsMoving || m_IsDeparting) return;
+
+            TriggerDenialWobble();
+            FlashBadgeTextWarningRed();
+            HypercasualFeedbackManager.Instance.PlayDenialFeedback();
+        }
+
+        /// <summary>
+        /// Geriye uyumluluk için PlayWobble çağrısı doğrudan PlayDenialFeedback'i tetikler.
         /// </summary>
         public void PlayWobble()
         {
-            if (m_IsMoving || m_IsDeparting) return;
-            Transform targetTr = m_VisualRoot != null ? m_VisualRoot : transform;
-            targetTr.DOKill(true);
-            targetTr.DOShakeRotation(0.35f, new Vector3(0f, 0f, 15f), 12, 90f, true)
-                .OnComplete(() => targetTr.localRotation = Quaternion.identity);
+            PlayDenialFeedback();
+        }
+
+        /// <summary>
+        /// Geminin iki yana belirgin ve canlı şekilde "hayır" dercesine sallanmasını sağlar.
+        /// </summary>
+        public void TriggerDenialWobble()
+        {
+            m_DenialWobbleTween?.Kill();
+            m_DenialWobblePosTween?.Kill();
+
+            m_DenialWobbleAngle = 0f;
+            m_DenialWobbleOffsetX = 0f;
+
+            // Z ekseninde canlı ve belirgin hayır sallanması (±18 derece yaylanarak sönüm)
+            m_DenialWobbleTween = DOTween.Punch(() => new Vector3(m_DenialWobbleAngle, 0f, 0f), v => m_DenialWobbleAngle = v.x, new Vector3(18f, 0f, 0f), 0.42f, 10, 0.55f)
+                .SetUpdate(true)
+                .OnComplete(() => m_DenialWobbleAngle = 0f);
+
+            // X ekseninde hafif yatay sarsıntı (iki yana kafa sallama hissi)
+            m_DenialWobblePosTween = DOTween.Punch(() => new Vector3(m_DenialWobbleOffsetX, 0f, 0f), v => m_DenialWobbleOffsetX = v.x, new Vector3(0.14f, 0f, 0f), 0.38f, 10, 0.55f)
+                .SetUpdate(true)
+                .OnComplete(() => m_DenialWobbleOffsetX = 0f);
+        }
+
+        /// <summary>
+        /// Kapasite textini (veya '?' işaretini) anında parlak uyarı kırmızısına boyar,
+        /// hafifçe büyütüp yaylandırır ve ardından yumuşakça orijinal beyaz renge geri döndürür.
+        /// </summary>
+        public void FlashBadgeTextWarningRed()
+        {
+            Color warningRed = new Color(1.0f, 0.22f, 0.22f, 1.0f); // Parlak ve belirgin uyarı kırmızısı (#FF3838)
+
+            if (m_BadgeText != null)
+            {
+                m_TextWarningColorTween?.Kill();
+                m_TextWarningScaleTween?.Kill();
+
+                m_BadgeText.color = warningRed;
+                m_BadgeText.transform.localScale = Vector3.one * 1.30f;
+
+                // Hafifçe yaylanarak eski boyutuna döner
+                m_TextWarningScaleTween = m_BadgeText.transform
+                    .DOScale(Vector3.one, 0.38f)
+                    .SetEase(Ease.OutBack)
+                    .SetUpdate(true);
+
+                // Kırmızıdan yumuşakça beyaz renge solar
+                m_TextWarningColorTween = m_BadgeText
+                    .DOColor(Color.white, 0.45f)
+                    .SetEase(Ease.OutQuad)
+                    .SetUpdate(true);
+            }
+
+            if (m_BadgeUIText != null)
+            {
+                m_BadgeUIText.DOKill();
+                m_BadgeUIText.color = warningRed;
+                m_BadgeUIText.transform.localScale = Vector3.one * 1.30f;
+                m_BadgeUIText.transform.DOScale(Vector3.one, 0.38f).SetEase(Ease.OutBack).SetUpdate(true);
+                m_BadgeUIText.DOColor(Color.white, 0.45f).SetEase(Ease.OutQuad).SetUpdate(true);
+            }
+
+            if (m_BadgeImage != null)
+            {
+                m_BadgeImage.DOKill();
+                m_BadgeImage.color = new Color(1.0f, 0.55f, 0.55f, 1.0f);
+                m_BadgeImage.DOColor(Color.white, 0.38f).SetEase(Ease.OutQuad).SetUpdate(true);
+            }
         }
 
         #region 🖐️ Gerçek Zamanlı Drag & Smooth Follow (Aşama 3)
@@ -2331,14 +2513,22 @@ namespace PixelGame
 
         public void OnPointerClick(PointerEventData eventData)
         {
-            if (m_IsDocked || m_IsMoving || m_IsDeparting) return;
+            if (m_IsMoving || m_IsDeparting) return;
+
+            // Zaten slotta yanaşmış bir gemiye tıklandıysa canlı dokunma yaylanması yap
+            if (m_IsDocked)
+            {
+                PlayCargoReceiveJuice();
+                return;
+            }
+
             if (ShipDispatcher.Instance != null && (ShipDispatcher.Instance.IsAutoPlacing || ShipDispatcher.Instance.IsLevelFailed)) return;
 
             // Bağlı gemi henüz serbest değilse uyar ve gönderme
             if (IsLinked && !CanDispatchLinked())
             {
-                PlayWobble();
-                if (m_LinkedPartner != null) m_LinkedPartner.PlayWobble();
+                PlayDenialFeedback();
+                if (m_LinkedPartner != null) m_LinkedPartner.PlayDenialFeedback();
                 if (m_Tether != null) m_Tether.Rattle();
                 return;
             }

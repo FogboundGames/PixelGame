@@ -39,7 +39,7 @@ namespace PixelGame
         public static Quaternion Apply(Quaternion baseRotation, float yaw, float bankRoll = 0f)
         {
             Quaternion yawRot = Quaternion.AngleAxis(yaw, Vector3.up) * baseRotation;
-            if (Mathf.Abs(bankRoll) > 0.01f)
+            if (bankRoll != 0f)
             {
                 return Quaternion.AngleAxis(bankRoll, Vector3.forward) * yawRot;
             }

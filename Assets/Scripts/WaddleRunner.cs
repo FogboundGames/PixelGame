@@ -250,7 +250,13 @@ namespace PixelGame
             if (screenMove.x * screenMove.x + screenMove.y * screenMove.y < 1e-8f) return;
 
             float target = CargoRunnerHeading.TargetYaw(screenMove, m_MaxTurnDegrees);
-            m_Heading = Mathf.MoveTowardsAngle(m_Heading, target, m_TurnSpeed * deltaTime);
+            // Yumuşak, sönümlü dönüş: sert açı duruşu veya basamaklı dönme titremesini önler
+            float angleDiff = Mathf.DeltaAngle(m_Heading, target);
+            float turnStep = m_TurnSpeed * deltaTime;
+            float smoothFollow = 1f - Mathf.Exp(-deltaTime / 0.055f);
+            float desiredStep = Mathf.Clamp(angleDiff * smoothFollow, -turnStep, turnStep);
+            m_Heading = Mathf.MoveTowardsAngle(m_Heading, m_Heading + desiredStep, turnStep);
+
             transform.rotation = CargoRunnerHeading.Apply(m_BaseRotation, m_Heading, m_BankTilt);
         }
 
