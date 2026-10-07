@@ -1,1 +1,0 @@
-/home/emre/Belgeler/GitHub/PixelGame/Library/Bee/artifacts/Android/il2cppOutput/cpp
