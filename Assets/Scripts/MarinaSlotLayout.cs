@@ -37,6 +37,11 @@ namespace PixelGame
         [Tooltip("İskele genel ölçek çarpanı.")]
         public float PierScaleMultiplier = 1.07f;
 
+        [Tooltip("İskeleyi yalnızca yatayda gerer (yükseklik değişmez): >1 yayı genişletip yayvanlaştırır, kollar sahil " +
+                 "kenarına doğru açılır. Slotlar da iskeleyle birlikte açılır.")]
+        [Range(0.7f, 1.6f)]
+        public float PierStretchX = 1f;
+
         [Tooltip("Doku üzerindeki koy aralığı (piksel).")]
         public float BaySpacingPx = 174f;
 
@@ -818,7 +823,9 @@ namespace PixelGame
 
             pierTr.localPosition = new Vector3(0f, pierOffsetY, pierOffsetZ);
             pierTr.localRotation = Quaternion.Euler(m_PierRotationX, 0f, 0f);
-            pierTr.localScale = new Vector3(finalWidth, finalHeight, 1f);
+            float stretchX = cfg != null && cfg.PierStretchX > 0.01f ? cfg.PierStretchX : 1f;
+            float stretchedWidth = finalWidth * stretchX;
+            pierTr.localScale = new Vector3(stretchedWidth, finalHeight, 1f);
 
             MeshFilter mf = pierTr.GetComponent<MeshFilter>();
             if (mf == null) mf = pierTr.gameObject.AddComponent<MeshFilter>();
@@ -837,7 +844,7 @@ namespace PixelGame
             mr.sortingOrder = 5;
 
             // 3. Slotları kavisli iskelenin koylarına matematiksel olarak tam oturt
-            float worldBaySpacing = (baySpacingPx / texWidth) * finalWidth;
+            float worldBaySpacing = (baySpacingPx / texWidth) * stretchedWidth;
             float startX = -(count - 1) * worldBaySpacing * 0.5f;
 
             // Gemilerin iskele kolları arasında açık suya oturma derinliği

@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: Level_10_New
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: "B\xF6l\xFCm 10"
-  m_LevelIndex: 7
-  m_IsHardLevel: 0
+  m_LevelIndex: 13
+  m_DifficultyTier: 1
+  m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: 4a93fbc73a0e96130a3d742d6b1121b8, type: 3}
   m_OriginalSourceTexture: {fileID: 2800000, guid: f1802d18ccc5f2b8595e7649972d5046, type: 3}
   m_LevelSprite: {fileID: 0}
@@ -60,6 +61,9 @@ MonoBehaviour:
   m_CubeRowStepOffset: {x: 0, y: 0, z: 0}
   m_InnerPadding: 0.08
   m_SkipTransparent: 1
+  m_MysteryCubeCoordinates: []
+  m_MysteryRevealCondition: 0
+  m_MysteryCubeColor: {r: 0.125, g: 0.118, b: 0.306, a: 1}
   m_SlotSprite: {fileID: 0}
   m_SlotCount: 5
   m_PoolColumns: 4
@@ -93,7 +97,7 @@ MonoBehaviour:
     capacity: 18
     paletteIndex: 4
     label: Turuncu (#5) (#3)
-    linkId: 0
+    linkId: 2
     isHidden: 0
   - wagonColor: {r: 0.7803922, g: 0.8196079, b: 0.8431373, a: 1}
     capacity: 20
@@ -117,14 +121,14 @@ MonoBehaviour:
     capacity: 20
     paletteIndex: 3
     label: Mavi (#4) (#6)
-    linkId: 0
+    linkId: 2
     isHidden: 0
   - wagonColor: {r: 0.6, g: 0.6666667, b: 0.70980394, a: 1}
     capacity: 20
     paletteIndex: 3
     label: Mavi (#4) (#6)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.7803922, g: 0.8196079, b: 0.8431373, a: 1}
     capacity: 10
     paletteIndex: 0
@@ -153,7 +157,7 @@ MonoBehaviour:
     capacity: 18
     paletteIndex: 0
     label: Gri (#1) (#11)
-    linkId: 2
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.9176471, g: 0.34901962, b: 0.43137258, a: 1}
     capacity: 10
@@ -171,31 +175,31 @@ MonoBehaviour:
     capacity: 19
     paletteIndex: 3
     label: Mavi (#4) (#14)
-    linkId: 3
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.9960785, g: 0.6784314, b: 0.21568629, a: 1}
     capacity: 10
     paletteIndex: 1
     label: Turuncu (#2) (#15)
-    linkId: 2
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.9960785, g: 0.6784314, b: 0.21568629, a: 1}
     capacity: 17
     paletteIndex: 1
     label: Turuncu (#2) (#15)
-    linkId: 0
+    linkId: 3
     isHidden: 0
   - wagonColor: {r: 0.9960785, g: 0.6784314, b: 0.21568629, a: 1}
     capacity: 12
     paletteIndex: 1
     label: Turuncu (#2) (#15)
-    linkId: 0
+    linkId: 3
     isHidden: 0
   - wagonColor: {r: 1, g: 0.8470589, b: 0.50980395, a: 1}
     capacity: 10
     paletteIndex: 2
     label: Turuncu (#3) (#16)
-    linkId: 3
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.9960785, g: 0.6784314, b: 0.21568629, a: 1}
     capacity: 20
@@ -220,13 +224,13 @@ MonoBehaviour:
     paletteIndex: 1
     label: Turuncu (#2) (#19)
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   - wagonColor: {r: 1, g: 0.8470589, b: 0.50980395, a: 1}
     capacity: 20
     paletteIndex: 2
     label: Turuncu (#3) (#20)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 1, g: 0.8470589, b: 0.50980395, a: 1}
     capacity: 17
     paletteIndex: 2
@@ -238,7 +242,7 @@ MonoBehaviour:
     paletteIndex: 2
     label: Turuncu (#3) (#24)
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   m_FigureShadowTexture: {fileID: 0}
   m_UseCustomColorTheme: 0
   m_ColorTheme:

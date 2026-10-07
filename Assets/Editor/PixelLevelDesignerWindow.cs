@@ -26,6 +26,7 @@ namespace PixelGame.Editor
         private int m_ActiveBrushPaletteIndex = -1;
         private int m_SelectedSlotForSwap = -1;
         private int m_SelectedSlotForLink = -1;
+        private readonly LevelDifficultyTableView m_DifficultyTable = new LevelDifficultyTableView();
         private int m_GenLinkPercent = 20;
         private int m_GenHiddenPercent = 15;
         private string m_LastSmartStatusMessage = "";
@@ -46,7 +47,8 @@ namespace PixelGame.Editor
             ColorStudio = 2,   // 🎨 Piksel Renkleri & TCP2 Toon
             MysteryCubes = 3,  // ❓ Gizli Küpler
             TruckLayout = 4,   // 🚢 Gemi / Vagon Sıra Düzeni
-            SceneTools = 5     // 🛠️ Sahne & Görsel Araçları
+            SceneTools = 5,    // 🛠️ Sahne & Görsel Araçları
+            DifficultyTable = 6 // 📊 Bütün level'ların zorluk tablosu
         }
 
         private enum MysteryBrushMode { Paint = 0, Erase = 1, Toggle = 2 }
@@ -303,13 +305,20 @@ namespace PixelGame.Editor
                 string stats = (tex != null) ? $"{res.x}x{res.y} | {level.ColorPalette.Count} Renk | {totalCubes} Küp" : "Görsel Atanmadı";
                 EditorGUILayout.LabelField(stats, EditorStyles.miniLabel);
 
-                // Zorluk Rozeti ve Denge Durumu
-                float diffScore = CalculateLevelDifficultyScore(level);
-                var (diffBadge, diffColor) = GetDifficultyBadge(diffScore);
+                // Zorluk Rozeti (resmin renk dağılımından; Zorluk Tablosu ile aynı) ve Denge Durumu
+                var diffRep = LevelDifficultyReport.GetCached(level);
 
                 EditorGUILayout.BeginHorizontal();
-                GUI.contentColor = diffColor;
-                EditorGUILayout.LabelField($"{diffBadge} ({Mathf.RoundToInt(diffScore)}p)", EditorStyles.miniBoldLabel, GUILayout.Width(110));
+                if (diffRep.valid)
+                {
+                    GUI.contentColor = LevelDifficultyReport.TierColor(diffRep.tier);
+                    EditorGUILayout.LabelField($"{LevelDifficultyReport.TierLabel(diffRep.tier)} ({Mathf.RoundToInt(diffRep.score)})", EditorStyles.miniBoldLabel, GUILayout.Width(110));
+                }
+                else
+                {
+                    GUI.contentColor = Color.gray;
+                    EditorGUILayout.LabelField("⚪ Belirsiz", EditorStyles.miniBoldLabel, GUILayout.Width(110));
+                }
                 GUI.contentColor = Color.white;
 
                 if (totalCubes > 0)
@@ -474,6 +483,23 @@ namespace PixelGame.Editor
             }
             GUI.backgroundColor = Color.white;
 
+            EditorGUILayout.Space(2);
+
+            GUI.backgroundColor = new Color(0.85f, 0.8f, 1f);
+            if (GUILayout.Button("🏷️ Kademeleri Analizden Ata (Kolay / Orta / Zor)", GUILayout.Height(26)))
+            {
+                if (EditorUtility.DisplayDialog(
+                    "Kademeleri Analizden Ata",
+                    "Her bölüm için Zorluk Raporu (LevelDifficultyReport) yeniden hesaplanacak ve sonuç " +
+                    "kalıcı olarak level asset'ine yazılacak (Kolay / Orta / Zor). HUD'daki HARD rozeti " +
+                    "artık bu kademeden okunur.\n\nDevam edilsin mi?",
+                    "Evet, Ata", "Vazgeç"))
+                {
+                    AssignDifficultyTiersFromAnalysis();
+                }
+            }
+            GUI.backgroundColor = Color.white;
+
             EditorGUILayout.Space(6);
             EditorGUILayout.EndVertical();
         }
@@ -528,6 +554,22 @@ namespace PixelGame.Editor
         private void DrawDetailPanel()
         {
             EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+
+            // Zorluk tablosu: seçili level gerekmez; satıra tıklayınca o level seçilir
+            if (m_CurrentTab == DetailTab.DifficultyTable)
+            {
+                EditorGUILayout.Space(6);
+                DrawTabsToolbar();
+                EditorGUILayout.Space(6);
+                m_DifficultyTable.OnGUI(level =>
+                {
+                    SelectLevel(level);
+                    m_CurrentTab = DetailTab.TruckLayout;
+                    EditorPrefs.SetInt("PixelGame_SelectedDetailTab", (int)m_CurrentTab);
+                }, m_SelectedLevel);
+                EditorGUILayout.EndVertical();
+                return;
+            }
 
             // Eğer Sahne Araçları sekmesi seçiliyse: Navbar'ı daima üstte göster, asla kaybolmasın!
             if (m_CurrentTab == DetailTab.SceneTools)
@@ -691,6 +733,7 @@ namespace PixelGame.Editor
             DrawTabButton(DetailTab.MysteryCubes, "❓ Gizli Küpler", tabStyle);
             DrawTabButton(DetailTab.TruckLayout, "🚢 Gemi / Vagon Sıra Düzeni", tabStyle);
             DrawTabButton(DetailTab.SceneTools, "🛠️ Sahne Araçları", tabStyle);
+            DrawTabButton(DetailTab.DifficultyTable, "📊 Zorluk Tablosu", tabStyle);
             EditorGUILayout.EndHorizontal();
         }
 
@@ -1246,8 +1289,7 @@ namespace PixelGame.Editor
             int colorCount = m_SelectedLevel.ColorPalette != null ? m_SelectedLevel.ColorPalette.Count : 0;
             int reqWagons = m_SelectedLevel.GetRequiredTruckCount();
 
-            float diffScore = CalculateLevelDifficultyScore(m_SelectedLevel);
-            var (diffBadge, diffColor) = GetDifficultyBadge(diffScore);
+            var diffRep = LevelDifficultyReport.GetCached(m_SelectedLevel);
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField($"Toplam Küp: {totalCubes}", EditorStyles.boldLabel, GUILayout.Width(130));
@@ -1255,17 +1297,25 @@ namespace PixelGame.Editor
             EditorGUILayout.LabelField($"Ray Slotu: {m_SelectedLevel.SlotCount}", EditorStyles.boldLabel, GUILayout.Width(95));
             EditorGUILayout.LabelField($"Vagon: ~{reqWagons}", EditorStyles.boldLabel, GUILayout.Width(100));
 
-            GUI.contentColor = diffColor;
-            EditorGUILayout.LabelField($"Zorluk: {diffBadge} ({Mathf.RoundToInt(diffScore)}p)", EditorStyles.boldLabel);
-            GUI.contentColor = Color.white;
+            if (diffRep.valid)
+            {
+                GUI.contentColor = LevelDifficultyReport.TierColor(diffRep.tier);
+                EditorGUILayout.LabelField($"Zorluk: {LevelDifficultyReport.TierLabel(diffRep.tier)} ({Mathf.RoundToInt(diffRep.score)}/100)", EditorStyles.boldLabel);
+                GUI.contentColor = Color.white;
+            }
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.Space(2);
-            string advice = (diffScore < 250f) ? "💡 Yeni başlayanlar ve casual oyuncular için ideal rahatlıkta bir seviye." :
-                            (diffScore < 550f) ? "💡 Standart dengeli bölüm. Oyuncu hafif planlama yaparak keyifle çözebilir." :
-                            (diffScore < 950f) ? "⚠️ Zorlayıcı bölüm! Renk çeşitliliği ve slot kısıtlaması nedeniyle vagon sırasının kilitlenmemesi için dikkatli tasarlanmalıdır." :
-                            "🔥 Uzman/Boss seviyesi! Çok yüksek küp sayısı ve renk çeşitliliği içerir.";
-            EditorGUILayout.HelpBox(advice, MessageType.None);
+            if (diffRep.valid)
+            {
+                string advice = diffRep.tier == LevelDifficultyReport.Tier.Kolay
+                    ? "💡 Kolay: büyük renk alanları, oyuncu düşünmeden ilerleyebilir. İlk level'lar için uygun."
+                    : diffRep.tier == LevelDifficultyReport.Tier.Orta
+                        ? "💡 Orta: renkler kısmen katmanlı; oyuncu hangi gemiyi göndereceğini biraz düşünmeli."
+                        : "🔥 Zor: renkler dengeli, iç içe ve gömülü; yanlış gemi slotu boşuna tutar.";
+                foreach (var reason in diffRep.reasons) advice += "\n• " + reason;
+                EditorGUILayout.HelpBox(advice, MessageType.None);
+            }
 
             EditorGUILayout.EndVertical();
         }
@@ -1832,6 +1882,11 @@ namespace PixelGame.Editor
 
             EditorGUILayout.Space(4);
 
+            // 1b. Tasarım uyarıları
+            DrawDesignWarningsCard();
+
+            EditorGUILayout.Space(4);
+
             // 2. Renk Paleti & Fırça Şeridi
             DrawSmartGridPaletteBar();
 
@@ -1870,6 +1925,24 @@ namespace PixelGame.Editor
                 }
                 EditorUtility.SetDirty(m_SelectedLevel);
                 NotifyLiveSceneUpdate();
+            }
+
+            // Denge rozeti: gemi kapasiteleri toplamı küp sayısıyla tutuyor mu
+            GUIStyle badgeStyle = new GUIStyle(EditorStyles.miniBoldLabel) { alignment = TextAnchor.MiddleCenter, padding = new RectOffset(8, 8, 2, 2) };
+            if (diff == 0 && totalCubes > 0)
+            {
+                badgeStyle.normal.textColor = new Color(0.35f, 0.95f, 0.5f);
+                GUILayout.Label($"🟢 Dengeli ({totalCap}/{totalCubes})", badgeStyle, GUILayout.Height(22));
+            }
+            else if (diff > 0)
+            {
+                badgeStyle.normal.textColor = new Color(1f, 0.45f, 0.45f);
+                GUILayout.Label($"🔴 {diff} küp eksik ({totalCap}/{totalCubes})", badgeStyle, GUILayout.Height(22));
+            }
+            else
+            {
+                badgeStyle.normal.textColor = new Color(0.45f, 0.8f, 1f);
+                GUILayout.Label($"🔵 {-diff} fazla ({totalCap}/{totalCubes})", badgeStyle, GUILayout.Height(22));
             }
 
             GUILayout.FlexibleSpace();
@@ -1944,225 +2017,270 @@ namespace PixelGame.Editor
 
             EditorGUILayout.EndHorizontal();
 
-            EditorGUILayout.Space(2);
+            EditorGUILayout.Space(6);
 
-            // 2. Satır: Boyutlar & Ayarlar Stepper Şeridi (Tek Kompakt Toolbar)
-            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+            // 2. Ayar kartları: geniş pencerede yan yana, dar pencerede alt alta
+            bool wide = position.width > 980f;
+            if (wide) EditorGUILayout.BeginHorizontal();
 
-            GUILayout.Label("📐 Havuz/Izgara:", EditorStyles.miniBoldLabel, GUILayout.Width(92));
-
-            GUILayout.Label("Sıra:", GUILayout.Width(28));
-            if (GUILayout.Button("-", EditorStyles.toolbarButton, GUILayout.Width(18)))
+            DrawSequenceCard("📐 Havuz & Slot", wide, () =>
             {
-                m_TargetGridRows = Mathf.Max(1, m_TargetGridRows - 1);
-                m_SelectedLevel.PoolRows = m_TargetGridRows;
-                EditorUtility.SetDirty(m_SelectedLevel);
-                NotifyLiveSceneUpdate();
-            }
-            int newRows = EditorGUILayout.IntField(m_TargetGridRows, GUILayout.Width(26));
-            if (newRows != m_TargetGridRows)
-            {
-                m_TargetGridRows = Mathf.Clamp(newRows, 1, 12);
-                m_SelectedLevel.PoolRows = m_TargetGridRows;
-                EditorUtility.SetDirty(m_SelectedLevel);
-                NotifyLiveSceneUpdate();
-            }
-            if (GUILayout.Button("+", EditorStyles.toolbarButton, GUILayout.Width(18)))
-            {
-                m_TargetGridRows = Mathf.Min(12, m_TargetGridRows + 1);
-                m_SelectedLevel.PoolRows = m_TargetGridRows;
-                EditorUtility.SetDirty(m_SelectedLevel);
-                NotifyLiveSceneUpdate();
-            }
-
-            GUILayout.Space(6);
-
-            GUILayout.Label("Kolon:", GUILayout.Width(38));
-            if (GUILayout.Button("-", EditorStyles.toolbarButton, GUILayout.Width(18)))
-            {
-                m_GridColumnsPerRow = Mathf.Max(1, m_GridColumnsPerRow - 1);
-                m_SelectedLevel.PoolColumns = m_GridColumnsPerRow;
-                EditorUtility.SetDirty(m_SelectedLevel);
-                NotifyLiveSceneUpdate();
-            }
-            int newCols = EditorGUILayout.IntField(m_GridColumnsPerRow, GUILayout.Width(26));
-            if (newCols != m_GridColumnsPerRow)
-            {
-                m_GridColumnsPerRow = Mathf.Clamp(newCols, 1, 8);
-                m_SelectedLevel.PoolColumns = m_GridColumnsPerRow;
-                EditorUtility.SetDirty(m_SelectedLevel);
-                NotifyLiveSceneUpdate();
-            }
-            if (GUILayout.Button("+", EditorStyles.toolbarButton, GUILayout.Width(18)))
-            {
-                m_GridColumnsPerRow = Mathf.Min(8, m_GridColumnsPerRow + 1);
-                m_SelectedLevel.PoolColumns = m_GridColumnsPerRow;
-                EditorUtility.SetDirty(m_SelectedLevel);
-                NotifyLiveSceneUpdate();
-            }
-
-            GUILayout.Space(10);
-
-            GUILayout.Label("📦 Vagon Kapasitesi:", EditorStyles.miniBoldLabel, GUILayout.Width(115));
-            if (GUILayout.Button("-", EditorStyles.toolbarButton, GUILayout.Width(18)))
-            {
-                m_SelectedLevel.TruckCapacity = Mathf.Max(1, m_SelectedLevel.TruckCapacity - 1);
-                EditorUtility.SetDirty(m_SelectedLevel);
-                NotifyLiveSceneUpdate();
-            }
-            m_SelectedLevel.TruckCapacity = EditorGUILayout.IntField(m_SelectedLevel.TruckCapacity, GUILayout.Width(30));
-            if (GUILayout.Button("+", EditorStyles.toolbarButton, GUILayout.Width(18)))
-            {
-                m_SelectedLevel.TruckCapacity = Mathf.Min(64, m_SelectedLevel.TruckCapacity + 1);
-                EditorUtility.SetDirty(m_SelectedLevel);
-                NotifyLiveSceneUpdate();
-            }
-
-            GUILayout.Space(10);
-
-            GUILayout.Label("🛤️ Ray Slotu:", EditorStyles.miniBoldLabel, GUILayout.Width(72));
-            if (GUILayout.Button("-", EditorStyles.toolbarButton, GUILayout.Width(18)))
-            {
-                m_SelectedLevel.SlotCount = Mathf.Max(1, m_SelectedLevel.SlotCount - 1);
-                EditorUtility.SetDirty(m_SelectedLevel);
-                NotifyLiveSceneUpdate();
-            }
-            int newSlots = EditorGUILayout.IntField(m_SelectedLevel.SlotCount, GUILayout.Width(26));
-            if (newSlots != m_SelectedLevel.SlotCount)
-            {
-                m_SelectedLevel.SlotCount = Mathf.Clamp(newSlots, 1, 8);
-                EditorUtility.SetDirty(m_SelectedLevel);
-                NotifyLiveSceneUpdate();
-            }
-            if (GUILayout.Button("+", EditorStyles.toolbarButton, GUILayout.Width(18)))
-            {
-                m_SelectedLevel.SlotCount = Mathf.Min(8, m_SelectedLevel.SlotCount + 1);
-                EditorUtility.SetDirty(m_SelectedLevel);
-                NotifyLiveSceneUpdate();
-            }
-
-            GUILayout.FlexibleSpace();
-
-            // Denge Rozeti
-            if (diff == 0 && totalCubes > 0)
-            {
-                GUI.backgroundColor = new Color(0.2f, 0.9f, 0.4f);
-                GUILayout.Label($"🟢 %100 DENGELİ ({totalCap}/{totalCubes})", EditorStyles.miniBoldLabel);
-            }
-            else if (diff > 0)
-            {
-                GUI.backgroundColor = new Color(1f, 0.35f, 0.35f);
-                GUILayout.Label($"🔴 {diff} KÜP EKSİK ({totalCap}/{totalCubes})", EditorStyles.miniBoldLabel);
-            }
-            else
-            {
-                GUI.backgroundColor = new Color(0.3f, 0.75f, 1f);
-                GUILayout.Label($"🔵 +{-diff} FAZLA ({totalCap}/{totalCubes})", EditorStyles.miniBoldLabel);
-            }
-            GUI.backgroundColor = Color.white;
-
-            EditorGUILayout.EndHorizontal();
-
-            // Gemi üstü sayıların çeşitliliği: hep 16 yerine arada 12, 13... gelsin
-            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
-            GUILayout.Label(new GUIContent("🎲 Gemi Sayıları:", "Sıra üretilirken / karıştırılırken her geminin kapasitesi en az–en çok aralığından seçilir; sayılar \"en sık\" değerinin etrafında yoğunlaşır. En çok = Vagon Kapasitesi."), EditorStyles.miniBoldLabel, GUILayout.Width(100));
-            GUILayout.Label("en az", EditorStyles.miniLabel, GUILayout.Width(32));
-            int newMinCap = EditorGUILayout.IntField(m_SelectedLevel.MinTruckCapacity, GUILayout.Width(30));
-            if (newMinCap != m_SelectedLevel.MinTruckCapacity)
-            {
-                Undo.RecordObject(m_SelectedLevel, "Gemi Kapasite Aralığı");
-                m_SelectedLevel.MinTruckCapacity = Mathf.Clamp(newMinCap, 1, m_SelectedLevel.TruckCapacity);
-                EditorUtility.SetDirty(m_SelectedLevel);
-            }
-            bool newRound = GUILayout.Toggle(m_SelectedLevel.UseRoundCapacities,
-                new GUIContent("🔟 10'un katları", "Açık: sayılar çoğunlukla 10, 20... olur; arada nadiren ara sayılar (12, 13, 17...). Kapalı: 'en sık' değeri etrafında karışık."),
-                EditorStyles.toolbarButton, GUILayout.Width(92));
-            if (newRound != m_SelectedLevel.UseRoundCapacities)
-            {
-                Undo.RecordObject(m_SelectedLevel, "Gemi Sayı Modu");
-                m_SelectedLevel.UseRoundCapacities = newRound;
-                EditorUtility.SetDirty(m_SelectedLevel);
-            }
-            if (m_SelectedLevel.UseRoundCapacities)
-            {
-                GUILayout.Label(new GUIContent("yuvarlak %", "10'un katı olan gemilerin oranı."), EditorStyles.miniLabel, GUILayout.Width(58));
-                int newRatio = EditorGUILayout.IntSlider(Mathf.RoundToInt(m_SelectedLevel.RoundCapacityRatio * 100f), 0, 100, GUILayout.Width(120));
-                if (newRatio != Mathf.RoundToInt(m_SelectedLevel.RoundCapacityRatio * 100f))
+                int rows = DrawStepperRow("Sıra (dalga)", "Havuzda kaç sıra gemi bekler (oyunda en fazla 6 görünür).", m_TargetGridRows, 1, 12);
+                if (rows != m_TargetGridRows)
                 {
-                    Undo.RecordObject(m_SelectedLevel, "Yuvarlak Sayı Oranı");
-                    m_SelectedLevel.RoundCapacityRatio = newRatio / 100f;
+                    Undo.RecordObject(m_SelectedLevel, "Havuz Sırası");
+                    m_TargetGridRows = rows;
+                    m_SelectedLevel.PoolRows = rows;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+
+                int cols = DrawStepperRow("Kolon", "Havuzda yan yana kaç sütun gemi olur.", m_GridColumnsPerRow, 1, 8);
+                if (cols != m_GridColumnsPerRow)
+                {
+                    Undo.RecordObject(m_SelectedLevel, "Havuz Kolonu");
+                    m_GridColumnsPerRow = cols;
+                    m_SelectedLevel.PoolColumns = cols;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+
+                int slots = DrawStepperRow("🛤️ Ray slotu", "Aynı anda yanaşabilen gemi sayısı. Az slot = daha zor.", m_SelectedLevel.SlotCount, 1, 8);
+                if (slots != m_SelectedLevel.SlotCount)
+                {
+                    Undo.RecordObject(m_SelectedLevel, "Ray Slotu");
+                    m_SelectedLevel.SlotCount = slots;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+            });
+
+            DrawSequenceCard("🔢 Gemi Sayıları", wide, () =>
+            {
+                // Mod seçimi (iki parçalı buton)
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("Mod", "Sayılar nasıl dağıtılsın?"), GUILayout.Width(SequenceLabelWidth));
+                bool round = m_SelectedLevel.UseRoundCapacities;
+                bool newRound = round;
+                GUI.backgroundColor = round ? new Color(0.45f, 0.8f, 1f) : Color.white;
+                if (GUILayout.Toggle(round, new GUIContent("🔟 10'un katları", "Sayılar çoğunlukla 10, 20...; arada nadiren 12, 13, 17 gibi ara sayılar."), EditorStyles.miniButtonLeft, GUILayout.Height(22)) && !round) newRound = true;
+                GUI.backgroundColor = !round ? new Color(0.45f, 0.8f, 1f) : Color.white;
+                if (GUILayout.Toggle(!round, new GUIContent("🎲 Karışık", "Sayılar 'en sık' değerinin etrafında karışık dağılır."), EditorStyles.miniButtonRight, GUILayout.Height(22)) && round) newRound = false;
+                GUI.backgroundColor = Color.white;
+                EditorGUILayout.EndHorizontal();
+                if (newRound != round)
+                {
+                    Undo.RecordObject(m_SelectedLevel, "Gemi Sayı Modu");
+                    m_SelectedLevel.UseRoundCapacities = newRound;
                     EditorUtility.SetDirty(m_SelectedLevel);
                 }
-            }
-            else
-            {
-                GUILayout.Label("en sık", EditorStyles.miniLabel, GUILayout.Width(36));
-                int newPeakCap = EditorGUILayout.IntField(m_SelectedLevel.PeakTruckCapacity, GUILayout.Width(30));
-                if (newPeakCap != m_SelectedLevel.PeakTruckCapacity)
+
+                int minCap = DrawStepperRow("En az", "Bir geminin en küçük sayısı (rengin küpü bundan azsa o gemi mecburen küçük olur).", m_SelectedLevel.MinTruckCapacity, 1, m_SelectedLevel.TruckCapacity);
+                if (minCap != m_SelectedLevel.MinTruckCapacity)
                 {
-                    Undo.RecordObject(m_SelectedLevel, "Gemi Kapasite Yoğunluğu");
-                    m_SelectedLevel.PeakTruckCapacity = Mathf.Clamp(newPeakCap, m_SelectedLevel.MinTruckCapacity, m_SelectedLevel.TruckCapacity);
+                    Undo.RecordObject(m_SelectedLevel, "Gemi Kapasite Alt Sınırı");
+                    m_SelectedLevel.MinTruckCapacity = minCap;
                     EditorUtility.SetDirty(m_SelectedLevel);
                 }
-            }
-            GUILayout.Label(new GUIContent("en çok", "Bir geminin alabileceği en fazla küp. Üstteki 'Vagon Kapasitesi' ile aynı değerdir."), EditorStyles.miniLabel, GUILayout.Width(38));
-            int newMaxCap = EditorGUILayout.IntField(m_SelectedLevel.TruckCapacity, GUILayout.Width(30));
-            if (newMaxCap != m_SelectedLevel.TruckCapacity)
-            {
-                Undo.RecordObject(m_SelectedLevel, "Gemi Kapasite Üst Sınırı");
-                m_SelectedLevel.TruckCapacity = Mathf.Clamp(newMaxCap, 1, 64);
-                // Alt sınır ve en sık değer yeni üst sınırı aşmasın
-                if (m_SelectedLevel.MinTruckCapacity > m_SelectedLevel.TruckCapacity) m_SelectedLevel.MinTruckCapacity = m_SelectedLevel.TruckCapacity;
-                if (m_SelectedLevel.PeakTruckCapacity > m_SelectedLevel.TruckCapacity) m_SelectedLevel.PeakTruckCapacity = m_SelectedLevel.TruckCapacity;
-                EditorUtility.SetDirty(m_SelectedLevel);
-            }
-            if (GUILayout.Button(new GUIContent("🎲 Sayıları Karıştır", "Renk sırasını bozmadan gemi kapasitelerini bu aralıkta yeniden dağıtır. Renk başına toplam küp sayısı korunur; gerekirse aynı renkten gemi eklenir/çıkarılır. Undo ile geri alınır."), EditorStyles.toolbarButton, GUILayout.Width(130)))
-            {
-                Undo.RecordObject(m_SelectedLevel, "Gemi Sayılarını Karıştır");
-                if (!m_SelectedLevel.UseCustomWagonSequence || m_SelectedLevel.WagonSequence == null || m_SelectedLevel.WagonSequence.Count == 0)
+
+                int maxCap = DrawStepperRow("En çok", "Bir geminin en büyük sayısı (vagon kapasitesi).", m_SelectedLevel.TruckCapacity, 1, 64);
+                if (maxCap != m_SelectedLevel.TruckCapacity)
                 {
-                    m_SelectedLevel.GenerateInterleavedWagonSequenceFromPalette();
+                    Undo.RecordObject(m_SelectedLevel, "Gemi Kapasite Üst Sınırı");
+                    m_SelectedLevel.TruckCapacity = maxCap;
+                    if (m_SelectedLevel.MinTruckCapacity > maxCap) m_SelectedLevel.MinTruckCapacity = maxCap;
+                    if (m_SelectedLevel.PeakTruckCapacity > maxCap) m_SelectedLevel.PeakTruckCapacity = maxCap;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+
+                if (m_SelectedLevel.UseRoundCapacities)
+                {
+                    int ratio = Mathf.RoundToInt(m_SelectedLevel.RoundCapacityRatio * 100f);
+                    int newRatio = DrawPercentSliderRow("Yuvarlak %", "10'un katı olan gemilerin oranı.", ratio, 0, 100);
+                    if (newRatio != ratio)
+                    {
+                        Undo.RecordObject(m_SelectedLevel, "Yuvarlak Sayı Oranı");
+                        m_SelectedLevel.RoundCapacityRatio = newRatio / 100f;
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                    }
                 }
                 else
                 {
-                    m_SelectedLevel.VaryWagonCapacities();
+                    int peak = DrawStepperRow("En sık", "Sayıların yoğunlaştığı değer.", m_SelectedLevel.PeakTruckCapacity, m_SelectedLevel.MinTruckCapacity, m_SelectedLevel.TruckCapacity);
+                    if (peak != m_SelectedLevel.PeakTruckCapacity)
+                    {
+                        Undo.RecordObject(m_SelectedLevel, "Gemi Kapasite Yoğunluğu");
+                        m_SelectedLevel.PeakTruckCapacity = peak;
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                    }
                 }
-                m_SelectedLevel.UseCustomWagonSequence = true;
-                EditorUtility.SetDirty(m_SelectedLevel);
-                NotifyLiveSceneUpdate();
-            }
-            GUILayout.FlexibleSpace();
-            EditorGUILayout.EndHorizontal();
 
-            // Halat & gizli gemi üretimi
-            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
-            GUILayout.Label(new GUIContent("🔗 Halat %", "Gemilerin yaklaşık bu kadarı halatla bağlanır (iki gemi bir halat). Sadece oyun başındaki havuz diziliminde: üst üste olanlar her yerde, yan yana olanlar yalnızca en ön sırada."), EditorStyles.miniBoldLabel, GUILayout.Width(62));
-            m_GenLinkPercent = EditorGUILayout.IntSlider(m_GenLinkPercent, 0, 60, GUILayout.Width(150));
-            GUILayout.Space(8);
-            GUILayout.Label(new GUIContent("❓ Gizli %", "Gemilerin yaklaşık bu kadarı gizli ('?') olur. En ön sıradakiler ve halatlılar gizlenmez."), EditorStyles.miniBoldLabel, GUILayout.Width(58));
-            m_GenHiddenPercent = EditorGUILayout.IntSlider(m_GenHiddenPercent, 0, 60, GUILayout.Width(150));
-            if (GUILayout.Button(new GUIContent("🪄 Halat & Gizli Üret", "Mevcut halatları ve gizli gemileri silip oranlara göre yeniden dağıtır. Sayıları karıştırdıktan SONRA bas (karıştırma gemi ekleyip çıkarınca yerler kayar). Undo ile geri alınır."), EditorStyles.toolbarButton, GUILayout.Width(130)))
+                EditorGUILayout.Space(4);
+                GUI.backgroundColor = new Color(0.55f, 0.85f, 1f);
+                if (GUILayout.Button(new GUIContent("🎲 Sayıları Karıştır", "Renk sırasını bozmadan gemi sayılarını bu ayarlara göre yeniden dağıtır. Renk başına toplam küp korunur; gerekirse aynı renkten gemi eklenir/çıkarılır. Undo ile geri alınır."), GUILayout.Height(28)))
+                {
+                    Undo.RecordObject(m_SelectedLevel, "Gemi Sayılarını Karıştır");
+                    if (!m_SelectedLevel.UseCustomWagonSequence || m_SelectedLevel.WagonSequence == null || m_SelectedLevel.WagonSequence.Count == 0)
+                        m_SelectedLevel.GenerateInterleavedWagonSequenceFromPalette();
+                    else
+                        m_SelectedLevel.VaryWagonCapacities();
+                    m_SelectedLevel.UseCustomWagonSequence = true;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+                GUI.backgroundColor = Color.white;
+            });
+
+            DrawSequenceCard("🔗 Halat  &  ❓ Gizli", wide, () =>
             {
-                EditorPrefs.SetInt("PixelGame_GenLinkPercent", m_GenLinkPercent);
-                EditorPrefs.SetInt("PixelGame_GenHiddenPercent", m_GenHiddenPercent);
-                Undo.RecordObject(m_SelectedLevel, "Halat & Gizli Üret");
-                m_SelectedLevel.GenerateLinksAndHidden(m_GenLinkPercent / 100f, m_GenHiddenPercent / 100f, new System.Random(),
-                    out int pairs, out int hidden, out int targetPairs);
-                m_SelectedSlotForLink = -1;
-                EditorUtility.SetDirty(m_SelectedLevel);
-                NotifyLiveSceneUpdate();
-                string note = pairs < targetPairs ? $" (hedef {targetPairs} çiftti; havuzda uygun yan yana/üst üste yer bu kadar)" : "";
-                ShowNotification(new GUIContent($"🔗 {pairs} halat · ❓ {hidden} gizli gemi{note}"));
-                Debug.Log($"[Level Designer] {m_SelectedLevel.name}: {pairs} halat, {hidden} gizli gemi üretildi{note}.");
-            }
-            GUILayout.FlexibleSpace();
-            EditorGUILayout.EndHorizontal();
+                m_GenLinkPercent = DrawPercentSliderRow("🔗 Halat %", "Gemilerin yaklaşık bu kadarı halatla bağlanır (iki gemi bir halat). Bütün sıraya yayılır: yan yana çiftler her dalgada, üst üste çiftler oyun başındaki havuzda.", m_GenLinkPercent, 0, 60);
+                m_GenHiddenPercent = DrawPercentSliderRow("❓ Gizli %", "Gemilerin yaklaşık bu kadarı gizli ('?') olur. En ön sıradakiler ve halatlılar gizlenmez.", m_GenHiddenPercent, 0, 60);
+
+                int linkPairsNow = 0, hiddenNow = 0;
+                if (m_SelectedLevel.WagonSequence != null)
+                {
+                    foreach (var w in m_SelectedLevel.WagonSequence)
+                    {
+                        if (w == null) continue;
+                        if (w.linkId > 0) linkPairsNow++;
+                        if (w.isHidden) hiddenNow++;
+                    }
+                }
+                EditorGUILayout.LabelField($"Şu an: {linkPairsNow / 2} halat · {hiddenNow} gizli gemi", EditorStyles.miniLabel);
+
+                EditorGUILayout.Space(4);
+                GUI.backgroundColor = new Color(0.8f, 0.65f, 1f);
+                if (GUILayout.Button(new GUIContent("🪄 Halat & Gizli Üret", "Mevcut halatları ve gizli gemileri silip oranlara göre yeniden dağıtır. Sayıları karıştırdıktan SONRA bas (karıştırma gemi ekleyip çıkarınca yerler kayar). Undo ile geri alınır."), GUILayout.Height(28)))
+                {
+                    EditorPrefs.SetInt("PixelGame_GenLinkPercent", m_GenLinkPercent);
+                    EditorPrefs.SetInt("PixelGame_GenHiddenPercent", m_GenHiddenPercent);
+                    Undo.RecordObject(m_SelectedLevel, "Halat & Gizli Üret");
+                    m_SelectedLevel.GenerateLinksAndHidden(m_GenLinkPercent / 100f, m_GenHiddenPercent / 100f, new System.Random(),
+                        out int pairs, out int hidden, out int targetPairs);
+                    m_SelectedSlotForLink = -1;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                    string note = pairs < targetPairs ? $" (hedef {targetPairs} çiftti; havuzda uygun yan yana/üst üste yer bu kadar)" : "";
+                    ShowNotification(new GUIContent($"🔗 {pairs} halat · ❓ {hidden} gizli gemi{note}"));
+                    Debug.Log($"[Level Designer] {m_SelectedLevel.name}: {pairs} halat, {hidden} gizli gemi üretildi{note}.");
+                }
+                GUI.backgroundColor = Color.white;
+            });
+
+            if (wide) EditorGUILayout.EndHorizontal();
 
             if (!string.IsNullOrEmpty(m_LastSmartStatusMessage))
             {
                 EditorGUILayout.Space(2);
                 EditorGUILayout.HelpBox(m_LastSmartStatusMessage, MessageType.Info);
             }
+        }
+
+        // ---------------------------------------------------------------
+        // Tasarım uyarıları (LevelDesignWarnings) — level değişmedikçe önbellekten
+        private bool m_WarningsFoldout = true;
+        private PixelLevelData m_WarningsLevel;
+        private int m_WarningsDirtyCount = -1;
+        private List<LevelDesignWarnings.Warning> m_Warnings;
+        private LevelDifficultyReport.Result m_DifficultyReport;
+
+        private void DrawDesignWarningsCard()
+        {
+            if (m_SelectedLevel == null) return;
+            int dirty = EditorUtility.GetDirtyCount(m_SelectedLevel);
+            if (m_Warnings == null || m_WarningsLevel != m_SelectedLevel || m_WarningsDirtyCount != dirty)
+            {
+                m_Warnings = LevelDesignWarnings.Compute(m_SelectedLevel);
+                m_DifficultyReport = LevelDifficultyReport.Compute(m_SelectedLevel);
+                m_WarningsLevel = m_SelectedLevel;
+                m_WarningsDirtyCount = dirty;
+            }
+
+            int errors = 0, warns = 0;
+            foreach (var w in m_Warnings)
+            {
+                if (w.type == MessageType.Error) errors++;
+                else if (w.type == MessageType.Warning) warns++;
+            }
+
+            // 📊 Zorluk raporu (resmin renk dağılımından)
+            var rep = m_DifficultyReport;
+            if (rep != null && rep.valid)
+            {
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Label($"📊 Zorluk: {LevelDifficultyReport.TierLabel(rep.tier)}  ({rep.score:0}/100)", new GUIStyle(EditorStyles.boldLabel) { fontSize = 12 });
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button(new GUIContent("📋 Tüm Level'lar", "Bütün level'ların zorluk tablosu"), EditorStyles.miniButton, GUILayout.Width(110)))
+                    LevelDifficultyOverviewWindow.Open();
+                EditorGUILayout.EndHorizontal();
+                EditorGUILayout.LabelField(
+                    $"Baskın renk %{rep.dominantShare * 100f:0} ({rep.dominantName}) · Etkin renk {rep.effectiveColors:0.0}/{rep.colorCount} · " +
+                    $"Bölge {rep.regionCount} (ort. {rep.avgRegionSize:0} küp) · Başta açık %{rep.exposedShare * 100f:0} · Gömülü renk {rep.buriedColors} · Kabuk {rep.shells}",
+                    EditorStyles.wordWrappedMiniLabel);
+                foreach (var reason in rep.reasons)
+                    EditorGUILayout.LabelField("• " + reason, EditorStyles.wordWrappedMiniLabel);
+                EditorGUILayout.EndVertical();
+            }
+
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.BeginHorizontal();
+            string title = m_Warnings.Count == 0
+                ? "✅ Tasarım Uyarıları — sorun yok"
+                : $"⚠️ Tasarım Uyarıları — {errors} hata · {warns} uyarı · {m_Warnings.Count - errors - warns} bilgi";
+            m_WarningsFoldout = EditorGUILayout.Foldout(m_WarningsFoldout, title, true, EditorStyles.foldoutHeader);
+            if (GUILayout.Button(new GUIContent("↻", "Yeniden hesapla"), EditorStyles.miniButton, GUILayout.Width(24)))
+            {
+                m_Warnings = null;
+            }
+            EditorGUILayout.EndHorizontal();
+
+            if (m_WarningsFoldout && m_Warnings != null)
+            {
+                foreach (var w in m_Warnings)
+                {
+                    EditorGUILayout.HelpBox(w.text, w.type);
+                }
+            }
+            EditorGUILayout.EndVertical();
+        }
+
+        private const float SequenceLabelWidth = 92f;
+
+        /// <summary>Başlıklı ayar kartı (gemi sırası sekmesi). Geniş pencerede yan yana eşit genişlikte durur.</summary>
+        private void DrawSequenceCard(string title, bool wide, System.Action body)
+        {
+            if (wide) EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.MinWidth(250), GUILayout.ExpandWidth(true));
+            else EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            GUIStyle head = new GUIStyle(EditorStyles.boldLabel) { fontSize = 12 };
+            EditorGUILayout.LabelField(title, head, GUILayout.Height(20));
+            EditorGUILayout.Space(2);
+            body();
+            EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>Etiket + [-] [sayı] [+] satırı; yeni değeri döner.</summary>
+        private int DrawStepperRow(string label, string tooltip, int value, int min, int max)
+        {
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent(label, tooltip), GUILayout.Width(SequenceLabelWidth), GUILayout.Height(20));
+            if (GUILayout.Button("−", EditorStyles.miniButtonLeft, GUILayout.Width(26), GUILayout.Height(20))) value--;
+            value = EditorGUILayout.IntField(value, GUILayout.Width(44), GUILayout.Height(20));
+            if (GUILayout.Button("+", EditorStyles.miniButtonRight, GUILayout.Width(26), GUILayout.Height(20))) value++;
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+            return Mathf.Clamp(value, min, Mathf.Max(min, max));
+        }
+
+        /// <summary>Etiket + yüzde kaydırıcısı satırı; yeni değeri döner.</summary>
+        private int DrawPercentSliderRow(string label, string tooltip, int value, int min, int max)
+        {
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent(label, tooltip), GUILayout.Width(SequenceLabelWidth), GUILayout.Height(20));
+            value = EditorGUILayout.IntSlider(value, min, max, GUILayout.Height(20));
+            EditorGUILayout.EndHorizontal();
+            return value;
         }
 
         private void DrawSmartGridPaletteBar()
@@ -4300,48 +4418,6 @@ namespace PixelGame.Editor
             Debug.Log("<color=#00FFAA><b>[LevelDesigner]</b></color> Seviye numaraları sıralandı (1.." + m_AllLevels.Count + ").");
         }
 
-        public static float CalculateLevelDifficultyScore(PixelLevelData level)
-        {
-            if (level == null) return 0f;
-
-            int cubeCount = level.GetTotalCubeCountInPalette();
-            if (cubeCount <= 0 && level.GetActiveTexture() != null)
-            {
-                Vector2Int dims = level.GetGridResolution();
-                cubeCount = dims.x * dims.y;
-            }
-            if (cubeCount <= 0) return 0f;
-
-            int colorCount = Mathf.Max(1, level.ColorPalette != null ? level.ColorPalette.Count : 1);
-            Vector2Int res = level.GetGridResolution();
-            int area = Mathf.Max(1, res.x * res.y);
-
-            // 1. Renk Çeşitliliği Çarpanı: Renk sayısı arttıkça aynı anda 3-4 slotta tıkanma riski hızla yükselir
-            float colorMultiplier = 1f + Mathf.Max(0, colorCount - 2) * 0.35f;
-
-            // 2. Slot Sayısı Baskısı: Daha az ray slotu (örn 3 slot) oyunu çok daha zor yapar
-            int slots = Mathf.Clamp(level.SlotCount, 2, 8);
-            float slotFactor = 4f / slots; // 3 slot -> 1.33x, 4 slot -> 1.0x, 5 slot -> 0.8x
-
-            // 3. Matris Boyut Faktörü
-            float dimensionFactor = Mathf.Sqrt(area) / 8f;
-
-            // 4. Vagon Kapasitesi / Ortalama Küp Oranı
-            int cap = Mathf.Max(1, level.TruckCapacity);
-            float wagonCycleFactor = Mathf.Clamp01(1f + (float)cubeCount / (cap * 10f));
-
-            float finalScore = (cubeCount * colorMultiplier * slotFactor) + (dimensionFactor * 15f) + (wagonCycleFactor * 20f);
-            return finalScore;
-        }
-
-        public static (string badge, Color color) GetDifficultyBadge(float score)
-        {
-            if (score <= 0f) return ("⚪ Belirsiz", Color.gray);
-            if (score < 250f) return ("🟢 Kolay", new Color(0.2f, 0.95f, 0.4f));
-            if (score < 550f) return ("🟡 Orta", new Color(0.95f, 0.85f, 0.2f));
-            if (score < 950f) return ("🔴 Zor", new Color(1f, 0.45f, 0.35f));
-            return ("🟣 Uzman", new Color(0.85f, 0.4f, 1f));
-        }
 
         /// <summary>
         /// Bölümleri akıllı zorluk puanına (Küp Sayısı × Renk Çeşitliliği × Slot Sayısı Baskısı) göre
@@ -4351,13 +4427,68 @@ namespace PixelGame.Editor
         {
             m_AllLevels.Sort((a, b) =>
             {
-                float scoreA = CalculateLevelDifficultyScore(a);
-                float scoreB = CalculateLevelDifficultyScore(b);
-                return scoreA.CompareTo(scoreB);
+                var ra = LevelDifficultyReport.GetCached(a);
+                var rb = LevelDifficultyReport.GetCached(b);
+                int byTier = ((int)ra.tier).CompareTo((int)rb.tier);
+                return byTier != 0 ? byTier : ra.score.CompareTo(rb.score);
             });
 
             AutoRenumberLevels();
-            Debug.Log("<color=#00FFAA><b>[LevelDesigner]</b></color> Bölümler akıllı zorluk eğrisine (Küp Sayısı × Renk Çeşitliliği × Slot Sayısı) göre kolaydan zora sıralandı.");
+            Debug.Log("<color=#00FFAA><b>[LevelDesigner]</b></color> Bölümler zorluk kademesine (Kolay → Orta → Zor, aynı kademede puana göre) sıralandı.");
+        }
+
+        /// <summary>
+        /// Her bölüm için Zorluk Raporunu hesaplayıp sonucu (Kolay/Orta/Zor) kalıcı olarak
+        /// level asset'ine yazar. HUD'daki HARD rozeti ve zorluk bilgisi bu kademeden okunur.
+        /// </summary>
+        private void AssignDifficultyTiersFromAnalysis()
+        {
+            int kolay = 0, orta = 0, zor = 0, atlanan = 0;
+
+            foreach (var lvl in m_AllLevels)
+            {
+                if (lvl == null) continue;
+
+                var r = LevelDifficultyReport.Compute(lvl);
+                if (!r.valid)
+                {
+                    atlanan++;
+                    continue;
+                }
+
+                LevelDifficultyTier tier;
+                switch (r.tier)
+                {
+                    case LevelDifficultyReport.Tier.Orta: tier = LevelDifficultyTier.Orta; break;
+                    case LevelDifficultyReport.Tier.Zor: tier = LevelDifficultyTier.Zor; break;
+                    default: tier = LevelDifficultyTier.Kolay; break;
+                }
+
+                if (lvl.DifficultyTier != tier)
+                    Undo.RecordObject(lvl, "Zorluk Kademesi Ata");
+
+                lvl.DifficultyTier = tier;
+                EditorUtility.SetDirty(lvl);
+
+                switch (tier)
+                {
+                    case LevelDifficultyTier.Kolay: kolay++; break;
+                    case LevelDifficultyTier.Orta: orta++; break;
+                    default: zor++; break;
+                }
+            }
+
+            AssetDatabase.SaveAssets();
+
+            Debug.Log($"<color=#00FFAA><b>[LevelDesigner]</b></color> Zorluk kademeleri analizden atandı — " +
+                      $"🟢 Kolay: {kolay} · 🟡 Orta: {orta} · 🔴 Zor: {zor}" +
+                      (atlanan > 0 ? $" · ⚪ atlanan (geçersiz analiz): {atlanan}" : ""));
+
+            EditorUtility.DisplayDialog(
+                "Kademeler Atandı",
+                $"🟢 Kolay: {kolay}\n🟡 Orta: {orta}\n🔴 Zor: {zor}" +
+                (atlanan > 0 ? $"\n⚪ Atlanan (görsel analiz edilemedi): {atlanan}" : ""),
+                "Tamam");
         }
 
         private const string LevelSequenceAssetPath = "Assets/Levels/LevelSequence.asset";

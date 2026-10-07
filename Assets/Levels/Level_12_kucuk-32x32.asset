@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: Level_12_kucuk-32x32
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: kucuk-32x32
-  m_LevelIndex: 12
-  m_IsHardLevel: 0
+  m_LevelIndex: 17
+  m_DifficultyTier: 1
+  m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: 5e346b3ab57d21f459f6954ee0add60d, type: 3}
   m_OriginalSourceTexture: {fileID: 2800000, guid: caa448213261b2e5e8a9af54ac094073, type: 3}
   m_LevelSprite: {fileID: 0}
@@ -68,6 +69,9 @@ MonoBehaviour:
   m_CubeRowStepOffset: {x: 0, y: 0, z: 0}
   m_InnerPadding: 0.08
   m_SkipTransparent: 1
+  m_MysteryCubeCoordinates: []
+  m_MysteryRevealCondition: 0
+  m_MysteryCubeColor: {r: 0.125, g: 0.118, b: 0.306, a: 1}
   m_SlotSprite: {fileID: 0}
   m_SlotCount: 5
   m_PoolColumns: 4
@@ -83,7 +87,7 @@ MonoBehaviour:
     capacity: 18
     paletteIndex: 5
     label: Mavi (#6) (#1)
-    linkId: 3
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.08235294, g: 0.61960787, b: 0.9333334, a: 1}
     capacity: 10
@@ -95,38 +99,38 @@ MonoBehaviour:
     capacity: 10
     paletteIndex: 4
     label: Mavi (#5) (#2)
-    linkId: 4
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.12941177, g: 0.18823531, b: 0.26666668, a: 1}
     capacity: 13
     paletteIndex: 4
     label: Mavi (#5) (#2)
-    linkId: 6
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.08235294, g: 0.61960787, b: 0.9333334, a: 1}
     capacity: 20
     paletteIndex: 5
     label: Mavi (#6) (#3)
-    linkId: 3
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.12941177, g: 0.18823531, b: 0.26666668, a: 1}
     capacity: 16
     paletteIndex: 4
     label: Mavi (#5) (#4)
-    linkId: 5
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.08235294, g: 0.61960787, b: 0.9333334, a: 1}
     capacity: 10
     paletteIndex: 5
     label: Mavi (#6) (#5)
-    linkId: 4
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.19215688, g: 0.3921569, b: 0.23529413, a: 1}
     capacity: 20
     paletteIndex: 2
     label: "Ye\u015Fil (#3) (#6)"
-    linkId: 6
-    isHidden: 0
+    linkId: 0
+    isHidden: 1
   - wagonColor: {r: 0.08235294, g: 0.61960787, b: 0.9333334, a: 1}
     capacity: 15
     paletteIndex: 5
@@ -137,14 +141,14 @@ MonoBehaviour:
     capacity: 10
     paletteIndex: 5
     label: Mavi (#6) (#7)
-    linkId: 5
-    isHidden: 0
+    linkId: 0
+    isHidden: 1
   - wagonColor: {r: 0.08235294, g: 0.61960787, b: 0.9333334, a: 1}
     capacity: 10
     paletteIndex: 5
     label: Mavi (#6) (#7)
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   - wagonColor: {r: 0.19215688, g: 0.3921569, b: 0.23529413, a: 1}
     capacity: 20
     paletteIndex: 2
@@ -155,55 +159,55 @@ MonoBehaviour:
     capacity: 16
     paletteIndex: 5
     label: Mavi (#6) (#9)
-    linkId: 0
-    isHidden: 1
+    linkId: 5
+    isHidden: 0
   - wagonColor: {r: 0.08235294, g: 0.61960787, b: 0.9333334, a: 1}
     capacity: 19
     paletteIndex: 5
     label: Mavi (#6) (#9)
-    linkId: 0
-    isHidden: 1
+    linkId: 1
+    isHidden: 0
   - wagonColor: {r: 0.32156864, g: 0.7176471, b: 0.96470594, a: 1}
     capacity: 20
     paletteIndex: 0
     label: Mavi (#1) (#10)
-    linkId: 2
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.32156864, g: 0.7176471, b: 0.96470594, a: 1}
     capacity: 13
     paletteIndex: 0
     label: Mavi (#1) (#10)
-    linkId: 7
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.19215688, g: 0.3921569, b: 0.23529413, a: 1}
     capacity: 10
     paletteIndex: 2
     label: "Ye\u015Fil (#3) (#11)"
-    linkId: 1
+    linkId: 5
     isHidden: 0
   - wagonColor: {r: 0.19215688, g: 0.3921569, b: 0.23529413, a: 1}
     capacity: 20
     paletteIndex: 2
     label: "Ye\u015Fil (#3) (#11)"
+    linkId: 1
+    isHidden: 0
+  - wagonColor: {r: 0.32156864, g: 0.7176471, b: 0.96470594, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Mavi (#1) (#12)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.32156864, g: 0.7176471, b: 0.96470594, a: 1}
     capacity: 20
     paletteIndex: 0
     label: Mavi (#1) (#12)
-    linkId: 2
-    isHidden: 0
-  - wagonColor: {r: 0.32156864, g: 0.7176471, b: 0.96470594, a: 1}
-    capacity: 20
-    paletteIndex: 0
-    label: Mavi (#1) (#12)
-    linkId: 7
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.19215688, g: 0.3921569, b: 0.23529413, a: 1}
     capacity: 20
     paletteIndex: 2
     label: "Ye\u015Fil (#3) (#13)"
-    linkId: 1
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.19215688, g: 0.3921569, b: 0.23529413, a: 1}
     capacity: 19
@@ -222,13 +226,13 @@ MonoBehaviour:
     paletteIndex: 2
     label: "Ye\u015Fil (#3) (#15)"
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.12941177, g: 0.18823531, b: 0.26666668, a: 1}
     capacity: 10
     paletteIndex: 4
     label: Mavi (#5) (#16)
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   - wagonColor: {r: 0.19215688, g: 0.3921569, b: 0.23529413, a: 1}
     capacity: 16
     paletteIndex: 2
@@ -270,7 +274,7 @@ MonoBehaviour:
     paletteIndex: 6
     label: Beyaz (#7) (#22)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.5568628, g: 0.8117648, b: 0.9568628, a: 1}
     capacity: 10
     paletteIndex: 1
@@ -299,14 +303,14 @@ MonoBehaviour:
     capacity: 10
     paletteIndex: 1
     label: Mavi (#2) (#25)
-    linkId: 0
+    linkId: 2
     isHidden: 0
   - wagonColor: {r: 0.32156864, g: 0.7176471, b: 0.96470594, a: 1}
     capacity: 10
     paletteIndex: 0
     label: Mavi (#1) (#26)
-    linkId: 0
-    isHidden: 1
+    linkId: 2
+    isHidden: 0
   - wagonColor: {r: 0.5568628, g: 0.8117648, b: 0.9568628, a: 1}
     capacity: 10
     paletteIndex: 1
@@ -318,24 +322,24 @@ MonoBehaviour:
     paletteIndex: 0
     label: Mavi (#1) (#28)
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   - wagonColor: {r: 0.5568628, g: 0.8117648, b: 0.9568628, a: 1}
     capacity: 20
     paletteIndex: 1
     label: Mavi (#2) (#29)
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   - wagonColor: {r: 0.32156864, g: 0.7176471, b: 0.96470594, a: 1}
     capacity: 13
     paletteIndex: 0
     label: Mavi (#1) (#30)
-    linkId: 0
+    linkId: 4
     isHidden: 0
   - wagonColor: {r: 0.5568628, g: 0.8117648, b: 0.9568628, a: 1}
     capacity: 10
     paletteIndex: 1
     label: Mavi (#2) (#31)
-    linkId: 0
+    linkId: 4
     isHidden: 0
   - wagonColor: {r: 0.12941177, g: 0.18823531, b: 0.26666668, a: 1}
     capacity: 20
@@ -354,7 +358,7 @@ MonoBehaviour:
     paletteIndex: 0
     label: Mavi (#1) (#36)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.32156864, g: 0.7176471, b: 0.96470594, a: 1}
     capacity: 10
     paletteIndex: 0
@@ -372,13 +376,13 @@ MonoBehaviour:
     paletteIndex: 1
     label: Mavi (#2) (#39)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.5568628, g: 0.8117648, b: 0.9568628, a: 1}
     capacity: 12
     paletteIndex: 1
     label: Mavi (#2) (#39)
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   - wagonColor: {r: 0.12941177, g: 0.18823531, b: 0.26666668, a: 1}
     capacity: 10
     paletteIndex: 4
@@ -390,18 +394,18 @@ MonoBehaviour:
     paletteIndex: 4
     label: Mavi (#5) (#42)
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   - wagonColor: {r: 0.12941177, g: 0.18823531, b: 0.26666668, a: 1}
     capacity: 20
     paletteIndex: 4
     label: Mavi (#5) (#42)
-    linkId: 0
+    linkId: 3
     isHidden: 0
   - wagonColor: {r: 0.5568628, g: 0.8117648, b: 0.9568628, a: 1}
     capacity: 10
     paletteIndex: 1
     label: Mavi (#2) (#43)
-    linkId: 0
+    linkId: 3
     isHidden: 0
   - wagonColor: {r: 0.6509804, g: 0.38823533, b: 0.2509804, a: 1}
     capacity: 10
@@ -414,18 +418,18 @@ MonoBehaviour:
     paletteIndex: 3
     label: Turuncu (#4) (#46)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.6509804, g: 0.38823533, b: 0.2509804, a: 1}
     capacity: 19
     paletteIndex: 3
     label: Turuncu (#4) (#46)
-    linkId: 0
+    linkId: 6
     isHidden: 0
   - wagonColor: {r: 0.6509804, g: 0.38823533, b: 0.2509804, a: 1}
     capacity: 10
     paletteIndex: 3
     label: Turuncu (#4) (#46)
-    linkId: 0
+    linkId: 6
     isHidden: 0
   - wagonColor: {r: 0.47450984, g: 0.3137255, b: 0.23529413, a: 1}
     capacity: 20
@@ -438,25 +442,25 @@ MonoBehaviour:
     paletteIndex: 4
     label: Mavi (#5) (#49)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.6509804, g: 0.38823533, b: 0.2509804, a: 1}
     capacity: 20
     paletteIndex: 3
     label: Turuncu (#4) (#50)
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   - wagonColor: {r: 0.6509804, g: 0.38823533, b: 0.2509804, a: 1}
     capacity: 10
     paletteIndex: 3
     label: Turuncu (#4) (#52)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.6509804, g: 0.38823533, b: 0.2509804, a: 1}
     capacity: 20
     paletteIndex: 3
     label: Turuncu (#4) (#52)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.47450984, g: 0.3137255, b: 0.23529413, a: 1}
     capacity: 11
     paletteIndex: 7
@@ -479,13 +483,13 @@ MonoBehaviour:
     capacity: 20
     paletteIndex: 3
     label: Turuncu (#4) (#54)
-    linkId: 0
+    linkId: 7
     isHidden: 0
   - wagonColor: {r: 0.6509804, g: 0.38823533, b: 0.2509804, a: 1}
     capacity: 20
     paletteIndex: 3
     label: Turuncu (#4) (#56)
-    linkId: 0
+    linkId: 7
     isHidden: 0
   - wagonColor: {r: 0.12941177, g: 0.18823531, b: 0.26666668, a: 1}
     capacity: 10

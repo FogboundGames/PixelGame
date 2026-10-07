@@ -170,9 +170,15 @@ MonoBehaviour:
   m_GridY: 0
   m_OriginalColor: {r: 1, g: 1, b: 1, a: 1}
   m_CurrentColor: {r: 1, g: 1, b: 1, a: 1}
+  m_TrueColor: {r: 1, g: 1, b: 1, a: 1}
+  m_EmissionIntensity: 0
   m_ShadowObject: {fileID: 5182937401928374651}
   m_ShadowBottomObject: {fileID: 0}
   m_KeepShadowPermanent: 0
+  m_IsMystery: 0
+  m_HasRevealed: 0
+  m_MysteryCubeColor: {r: 0.125, g: 0.118, b: 0.306, a: 1}
+  m_MysteryQuestionObject: {fileID: 0}
 --- !u!114 &1246437089962076259
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -190,6 +196,7 @@ MonoBehaviour:
   m_LegL: {fileID: 4516490021748794740}
   m_LegR: {fileID: 8318206267280782580}
   m_StepsPerCube: 1.6
+  m_MaxStepsPerSecond: 5
   m_LegSplayDegrees: 24
   m_LegLift: 0.08
   m_BodyRollDegrees: 0

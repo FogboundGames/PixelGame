@@ -10,6 +10,17 @@ namespace PixelGame
         WhenNeighborCleared = 1  // Bitişik herhangi bir komşu toplandığında
     }
 
+    /// <summary>
+    /// Bölümün zorluk kademesi. Varsayılan olarak LevelDifficultyReport analizinden
+    /// atanır (Level Designer → "Kademeleri Analizden Ata").
+    /// </summary>
+    public enum LevelDifficultyTier
+    {
+        Kolay = 0,
+        Orta = 1,
+        Zor = 2
+    }
+
     [Serializable]
     public class PaletteColorOverride
     {
@@ -218,8 +229,13 @@ namespace PixelGame
         [Tooltip("Bölüm sırası / numarası")]
         [SerializeField] private int m_LevelIndex = 1;
 
-        [Tooltip("Bu seviye ZOR (HARD) seviye mi? Açıksa üst barda tavşanın yanında 'HARD' rozeti görünür.")]
-        [SerializeField] private bool m_IsHardLevel = false;
+        [Tooltip("Bölümün zorluk kademesi. Genelde Level Designer'daki 'Kademeleri Analizden Ata' ile LevelDifficultyReport'tan atanır. " +
+                 "Zor kademesindeyse üst barda tavşanın yanında 'HARD' rozeti görünür.")]
+        [SerializeField] private LevelDifficultyTier m_DifficultyTier = LevelDifficultyTier.Kolay;
+
+        /// <summary>Eski m_IsHardLevel bool'unun kademe alanına taşınması için; taşındıktan sonra false kalır.</summary>
+        [HideInInspector, SerializeField, UnityEngine.Serialization.FormerlySerializedAs("m_IsHardLevel")]
+        private bool m_LegacyIsHardLevel = false;
 
         [Header("🖼️ Kaynak Görsel")]
         [Tooltip("Bölümde küplerle çizilecek piksel resmi")]
@@ -368,7 +384,24 @@ namespace PixelGame
         // Public Properties
         public string LevelName { get => m_LevelName; set => m_LevelName = value; }
         public int LevelIndex { get => m_LevelIndex; set => m_LevelIndex = value; }
-        public bool IsHardLevel { get => m_IsHardLevel; set => m_IsHardLevel = value; }
+
+        /// <summary>Zorluk kademesi (Kolay / Orta / Zor). Analizden atanır; HUD rozeti bunu kullanır.</summary>
+        public LevelDifficultyTier DifficultyTier { get => m_DifficultyTier; set => m_DifficultyTier = value; }
+
+        /// <summary>Eski alanla uyumluluk: yalnızca Zor kademesinde true döner.</summary>
+        public bool IsHardLevel => m_DifficultyTier == LevelDifficultyTier.Zor;
+
+        private void OnValidate()
+        {
+            // Göç: eski m_IsHardLevel bool'unu yeni kademeye taşı (true → Zor).
+            if (m_LegacyIsHardLevel)
+            {
+                if (m_DifficultyTier == LevelDifficultyTier.Kolay)
+                    m_DifficultyTier = LevelDifficultyTier.Zor;
+                m_LegacyIsHardLevel = false;
+            }
+        }
+
         public Texture2D LevelTexture { get => m_LevelTexture; set => m_LevelTexture = value; }
         public Texture2D OriginalSourceTexture { get => m_OriginalSourceTexture; set => m_OriginalSourceTexture = value; }
         public Sprite LevelSprite { get => m_LevelSprite; set => m_LevelSprite = value; }
@@ -897,10 +930,7 @@ namespace PixelGame
         /// </summary>
         /// <summary>
         /// Gemi sırasındaki halatları ve gizli gemileri oranlara göre yeniden üretir (önceki bağ/gizlilik silinir).
-        /// Halatlar yalnızca oyun başındaki havuz dizilimine (satır satır dolar) konur, çünkü sonradan gelen
-        /// gemilerin hangi sütuna düşeceği oyuncuya bağlıdır:
-        ///  - üst üste (aynı sütun, ardışık sıra): sütun birlikte kaydığı için oyun boyunca bitişik kalır;
-        ///  - yan yana (aynı sıra, komşu sütun): sütunlar bağımsız kaydığından yalnızca en ön sırada.
+        /// Halatlar bütün sıraya yayılır: yan yana çiftler her dalgada, üst üste çiftler oyun başındaki havuzda.
         /// Gizli gemiler en ön sıra dışından ve halatsız gemilerden seçilir (ön sıradaki gizli gemi hemen açılır).
         /// </summary>
         /// <param name="linkRatio">Halatlı gemi oranı (0–1). 0.2 → gemilerin ~%20'si halatlı (çift sayısı bunun yarısı).</param>
@@ -924,13 +954,17 @@ namespace PixelGame
             int rows = Mathf.Clamp(m_PoolRows, 1, 6);
             int poolSize = Mathf.Min(n, cols * rows);
 
-            // Aday çiftler
+            // Aday çiftler (Level Designer ızgarasında komşu olanlar), bütün sıraya yayılır:
+            //  - yan yana (aynı dalga, komşu sütun): her yerde. Ardışık iki gemi kuyruğa arka arkaya geldiği için
+            //    oyunda ikisi birlikte bulunur (sütunlar farklı ilerleyince halat çapraz kalabilir, sorun değil).
+            //  - üst üste (aynı sütun): yalnızca oyun başındaki havuzda. Sonradan gelenlerde ortak birkaç gemi
+            //    sonra kuyruğa gireceği için ilki ortaksız (halatsız) gönderilebilirdi.
             var pairs = new List<Vector2Int>();
-            for (int i = 0; i < poolSize; i++)
+            for (int i = 0; i < n; i++)
             {
-                int row = i / cols, col = i % cols;
-                if (i + cols < poolSize) pairs.Add(new Vector2Int(i, i + cols));               // üst üste
-                if (row == 0 && col + 1 < cols && i + 1 < poolSize) pairs.Add(new Vector2Int(i, i + 1)); // yan yana (ön sıra)
+                int col = i % cols;
+                if (col + 1 < cols && i + 1 < n) pairs.Add(new Vector2Int(i, i + 1));            // yan yana
+                if (i + cols < poolSize) pairs.Add(new Vector2Int(i, i + cols));                  // üst üste (havuz)
             }
             for (int i = pairs.Count - 1; i > 0; i--)
             {

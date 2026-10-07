@@ -256,12 +256,31 @@ namespace PixelGame.Editor
         {
             if (tex == null) return new LevelCanvas(16);
 
-            // Doku okunabilir değilse geçici okunabilir kopyasını al
+            // Mümkünse pikseller diskteki orijinal dosyadan okunur: Unity içe aktarırken dokuyu sıkıştırmış
+            // olabilir (Android'de ASTC 6x6) ve sıkıştırılmış piksel art'ın renkleri bloklar halinde bozulur.
             RenderTexture prevRT = RenderTexture.active;
             Texture2D readableTex = tex;
             bool createdTemp = false;
 
-            if (!tex.isReadable)
+            string assetPath = UnityEditor.AssetDatabase.GetAssetPath(tex);
+            if (!string.IsNullOrEmpty(assetPath) && System.IO.File.Exists(assetPath) &&
+                (assetPath.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase) ||
+                 assetPath.EndsWith(".jpg", System.StringComparison.OrdinalIgnoreCase) ||
+                 assetPath.EndsWith(".jpeg", System.StringComparison.OrdinalIgnoreCase)))
+            {
+                var fromFile = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                if (fromFile.LoadImage(System.IO.File.ReadAllBytes(assetPath)))
+                {
+                    readableTex = fromFile;
+                    createdTemp = true;
+                }
+                else
+                {
+                    Object.DestroyImmediate(fromFile);
+                }
+            }
+
+            if (!createdTemp && !tex.isReadable)
             {
                 RenderTexture rt = RenderTexture.GetTemporary(tex.width, tex.height, 0, RenderTextureFormat.ARGB32);
                 Graphics.Blit(tex, rt);

@@ -259,9 +259,14 @@ namespace PixelGame
                 ApplyColorsFromShips();
             }
 
+            // Halat, gemilerin sallanan gövdesine (VisualRoot: su sallanması, kaldırma, dalma) bağlanır;
+            // kök objeye bağlıyken gemiler sallanırken halat sabit kalıyordu.
+            Transform hullA = m_ShipA.VisualRoot != null ? m_ShipA.VisualRoot : m_ShipA.transform;
+            Transform hullB = m_ShipB.VisualRoot != null ? m_ShipB.VisualRoot : m_ShipB.transform;
+
             // Gemilerin tam orta yükseklik ve merkez noktaları (yerel Z=0 geminin tam boy ortası, Y=0.95f bel ortasıdır)
-            Vector3 centerA = m_ShipA.transform.TransformPoint(new Vector3(0f, 0.95f, 0f));
-            Vector3 centerB = m_ShipB.transform.TransformPoint(new Vector3(0f, 0.95f, 0f));
+            Vector3 centerA = hullA.TransformPoint(new Vector3(0f, 0.95f, 0f));
+            Vector3 centerB = hullB.TransformPoint(new Vector3(0f, 0.95f, 0f));
 
             Vector3 worldDelta = centerB - centerA;
             float worldDist = worldDelta.magnitude;
@@ -270,14 +275,14 @@ namespace PixelGame
             Vector3 worldDir = worldDelta / worldDist;
 
             // A gemisinin gövde kenarındaki orta bağlantı noktası
-            Vector3 localDirA = m_ShipA.transform.InverseTransformDirection(worldDir);
+            Vector3 localDirA = hullA.InverseTransformDirection(worldDir);
             Vector3 localAttachA = CalculateHullPerimeterPoint(localDirA);
-            Vector3 posA = m_ShipA.transform.TransformPoint(localAttachA);
+            Vector3 posA = hullA.TransformPoint(localAttachA);
 
             // B gemisinin gövde kenarındaki orta bağlantı noktası
-            Vector3 localDirB = m_ShipB.transform.InverseTransformDirection(-worldDir);
+            Vector3 localDirB = hullB.InverseTransformDirection(-worldDir);
             Vector3 localAttachB = CalculateHullPerimeterPoint(localDirB);
-            Vector3 posB = m_ShipB.transform.TransformPoint(localAttachB);
+            Vector3 posB = hullB.TransformPoint(localAttachB);
 
             float attachDist = Vector3.Distance(posA, posB);
             // Doğal sarkma miktarı: iki gemi arasındaki mesafeye orantılı tatlı bir sarkma

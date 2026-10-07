@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: Level_01_Sevimli Rakun
   m_EditorClassIdentifier: PixelGame::PixelGame.PixelLevelData
   m_LevelName: Sevimli Rakun
-  m_LevelIndex: 10
-  m_IsHardLevel: 0
+  m_LevelIndex: 24
+  m_DifficultyTier: 2
+  m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: 71d45c83e29147fa90015f70e129f744, type: 3}
   m_OriginalSourceTexture: {fileID: 0}
   m_LevelSprite: {fileID: 0}
@@ -98,44 +99,44 @@ MonoBehaviour:
     capacity: 20
     paletteIndex: 0
     label: Renk #1 (1)
-    linkId: 1
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.9568628, g: 0.8313726, b: 0.38431376, a: 1}
     capacity: 20
     paletteIndex: 0
     label: Renk #1 (1)
-    linkId: 2
+    linkId: 1
     isHidden: 0
   - wagonColor: {r: 0.9568628, g: 0.8313726, b: 0.38431376, a: 1}
     capacity: 20
     paletteIndex: 0
     label: Renk #1 (2)
-    linkId: 1
-    isHidden: 0
+    linkId: 0
+    isHidden: 1
   - wagonColor: {r: 0.9568628, g: 0.8313726, b: 0.38431376, a: 1}
     capacity: 10
     paletteIndex: 0
     label: Renk #1 (3)
-    linkId: 2
+    linkId: 1
     isHidden: 0
   - wagonColor: {r: 0.9568628, g: 0.8313726, b: 0.38431376, a: 1}
     capacity: 20
     paletteIndex: 0
     label: Renk #1 (4)
     linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.9568628, g: 0.8313726, b: 0.38431376, a: 1}
-    capacity: 20
-    paletteIndex: 0
-    label: Renk #1 (5)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.9568628, g: 0.8313726, b: 0.38431376, a: 1}
-    capacity: 20
-    paletteIndex: 0
-    label: Renk #1 (5)
-    linkId: 0
     isHidden: 1
+  - wagonColor: {r: 0.9568628, g: 0.8313726, b: 0.38431376, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (5)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.9568628, g: 0.8313726, b: 0.38431376, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (5)
+    linkId: 0
+    isHidden: 0
   - wagonColor: {r: 0.9568628, g: 0.8313726, b: 0.38431376, a: 1}
     capacity: 16
     paletteIndex: 0
@@ -194,25 +195,25 @@ MonoBehaviour:
     capacity: 20
     paletteIndex: 1
     label: Renk #2 (3)
-    linkId: 0
+    linkId: 4
     isHidden: 0
   - wagonColor: {r: 0.18, g: 0.18999998, b: 0.22, a: 1}
     capacity: 20
     paletteIndex: 1
     label: Renk #2 (4)
-    linkId: 0
-    isHidden: 1
+    linkId: 4
+    isHidden: 0
   - wagonColor: {r: 0.18, g: 0.18999998, b: 0.22, a: 1}
     capacity: 20
     paletteIndex: 1
     label: Renk #2 (5)
-    linkId: 0
+    linkId: 2
     isHidden: 0
   - wagonColor: {r: 0.18, g: 0.18999998, b: 0.22, a: 1}
     capacity: 10
     paletteIndex: 1
     label: Renk #2 (6)
-    linkId: 0
+    linkId: 2
     isHidden: 0
   - wagonColor: {r: 0.14117646, g: 0.59607846, b: 0.98039216, a: 1}
     capacity: 14
@@ -230,13 +231,13 @@ MonoBehaviour:
     capacity: 10
     paletteIndex: 2
     label: Renk #3 (2)
-    linkId: 0
-    isHidden: 1
+    linkId: 3
+    isHidden: 0
   - wagonColor: {r: 0.14117646, g: 0.59607846, b: 0.98039216, a: 1}
     capacity: 20
     paletteIndex: 2
     label: Renk #3 (3)
-    linkId: 0
+    linkId: 3
     isHidden: 0
   - wagonColor: {r: 0.14117646, g: 0.59607846, b: 0.98039216, a: 1}
     capacity: 10
@@ -255,7 +256,7 @@ MonoBehaviour:
     paletteIndex: 2
     label: Renk #3 (5)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.9960785, g: 0.9960785, b: 0.9960785, a: 1}
     capacity: 16
     paletteIndex: 3
@@ -291,7 +292,7 @@ MonoBehaviour:
     paletteIndex: 3
     label: Renk #4 (5)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.9960785, g: 0.9960785, b: 0.9960785, a: 1}
     capacity: 17
     paletteIndex: 3
@@ -315,7 +316,7 @@ MonoBehaviour:
     paletteIndex: 5
     label: Renk #6 (1)
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   - wagonColor: {r: 0.41176474, g: 0.36078432, b: 0.3529412, a: 1}
     capacity: 6
     paletteIndex: 6

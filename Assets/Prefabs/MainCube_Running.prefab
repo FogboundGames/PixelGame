@@ -74,9 +74,15 @@ MonoBehaviour:
   m_GridY: 0
   m_OriginalColor: {r: 1, g: 1, b: 1, a: 1}
   m_CurrentColor: {r: 1, g: 1, b: 1, a: 1}
+  m_TrueColor: {r: 1, g: 1, b: 1, a: 1}
+  m_EmissionIntensity: 0
   m_ShadowObject: {fileID: 6182937401928374651}
   m_ShadowBottomObject: {fileID: 0}
   m_KeepShadowPermanent: 0
+  m_IsMystery: 0
+  m_HasRevealed: 0
+  m_MysteryCubeColor: {r: 0.125, g: 0.118, b: 0.306, a: 1}
+  m_MysteryQuestionObject: {fileID: 0}
 --- !u!1 &6182937401928374651
 GameObject:
   m_ObjectHideFlags: 0

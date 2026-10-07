@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: Level_09_Burger
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Burger
-  m_LevelIndex: 5
-  m_IsHardLevel: 0
+  m_LevelIndex: 16
+  m_DifficultyTier: 1
+  m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: 85ff01fff55983161866fe0f3a251112, type: 3}
   m_OriginalSourceTexture: {fileID: 2800000, guid: 8771a6815f3eee83fa697cbf463772a9, type: 3}
   m_LevelSprite: {fileID: 0}
@@ -52,6 +53,9 @@ MonoBehaviour:
   m_CubeRowStepOffset: {x: 0, y: 0, z: 0}
   m_InnerPadding: 0.08
   m_SkipTransparent: 1
+  m_MysteryCubeCoordinates: []
+  m_MysteryRevealCondition: 0
+  m_MysteryCubeColor: {r: 0.125, g: 0.118, b: 0.306, a: 1}
   m_SlotSprite: {fileID: 0}
   m_SlotCount: 4
   m_PoolColumns: 5
@@ -91,19 +95,19 @@ MonoBehaviour:
     capacity: 16
     paletteIndex: 2
     label: Renk #3 (1)
-    linkId: 2
+    linkId: 1
     isHidden: 0
   - wagonColor: {r: 0.3137255, g: 0.7254902, b: 0.25490198, a: 1}
     capacity: 20
     paletteIndex: 2
     label: Renk #3 (1)
-    linkId: 0
+    linkId: 2
     isHidden: 0
   - wagonColor: {r: 1, g: 0.8431373, b: 0, a: 1}
     capacity: 10
     paletteIndex: 3
     label: Renk #4 (1)
-    linkId: 0
+    linkId: 2
     isHidden: 0
   - wagonColor: {r: 0.69803923, g: 0.3137255, b: 0.1254902, a: 1}
     capacity: 17
@@ -115,20 +119,20 @@ MonoBehaviour:
     capacity: 15
     paletteIndex: 1
     label: Renk #2 (2)
-    linkId: 1
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.92549026, g: 0.6039216, b: 0.25882354, a: 1}
     capacity: 10
     paletteIndex: 1
     label: Renk #2 (2)
-    linkId: 2
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.8431373, b: 0, a: 1}
     capacity: 17
     paletteIndex: 3
     label: Renk #4 (2)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.69803923, g: 0.3137255, b: 0.1254902, a: 1}
     capacity: 20
     paletteIndex: 0
@@ -152,25 +156,25 @@ MonoBehaviour:
     paletteIndex: 0
     label: Renk #1 (4)
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   - wagonColor: {r: 0.92549026, g: 0.6039216, b: 0.25882354, a: 1}
     capacity: 10
     paletteIndex: 1
     label: Renk #2 (4)
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   - wagonColor: {r: 0.69803923, g: 0.3137255, b: 0.1254902, a: 1}
     capacity: 16
     paletteIndex: 0
     label: Renk #1 (5)
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   - wagonColor: {r: 0.92549026, g: 0.6039216, b: 0.25882354, a: 1}
     capacity: 10
     paletteIndex: 1
     label: Renk #2 (5)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.69803923, g: 0.3137255, b: 0.1254902, a: 1}
     capacity: 14
     paletteIndex: 0
@@ -188,14 +192,14 @@ MonoBehaviour:
     paletteIndex: 0
     label: Renk #1 (7)
     linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.92549026, g: 0.6039216, b: 0.25882354, a: 1}
+    capacity: 10
+    paletteIndex: 1
+    label: Renk #2 (7)
+    linkId: 0
     isHidden: 1
   - wagonColor: {r: 0.92549026, g: 0.6039216, b: 0.25882354, a: 1}
-    capacity: 10
-    paletteIndex: 1
-    label: Renk #2 (7)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.92549026, g: 0.6039216, b: 0.25882354, a: 1}
     capacity: 20
     paletteIndex: 1
     label: Renk #2 (7)
@@ -212,7 +216,7 @@ MonoBehaviour:
     paletteIndex: 0
     label: Renk #1 (8)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   m_FigureShadowTexture: {fileID: 0}
   m_UseCustomColorTheme: 0
   m_ColorTheme:

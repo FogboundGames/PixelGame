@@ -242,6 +242,7 @@ namespace PixelGame
             m_BoardBoundsInitialized = false;
             m_RopeGates.Clear();
             m_ActiveExtractingShips.Clear(); // önceki bölümden kalan çekim kayıtları yeni bölümün fail kontrolünü kilitlemesin
+            m_ActiveCargoFlightCount = 0;    // yarıda kalan uçuşlar sayacı şişirip kazanma kontrolünü sonsuza dek bekletmesin
             m_GridFrameValid = false;
             EnsureBoardBounds(forceRefresh: true);
             EnsureReferences();
