@@ -275,6 +275,12 @@ namespace PixelGame
             // --- 2. FAZ: LAND FLOW YÜKLEME EKRANI ---
             StartBadgeAndTextAnimations();
 
+            // 🎵 Oyun Açılış Sesi (Brand Splash & Launch Jingle)
+            if (HypercasualFeedbackManager.Instance != null)
+            {
+                HypercasualFeedbackManager.Instance.PlayGameLaunchFeedback();
+            }
+
             // İlerleme çubuğunu organik olarak %100'e doldur
             AnimateProgressBarTo(1.0f, m_MinDisplayDuration, Ease.InOutQuad);
 

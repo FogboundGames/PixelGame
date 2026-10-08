@@ -434,12 +434,32 @@ namespace PixelGame
         private float m_BobMul = 1f;
         private float m_TiltMul = 1f;
 
+        private float m_GroundPlaneZ = float.NaN;
+        private float m_StepDistanceAccumulator;
+        private int m_StepFootIndex;
+
         /// <summary>Küpün o anki yumuşatılmış hareket yönü (ekran düzleminde).</summary>
         public Vector3 MoveDirection => m_RopeDir;
         /// <summary>Viraja yatma açısı (derece).</summary>
         public float BankAngle => m_CurrentBankAngle;
         /// <summary>Hareket başladığı andaki ölçek (squash bitince dönülen ölçek).</summary>
         public Vector3 BaseScale => m_BaseScale;
+
+        private Color m_CubeColor = default;
+        /// <summary>Küpün kumsalda bıraktığı renkli ayak izinin rengi.</summary>
+        public Color CubeColor
+        {
+            get
+            {
+                if (m_CubeColor == default || m_CubeColor.a <= 0.05f)
+                {
+                    PixelCube cube = GetComponent<PixelCube>();
+                    if (cube != null) m_CubeColor = cube.CurrentColor;
+                }
+                return m_CubeColor;
+            }
+            set => m_CubeColor = value;
+        }
 
         /// <summary>
         /// İp modunu başlatır. Küp, ip onu çekene kadar (gerilim gelene kadar) yerinde bekler;
@@ -467,6 +487,8 @@ namespace PixelGame
             m_CurrentBankAngle = 0f;
             m_CurrentHeadingYaw = 0f;
             m_StateTimer = 0f;
+            m_StepDistanceAccumulator = (indexInQueue % 3) * 0.04f;
+            m_StepFootIndex = (indexInQueue % 2);
 
             CubeMovementSettings s = Settings;
             m_BobPhase = (indexInQueue % 2) * Mathf.PI + UnityEngine.Random.Range(0f, s.BobVariation * Mathf.PI);
@@ -584,6 +606,7 @@ namespace PixelGame
                 m_BaseScale.z * (1f - sy * 0.5f));
 
             ApplyHeading(dt);
+            ApplyFootsteps(moved, dt);
         }
 
         // --- Akıcı zincir (SmoothGlide V2) durumu ---
@@ -710,6 +733,64 @@ namespace PixelGame
             );
 
             ApplyHeading(dt);
+            ApplyFootsteps(speed * dt, dt);
+        }
+
+        /// <summary>
+        /// Kumsalda adım attıkça geçici basma izleri oluşturur.
+        /// </summary>
+        private void ApplyFootsteps(float moved, float dt)
+        {
+            CubeMovementSettings s = Settings;
+            if (s == null || !s.EnableSandFootprints) return;
+            if (m_State == MovementState.Boarding || m_State == MovementState.Completed) return;
+            if (moved < 1e-4f) return;
+
+            float cubeSize = Mathf.Max(0.01f, transform.lossyScale.y);
+            float stepInterval = Mathf.Max(0.05f, s.FootstepDistance * cubeSize);
+
+            m_StepDistanceAccumulator += moved;
+            if (m_StepDistanceAccumulator >= stepInterval)
+            {
+                m_StepDistanceAccumulator -= stepInterval;
+                m_StepFootIndex = (m_StepFootIndex + 1) % 2;
+                bool isLeftFoot = (m_StepFootIndex == 0);
+
+                Vector3 moveDir = m_RopeDir;
+                if (moveDir.sqrMagnitude < 1e-4f) moveDir = Vector3.down;
+                Vector3 normal = new Vector3(-moveDir.y, moveDir.x, 0f).normalized;
+
+                float sideSpacing = s.FootstepSpacing * cubeSize;
+                float sideOffset = (isLeftFoot ? -0.5f : 0.5f) * sideSpacing;
+
+                Vector3 stepPos;
+                Transform legT = isLeftFoot 
+                    ? (m_Waddle != null ? m_Waddle.LegL : null)
+                    : (m_Waddle != null ? m_Waddle.LegR : null);
+
+                if (legT != null)
+                {
+                    stepPos = legT.position;
+                }
+                else
+                {
+                    stepPos = transform.position + normal * sideOffset;
+                }
+
+                float groundZ = float.IsFinite(m_GroundPlaneZ) 
+                    ? m_GroundPlaneZ 
+                    : (m_Waddle != null && float.IsFinite(m_Waddle.GroundPlaneZ) ? m_Waddle.GroundPlaneZ : transform.position.z);
+
+                SandFootprintManager.Instance.SpawnFootprint(
+                    stepPos,
+                    moveDir,
+                    cubeSize,
+                    isLeftFoot,
+                    groundZ,
+                    CubeColor,
+                    s
+                );
+            }
         }
 
         /// <summary>
@@ -718,6 +799,7 @@ namespace PixelGame
         /// </summary>
         public void SetGroundPlaneZ(float groundPlaneZ)
         {
+            m_GroundPlaneZ = groundPlaneZ;
             if (m_Waddle == null) m_Waddle = GetComponent<WaddleRunner>();
             if (m_Waddle != null)
             {

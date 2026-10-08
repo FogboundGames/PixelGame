@@ -133,6 +133,7 @@ namespace PixelGame
             if (level != null)
             {
                 m_Generator.LoadLevel(level);
+                if (SandFootprintManager.Instance != null) SandFootprintManager.Instance.ClearAll();
                 Debug.Log($"<color=#00FFAA><b>[LevelManager]</b></color> Level {m_CurrentLevelIndex + 1}: '{level.LevelName}' yüklendi!");
 
                 if (Application.isPlaying)

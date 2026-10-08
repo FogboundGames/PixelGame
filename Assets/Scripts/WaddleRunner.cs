@@ -25,6 +25,9 @@ namespace PixelGame
         [SerializeField] private Transform m_LegL;
         [SerializeField] private Transform m_LegR;
 
+        public Transform LegL => m_LegL;
+        public Transform LegR => m_LegR;
+
         [Header("Paytak Yürüyüş")]
         [Tooltip("Küp boyu kadar yolda atılan adım sayısı.")]
         [SerializeField] private float m_StepsPerCube = 1.6f;

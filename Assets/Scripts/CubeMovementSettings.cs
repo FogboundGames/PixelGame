@@ -69,6 +69,40 @@ namespace PixelGame
         public float GlidePickupLift { get => PickupLift; set => PickupLift = value; }
         public float GlidePickupSquash { get => PickupSquash; set => PickupSquash = value; }
 
+        [Header("👣 0.1 KUM AYAK İZLERİ (Sand Footprints)")]
+        [Tooltip("Kumsalda yürürken küplerin bastıkları yerlerde geçici sevimli ayak izleri oluşsun mu?")]
+        public bool EnableSandFootprints = true;
+
+        [Tooltip("Adım aralığı (küp boyu çarpanı). 0.38 = her 0.38 küp boyunda bir adım atılır.")]
+        [Range(0.20f, 0.70f)]
+        public float FootstepDistance = 0.38f;
+
+        [Tooltip("İki ayak arasındaki yan mesafe (küp genişliği çarpanı). Sol ve sağ ayak bu açıklıkla basar.")]
+        [Range(0.12f, 0.50f)]
+        public float FootstepSpacing = 0.28f;
+
+        [Tooltip("Ayak izinin kumsalda kalma toplam süresi (sn). Hemen yok olacak şekilde kısa tutulur.")]
+        [Range(0.2f, 3.0f)]
+        public float FootprintLifetime = 0.50f;
+
+        [Tooltip("Ayak izinin kumsaldan silinme/kaybolma (fade-out) süresi (sn).")]
+        [Range(0.1f, 2.0f)]
+        public float FootprintFadeDuration = 0.45f;
+
+        [Tooltip("Ayak izinin kumsaldaki boyutu (küp boyu çarpanı).")]
+        [Range(0.12f, 0.45f)]
+        public float FootprintSize = 0.22f;
+
+        [Tooltip("Ayak izinin belirginlik / opaklık oranı (0.58 = %58 canlı ve belirgin ayak izi).")]
+        [Range(0.1f, 1.0f)]
+        public float FootprintOpacity = 0.58f;
+
+        [Tooltip("Kumsal ayak izi çökme rengi (küp rengi verilmezse fallback).")]
+        public Color FootprintColor = new Color(0.68f, 0.48f, 0.24f, 0.58f);
+
+        [Tooltip("Her adımda minik tatlı bir kum tozu pufu çıksın mı?")]
+        public bool FootstepPuff = true;
+
         [Header("🚀 1. HAREKET (Movement)")]
         [Tooltip("Küpün maksimum seyir hızı (dünya birimi/sn).")]
         [Range(1.5f, 10f)]

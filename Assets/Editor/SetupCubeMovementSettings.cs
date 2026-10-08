@@ -56,6 +56,15 @@ namespace PixelGame.Editor
                 settings.ArrivalVariation = 0.025f;
                 settings.AnticipationDuration = 0.08f;
                 settings.AnticipationRecoil = 0.035f;
+                settings.EnableSandFootprints = true;
+                settings.FootstepDistance = 0.38f;
+                settings.FootstepSpacing = 0.28f;
+                settings.FootprintLifetime = 3.6f;
+                settings.FootprintFadeDuration = 1.2f;
+                settings.FootprintSize = 0.22f;
+                settings.FootprintOpacity = 0.28f;
+                settings.FootprintColor = new Color(0.68f, 0.48f, 0.24f, 0.28f);
+                settings.FootstepPuff = true;
 
                 AssetDatabase.CreateAsset(settings, AssetPath);
                 AssetDatabase.SaveAssets();
@@ -74,6 +83,25 @@ namespace PixelGame.Editor
                     so.ApplyModifiedProperties();
                     EditorUtility.SetDirty(dispatcher);
                 }
+            }
+        }
+
+        [MenuItem("PixelGame/👣 Ensure Sand Footprint Manager")]
+        public static void EnsureSandFootprintManager()
+        {
+            SandFootprintManager mgr = Object.FindFirstObjectByType<SandFootprintManager>();
+            if (mgr == null)
+            {
+                GameObject root = GameObject.Find("[GAMEPLAY_MODELS]");
+                GameObject go = new GameObject("[SandFootprintManager]");
+                if (root != null) go.transform.SetParent(root.transform, false);
+                mgr = go.AddComponent<SandFootprintManager>();
+                Undo.RegisterCreatedObjectUndo(go, "Create Sand Footprint Manager");
+                Debug.Log("<color=#00FFAA><b>[SandFootprintManager]</b></color> SandFootprintManager sahneye başarıyla eklendi!");
+            }
+            else
+            {
+                Debug.Log("<color=#00FFAA><b>[SandFootprintManager]</b></color> SandFootprintManager zaten sahnede mevcut.");
             }
         }
     }

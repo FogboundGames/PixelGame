@@ -2041,6 +2041,12 @@ namespace PixelGame
             ResetVisualOffset();
             transform.DOKill(true);
 
+            // 🚢 Gemi slotlara gidene kadar çalacak seyir/motor sesi aktif olur:
+            if (HypercasualFeedbackManager.Instance != null)
+            {
+                HypercasualFeedbackManager.Instance.StartShipSailSound(transform.position);
+            }
+
             // Eski slottan ayrıl
             if (m_CurrentSlot != null && m_CurrentSlot != targetSlot)
             {
@@ -2181,7 +2187,13 @@ namespace PixelGame
             TriggerWaterDipImpact(0.18f, 0.52f);
             SpawnWaterRipple(transform.position, 0.35f, 1.25f, 0.55f);
 
-            // 💦 Su Sıçraması, 🔊 İskele Darbesi Sesi & 📳 Orta Mobil Titreşim
+            // 🚢 Gemi slota ulaşıp yerleşti — seyir sesi biter!
+            if (HypercasualFeedbackManager.Instance != null)
+            {
+                HypercasualFeedbackManager.Instance.StopShipSailSound();
+            }
+
+            // 💦 Su Sıçraması, 🔊 İskele Kilit Darbesi Sesi & 📳 Orta Mobil Titreşim
             HypercasualFeedbackManager.Instance.PlayShipDockFeedback(transform.position);
 
             m_IsMoving = false;

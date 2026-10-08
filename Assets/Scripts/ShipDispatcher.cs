@@ -1223,6 +1223,12 @@ namespace PixelGame
                 s_ReservedCubes.Add(cube);
                 if (cube == null) continue;
 
+                // 🔊 Küpler yerlerinden gemiye doğru ayrılırken hafif ve tatmin edici kalkış sesi (ASMR unstick pop)
+                if (HypercasualFeedbackManager.Instance != null)
+                {
+                    HypercasualFeedbackManager.Instance.PlayCubeLiftoffFeedback(cube.transform.position, k);
+                }
+
                 // Doğal varyasyon: her küp kendi hafif hız varyasyonuna sahip (+-%4)
                 float speedVar = UnityEngine.Random.Range(-s.SpeedVariation * 0.5f, s.SpeedVariation * 0.5f);
                 cubeCruises[k] = cruise * (1f + speedVar);
@@ -1247,6 +1253,7 @@ namespace PixelGame
                 GameObject cargo = cargoObjects[k];
                 CubeMovementController motion = cargo.GetComponent<CubeMovementController>();
                 if (motion == null) motion = cargo.AddComponent<CubeMovementController>();
+                motion.CubeColor = cube.CurrentColor;
 
                 Vector3 initialDir = (paths != null && k < paths.Count && paths[k] != null) 
                     ? paths[k].TangentAtDistance(0f) 
@@ -1503,7 +1510,8 @@ namespace PixelGame
 
                 // ✨ Sparkle, 🔊 Tatmin Edici Melodik Chime, 📳 Hafif Mobil Titreşim
                 Color cubeColor = sourceCube != null ? sourceCube.TrueColor : Color.white;
-                HypercasualFeedbackManager.Instance.PlayCubeBoardFeedback(cargo.transform.position, cubeColor, ship.CurrentCargo);
+                bool isShipFull = ship.IsFull;
+                HypercasualFeedbackManager.Instance.PlayCubeBoardFeedback(cargo.transform.position, cubeColor, ship.CurrentCargo, isShipFull);
             }
 
             // 2. Settle: sönümlü minik yaylanma, sonra güverteye ease-in ile batarak kaybolma (snap yok)

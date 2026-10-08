@@ -49,11 +49,18 @@ namespace PixelGame
         // Ses kaynakları ve klipleri
         private AudioSource m_ChimeSource;
         private AudioSource m_FxSource;
+        private AudioSource m_SailSource;
         private AudioClip[] m_ChimeClips;
+        private AudioClip m_ShipFullClip;
         private AudioClip m_SplashClip;
         private AudioClip m_DockClip;
         private AudioClip m_DepartClip;
         private AudioClip m_DenialClip;
+        private AudioClip m_LiftoffClip;
+        private AudioClip m_SailClip;
+        private AudioClip m_GameLaunchClip;
+        private int m_ActiveSailingShips = 0;
+        private Coroutine m_SailFadeRoutine;
 
         // Partikül sistemleri
         private ParticleSystem m_SparklePS;
@@ -79,11 +86,25 @@ namespace PixelGame
             InitializeParticles();
         }
 
+        private static bool s_LaunchSoundPlayed = false;
+
         private void OnEnable()
         {
             s_Instance = this;
             InitializeAudio();
             InitializeParticles();
+        }
+
+        private void Start()
+        {
+            if (Application.isPlaying && !s_LaunchSoundPlayed)
+            {
+                // LandFlowLoadingScreen aktif değilse doğrudan buradan açılış sesini tetikle
+                if (LandFlowLoadingScreen.Instance == null || !LandFlowLoadingScreen.Instance.IsVisible)
+                {
+                    PlayGameLaunchFeedback();
+                }
+            }
         }
 
         #region 🔊 Tatmin Edici Prosedürel Ses Sistemi
@@ -104,12 +125,30 @@ namespace PixelGame
                 m_FxSource.spatialBlend = 0f;
             }
 
-            // Müzikal pentatonik küp sesleri (C4 - D4 - E4 - G4 - A4 - C5 - D5 - E5): bir oktav pes, sıcak ahşap tını
-            // Script yeniden yüklenince dizi korunur ama içindeki (çalışma zamanında üretilmiş) klipler silinir;
-            // sadece Length kontrolü bu durumda küp sesini tamamen susturuyordu.
+            if (m_SailSource == null)
+            {
+                m_SailSource = gameObject.AddComponent<AudioSource>();
+                m_SailSource.playOnAwake = false;
+                m_SailSource.spatialBlend = 0f;
+                m_SailSource.loop = true;
+            }
+
+            // Müzikal pentatonik küp sesleri (C5 - D5 - E5 - G5 - A5 - C6 - D6 - E6 - G6 - A6):
+            // Modern hypercasual oyunlarındaki gibi parlak, tatlı, dopamin salgılatan kalimba & bubble-pop tınısı
             if (m_ChimeClips == null || m_ChimeClips.Length == 0 || System.Array.Exists(m_ChimeClips, c => c == null))
             {
-                float[] freqs = new float[] { 261.63f, 293.66f, 329.63f, 392.00f, 440.00f, 523.25f, 587.33f, 659.25f };
+                float[] freqs = new float[] {
+                    523.25f, // C5
+                    587.33f, // D5
+                    659.25f, // E5
+                    783.99f, // G5
+                    880.00f, // A5
+                    1046.50f, // C6
+                    1174.66f, // D6
+                    1318.51f, // E6
+                    1567.98f, // G6
+                    1760.00f  // A6
+                };
                 m_ChimeClips = new AudioClip[freqs.Length];
                 for (int i = 0; i < freqs.Length; i++)
                 {
@@ -117,41 +156,116 @@ namespace PixelGame
                 }
             }
 
+            if (m_ShipFullClip == null) m_ShipFullClip = CreateProceduralShipFullClip();
             if (m_SplashClip == null) m_SplashClip = CreateProceduralSplashClip();
             if (m_DockClip == null) m_DockClip = CreateProceduralDockClip();
             if (m_DepartClip == null) m_DepartClip = CreateProceduralDepartClip();
             if (m_DenialClip == null) m_DenialClip = CreateProceduralDenialClip();
+            if (m_LiftoffClip == null) m_LiftoffClip = CreateProceduralLiftoffClip();
+            if (m_SailClip == null) m_SailClip = CreateProceduralSailClip();
+            if (m_GameLaunchClip == null) m_GameLaunchClip = CreateProceduralGameLaunchClip();
         }
 
         /// <summary>
-        /// Küpün gemiye bindiğinde çıkardığı kısa, sıcak ahşap marimba "tok" sesi.
-        /// (Eski parlak kristal "pling" sık çaldığı için yorucuydu.)
+        /// Küpün gemiye bindiğinde çıkardığı, modern hypercasual puzzle oyunlarındaki gibi
+        /// psikolojik olarak son derece tatmin edici, sulu bubble-pop ve rezonanslı ahşap kalimba/marimba tınısı.
         /// </summary>
         private AudioClip CreateProceduralChimeClip(float fundamentalFreq)
         {
             int sampleRate = 44100;
-            float duration = 0.10f; // 100 ms
+            float duration = 0.15f; // 150 ms
             int count = Mathf.CeilToInt(sampleRate * duration);
             float[] samples = new float[count];
 
+            float phase = 0f;
             for (int i = 0; i < count; i++)
             {
                 float t = i / (float)sampleRate;
 
-                // Çok kısa yumuşak atak (tık sesi olmasın)
-                float attack = Mathf.Clamp01(t / 0.0025f);
+                // 1. İlk 18 ms içinde tatlı "bubble pop" mikro frekans bükülmesi (1.52x -> 1.0x f)
+                // Bu hızlı bükülme kulağa o bağımlılık yapan dolgun "pop / plink / bloop" hissini verir.
+                float curFreq = fundamentalFreq;
+                if (t < 0.018f)
+                {
+                    float pRatio = t / 0.018f;
+                    curFreq = fundamentalFreq * (1.52f - 0.52f * Mathf.Sqrt(pRatio));
+                }
+                phase += 2f * Mathf.PI * curFreq / sampleRate;
 
-                // 1. Gövde: temel ton, hızlı sönüm
-                float body = Mathf.Sin(2f * Mathf.PI * fundamentalFreq * t) * Mathf.Exp(-t * 30f);
-                // 2. Marimba çubuğunun 4. kısmi tonu (~3.93x): ahşap tınısını veren, çok çabuk sönen parlaklık
-                float bar = Mathf.Sin(2f * Mathf.PI * fundamentalFreq * 3.93f * t) * Mathf.Exp(-t * 90f) * 0.22f;
-                // 3. Bir oktav alttan hafif tokluk
-                float knock = Mathf.Sin(2f * Mathf.PI * fundamentalFreq * 0.5f * t) * Mathf.Exp(-t * 60f) * 0.18f;
+                // 2. Çok yumuşak 1.5 ms atak (tık/patlama çıtırtısı yapmaz)
+                float attack = Mathf.Clamp01(t / 0.0015f);
 
-                samples[i] = Mathf.Clamp((body + bar + knock) * attack * 0.8f, -1f, 1f);
+                // 3. Kalimba / Marimba harmonikleri:
+                // Temel ton (dolgun yuvarlak gövde)
+                float h1 = Mathf.Sin(phase);
+                // 2. harmonik (tatlı gövde sıcaklığı)
+                float h2 = Mathf.Sin(phase * 2f) * 0.28f;
+                // 4. marimba çubuk kısmi tonu (~3.93x f): ahşap tınısını veren rezonans
+                float h3 = Mathf.Sin(phase * 3.93f) * 0.18f * Mathf.Exp(-t * 50f);
+
+                // 4. İlk 3 ms minik ahşap tokmak temas darbesi (mallet transient)
+                float click = 0f;
+                if (t < 0.003f)
+                {
+                    click = Mathf.Sin(2f * Mathf.PI * 3400f * t) * (1f - t / 0.003f) * 0.32f;
+                }
+
+                // 5. Akıcı ve tatlı sönümlenme zarfı
+                float envelope = attack * Mathf.Exp(-t * 22f);
+
+                samples[i] = Mathf.Clamp((h1 + h2 + h3 + click) * envelope * 0.78f, -1f, 1f);
             }
 
             AudioClip clip = AudioClip.Create($"Chime_{Mathf.RoundToInt(fundamentalFreq)}", count, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        /// <summary>
+        /// Gemi tamamen dolduğunda çalan, dopamin salgılatan zafer major akor arpej tınısı (C6 - E6 - G6 - C7).
+        /// </summary>
+        private AudioClip CreateProceduralShipFullClip()
+        {
+            int sampleRate = 44100;
+            float duration = 0.38f;
+            int count = Mathf.CeilToInt(sampleRate * duration);
+            float[] samples = new float[count];
+
+            // C6 (1046.5), E6 (1318.5), G6 (1568.0), C7 (2093.0)
+            float[] freqs = new float[] { 1046.50f, 1318.51f, 1567.98f, 2093.00f };
+            float[] delays = new float[] { 0.000f, 0.035f, 0.070f, 0.105f };
+            float[] weights = new float[] { 0.40f, 0.38f, 0.35f, 0.30f };
+            float[] phases = new float[4];
+
+            for (int i = 0; i < count; i++)
+            {
+                float t = i / (float)sampleRate;
+                float acc = 0f;
+
+                for (int n = 0; n < 4; n++)
+                {
+                    if (t >= delays[n])
+                    {
+                        float dt = t - delays[n];
+                        float freq = freqs[n];
+                        if (dt < 0.015f)
+                        {
+                            freq *= (1.25f - 0.25f * Mathf.Sqrt(dt / 0.015f));
+                        }
+                        phases[n] += 2f * Mathf.PI * freq / sampleRate;
+
+                        float h1 = Mathf.Sin(phases[n]);
+                        float h2 = Mathf.Sin(phases[n] * 2f) * 0.22f;
+                        float att = Mathf.Clamp01(dt / 0.002f);
+                        float env = att * Mathf.Exp(-dt * 14f);
+                        acc += (h1 + h2) * env * weights[n];
+                    }
+                }
+
+                samples[i] = Mathf.Clamp(acc * 0.82f, -1f, 1f);
+            }
+
+            AudioClip clip = AudioClip.Create("ShipFull_Celebration", count, 1, sampleRate, false);
             clip.SetData(samples, 0);
             return clip;
         }
@@ -193,40 +307,170 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Geminin iskeleye yanaştığında çıkan tek, yumuşak ahşap "tak" ve altındaki cızırtısız su "blup"u.
-        /// (Ret sesiyle aynı ahşap vuruş ailesinden; ayrı splash clip'i artık çalınmıyor.)
+        /// Gemi slota tam yerleştiğinde çıkan net, tok mekanik-ahşap kilitlenme (dock latch snap)
+        /// ve gövde oturması ile su bloop sesi. Slota 'şak' diye oturma tatminini verir.
         /// </summary>
         private AudioClip CreateProceduralDockClip()
         {
             int sampleRate = 44100;
-            float duration = 0.24f;
+            float duration = 0.20f; // 200 ms net, çıtır ve tok
             int count = Mathf.CeilToInt(sampleRate * duration);
             float[] samples = new float[count];
+            float snapPhase = 0f;
             float blupPhase = 0f;
 
             for (int i = 0; i < count; i++)
             {
                 float t = i / (float)sampleRate;
-                float attack = Mathf.Clamp01(t / 0.002f);
+                float attack = Mathf.Clamp01(t / 0.0015f);
 
-                // 1. Ahşap vuruş (190 Hz) + bir oktav alttan tokluk
-                float knock = Mathf.Sin(2f * Mathf.PI * 190f * t) * Mathf.Exp(-t * 34f) * 0.75f
-                            + Mathf.Sin(2f * Mathf.PI * 95f * t) * Mathf.Exp(-t * 26f) * 0.25f;
+                // 1. Ahşap iskele kilit mandalı şak sesi (Faz integrasyonu ile temiz, pürüzsüz ton)
+                float snapFreq = Mathf.Lerp(780f, 340f, Mathf.Clamp01(t / 0.022f));
+                snapPhase += 2f * Mathf.PI * snapFreq / sampleRate;
+                float snap = Mathf.Sin(snapPhase) * Mathf.Exp(-t * 62f) * 0.65f;
 
-                // 2. 35 ms sonra başlayan, 300 Hz → 150 Hz inen yumuşak su blup'u (gürültüsüz)
-                float blup = 0f;
-                float bt = t - 0.035f;
+                // 2. Dolgun tekne gövdesi darbesi (160 Hz + 80 Hz sub-bass tokluk)
+                float thud = (Mathf.Sin(2f * Mathf.PI * 160f * t) * 0.70f + Mathf.Sin(2f * Mathf.PI * 80f * t) * 0.40f) * Mathf.Exp(-t * 26f);
+
+                // 3. 12 ms sonra başlayan sulu okyanus blup'u ve hafif serpinti
+                float water = 0f;
+                float bt = t - 0.012f;
                 if (bt > 0f)
                 {
-                    float freq = 300f - 150f * Mathf.Clamp01(bt / 0.12f);
-                    blupPhase += 2f * Mathf.PI * freq / sampleRate;
-                    blup = Mathf.Sin(blupPhase) * Mathf.Exp(-bt * 22f) * 0.35f * Mathf.Clamp01(bt / 0.01f);
+                    float wProg = Mathf.Clamp01(bt / 0.12f);
+                    float wFreq = Mathf.Lerp(420f, 180f, Mathf.Pow(wProg, 0.6f));
+                    blupPhase += 2f * Mathf.PI * wFreq / sampleRate;
+                    float wEnv = Mathf.Clamp01(bt / 0.004f) * Mathf.Exp(-bt * 20f);
+                    water = Mathf.Sin(blupPhase) * wEnv * 0.40f;
                 }
 
-                samples[i] = Mathf.Clamp((knock + blup) * attack, -1f, 1f);
+                samples[i] = Mathf.Clamp((snap + thud + water) * attack * 0.80f, -1f, 1f);
             }
 
-            AudioClip clip = AudioClip.Create("ShipDock_Thud", count, 1, sampleRate, false);
+            AudioClip clip = AudioClip.Create("ShipDock_LatchSnap", count, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        /// <summary>
+        /// Gemi slotlara doğru giderken çalan, modern hypercasual puzzle oyunları standartlarında
+        /// son derece ferah, ipeksi su süzülmesi ve hidrodinamik dalga akıntısı sesi (Hydro-Glide Water Swoosh).
+        /// Asla kaba motor uğultusu veya rahatsız edici beyaz gürültü yapmaz; ferahlatıcı, akıcı bir su kayması hissi verir.
+        /// </summary>
+        private AudioClip CreateProceduralSailClip()
+        {
+            int sampleRate = 44100;
+            float duration = 1.0f; // 1 saniyelik dikişsiz döngü (seamless loop)
+            int count = Mathf.CeilToInt(sampleRate * duration);
+            float[] samples = new float[count];
+            var rnd = new System.Random(101);
+
+            // Çift kutuplu yumuşak alçak geçiren filtre (Two-pole gentle low-pass filter)
+            float lp1 = 0f;
+            float lp2 = 0f;
+            float glidePhase = 0f;
+            float bubblePhase = 0f;
+
+            for (int i = 0; i < count; i++)
+            {
+                float t = i / (float)sampleRate;
+
+                // 1. 🌊 İpeksi Su Süzülmesi (Velvety Hydrodynamic Water Flow):
+                // Çiğ beyaz gürültüyü çift filtre ile 500-800 Hz arasına çekiyoruz.
+                // Kulağı tırmalayan radyo paraziti veya hışırtı sıfırlanır, ipeksi su yarılması elde edilir.
+                float rawNoise = (float)(rnd.NextDouble() * 2.0 - 1.0);
+                lp1 += (rawNoise - lp1) * 0.075f;
+                lp2 += (lp1 - lp2) * 0.075f;
+
+                // Okyanus dalga nefesi (1.8 Hz sakin, ferah su kabarması):
+                float swell = 0.72f + 0.28f * Mathf.Sin(2f * Mathf.PI * 1.8f * t);
+                float waterRush = lp2 * swell * 0.62f;
+
+                // 2. 🛥️ Sıcak & Dolgun Gövde Süzülüşü (Velvet Hull Glide Harmonic):
+                // Uğultusuz, tatlı, pürüzsüz sinüs gövdesi (G3 196 Hz + yumuşak 2. harmonik G4 392 Hz).
+                // Rahatsız edici motor patlaması veya testere zırıltısı YOKTUR; akıcı süzülme vardır.
+                glidePhase += 2f * Mathf.PI * 196f / sampleRate;
+                float hullTone = (Mathf.Sin(glidePhase) * 0.18f + Mathf.Sin(glidePhase * 2f) * 0.05f) * (0.8f + 0.2f * swell);
+
+                // 3. 🫧 Hafif Tatlı Su Kabarcığı & Şıpırtı Rezonansı (Micro-Bubble Shimmer):
+                float ripEnv = Mathf.Pow(Mathf.Clamp01(Mathf.Sin(2f * Mathf.PI * 3.6f * t)), 4f);
+                bubblePhase += 2f * Mathf.PI * 540f / sampleRate;
+                float ripple = Mathf.Sin(bubblePhase) * ripEnv * 0.10f;
+
+                samples[i] = (waterRush + hullTone + ripple);
+            }
+
+            // Dikişsiz Döngü (Seamless Loop Crossfade - ilk ve son 40 ms pürüzsüz harmanlama):
+            int fadeSamples = Mathf.RoundToInt(sampleRate * 0.04f);
+            for (int i = 0; i < fadeSamples; i++)
+            {
+                float blend = i / (float)fadeSamples;
+                int endIdx = count - fadeSamples + i;
+                float head = samples[i];
+                float tail = samples[endIdx];
+                samples[i] = Mathf.Lerp(tail, head, blend);
+                samples[endIdx] = Mathf.Lerp(tail, head, blend);
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                samples[i] = Mathf.Clamp(samples[i] * 0.85f, -1f, 1f);
+            }
+
+            AudioClip clip = AudioClip.Create("ShipSail_CruiseLoop", count, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        /// <summary>
+        /// Küplerin gemiye binmek üzere yerlerinden ilk ayrılırken çıkardığı, modern hypercasual ASMR standartlarına uyarlanmış
+        /// hafif, tatlı, gevrek kinetik kum sürtünmesi ve tatlı havalanma pufu sesi (soft kinetic sand crunch & puff).
+        /// Asla kaba gürültü yapmaz; kadifemsi kum tanesi dokunuşu ve tatmin edici bir kalkış çıtırtısı sunar.
+        /// </summary>
+        private AudioClip CreateProceduralLiftoffClip()
+        {
+            int sampleRate = 44100;
+            float duration = 0.105f; // 105 ms (hafif, çıtır ve ferah)
+            int count = Mathf.CeilToInt(sampleRate * duration);
+            float[] samples = new float[count];
+            var rnd = new System.Random(77);
+
+            float filterPrev = 0f;
+            float scoopPhase = 0f;
+
+            for (int i = 0; i < count; i++)
+            {
+                float t = i / (float)sampleRate;
+                float progress = t / duration;
+
+                // 1. 🏖️ Kadifemsi Kum Sürtünmesi (Soft Sand Friction & Grain Rustle):
+                // Pembe/beyaz gürültünün yumuşatılmış bant filtresi (1.8 kHz - 3.2 kHz tatlı kum fısıltısı)
+                float whiteNoise = (float)(rnd.NextDouble() * 2.0 - 1.0);
+                filterPrev += (whiteNoise - filterPrev) * 0.28f;
+                float sandGrains = filterPrev * 0.38f;
+
+                // 2. 💨 Havalanma Pufu ve Gövde Esintisi (Sandy Scoop Puff: 210 Hz -> 440 Hz):
+                float scoopFreq = Mathf.Lerp(210f, 440f, Mathf.Sqrt(progress));
+                scoopPhase += 2f * Mathf.PI * scoopFreq / sampleRate;
+                float scoopTone = Mathf.Sin(scoopPhase) * 0.32f;
+
+                // 3. 🍿 Kinetik Kum Çıtırtısı (İlk 22 ms içindeki mikro granül ayrılmaları):
+                float crunch = 0f;
+                if (t < 0.022f)
+                {
+                    float microTime = t / 0.022f;
+                    float burst = Mathf.Sin(microTime * Mathf.PI * 4f);
+                    crunch = burst * burst * (1f - microTime) * ((float)rnd.NextDouble() * 0.30f);
+                }
+
+                // 4. Zarf (ADSR): Yumuşak 1.5 ms atak, ardından üstel kadife sönüm
+                float attack = Mathf.Clamp01(t / 0.0015f);
+                float envelope = attack * Mathf.Exp(-t * 38f);
+
+                samples[i] = Mathf.Clamp((sandGrains + scoopTone + crunch) * envelope * 0.85f, -1f, 1f);
+            }
+
+            AudioClip clip = AudioClip.Create("CubeLiftoff_SandPuff", count, 1, sampleRate, false);
             clip.SetData(samples, 0);
             return clip;
         }
@@ -286,6 +530,82 @@ namespace PixelGame
             }
 
             AudioClip clip = AudioClip.Create("Denial_Knock", count, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        /// <summary>
+        /// Oyun açılışında çalan, modern hypercasual hit oyunları (Royal Match / Supercell stili) kalitesinde
+        /// ferah, neşeli, tatmin edici ve akılda kalıcı açılış jingle'ı (Brand Splash & Launch Jingle).
+        /// Yükselen parlak C Majör kalimba arpeji + tropikal çan parıltısı ve rezonanslı sahil ambiyansı.
+        /// </summary>
+        private AudioClip CreateProceduralGameLaunchClip()
+        {
+            int sampleRate = 44100;
+            float duration = 1.15f; // 1.15 saniyelik zengin açılış melodisi
+            int count = Mathf.CeilToInt(sampleRate * duration);
+            float[] samples = new float[count];
+
+            // 5 notalı yükselen neşeli melodi: C5, E5, G5, C6, E6
+            float[] noteFreqs = { 523.25f, 659.25f, 783.99f, 1046.50f, 1318.51f };
+            float[] noteTimes = { 0.00f, 0.10f, 0.20f, 0.30f, 0.42f };
+            float[] noteWeights = { 0.55f, 0.65f, 0.75f, 0.90f, 1.00f };
+            float[] phases = new float[noteFreqs.Length];
+
+            for (int i = 0; i < count; i++)
+            {
+                float t = i / (float)sampleRate;
+                float acc = 0f;
+
+                // 1. Yükselen Melodik Çanlar (Kalimba / Music Box / Celesta Arpej):
+                for (int n = 0; n < noteFreqs.Length; n++)
+                {
+                    float dt = t - noteTimes[n];
+                    if (dt >= 0f)
+                    {
+                        float freq = noteFreqs[n];
+                        // İlk 15 ms mikro pitch sweep (tatlı bubble pop hissi)
+                        if (dt < 0.015f)
+                        {
+                            freq *= (1.30f - 0.30f * Mathf.Sqrt(dt / 0.015f));
+                        }
+                        phases[n] += 2f * Mathf.PI * freq / sampleRate;
+
+                        // Temel ton + 2. harmonik + çan parıltısı (3.harmonik)
+                        float h1 = Mathf.Sin(phases[n]);
+                        float h2 = Mathf.Sin(phases[n] * 2f) * 0.28f;
+                        float h3 = Mathf.Sin(phases[n] * 3f) * 0.12f * Mathf.Exp(-dt * 20f);
+
+                        // Hızlı yumuşak atak, son notada daha uzun rezonanslı sönüm
+                        float att = Mathf.Clamp01(dt / 0.002f);
+                        float decayRate = (n == noteFreqs.Length - 1) ? 5.5f : 11.0f;
+                        float env = att * Mathf.Exp(-dt * decayRate);
+
+                        acc += (h1 + h2 + h3) * env * noteWeights[n] * 0.35f;
+                    }
+                }
+
+                // 2. Açılış Su & Kristal Parıltısı (Sparkle Shimmer Swoosh - 0.0s -> 0.45s):
+                if (t < 0.45f)
+                {
+                    float shProg = t / 0.45f;
+                    float shFreq = Mathf.Lerp(2200f, 4400f, shProg);
+                    float shimmer = Mathf.Sin(2f * Mathf.PI * shFreq * t) * Mathf.Sin(shProg * Mathf.PI) * 0.08f;
+                    acc += shimmer;
+                }
+
+                // 3. Sıcak Alt Gövde / Sahil Bası (Warm sub-warmth C4 261 Hz son notada rezonans):
+                if (t >= 0.42f)
+                {
+                    float dtEnd = t - 0.42f;
+                    float warm = Mathf.Sin(2f * Mathf.PI * 261.63f * dtEnd) * Mathf.Exp(-dtEnd * 4.5f) * 0.18f;
+                    acc += warm;
+                }
+
+                samples[i] = Mathf.Clamp(acc * 0.90f, -1f, 1f);
+            }
+
+            AudioClip clip = AudioClip.Create("GameLaunch_Jingle", count, 1, sampleRate, false);
             clip.SetData(samples, 0);
             return clip;
         }
@@ -570,39 +890,161 @@ namespace PixelGame
         #region 🎯 Birleşik Oynanış Geri Bildirimleri (Juice API)
 
         /// <summary>
+        /// Küp gemiye binmek için yerinden ayrıldığında hafif ve tatmin edici bir kalkış sesi çalar.
+        /// Çoklu küplerde 'index' ile minik arpeggio gecikmesi ve hafif artan pitch eklenerek
+        /// bağımlılık yapan bir "pıt-pıt-pıt" ASMR melodisi oluşturulur.
+        /// </summary>
+        public void PlayCubeLiftoffFeedback(Vector3 position, int index = 0)
+        {
+            if (!m_EnableSound || m_ChimeSource == null || m_LiftoffClip == null) return;
+
+            if (index <= 0)
+            {
+                PlayLiftoffSound(0);
+                TriggerHapticLight();
+            }
+            else
+            {
+                StartCoroutine(PlayDelayedLiftoff(index));
+            }
+        }
+
+        private System.Collections.IEnumerator PlayDelayedLiftoff(int index)
+        {
+            // Küpler sırayla hafifçe ayrılırken arpeggio gecikmesi (36 ms)
+            yield return new WaitForSeconds(index * 0.036f);
+            PlayLiftoffSound(index);
+        }
+
+        private void PlayLiftoffSound(int index)
+        {
+            if (m_ChimeSource == null || m_LiftoffClip == null) return;
+
+            // Her küp için hafif yükselen sevimli pitch skalası (1.0 -> 1.25)
+            float pitch = Mathf.Clamp(1.0f + (index % 6) * 0.045f + UnityEngine.Random.Range(-0.015f, 0.015f), 0.95f, 1.35f);
+            m_ChimeSource.pitch = pitch;
+            // Hafif, gevrek ve tatmin edici hypercasual kum kalkış sesi:
+            m_ChimeSource.PlayOneShot(m_LiftoffClip, m_MasterVolume * 0.44f);
+        }
+
+        /// <summary>
         /// Her küp gemiye bindiğinde (HopCargoToShip):
         /// ✨ Parıltı partikülü saçar.
-        /// 🔊 Artan pentatonik notayla melodik ses çalar.
+        /// 🔊 Artan pentatonik notayla melodik ses çalar (gemi dolduysa zafer akoru çalar).
         /// 📳 Hafif mobil titreşimi tetikler.
         /// </summary>
-        public void PlayCubeBoardFeedback(Vector3 position, Color cubeColor, int cargoIndex)
+        public void PlayCubeBoardFeedback(Vector3 position, Color cubeColor, int cargoIndex, bool isShipFull = false)
         {
             // 1. Görsel Parıltı (✨ Sparkle)
             if (m_EnableSparkles && m_SparklePS != null)
             {
-                SpawnSparkles(position, cubeColor, 8);
+                SpawnSparkles(position, cubeColor, isShipFull ? 18 : 8);
             }
 
-            // 2. Melodik Tatmin Edici Ses (🔊 Chime)
-            if (m_EnableSound && m_ChimeSource != null && m_ChimeClips != null && m_ChimeClips.Length > 0)
+            // 2. Melodik Tatmin Edici Ses (🔊 Chime / ShipFull)
+            if (m_EnableSound && m_ChimeSource != null)
             {
-                int noteIdx = Mathf.Abs(cargoIndex) % m_ChimeClips.Length;
-                AudioClip clip = m_ChimeClips[noteIdx];
-                if (clip != null)
+                if (isShipFull && m_ShipFullClip != null)
                 {
-                    m_ChimeSource.pitch = UnityEngine.Random.Range(0.98f, 1.02f);
-                    m_ChimeSource.PlayOneShot(clip, m_MasterVolume * 0.70f);
+                    m_ChimeSource.pitch = 1.0f;
+                    m_ChimeSource.PlayOneShot(m_ShipFullClip, m_MasterVolume * 0.95f);
+                }
+                else if (m_ChimeClips != null && m_ChimeClips.Length > 0)
+                {
+                    int noteIdx = Mathf.Abs(cargoIndex) % m_ChimeClips.Length;
+                    AudioClip clip = m_ChimeClips[noteIdx];
+                    if (clip != null)
+                    {
+                        m_ChimeSource.pitch = UnityEngine.Random.Range(0.985f, 1.015f);
+                        m_ChimeSource.PlayOneShot(clip, m_MasterVolume * 0.82f);
+                    }
                 }
             }
 
-            // 3. Hafif Titreşim (📳 Light Haptic)
-            TriggerHapticLight();
+            // 3. Titreşim (📳 Haptic)
+            if (isShipFull)
+            {
+                TriggerHapticMedium();
+            }
+            else
+            {
+                TriggerHapticLight();
+            }
+        }
+
+        /// <summary>
+        /// Gemi slotlara doğru yola çıktığında başlayan tatlı, ferah su süzülmesi ve dalga sesi.
+        /// Slotlara gidene kadar yumuşakça çalar, varınca pürüzsüz sönerek kilit darbesine bağlanır.
+        /// </summary>
+        public void StartShipSailSound(Vector3 position)
+        {
+            m_ActiveSailingShips++;
+            if (!m_EnableSound || m_SailSource == null || m_SailClip == null) return;
+
+            if (m_SailFadeRoutine != null)
+            {
+                StopCoroutine(m_SailFadeRoutine);
+                m_SailFadeRoutine = null;
+            }
+
+            m_SailSource.clip = m_SailClip;
+            m_SailSource.loop = true;
+            if (!m_SailSource.isPlaying)
+            {
+                m_SailSource.volume = 0f;
+                m_SailSource.pitch = UnityEngine.Random.Range(0.98f, 1.02f);
+                m_SailSource.Play();
+            }
+            m_SailFadeRoutine = StartCoroutine(FadeSailSource(m_MasterVolume * 0.35f, 0.05f, false));
+        }
+
+        /// <summary>
+        /// Gemi slota varıp yerleştiğinde seyir sesini pürüzsüz sönümle durdurur (sıfır tıklama / patlama).
+        /// </summary>
+        public void StopShipSailSound()
+        {
+            m_ActiveSailingShips = Mathf.Max(0, m_ActiveSailingShips - 1);
+            if (m_ActiveSailingShips == 0 && m_SailSource != null && m_SailSource.isPlaying)
+            {
+                if (m_SailFadeRoutine != null)
+                {
+                    StopCoroutine(m_SailFadeRoutine);
+                    m_SailFadeRoutine = null;
+                }
+                m_SailFadeRoutine = StartCoroutine(FadeSailSource(0f, 0.07f, true));
+            }
+        }
+
+        private System.Collections.IEnumerator FadeSailSource(float targetVol, float duration, bool stopOnZero)
+        {
+            if (m_SailSource == null) yield break;
+            float startVol = m_SailSource.volume;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                if (m_SailSource != null)
+                {
+                    m_SailSource.volume = Mathf.Lerp(startVol, targetVol, t);
+                }
+                yield return null;
+            }
+            if (m_SailSource != null)
+            {
+                m_SailSource.volume = targetVol;
+                if (stopOnZero && targetVol <= 0.001f)
+                {
+                    m_SailSource.Stop();
+                }
+            }
+            m_SailFadeRoutine = null;
         }
 
         /// <summary>
         /// Gemi slota yanaşıp kilitlendiğinde:
         /// 💦 Su sıçraması ve köpük parçacıkları yayar.
-        /// 🔊 Tok iskele kütüğü ve su darbesi sesi çalar.
+        /// 🔊 Tok mekanik-ahşap kilit ve su darbesi sesi çalar.
         /// 📳 Orta şiddette tok mobil titreşimi tetikler.
         /// </summary>
         public void PlayShipDockFeedback(Vector3 position)
@@ -610,14 +1052,14 @@ namespace PixelGame
             // 1. Su Sıçraması (💦 Water Splash)
             if (m_EnableWaterSplash && m_SplashPS != null)
             {
-                SpawnWaterSplash(position, 14);
+                SpawnWaterSplash(position, 16);
             }
 
-            // 2. Tok İskele Darbesi Sesi (🔊 Dock Thud)
-            if (m_EnableSound && m_FxSource != null)
+            // 2. Tok İskele Kilit Darbesi Sesi (🔊 Dock Snap & Thud)
+            if (m_EnableSound && m_FxSource != null && m_DockClip != null)
             {
-                // Su blup'u yanaşma sesinin içinde; eski cızırtılı splash clip'i artık çalınmıyor
-                if (m_DockClip != null) m_FxSource.PlayOneShot(m_DockClip, m_MasterVolume * 0.90f);
+                m_FxSource.pitch = UnityEngine.Random.Range(0.97f, 1.03f);
+                m_FxSource.PlayOneShot(m_DockClip, m_MasterVolume * 0.95f);
             }
 
             // 3. Orta Titreşim (📳 Medium Haptic)
@@ -650,6 +1092,28 @@ namespace PixelGame
             }
 
             TriggerHapticWarning();
+        }
+
+        /// <summary>
+        /// Oyun açılışında, stüdyo ve Land Flow açılış ekranında çalan ferahlatıcı, neşeli açılış jingle'ı.
+        /// </summary>
+        public void PlayGameLaunchFeedback()
+        {
+            if (!m_EnableSound || s_LaunchSoundPlayed) return;
+            s_LaunchSoundPlayed = true;
+
+            if (m_FxSource != null && m_GameLaunchClip != null)
+            {
+                m_FxSource.pitch = 1.0f;
+                m_FxSource.PlayOneShot(m_GameLaunchClip, m_MasterVolume * 0.95f);
+            }
+            else if (m_ChimeSource != null && m_GameLaunchClip != null)
+            {
+                m_ChimeSource.pitch = 1.0f;
+                m_ChimeSource.PlayOneShot(m_GameLaunchClip, m_MasterVolume * 0.95f);
+            }
+
+            TriggerHapticMedium();
         }
 
         private void SpawnSparkles(Vector3 pos, Color tint, int count)

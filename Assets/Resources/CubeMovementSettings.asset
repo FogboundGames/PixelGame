@@ -21,6 +21,15 @@ MonoBehaviour:
   DirectionLag: 0.05
   GlideMicroMotion: 0.65
   TrainStaggerInterval: 0.14
+  EnableSandFootprints: 1
+  FootstepDistance: 0.38
+  FootstepSpacing: 0.28
+  FootprintLifetime: 0.5
+  FootprintFadeDuration: 0.45
+  FootprintSize: 0.22
+  FootprintOpacity: 0.58
+  FootprintColor: {r: 0.68, g: 0.48, b: 0.24, a: 0.58}
+  FootstepPuff: 1
   MoveSpeed: 4.4
   Acceleration: 10
   Deceleration: 12
