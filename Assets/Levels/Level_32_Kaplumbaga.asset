@@ -10,29 +10,37 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56621c704aae40878464c98bd3ff671a, type: 3}
-  m_Name: Level_29_New
+  m_Name: Level_32_Kaplumbaga
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
-  m_LevelName: Karpuz
-  m_LevelIndex: 3
+  m_LevelName: "Kaplumba\u011Fa"
+  m_LevelIndex: 7
   m_DifficultyTier: 0
   m_LegacyIsHardLevel: 0
-  m_LevelTexture: {fileID: 2800000, guid: 9096244276ba2585a8dad54cba2bc0d9, type: 3}
+  m_LevelTexture: {fileID: 2800000, guid: 5da63950986175ee996d0697cfcd2dc3, type: 3}
   m_OriginalSourceTexture: {fileID: 0}
   m_LevelSprite: {fileID: 0}
   m_UseNativeResolution: 1
   m_CustomResolution: {x: 24, y: 24}
   m_ColorPalette:
-  - originalColor: {r: 0.8705883, g: 0.227451, b: 0.20392159, a: 1}
-    targetColor: {r: 0.8705883, g: 0.227451, b: 0.20392159, a: 1}
-    pixelCount: 38
+  - originalColor: {r: 0.15686275, g: 0.54901963, b: 0.27450982, a: 1}
+    targetColor: {r: 0.15686275, g: 0.54901963, b: 0.27450982, a: 1}
+    pixelCount: 58
     label: 
-  - originalColor: {r: 0.36078432, g: 0.74509805, b: 0.3137255, a: 1}
-    targetColor: {r: 0.36078432, g: 0.74509805, b: 0.3137255, a: 1}
-    pixelCount: 11
+  - originalColor: {r: 0.5882353, g: 0.8235295, b: 0.3529412, a: 1}
+    targetColor: {r: 0.5882353, g: 0.8235295, b: 0.3529412, a: 1}
+    pixelCount: 55
+    label: 
+  - originalColor: {r: 0.43137258, g: 0.27450982, b: 0.15686275, a: 1}
+    targetColor: {r: 0.43137258, g: 0.27450982, b: 0.15686275, a: 1}
+    pixelCount: 36
+    label: 
+  - originalColor: {r: 0.90196085, g: 0.74509805, b: 0.27450982, a: 1}
+    targetColor: {r: 0.90196085, g: 0.74509805, b: 0.27450982, a: 1}
+    pixelCount: 22
     label: 
   - originalColor: {r: 0.1764706, g: 0.15686275, b: 0.1764706, a: 1}
     targetColor: {r: 0.1764706, g: 0.15686275, b: 0.1764706, a: 1}
-    pixelCount: 5
+    pixelCount: 2
     label: 
   m_TintColor: {r: 1, g: 1, b: 1, a: 1}
   m_HueShift: 0
@@ -53,10 +61,10 @@ MonoBehaviour:
   m_MysteryRevealCondition: 0
   m_MysteryCubeColor: {r: 0.125, g: 0.118, b: 0.306, a: 1}
   m_SlotSprite: {fileID: 0}
-  m_SlotCount: 3
+  m_SlotCount: 4
   m_PoolColumns: 3
   m_PoolRows: 2
-  m_DisableAutoPlaceTurbo: 1
+  m_DisableAutoPlaceTurbo: 0
   m_TruckCapacity: 16
   m_MinTruckCapacity: 4
   m_PeakTruckCapacity: 10
@@ -64,34 +72,70 @@ MonoBehaviour:
   m_RoundCapacityRatio: 0.8
   m_UseCustomWagonSequence: 1
   m_WagonSequence:
-  - wagonColor: {r: 0.87058824, g: 0.22745098, b: 0.20392157, a: 1}
-    capacity: 13
-    paletteIndex: 0
-    label: Renk #1 (1)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.36078432, g: 0.74509805, b: 0.3137255, a: 1}
-    capacity: 11
+  - wagonColor: {r: 0.5882353, g: 0.8235294, b: 0.3529412, a: 1}
+    capacity: 19
     paletteIndex: 1
-    label: Renk #2 (2)
+    label: Renk #2 (1)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.87058824, g: 0.22745098, b: 0.20392157, a: 1}
-    capacity: 13
+  - wagonColor: {r: 0.43137255, g: 0.27450982, b: 0.15686275, a: 1}
+    capacity: 18
+    paletteIndex: 2
+    label: Renk #3 (2)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.15686275, g: 0.54901963, b: 0.27450982, a: 1}
+    capacity: 20
     paletteIndex: 0
     label: Renk #1 (3)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.1764706, g: 0.15686275, b: 0.1764706, a: 1}
-    capacity: 5
-    paletteIndex: 2
-    label: Renk #3 (4)
+    capacity: 2
+    paletteIndex: 4
+    label: Renk #5 (4)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.87058824, g: 0.22745098, b: 0.20392157, a: 1}
-    capacity: 12
+  - wagonColor: {r: 0.5882353, g: 0.8235294, b: 0.3529412, a: 1}
+    capacity: 18
+    paletteIndex: 1
+    label: Renk #2 (5)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.9019608, g: 0.74509805, b: 0.27450982, a: 1}
+    capacity: 11
+    paletteIndex: 3
+    label: Renk #4 (6)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.15686275, g: 0.54901963, b: 0.27450982, a: 1}
+    capacity: 19
     paletteIndex: 0
-    label: Renk #1 (5)
+    label: Renk #1 (7)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.43137255, g: 0.27450982, b: 0.15686275, a: 1}
+    capacity: 18
+    paletteIndex: 2
+    label: Renk #3 (8)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.5882353, g: 0.8235294, b: 0.3529412, a: 1}
+    capacity: 18
+    paletteIndex: 1
+    label: Renk #2 (9)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.15686275, g: 0.54901963, b: 0.27450982, a: 1}
+    capacity: 19
+    paletteIndex: 0
+    label: Renk #1 (10)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.9019608, g: 0.74509805, b: 0.27450982, a: 1}
+    capacity: 11
+    paletteIndex: 3
+    label: Renk #4 (11)
     linkId: 0
     isHidden: 0
   m_FigureShadowTexture: {fileID: 0}

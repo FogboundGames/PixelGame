@@ -11,9 +11,6 @@ namespace PixelGame.Editor
     {
         public enum Tier { Kolay, Orta, Zor }
 
-        /// <summary>Zor kademesi için gereken en az renk sayısı.</summary>
-        public const int MinColorsForHard = 7;
-
         public class Result
         {
             public bool valid;
@@ -128,13 +125,9 @@ namespace PixelGame.Editor
             float sBuried = Mathf.InverseLerp(0.5f, 0.85f, 1f - r.exposedShare);   // başta gömülü küp oranı
             float sLayers = Mathf.InverseLerp(0f, 3f, r.buriedColors);              // gömülü renkler (katman)
             r.score = 100f * (0.30f * sDominant + 0.25f * sEffective + 0.15f * sRegions + 0.10f * sBuried + 0.20f * sLayers);
-            r.tier = r.score < 35f ? Tier.Kolay : r.score < 60f ? Tier.Orta : Tier.Zor;
-            // Tek renk baskınsa diğer ölçütler ne derse desin oyuncu o rengi düşünmeden gönderir: kademe tavanı
-            if (r.dominantShare >= 0.65f) r.tier = Tier.Kolay;
-            else if (r.dominantShare >= 0.50f && r.tier == Tier.Zor) r.tier = Tier.Orta;
-            // Zorluk renk çeşitliliğinden gelir: az renkte katman/gömülü renk de baskı yaratmaz
-            if (r.colorCount <= 3 || r.effectiveColors < 2.5f) r.tier = Tier.Kolay;
-            else if (r.tier == Tier.Zor && (r.colorCount < MinColorsForHard || r.effectiveColors < 3.5f)) r.tier = Tier.Orta;
+            // Kademe doğrudan puandan: 0–50 Kolay, 50–80 Orta, 80–100 Zor. (Eski baskın renk / renk sayısı
+            // tavanları kaldırıldı; puan ile kademe çelişip "puanı yüksek ama Kolay" gibi kafa karıştırıyordu.)
+            r.tier = r.score < 50f ? Tier.Kolay : r.score < 80f ? Tier.Orta : Tier.Zor;
 
             if (r.colorCount <= 3) r.reasons.Add($"Sadece {r.colorCount} renk — oyuncunun seçebileceği az gemi rengi var, hata yapma şansı düşük.");
             if (r.dominantShare >= 0.45f) r.reasons.Add($"Tek renk ({r.dominantName}) küplerin %{Mathf.RoundToInt(r.dominantShare * 100)}'ini kaplıyor — o renk hep açıkta, hata yapma şansı az.");

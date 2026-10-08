@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_21_kucuk-32x32(7)
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: kucuk-32x32(7)
-  m_LevelIndex: 22
+  m_LevelIndex: 24
   m_DifficultyTier: 1
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: 085162949f5f6be178584009aa466f11, type: 3}

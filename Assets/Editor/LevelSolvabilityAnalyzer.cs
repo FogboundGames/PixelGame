@@ -491,18 +491,34 @@ namespace PixelGame.Editor
             return grid;
         }
 
-        /// <summary>Küp rengini palet girdisiyle eşler; eşleşme yoksa -1.</summary>
+        // Oyundaki ShipDispatcher.GetPaletteIndex ile aynı yakalama mesafesi
+        private const float PaletteSnapMaxSqrDistance = 0.12f;
+
+        /// <summary>
+        /// Küp rengini bu bölümün paletindeki EN YAKIN girdiye eşler (oyundaki palet oturtmasıyla aynı mantık);
+        /// eşleşme yoksa -1. Eskiden ShipDispatcher.ColorsMatch kullanılıyordu: o, sahnede o an yüklü bölümün
+        /// paletine bakıyor. Bu yüzden aynı bölümün zorluğu editörde hangi bölüm açıksa ona göre değişiyor,
+        /// yakın tonlar (turuncu / koyu turuncu gibi) tek renk sayılıyordu.
+        /// </summary>
         private static int MatchPaletteIndex(List<PaletteColorOverride> palette, PixelLevelData level, Color shown)
         {
             if (palette == null) return -1;
+            int best = -1;
+            float bestDist = PaletteSnapMaxSqrDistance;
             for (int i = 0; i < palette.Count; i++)
             {
                 var e = palette[i];
                 if (e == null) continue;
                 Color target = PixelCube.AdjustColor(e.targetColor, level.ColorBrightness, level.ColorSaturation, level.ColorContrast);
-                if (ShipDispatcher.ColorsMatch(target, shown)) return i;
+                float dr = target.r - shown.r, dg = target.g - shown.g, db = target.b - shown.b;
+                float d = dr * dr + dg * dg + db * db;
+                if (d < bestDist)
+                {
+                    bestDist = d;
+                    best = i;
+                }
             }
-            return -1;
+            return best;
         }
 
         /// <summary>

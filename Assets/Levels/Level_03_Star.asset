@@ -87,7 +87,7 @@ MonoBehaviour:
     paletteIndex: 0
     label: Renk #1 (2)
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   - wagonColor: {r: 1, g: 0.8, b: 0.1254902, a: 1}
     capacity: 10
     paletteIndex: 1

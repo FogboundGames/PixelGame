@@ -104,10 +104,12 @@ namespace PixelGame
                 m_FxSource.spatialBlend = 0f;
             }
 
-            // Müzikal pentatonik küp sesleri (C5 - D5 - E5 - G5 - A5 - C6 - D6 - E6)
-            if (m_ChimeClips == null || m_ChimeClips.Length == 0)
+            // Müzikal pentatonik küp sesleri (C4 - D4 - E4 - G4 - A4 - C5 - D5 - E5): bir oktav pes, sıcak ahşap tını
+            // Script yeniden yüklenince dizi korunur ama içindeki (çalışma zamanında üretilmiş) klipler silinir;
+            // sadece Length kontrolü bu durumda küp sesini tamamen susturuyordu.
+            if (m_ChimeClips == null || m_ChimeClips.Length == 0 || System.Array.Exists(m_ChimeClips, c => c == null))
             {
-                float[] freqs = new float[] { 523.25f, 587.33f, 659.25f, 783.99f, 880.00f, 1046.50f, 1174.66f, 1318.51f };
+                float[] freqs = new float[] { 261.63f, 293.66f, 329.63f, 392.00f, 440.00f, 523.25f, 587.33f, 659.25f };
                 m_ChimeClips = new AudioClip[freqs.Length];
                 for (int i = 0; i < freqs.Length; i++)
                 {
@@ -122,36 +124,31 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Küpün gemiye bindiğinde çıkardığı tatlı, parlak marimba/kristal plink sesi.
+        /// Küpün gemiye bindiğinde çıkardığı kısa, sıcak ahşap marimba "tok" sesi.
+        /// (Eski parlak kristal "pling" sık çaldığı için yorucuydu.)
         /// </summary>
         private AudioClip CreateProceduralChimeClip(float fundamentalFreq)
         {
             int sampleRate = 44100;
-            float duration = 0.12f; // 120 ms
+            float duration = 0.10f; // 100 ms
             int count = Mathf.CeilToInt(sampleRate * duration);
             float[] samples = new float[count];
 
             for (int i = 0; i < count; i++)
             {
                 float t = i / (float)sampleRate;
-                float progress = t / duration;
 
-                // 1. Temel dalga ve kristal harmonikleri
-                float p1 = 2f * Mathf.PI * fundamentalFreq * t;
-                float p2 = 2f * Mathf.PI * (fundamentalFreq * 2.01f) * t;
-                float p3 = 2f * Mathf.PI * (fundamentalFreq * 3.02f) * t;
-                float tone = Mathf.Sin(p1) * 0.65f + Mathf.Sin(p2) * 0.25f + Mathf.Sin(p3) * 0.10f;
+                // Çok kısa yumuşak atak (tık sesi olmasın)
+                float attack = Mathf.Clamp01(t / 0.0025f);
 
-                // 2. İlk 5 ms perküsyif mallet 'tık' vuruşu
-                float click = 0f;
-                if (t < 0.005f)
-                {
-                    click = Mathf.Sin(2f * Mathf.PI * 3200f * t) * (1f - t / 0.005f) * 0.35f;
-                }
+                // 1. Gövde: temel ton, hızlı sönüm
+                float body = Mathf.Sin(2f * Mathf.PI * fundamentalFreq * t) * Mathf.Exp(-t * 30f);
+                // 2. Marimba çubuğunun 4. kısmi tonu (~3.93x): ahşap tınısını veren, çok çabuk sönen parlaklık
+                float bar = Mathf.Sin(2f * Mathf.PI * fundamentalFreq * 3.93f * t) * Mathf.Exp(-t * 90f) * 0.22f;
+                // 3. Bir oktav alttan hafif tokluk
+                float knock = Mathf.Sin(2f * Mathf.PI * fundamentalFreq * 0.5f * t) * Mathf.Exp(-t * 60f) * 0.18f;
 
-                // 3. Üstel tatlı sönümlenme
-                float envelope = Mathf.Exp(-progress * 16f);
-                samples[i] = Mathf.Clamp((tone + click) * envelope, -1f, 1f);
+                samples[i] = Mathf.Clamp((body + bar + knock) * attack * 0.8f, -1f, 1f);
             }
 
             AudioClip clip = AudioClip.Create($"Chime_{Mathf.RoundToInt(fundamentalFreq)}", count, 1, sampleRate, false);
@@ -196,25 +193,37 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Geminin iskeleye yanaştığında çıkan tok, tatmin edici ahşap kütüğü darbesi.
+        /// Geminin iskeleye yanaştığında çıkan tek, yumuşak ahşap "tak" ve altındaki cızırtısız su "blup"u.
+        /// (Ret sesiyle aynı ahşap vuruş ailesinden; ayrı splash clip'i artık çalınmıyor.)
         /// </summary>
         private AudioClip CreateProceduralDockClip()
         {
             int sampleRate = 44100;
-            float duration = 0.18f;
+            float duration = 0.24f;
             int count = Mathf.CeilToInt(sampleRate * duration);
             float[] samples = new float[count];
+            float blupPhase = 0f;
 
             for (int i = 0; i < count; i++)
             {
                 float t = i / (float)sampleRate;
-                float progress = t / duration;
+                float attack = Mathf.Clamp01(t / 0.002f);
 
-                float body = Mathf.Sin(2f * Mathf.PI * Mathf.Lerp(120f, 65f, progress) * t) * 0.65f;
-                float woodResonance = Mathf.Sin(2f * Mathf.PI * 260f * t) * 0.25f;
+                // 1. Ahşap vuruş (190 Hz) + bir oktav alttan tokluk
+                float knock = Mathf.Sin(2f * Mathf.PI * 190f * t) * Mathf.Exp(-t * 34f) * 0.75f
+                            + Mathf.Sin(2f * Mathf.PI * 95f * t) * Mathf.Exp(-t * 26f) * 0.25f;
 
-                float envelope = Mathf.Exp(-progress * 14f);
-                samples[i] = Mathf.Clamp((body + woodResonance) * envelope, -1f, 1f);
+                // 2. 35 ms sonra başlayan, 300 Hz → 150 Hz inen yumuşak su blup'u (gürültüsüz)
+                float blup = 0f;
+                float bt = t - 0.035f;
+                if (bt > 0f)
+                {
+                    float freq = 300f - 150f * Mathf.Clamp01(bt / 0.12f);
+                    blupPhase += 2f * Mathf.PI * freq / sampleRate;
+                    blup = Mathf.Sin(blupPhase) * Mathf.Exp(-bt * 22f) * 0.35f * Mathf.Clamp01(bt / 0.01f);
+                }
+
+                samples[i] = Mathf.Clamp((knock + blup) * attack, -1f, 1f);
             }
 
             AudioClip clip = AudioClip.Create("ShipDock_Thud", count, 1, sampleRate, false);
@@ -582,7 +591,7 @@ namespace PixelGame
                 if (clip != null)
                 {
                     m_ChimeSource.pitch = UnityEngine.Random.Range(0.98f, 1.02f);
-                    m_ChimeSource.PlayOneShot(clip, m_MasterVolume * 0.85f);
+                    m_ChimeSource.PlayOneShot(clip, m_MasterVolume * 0.70f);
                 }
             }
 
@@ -607,8 +616,8 @@ namespace PixelGame
             // 2. Tok İskele Darbesi Sesi (🔊 Dock Thud)
             if (m_EnableSound && m_FxSource != null)
             {
-                if (m_DockClip != null) m_FxSource.PlayOneShot(m_DockClip, m_MasterVolume);
-                if (m_SplashClip != null) m_FxSource.PlayOneShot(m_SplashClip, m_MasterVolume * 0.70f);
+                // Su blup'u yanaşma sesinin içinde; eski cızırtılı splash clip'i artık çalınmıyor
+                if (m_DockClip != null) m_FxSource.PlayOneShot(m_DockClip, m_MasterVolume * 0.90f);
             }
 
             // 3. Orta Titreşim (📳 Medium Haptic)

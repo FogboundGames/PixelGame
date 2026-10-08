@@ -428,29 +428,27 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Prosedürel olarak hoş ve yumuşak bir 8-bit pop/çıt ses efekti üretir.
+        /// Gizli küp açılırken çalan, yukarı doğru süzülen yumuşak kabarcık "bloop" sesi (gürültüsüz).
         /// </summary>
         private AudioClip CreateProceduralPopClip()
         {
             int sampleRate = 44100;
-            float duration = 0.085f; // 85 ms kısa ve net
+            float duration = 0.14f;
             int sampleCount = Mathf.CeilToInt(sampleRate * duration);
             float[] samples = new float[sampleCount];
-
-            float startFreq = 850f;
-            float endFreq = 180f;
+            float phase = 0f;
 
             for (int i = 0; i < sampleCount; i++)
             {
-                float t = (float)i / sampleCount;
+                float t = i / (float)sampleRate;
+                float progress = t / duration;
 
-                float currentFreq = Mathf.Lerp(startFreq, endFreq, Mathf.Pow(t, 0.6f));
-                float phase = 2f * Mathf.PI * currentFreq * (i / (float)sampleRate);
+                // 320 Hz → 700 Hz yükselen ton (açılma hissi)
+                float currentFreq = 320f + 380f * Mathf.Pow(progress, 0.7f);
+                phase += 2f * Mathf.PI * currentFreq / sampleRate;
 
-                float envelope = Mathf.Exp(-t * 14f);
-                float noise = ((float)m_Rnd.NextDouble() * 2f - 1f) * (1f - t) * 0.12f;
-
-                samples[i] = (Mathf.Sin(phase) + noise) * envelope;
+                float envelope = Mathf.Clamp01(t / 0.006f) * Mathf.Exp(-progress * 5f) * (1f - progress);
+                samples[i] = (Mathf.Sin(phase) + Mathf.Sin(phase * 2f) * 0.12f) * envelope * 0.7f;
             }
 
             AudioClip clip = AudioClip.Create("ProceduralVoxelPop", sampleCount, 1, sampleRate, false);

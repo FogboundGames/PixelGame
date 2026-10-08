@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_24_Balkabagi
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Balkabagi
-  m_LevelIndex: 13
+  m_LevelIndex: 15
   m_DifficultyTier: 1
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: be9e9818259eb48a78dba6af845bd6d2, type: 3}

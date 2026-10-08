@@ -543,6 +543,25 @@ namespace PixelGame
                 int linkId;
                 if (!TryGetNextSequenceShip(i, out shipColor, out capacity, out linkId))
                 {
+                    // Özel sırada bu sütunun şeridi bitti: spot boş kalsın (yedek gemi üretme)
+                    if (m_UsingLevelSequence)
+                    {
+                        for (int c = spot.childCount - 1; c >= 0; c--)
+                        {
+                            var sc = spot.GetChild(c).GetComponent<ShipController>();
+                            if (sc == null) continue;
+                            sc.transform.SetParent(null);
+                            sc.gameObject.SetActive(false);
+#if UNITY_EDITOR
+                            if (!Application.isPlaying) DestroyImmediate(sc.gameObject);
+                            else Destroy(sc.gameObject);
+#else
+                            Destroy(sc.gameObject);
+#endif
+                        }
+                        continue;
+                    }
+
                     const bool preferExposed = true;
                     shipColor = GetNextNeededColor(preferExposed);
                     capacity = GetRecommendedCapacity(shipColor);
@@ -1088,6 +1107,12 @@ namespace PixelGame
             int linkId;
             if (!TryGetNextSequenceShip(spotIndex, out shipColor, out capacity, out linkId))
             {
+                // Bu sütunun şeridi bitti ama diğer şeritlerde hâlâ gemi var: sütun boş kalsın.
+                // Eskiden burada "ihtiyaca göre" yedek gemi doğuyordu; şeritler eşit bölünmediği için
+                // sıradaki gemiler zaten gelecekken fazladan gemi geliyordu (ör. 11 yerine 13-18 gemi).
+                // Yedek gemi yalnızca tüm sıra bitip kapasite gerçekten yetmediğinde (yukarıdaki kontrol) doğar.
+                if (m_UsingLevelSequence && !LevelSequenceLanesExhausted()) return;
+
                 shipColor = GetNextNeededColor(false);
                 capacity = GetRecommendedCapacity(shipColor);
                 linkId = 0;

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_25_Tilki
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Tilki
-  m_LevelIndex: 29
+  m_LevelIndex: 31
   m_DifficultyTier: 2
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: ba8345d516e151f9996220fe47e8500f, type: 3}
