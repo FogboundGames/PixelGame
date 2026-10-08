@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_14_Rocket
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Rocket
-  m_LevelIndex: 25
+  m_LevelIndex: 7
   m_DifficultyTier: 1
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: 1c89332aa3e0094fda706e1e0c5e311e, type: 3}
@@ -62,6 +62,7 @@ MonoBehaviour:
   m_SlotCount: 4
   m_PoolColumns: 3
   m_PoolRows: 2
+  m_DisableAutoPlaceTurbo: 0
   m_TruckCapacity: 20
   m_MinTruckCapacity: 10
   m_PeakTruckCapacity: 10

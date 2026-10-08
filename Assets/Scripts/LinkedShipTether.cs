@@ -47,9 +47,54 @@ namespace PixelGame
         private Color m_LastColA;
         private Color m_LastColB;
 
+        // Bekleyen halat: partner gemi henüz kuyruğa doğmadıysa (sütun sırasında bekliyorsa) halat,
+        // partnerin denizden geleceği noktaya (kamera dışı) uzanır; partner doğup süzülürken onu takip eder.
+        // Sadece görseldir: gemiler arasında oynanış bağlantısı (SetLinkedPartner) kurmaz.
+        private Transform m_PendingAnchor;
+        private Vector3 m_PendingLocalPoint;
+        private Color m_PendingColor;
+
         public ShipController ShipA => m_ShipA;
         public ShipController ShipB => m_ShipB;
         public int LinkId => m_LinkId;
+        public bool IsPending => m_ShipB == null && m_PendingAnchor != null;
+
+        public static LinkedShipTether CreatePendingTether(ShipController a, int linkId, Transform anchor, Vector3 anchorLocalPoint, Color partnerColor)
+        {
+            if (a == null || anchor == null) return null;
+
+            // Sadece oyunda: editörde kurulursa sahneye kaydedilirdi
+            if (!Application.isPlaying) return null;
+
+            GameObject tetherObj = new GameObject($"Tether_Pending_{linkId}_{a.name}");
+            GameObject container = GameObject.Find("[SHIP_TETHERS]");
+            if (container != null) tetherObj.transform.SetParent(container.transform, true);
+
+            LinkedShipTether tether = tetherObj.AddComponent<LinkedShipTether>();
+            tether.m_ShipA = a;
+            tether.m_ShipB = null;
+            tether.m_LinkId = linkId;
+            tether.m_PendingAnchor = anchor;
+            tether.m_PendingLocalPoint = anchorLocalPoint;
+            tether.m_PendingColor = partnerColor;
+            tether.EnsureLineRenderer();
+            tether.ApplyColorsFromShips();
+            tether.UpdateTetherPositions();
+            return tether;
+        }
+
+        /// <summary>Bekleyen halatta partner doğmuşsa (süzülerek geliyorsa) onu döndürür.</summary>
+        private ShipController FindArrivingPartner()
+        {
+            var ships = ShipController.ActiveShips;
+            for (int i = 0; i < ships.Count; i++)
+            {
+                ShipController s = ships[i];
+                if (s != null && s != m_ShipA && s.LinkId == m_LinkId && !s.IsDeparting && s.gameObject.activeInHierarchy)
+                    return s;
+            }
+            return null;
+        }
 
         public static LinkedShipTether CreateTether(ShipController a, ShipController b, int linkId)
         {
@@ -141,10 +186,12 @@ namespace PixelGame
         /// </summary>
         public void ApplyColorsFromShips()
         {
-            if (m_LineRenderer == null || m_ShipA == null || m_ShipB == null) return;
+            if (m_LineRenderer == null || m_ShipA == null) return;
+            ShipController partner = m_ShipB != null ? m_ShipB : (IsPending ? FindArrivingPartner() : null);
+            if (partner == null && !IsPending) return;
 
             Color colA = m_ShipA.ShipColor;
-            Color colB = m_ShipB.ShipColor;
+            Color colB = partner != null ? partner.ShipColor : m_PendingColor;
 
             if (colA.a < 0.1f) colA = m_RopeColor;
             if (colB.a < 0.1f) colB = m_RopeColor;
@@ -173,6 +220,20 @@ namespace PixelGame
 
         private void LateUpdate()
         {
+            if (IsPending)
+            {
+                // Gerçek halat kurulduysa (partner bağlandı) ya da gemi ayrıldıysa bekleyen halat biter
+                if (m_ShipA == null || !m_ShipA.gameObject.activeInHierarchy || m_ShipA.IsDeparting ||
+                    m_ShipA.LinkId != m_LinkId || m_ShipA.LinkedPartner != null)
+                {
+                    if (Application.isPlaying) Destroy(gameObject);
+                    else DestroyImmediate(gameObject);
+                    return;
+                }
+                UpdateTetherPositions();
+                return;
+            }
+
             if (m_ShipA == null || m_ShipB == null)
             {
                 if (Application.isPlaying) Destroy(gameObject);
@@ -252,9 +313,13 @@ namespace PixelGame
 
         public void UpdateTetherPositions()
         {
-            if (m_LineRenderer == null || m_ShipA == null || m_ShipB == null) return;
+            if (m_LineRenderer == null || m_ShipA == null) return;
 
-            if (m_ShipA.ShipColor != m_LastColA || m_ShipB.ShipColor != m_LastColB)
+            ShipController partner = m_ShipB != null ? m_ShipB : (IsPending ? FindArrivingPartner() : null);
+            if (partner == null && !IsPending) return;
+
+            Color partnerColor = partner != null ? partner.ShipColor : m_PendingColor;
+            if (m_ShipA.ShipColor != m_LastColA || partnerColor != m_LastColB)
             {
                 ApplyColorsFromShips();
             }
@@ -262,11 +327,13 @@ namespace PixelGame
             // Halat, gemilerin sallanan gövdesine (VisualRoot: su sallanması, kaldırma, dalma) bağlanır;
             // kök objeye bağlıyken gemiler sallanırken halat sabit kalıyordu.
             Transform hullA = m_ShipA.VisualRoot != null ? m_ShipA.VisualRoot : m_ShipA.transform;
-            Transform hullB = m_ShipB.VisualRoot != null ? m_ShipB.VisualRoot : m_ShipB.transform;
+            Transform hullB = partner != null ? (partner.VisualRoot != null ? partner.VisualRoot : partner.transform) : null;
 
             // Gemilerin tam orta yükseklik ve merkez noktaları (yerel Z=0 geminin tam boy ortası, Y=0.95f bel ortasıdır)
             Vector3 centerA = hullA.TransformPoint(new Vector3(0f, 0.95f, 0f));
-            Vector3 centerB = hullB.TransformPoint(new Vector3(0f, 0.95f, 0f));
+            Vector3 centerB = hullB != null
+                ? hullB.TransformPoint(new Vector3(0f, 0.95f, 0f))
+                : m_PendingAnchor.TransformPoint(m_PendingLocalPoint);
 
             Vector3 worldDelta = centerB - centerA;
             float worldDist = worldDelta.magnitude;
@@ -279,10 +346,14 @@ namespace PixelGame
             Vector3 localAttachA = CalculateHullPerimeterPoint(localDirA);
             Vector3 posA = hullA.TransformPoint(localAttachA);
 
-            // B gemisinin gövde kenarındaki orta bağlantı noktası
-            Vector3 localDirB = hullB.InverseTransformDirection(-worldDir);
-            Vector3 localAttachB = CalculateHullPerimeterPoint(localDirB);
-            Vector3 posB = hullB.TransformPoint(localAttachB);
+            // B gemisinin gövde kenarındaki orta bağlantı noktası (bekleyen halatta: partnerin geleceği nokta)
+            Vector3 posB = centerB;
+            if (hullB != null)
+            {
+                Vector3 localDirB = hullB.InverseTransformDirection(-worldDir);
+                Vector3 localAttachB = CalculateHullPerimeterPoint(localDirB);
+                posB = hullB.TransformPoint(localAttachB);
+            }
 
             float attachDist = Vector3.Distance(posA, posB);
             // Doğal sarkma miktarı: iki gemi arasındaki mesafeye orantılı tatlı bir sarkma

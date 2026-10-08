@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_02_Piksel Kalp
   m_EditorClassIdentifier: PixelGame::PixelGame.PixelLevelData
   m_LevelName: Piksel Kalp
-  m_LevelIndex: 12
+  m_LevelIndex: 6
   m_DifficultyTier: 0
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: 61898abaffe8fb97d8aa9be0efc140ab, type: 3}
@@ -49,15 +49,14 @@ MonoBehaviour:
   m_CubeRowStepOffset: {x: 0, y: 0, z: 0}
   m_InnerPadding: 0.08
   m_SkipTransparent: 1
-  m_MysteryCubeCoordinates:
-  - {x: 12, y: 10}
-  - {x: 13, y: 10}
+  m_MysteryCubeCoordinates: []
   m_MysteryRevealCondition: 0
   m_MysteryCubeColor: {r: 0.1254902, g: 0.11764706, b: 0.30588236, a: 1}
   m_SlotSprite: {fileID: 0}
   m_SlotCount: 5
   m_PoolColumns: 3
   m_PoolRows: 6
+  m_DisableAutoPlaceTurbo: 0
   m_TruckCapacity: 20
   m_MinTruckCapacity: 10
   m_PeakTruckCapacity: 10

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_09_Burger
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Burger
-  m_LevelIndex: 15
+  m_LevelIndex: 10
   m_DifficultyTier: 1
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: 85ff01fff55983161866fe0f3a251112, type: 3}
@@ -60,6 +60,7 @@ MonoBehaviour:
   m_SlotCount: 4
   m_PoolColumns: 5
   m_PoolRows: 2
+  m_DisableAutoPlaceTurbo: 0
   m_TruckCapacity: 20
   m_MinTruckCapacity: 10
   m_PeakTruckCapacity: 10

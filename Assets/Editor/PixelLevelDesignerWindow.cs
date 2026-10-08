@@ -1093,6 +1093,16 @@ namespace PixelGame.Editor
             EditorGUILayout.LabelField("📋 Genel Bilgiler", EditorStyles.boldLabel);
             m_SelectedLevel.LevelName = EditorGUILayout.TextField("Level Adı", m_SelectedLevel.LevelName);
             m_SelectedLevel.LevelIndex = EditorGUILayout.IntField("Level Numarası", m_SelectedLevel.LevelIndex);
+            EditorGUI.BeginChangeCheck();
+            bool disableTurbo = EditorGUILayout.Toggle(
+                new GUIContent("2X Hızlanmayı Kapat", "Açıksa bu bölümde oyun sonundaki otomatik yerleştirme ve 2X hızlanma çalışmaz."),
+                m_SelectedLevel.DisableAutoPlaceTurbo);
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(m_SelectedLevel, "2X Hızlanma Ayarı");
+                m_SelectedLevel.DisableAutoPlaceTurbo = disableTurbo;
+                EditorUtility.SetDirty(m_SelectedLevel);
+            }
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.Space(6);

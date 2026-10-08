@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_23_Hayalet
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Hayalet
-  m_LevelIndex: 13
+  m_LevelIndex: 12
   m_DifficultyTier: 0
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: e5558dbc81b6e2542b4e72fa12d83eec, type: 3}
@@ -64,6 +64,7 @@ MonoBehaviour:
   m_SlotCount: 4
   m_PoolColumns: 3
   m_PoolRows: 2
+  m_DisableAutoPlaceTurbo: 0
   m_TruckCapacity: 20
   m_MinTruckCapacity: 4
   m_PeakTruckCapacity: 10

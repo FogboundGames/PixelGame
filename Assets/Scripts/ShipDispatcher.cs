@@ -1993,6 +1993,10 @@ namespace PixelGame
             if (!m_EnableAutoPlaceAndTurbo || m_IsAutoPlacing || m_LevelEndPending || m_IsLevelFailed || !Application.isPlaying) return;
             if (m_QueuePool == null || m_Slots == null || m_Slots.Count == 0) return;
 
+            // Bölüm bazında kapatılabilir (ör. ilk giriş bölümleri)
+            PixelLevelData activeLevel = m_Generator != null ? m_Generator.ActiveLevelData : null;
+            if (activeLevel != null && activeLevel.DisableAutoPlaceTurbo) return;
+
             // Oyun başlangıcında oyuncu en az bir gemi göndermeden otomatik yerleştirme çalışmaz
             if (m_PlayerSentShipCount == 0) return;
 

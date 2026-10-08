@@ -80,6 +80,7 @@ namespace PixelGame
 
         [SerializeField] private List<ColumnLayoutPreset> m_ColumnPresets = new List<ColumnLayoutPreset>()
         {
+            new ColumnLayoutPreset(1, 0.50f, 1.55f, 2.60f, -6.88f),
             new ColumnLayoutPreset(2, 0.472f, 1.55f, 2.60f, -6.88f),
             new ColumnLayoutPreset(3, 0.354f, 1.48f, 2.30f, -7.40f),
             new ColumnLayoutPreset(4, 0.330f, 1.08f, 2.20f, -6.88f),
@@ -798,6 +799,37 @@ namespace PixelGame
                         if (a.LinkedPartner != b || a.Tether == null) a.SetLinkedPartner(b, linkId, existing);
                         if (b.LinkedPartner != a || b.Tether == null) b.SetLinkedPartner(a, linkId, existing);
                     }
+                }
+                else if (ships.Count == 1 && ships[0].LinkedPartner == null)
+                {
+                    // 5. Partner henüz doğmadı (sütun sırasında bekliyor): halat, partnerin denizden
+                    //    geleceği noktaya uzansın; yoksa partner kameraya girene kadar bağ hiç görünmüyordu.
+                    CreatePendingTetherIfPartnerQueued(ships[0], linkId);
+                }
+            }
+        }
+
+        private void CreatePendingTetherIfPartnerQueued(ShipController ship, int linkId)
+        {
+            if (!m_UsingLevelSequence || m_LevelSequenceLanes == null) return;
+
+            for (int lane = 0; lane < m_LevelSequenceLanes.Count; lane++)
+            {
+                Queue<WagonSequenceEntry> q = m_LevelSequenceLanes[lane];
+                if (q == null) continue;
+                foreach (WagonSequenceEntry entry in q)
+                {
+                    if (entry == null || entry.linkId != linkId) continue;
+
+                    // Bu şeridin yeni gemisi, sütunun en arka spotuna denizden (yerel Z = -2.6) gelir
+                    int spawnIdx = (m_Rows - 1) * m_Columns + (lane % Mathf.Max(1, m_Columns));
+                    if (spawnIdx < 0 || spawnIdx >= m_QueueSpots.Count || m_QueueSpots[spawnIdx] == null) return;
+
+                    Vector3 spawnPoint = new Vector3(0f, 0.95f * m_ShipScale, -2.6f);
+                    // Gizli gemi doğduğunda da renk görünmez; halat yarısı nötr halat renginde kalır
+                    Color partnerColor = entry.isHidden ? new Color(0.85f, 0.65f, 0.35f, 1f) : entry.wagonColor;
+                    LinkedShipTether.CreatePendingTether(ship, linkId, m_QueueSpots[spawnIdx], spawnPoint, partnerColor);
+                    return;
                 }
             }
         }

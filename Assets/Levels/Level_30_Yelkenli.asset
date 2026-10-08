@@ -10,21 +10,33 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56621c704aae40878464c98bd3ff671a, type: 3}
-  m_Name: Level_27_Elma
+  m_Name: Level_30_Yelkenli
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
-  m_LevelName: Bir
-  m_LevelIndex: 1
+  m_LevelName: Yelkenli
+  m_LevelIndex: 4
   m_DifficultyTier: 0
   m_LegacyIsHardLevel: 0
-  m_LevelTexture: {fileID: 2800000, guid: 3af4c29133a5f0a9c95c3634aeae1c22, type: 3}
-  m_OriginalSourceTexture: {fileID: 2800000, guid: 9335ca9c11a389b20a7b5bdc377919a9, type: 3}
+  m_LevelTexture: {fileID: 2800000, guid: f86dd8cbfee1922edab6a9f209ba269e, type: 3}
+  m_OriginalSourceTexture: {fileID: 0}
   m_LevelSprite: {fileID: 0}
   m_UseNativeResolution: 1
   m_CustomResolution: {x: 24, y: 24}
   m_ColorPalette:
-  - originalColor: {r: 0.83921576, g: 0.2509804, b: 0.18823531, a: 1}
-    targetColor: {r: 0.83921576, g: 0.2509804, b: 0.18823531, a: 1}
+  - originalColor: {r: 0.9607844, g: 0.94117653, b: 0.8941177, a: 1}
+    targetColor: {r: 0.9607844, g: 0.94117653, b: 0.8941177, a: 1}
     pixelCount: 20
+    label: 
+  - originalColor: {r: 0.23529413, g: 0.54901963, b: 0.90196085, a: 1}
+    targetColor: {r: 0.23529413, g: 0.54901963, b: 0.90196085, a: 1}
+    pixelCount: 12
+    label: 
+  - originalColor: {r: 0.8705883, g: 0.227451, b: 0.20392159, a: 1}
+    targetColor: {r: 0.8705883, g: 0.227451, b: 0.20392159, a: 1}
+    pixelCount: 9
+    label: 
+  - originalColor: {r: 0.47058827, g: 0.29411766, b: 0.15686275, a: 1}
+    targetColor: {r: 0.47058827, g: 0.29411766, b: 0.15686275, a: 1}
+    pixelCount: 6
     label: 
   m_TintColor: {r: 1, g: 1, b: 1, a: 1}
   m_HueShift: 0
@@ -41,25 +53,52 @@ MonoBehaviour:
   m_CubeRowStepOffset: {x: 0, y: 0, z: 0}
   m_InnerPadding: 0.08
   m_SkipTransparent: 0
-  m_MysteryCubeCoordinates: []
+  m_MysteryCubeCoordinates:
+  - {x: 3, y: 6}
+  - {x: 5, y: 3}
+  - {x: 6, y: 2}
   m_MysteryRevealCondition: 0
   m_MysteryCubeColor: {r: 0.125, g: 0.118, b: 0.306, a: 1}
   m_SlotSprite: {fileID: 0}
-  m_SlotCount: 1
-  m_PoolColumns: 1
-  m_PoolRows: 1
+  m_SlotCount: 3
+  m_PoolColumns: 2
+  m_PoolRows: 2
   m_DisableAutoPlaceTurbo: 1
-  m_TruckCapacity: 20
+  m_TruckCapacity: 16
   m_MinTruckCapacity: 4
   m_PeakTruckCapacity: 10
   m_UseRoundCapacities: 1
   m_RoundCapacityRatio: 0.8
   m_UseCustomWagonSequence: 1
   m_WagonSequence:
-  - wagonColor: {r: 0.83921576, g: 0.2509804, b: 0.18823531, a: 1}
-    capacity: 20
+  - wagonColor: {r: 0.9607843, g: 0.9411765, b: 0.89411765, a: 1}
+    capacity: 10
     paletteIndex: 0
-    label: Gemi 1 (R0)
+    label: Renk #1 (1)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.23529412, g: 0.54901963, b: 0.9019608, a: 1}
+    capacity: 12
+    paletteIndex: 1
+    label: Renk #2 (2)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.87058824, g: 0.22745098, b: 0.20392157, a: 1}
+    capacity: 9
+    paletteIndex: 2
+    label: Renk #3 (3)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.47058824, g: 0.29411766, b: 0.15686275, a: 1}
+    capacity: 6
+    paletteIndex: 3
+    label: Renk #4 (4)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.9607843, g: 0.9411765, b: 0.89411765, a: 1}
+    capacity: 10
+    paletteIndex: 0
+    label: Renk #1 (5)
     linkId: 0
     isHidden: 0
   m_FigureShadowTexture: {fileID: 0}

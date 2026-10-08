@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: "Level_03_Alt\u0131n Y\u0131ld\u0131z"
   m_EditorClassIdentifier: PixelGame::PixelGame.PixelLevelData
   m_LevelName: "Alt\u0131n Y\u0131ld\u0131z"
-  m_LevelIndex: 14
+  m_LevelIndex: 5
   m_DifficultyTier: 0
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: f16dad97d6094c5fa353b599dab245b3, type: 3}
@@ -49,18 +49,14 @@ MonoBehaviour:
   m_CubeRowStepOffset: {x: 0, y: 0, z: 0}
   m_InnerPadding: 0.08
   m_SkipTransparent: 1
-  m_MysteryCubeCoordinates:
-  - {x: 8, y: 10}
-  - {x: 9, y: 10}
-  - {x: 9, y: 9}
-  - {x: 7, y: 9}
-  - {x: 8, y: 9}
+  m_MysteryCubeCoordinates: []
   m_MysteryRevealCondition: 0
   m_MysteryCubeColor: {r: 0.1254902, g: 0.11764706, b: 0.30588236, a: 1}
   m_SlotSprite: {fileID: 0}
   m_SlotCount: 3
   m_PoolColumns: 3
   m_PoolRows: 3
+  m_DisableAutoPlaceTurbo: 0
   m_TruckCapacity: 20
   m_MinTruckCapacity: 10
   m_PeakTruckCapacity: 10

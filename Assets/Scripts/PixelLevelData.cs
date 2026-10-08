@@ -346,6 +346,10 @@ namespace PixelGame
         [Range(1, 5)]
         [SerializeField] private int m_PoolRows = 2;
 
+        [Tooltip("Açıksa bu bölümde oyun sonundaki otomatik yerleştirme ve 2X hızlanma çalışmaz " +
+                 "(ör. kısa giriş bölümlerinde oyuncu son gemileri kendisi göndersin).")]
+        [SerializeField] private bool m_DisableAutoPlaceTurbo = false;
+
         [Tooltip("Bir kamyonun kasasına kaç küp sığar. Küçük değer daha çok kamyon demektir; " +
                  "bölümdeki toplam küp sayısına göre ayarla.")]
         [Min(1)]
@@ -563,6 +567,7 @@ namespace PixelGame
         public int SlotCount { get => m_SlotCount; set => m_SlotCount = Mathf.Max(1, value); }
         public int PoolColumns { get => m_PoolColumns; set => m_PoolColumns = Mathf.Max(1, value); }
         public int PoolRows { get => m_PoolRows; set => m_PoolRows = Mathf.Max(1, value); }
+        public bool DisableAutoPlaceTurbo { get => m_DisableAutoPlaceTurbo; set => m_DisableAutoPlaceTurbo = value; }
         public int TruckCapacity { get => m_TruckCapacity; set => m_TruckCapacity = Mathf.Max(1, value); }
         /// <summary>Karışık kapasitenin alt sınırı; hiçbir zaman TruckCapacity'yi geçmez.</summary>
         public int MinTruckCapacity { get => Mathf.Clamp(m_MinTruckCapacity, 1, Mathf.Max(1, m_TruckCapacity)); set => m_MinTruckCapacity = Mathf.Max(1, value); }

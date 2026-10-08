@@ -64,6 +64,7 @@ MonoBehaviour:
   m_SlotCount: 4
   m_PoolColumns: 3
   m_PoolRows: 2
+  m_DisableAutoPlaceTurbo: 0
   m_TruckCapacity: 20
   m_MinTruckCapacity: 4
   m_PeakTruckCapacity: 10
