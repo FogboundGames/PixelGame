@@ -331,6 +331,31 @@ namespace PixelGame
         private static Material s_ShipFakeShadowMaterial;
         private static Mesh s_QuadMesh;
 
+        public enum ChimneyCorner
+        {
+            RearRight,
+            RearLeft,
+            FrontRight,
+            FrontLeft,
+            Custom,
+            FrontCenter // Custom'dan sonra: serileştirilmiş enum indeksleri kaymasın
+        }
+
+        public const ChimneyCorner DefaultChimneyCorner = ChimneyCorner.FrontCenter;
+
+        [Header("💨 Baca & Duman Efekti (Chimney & Smoke)")]
+        [Tooltip("Geminin tavanına sevimli bir baca ve hafifçe tüten hypercasual duman efekti ekler.")]
+        [SerializeField] private bool m_EnableChimneySmoke = true;
+        [Tooltip("Bacanın kabin çatısı üzerindeki konumu (Varsayılan: FrontCenter / Ön Orta, pencere boşluğunun içi).")]
+        [SerializeField] private ChimneyCorner m_ChimneyCorner = DefaultChimneyCorner;
+        [Tooltip("Bacanın kabin çatısı üzerindeki yerel konumu.")]
+        [SerializeField] private Vector3 m_ChimneyLocalPos = new Vector3(0f, 0.732f, -2.193f);
+        [SerializeField] private Transform m_ChimneyTransform;
+        [SerializeField] private ParticleSystem m_ChimneySmokePS;
+        [SerializeField] private Material m_ChimneyBodyMaterial;
+        [SerializeField] private Material m_ChimneyRimMaterial;
+        [SerializeField] private Material m_ChimneySmokeMaterial;
+
         // Dahili referanslar
         private MeshRenderer[] m_Renderers;
         private MaterialPropertyBlock m_PropBlock;
@@ -538,9 +563,14 @@ namespace PixelGame
                 if (mr.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
                 if (m_FakeShadowObj != null && (mr.gameObject == m_FakeShadowObj || mr.transform.IsChildOf(m_FakeShadowObj.transform))) continue;
                 if (m_CargoDeckRoot != null && mr.transform.IsChildOf(m_CargoDeckRoot)) continue;
+                if (m_ChimneyTransform != null && (mr.gameObject == m_ChimneyTransform.gameObject || mr.transform.IsChildOf(m_ChimneyTransform))) continue;
+                if (mr.name.IndexOf("Chimney", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                if (mr.name.IndexOf("Smoke", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
 
                 mr.sharedMaterial = coverMat;
             }
+
+            UpdateChimneyRimColor();
         }
 
         public static Material GetOrCreateMysteryCoverMaterial()
@@ -975,6 +1005,7 @@ namespace PixelGame
                 CreateOrFindBadge();
                 EnsureFakeShadow();
                 EnsureSilhouetteShadow();
+                EnsureChimneyAndSmoke();
             }
         }
 
@@ -991,12 +1022,14 @@ namespace PixelGame
                 CreateOrFindBadge();
                 EnsureFakeShadow();
                 EnsureSilhouetteShadow();
+                EnsureChimneyAndSmoke();
                 UpdateBadgeText();
             }
             else
             {
                 ApplyColorToShip(m_ShipColor);
                 QueueEditorSilhouetteShadow();
+                QueueEditorChimneySetup();
             }
         }
 
@@ -1038,12 +1071,17 @@ namespace PixelGame
             if (UnityEditor.PrefabUtility.IsPartOfPrefabAsset(this))
             {
                 ShipController source = this;
-                UnityEditor.EditorApplication.delayCall += () => SyncBadgeSettingsToScene(source);
+                UnityEditor.EditorApplication.delayCall += () =>
+                {
+                    SyncBadgeSettingsToScene(source);
+                    SyncChimneySettingsToScene(source);
+                };
             }
 #endif
             ApplyColorToShip(m_ShipColor);
             EnsureFakeShadow();
             QueueEditorSilhouetteShadow();
+            QueueEditorChimneySetup();
         }
 
         /// <summary>
@@ -1061,6 +1099,23 @@ namespace PixelGame
                 if (UnityEditor.PrefabUtility.IsPartOfPrefabAsset(gameObject)) return;
                 if (!gameObject.scene.IsValid()) return;
                 EnsureSilhouetteShadow();
+            };
+#endif
+        }
+
+        /// <summary>
+        /// Baca ve duman efektini editörde (Play'e basmadan) sahnedeki gemilere otomatik kurar ve günceller.
+        /// </summary>
+        private void QueueEditorChimneySetup()
+        {
+#if UNITY_EDITOR
+            if (Application.isPlaying) return;
+            UnityEditor.EditorApplication.delayCall += () =>
+            {
+                if (this == null || Application.isPlaying) return;
+                if (UnityEditor.PrefabUtility.IsPartOfPrefabAsset(gameObject)) return;
+                if (!gameObject.scene.IsValid()) return;
+                EnsureChimneyAndSmoke();
             };
 #endif
         }
@@ -1175,6 +1230,25 @@ namespace PixelGame
                     continue;
                 UnityEditor.Undo.RecordObject(ship, "Kapasite yazısı ayarı (prefab)");
                 ship.CopyBadgeSettingsFrom(source);
+                UnityEditor.EditorUtility.SetDirty(ship);
+            }
+        }
+
+        private static void SyncChimneySettingsToScene(ShipController source)
+        {
+            if (source == null || Application.isPlaying) return;
+            var ships = UnityEngine.Object.FindObjectsByType<ShipController>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (var ship in ships)
+            {
+                if (ship == null || ship == source || UnityEditor.PrefabUtility.IsPartOfPrefabAsset(ship)) continue;
+                UnityEditor.Undo.RecordObject(ship, "Baca ayarı (prefab)");
+                ship.m_EnableChimneySmoke = source.m_EnableChimneySmoke;
+                ship.m_ChimneyCorner = source.m_ChimneyCorner;
+                ship.m_ChimneyLocalPos = source.m_ChimneyLocalPos;
+                ship.m_ChimneyBodyMaterial = source.m_ChimneyBodyMaterial;
+                ship.m_ChimneyRimMaterial = source.m_ChimneyRimMaterial;
+                ship.m_ChimneySmokeMaterial = source.m_ChimneySmokeMaterial;
+                ship.EnsureChimneyAndSmoke();
                 UnityEditor.EditorUtility.SetDirty(ship);
             }
         }
@@ -1664,6 +1738,10 @@ namespace PixelGame
                 if (m_FakeShadowObj != null && (mr.gameObject == m_FakeShadowObj || mr.transform.IsChildOf(m_FakeShadowObj.transform))) continue;
                 // Dinamik varil renderers'ını ana gövde boyamasından ayrı tut
                 if (m_CargoDeckRoot != null && mr.transform.IsChildOf(m_CargoDeckRoot)) continue;
+                // Baca ve duman renderers'ını kendi özel materyalinde tut
+                if (m_ChimneyTransform != null && (mr.gameObject == m_ChimneyTransform.gameObject || mr.transform.IsChildOf(m_ChimneyTransform))) continue;
+                if (mr.name.IndexOf("Chimney", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                if (mr.name.IndexOf("Smoke", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
 
                 if (Application.isPlaying)
                 {
@@ -1677,6 +1755,7 @@ namespace PixelGame
 
             // Mevcut oluşturulmuş variller varsa renklerini de güncelle
             UpdateAllBarrelsColor();
+            UpdateChimneyRimColor();
 
             // Gizli gemi hâlâ örtülüyse renk güncellemesi örtüyü ezmesin
             if (m_IsMysteryHidden) ApplyMysteryCover();
@@ -1888,6 +1967,8 @@ namespace PixelGame
             float cruiseElapsed = 0f;
             float lastSmokeTime = 0f;
 
+            SetSmokeEmissionMultiplier(2.2f);
+
             while (cruiseElapsed < cruiseDuration)
             {
                 cruiseElapsed += Time.deltaTime;
@@ -2040,6 +2121,8 @@ namespace PixelGame
             m_EnableWaterBobbing = false;
             ResetVisualOffset();
             transform.DOKill(true);
+
+            SetSmokeEmissionMultiplier(1.8f);
 
             // 🚢 Gemi slotlara gidene kadar çalacak seyir/motor sesi aktif olur:
             if (HypercasualFeedbackManager.Instance != null)
@@ -2199,6 +2282,7 @@ namespace PixelGame
             m_IsMoving = false;
             m_IsDocked = true;
             m_EnableWaterBobbing = true;
+            SetSmokeEmissionMultiplier(1.0f);
 
             // ÖNEMLİ BUG DÜZELTMESİ: Gemi slota vardığında hemen CompactSlots ÇAĞRILMAZ.
             // CompactSlots yalnızca bir gemi ayrıldığında (boşluk açıldığında) çalışmalıdır;
@@ -2898,6 +2982,8 @@ namespace PixelGame
                 }
             }
 
+            EnsureChimneyAndSmoke();
+
             m_Renderers = GetComponentsInChildren<MeshRenderer>(true);
         }
 
@@ -3298,6 +3384,375 @@ namespace PixelGame
                 m_BadgeUIText.text = countStr;
             }
         }
+
+        #region 💨 Baca & Duman Efekti (Chimney & Gentle Smoke System)
+
+        // İskele (3010, sortingOrder 5) ve slot (3005) görselleri saydam/ZWrite kapalı çizilir; URP saydamları önce
+        // sortingOrder'a, sonra kuyruğa göre sıralar. Baca ikisinde de onların önünde olmazsa gemi iskeleye
+        // yanaşınca eğik iskele düzlemi bacanın üstüne boyanır.
+        private const int ChimneyRenderQueue = 3020;
+        private const int ChimneySortingOrder = 20;
+
+        private static Material WithChimneyRenderQueue(Material mat)
+        {
+            if (mat != null && mat.renderQueue != ChimneyRenderQueue) mat.renderQueue = ChimneyRenderQueue;
+            return mat;
+        }
+
+        private Material GetChimneyBodyMaterial()
+        {
+            if (m_ChimneyBodyMaterial != null) return m_ChimneyBodyMaterial;
+#if UNITY_EDITOR
+            m_ChimneyBodyMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Ship_Chimney_Mat.mat");
+            if (m_ChimneyBodyMaterial != null) return m_ChimneyBodyMaterial;
+#endif
+            Shader sh = Shader.Find("Toony Colors Pro 2/PixelGame/Cartoon") ?? Shader.Find("Universal Render Pipeline/Lit");
+            m_ChimneyBodyMaterial = new Material(sh);
+            m_ChimneyBodyMaterial.name = "Ship_Chimney_Mat_Runtime";
+            m_ChimneyBodyMaterial.SetColor("_BaseColor", new Color(0.10f, 0.11f, 0.13f, 1f));
+            return m_ChimneyBodyMaterial;
+        }
+
+        private Material GetChimneyRimMaterial()
+        {
+            if (m_ChimneyRimMaterial != null) return m_ChimneyRimMaterial;
+#if UNITY_EDITOR
+            m_ChimneyRimMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Ship_Chimney_Rim_Mat.mat");
+            if (m_ChimneyRimMaterial != null) return m_ChimneyRimMaterial;
+#endif
+            Shader sh = Shader.Find("Toony Colors Pro 2/PixelGame/Cartoon") ?? Shader.Find("Universal Render Pipeline/Lit");
+            m_ChimneyRimMaterial = new Material(sh);
+            m_ChimneyRimMaterial.name = "Ship_Chimney_Rim_Mat_Runtime";
+            m_ChimneyRimMaterial.SetColor("_BaseColor", new Color(0.95f, 0.16f, 0.16f, 1f));
+            return m_ChimneyRimMaterial;
+        }
+
+        private Material GetChimneySmokeMaterial()
+        {
+            if (m_ChimneySmokeMaterial != null) return WithSmokeDrawnOverShip(m_ChimneySmokeMaterial);
+#if UNITY_EDITOR
+            m_ChimneySmokeMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Ship_Smoke_Mat.mat");
+            if (m_ChimneySmokeMaterial != null) return WithSmokeDrawnOverShip(m_ChimneySmokeMaterial);
+#endif
+            Shader sh = Shader.Find("PixelGame/CartoonSmokePuff") ?? Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Sprites/Default");
+            m_ChimneySmokeMaterial = new Material(sh);
+            m_ChimneySmokeMaterial.name = "Ship_Smoke_Mat_Runtime";
+            if (m_ChimneySmokeMaterial.HasProperty("_BaseColor"))
+                m_ChimneySmokeMaterial.SetColor("_BaseColor", new Color(0.96f, 0.98f, 1.0f, 0.75f));
+            if (m_ChimneySmokeMaterial.HasProperty("_Softness"))
+                m_ChimneySmokeMaterial.SetFloat("_Softness", 0.28f);
+            return WithSmokeDrawnOverShip(m_ChimneySmokeMaterial);
+        }
+
+        private static readonly Dictionary<Color32, Material> s_CachedChimneyRimMaterials = new Dictionary<Color32, Material>();
+
+        /// <summary>
+        /// Baca yakası geminin renginde boyanır (kırmızı yaka yeşil gemide yabancı duruyordu).
+        /// Siyah gemide yaka siyah gövdeyle kaybolmasın diye güvertedeki gibi beyaz olur.
+        /// </summary>
+        private Material GetChimneyRimMaterialForShipColor(Color shipColor)
+        {
+            Color32 key = (Color32)shipColor;
+            key.a = 255;
+            if (s_CachedChimneyRimMaterials.TryGetValue(key, out Material cached) && cached != null) return cached;
+
+            Material baseMat = GetChimneyRimMaterial();
+            if (baseMat == null) return null;
+
+            float maxChannel = Mathf.Max(shipColor.r, Mathf.Max(shipColor.g, shipColor.b));
+            float luminance = 0.299f * shipColor.r + 0.587f * shipColor.g + 0.114f * shipColor.b;
+            bool isBlackShip = maxChannel < 0.28f || luminance < 0.22f;
+            Color rimColor = isBlackShip ? new Color(0.96f, 0.97f, 0.99f, 1f) : shipColor;
+            rimColor.a = 1f;
+
+            Material mat = new Material(baseMat)
+            {
+                name = $"Ship_Chimney_Rim_Mat_{ColorUtility.ToHtmlStringRGB(shipColor)}"
+            };
+            CartoonShader.ApplyColor(mat, rimColor);
+            // Gövdeyle aynı mat görünüm: ApplyColor'ın açtığı plastik parlama/specular/kenar ışığı kapatılır
+            if (mat.HasProperty("_PlasticHighlightIntensity")) mat.SetFloat("_PlasticHighlightIntensity", 0f);
+            if (mat.HasProperty("_PlasticHighlightColor")) mat.SetColor("_PlasticHighlightColor", Color.black);
+            if (mat.HasProperty("_SpecularColor")) mat.SetColor("_SpecularColor", Color.black);
+            if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", Color.clear);
+            mat.renderQueue = ChimneyRenderQueue;
+
+            s_CachedChimneyRimMaterials[key] = mat;
+            return mat;
+        }
+
+        // Gizli (mystery) gemide renkli yaka rengi ele vermesin: örtü süresince yaka baca gövdesiyle aynı koyu renktedir
+        private Material GetCurrentChimneyRimMaterial()
+        {
+            return m_IsMysteryHidden
+                ? WithChimneyRenderQueue(GetChimneyBodyMaterial())
+                : GetChimneyRimMaterialForShipColor(m_ShipColor);
+        }
+
+        private void UpdateChimneyRimColor()
+        {
+            if (m_ChimneyTransform == null) return;
+            Transform rimTr = m_ChimneyTransform.Find("Chimney_Rim");
+            if (rimTr == null) return;
+            MeshRenderer rimMr = rimTr.GetComponent<MeshRenderer>();
+            if (rimMr != null) rimMr.sharedMaterial = GetCurrentChimneyRimMaterial();
+        }
+
+        // Baca kabin pencere boşluğunun içinde; duman derinlik testine girerse kabin duvarları pufları
+        // yarım yamalak keser ve duman geminin içinden geçiyormuş gibi görünür. Duman her zaman gemi üstünde çizilir.
+        private static Material WithSmokeDrawnOverShip(Material mat)
+        {
+            if (mat != null && mat.HasProperty("_ZTest"))
+                mat.SetFloat("_ZTest", (float)UnityEngine.Rendering.CompareFunction.Always);
+            return mat;
+        }
+
+        public static Vector3 GetChimneyPositionForCorner(ChimneyCorner corner)
+        {
+            switch (corner)
+            {
+                case ChimneyCorner.RearLeft:
+                    return new Vector3(-0.46f, 2.05f, 1.38f);
+                case ChimneyCorner.FrontRight:
+                    return new Vector3(0.46f, 2.00f, -1.60f);
+                case ChimneyCorner.FrontLeft:
+                    return new Vector3(-0.46f, 2.00f, -1.60f);
+                case ChimneyCorner.FrontCenter:
+                    return new Vector3(0f, 0.732f, -2.193f);
+                case ChimneyCorner.RearRight:
+                default:
+                    return new Vector3(0.46f, 2.05f, 1.38f);
+            }
+        }
+
+        /// <summary>
+        /// Geminin kabin çatısına şık, belirgin bir hypercasual voxel baca ve hafifçe tüten duman partikül sistemi kurar.
+        /// Varsayılan olarak kabinin önünde ortada (FrontCenter) konumlandırılır.
+        /// </summary>
+        public void EnsureChimneyAndSmoke()
+        {
+#if UNITY_EDITOR
+            if (UnityEditor.PrefabUtility.IsPartOfPrefabAsset(gameObject)) return;
+#endif
+            if (!m_EnableChimneySmoke)
+            {
+                if (m_ChimneyTransform != null) m_ChimneyTransform.gameObject.SetActive(false);
+                return;
+            }
+
+            if (m_ChimneyCorner != ChimneyCorner.Custom)
+            {
+                m_ChimneyLocalPos = GetChimneyPositionForCorner(m_ChimneyCorner);
+            }
+
+            Transform parentTarget = m_VisualRoot != null ? m_VisualRoot : transform;
+
+            Transform chimney = parentTarget.Find("[Chimney]");
+            if (chimney == null && parentTarget != transform) chimney = transform.Find("[Chimney]");
+
+            if (chimney == null)
+            {
+                GameObject chGo = new GameObject("[Chimney]");
+                chGo.transform.SetParent(parentTarget, false);
+                chGo.transform.localPosition = m_ChimneyLocalPos;
+                chGo.transform.localRotation = Quaternion.identity;
+                chGo.transform.localScale = Vector3.one;
+                chimney = chGo.transform;
+            }
+            else
+            {
+                if (chimney.parent != parentTarget) chimney.SetParent(parentTarget, false);
+                chimney.localPosition = m_ChimneyLocalPos;
+                chimney.localRotation = Quaternion.identity;
+                chimney.localScale = Vector3.one;
+            }
+
+            m_ChimneyTransform = chimney;
+            chimney.gameObject.SetActive(true);
+
+            // 1. Baca Gövdesi (Chimney_Body) - Daha yüksek (0.60) ve dolgun (0.36) belirgin voxel gövde
+            Transform bodyTr = chimney.Find("Chimney_Body");
+            GameObject bodyObj;
+            if (bodyTr == null)
+            {
+                bodyObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                bodyObj.name = "Chimney_Body";
+                bodyObj.transform.SetParent(chimney, false);
+                Collider c = bodyObj.GetComponent<Collider>();
+                if (c != null)
+                {
+                    if (Application.isPlaying) Destroy(c);
+                    else DestroyImmediate(c);
+                }
+            }
+            else
+            {
+                bodyObj = bodyTr.gameObject;
+            }
+            bodyObj.transform.localPosition = new Vector3(0f, 0.18f, 0f);
+            bodyObj.transform.localRotation = Quaternion.identity;
+            bodyObj.transform.localScale = new Vector3(0.22f, 0.36f, 0.22f);
+
+            MeshRenderer bodyMr = bodyObj.GetComponent<MeshRenderer>();
+            if (bodyMr != null)
+            {
+                bodyMr.sharedMaterial = WithChimneyRenderQueue(GetChimneyBodyMaterial());
+                bodyMr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                bodyMr.receiveShadows = false;
+                bodyMr.sortingOrder = ChimneySortingOrder;
+            }
+
+            // 2. Baca Yakası / Çerçevesi (Chimney_Rim) - Üst ağızda belirgin kırmızı kontrastlı yaka
+            Transform rimTr = chimney.Find("Chimney_Rim");
+            GameObject rimObj;
+            if (rimTr == null)
+            {
+                rimObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                rimObj.name = "Chimney_Rim";
+                rimObj.transform.SetParent(chimney, false);
+                Collider c = rimObj.GetComponent<Collider>();
+                if (c != null)
+                {
+                    if (Application.isPlaying) Destroy(c);
+                    else DestroyImmediate(c);
+                }
+            }
+            else
+            {
+                rimObj = rimTr.gameObject;
+            }
+            rimObj.transform.localPosition = new Vector3(0f, 0.38f, 0f);
+            rimObj.transform.localRotation = Quaternion.identity;
+            rimObj.transform.localScale = new Vector3(0.28f, 0.10f, 0.28f);
+
+            MeshRenderer rimMr = rimObj.GetComponent<MeshRenderer>();
+            if (rimMr != null)
+            {
+                rimMr.sharedMaterial = GetCurrentChimneyRimMaterial();
+                rimMr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                rimMr.receiveShadows = false;
+                rimMr.sortingOrder = ChimneySortingOrder;
+            }
+
+            // 3. Duman Partikül Sistemi ([Smoke_FX])
+            Transform smokeTr = chimney.Find("[Smoke_FX]");
+            GameObject smokeObj;
+            if (smokeTr == null)
+            {
+                smokeObj = new GameObject("[Smoke_FX]");
+                smokeObj.transform.SetParent(chimney, false);
+                smokeTr = smokeObj.transform;
+            }
+            else
+            {
+                smokeObj = smokeTr.gameObject;
+            }
+            smokeTr.localPosition = new Vector3(0f, 0.44f, 0f);
+            smokeTr.localRotation = Quaternion.Euler(-90f, 0f, 0f); // Yukarı doğru
+            smokeTr.localScale = Vector3.one;
+
+            ParticleSystem ps = smokeObj.GetComponent<ParticleSystem>();
+            if (ps == null) ps = smokeObj.AddComponent<ParticleSystem>();
+            m_ChimneySmokePS = ps;
+
+            SetupChimneySmokeSystem(ps);
+        }
+
+        private void SetupChimneySmokeSystem(ParticleSystem ps)
+        {
+            if (ps == null) return;
+
+            var main = ps.main;
+            main.loop = true;
+            main.playOnAwake = true;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.startLifetime = 1.45f;
+            main.startSpeed = 0.65f;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.18f, 0.24f); // Başlangıçta daha belirgin ve net
+            main.gravityModifier = -0.07f; // Sıcak hava pufu yukarı yükselir
+            main.maxParticles = 65;
+            main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+
+            var emission = ps.emission;
+            emission.enabled = true;
+            emission.rateOverTime = 2.8f; // Akıcı ve tatlı rölanti dumanı
+
+            var shape = ps.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 6.5f;
+            shape.radius = 0.045f;
+
+            // Yükseldikçe sevimli pamuk bulut gibi genişleme (Size Over Lifetime)
+            var sizeOverLifetime = ps.sizeOverLifetime;
+            sizeOverLifetime.enabled = true;
+            AnimationCurve sizeCurve = new AnimationCurve();
+            sizeCurve.AddKey(new Keyframe(0.0f, 1.0f, 0.0f, 2.0f));
+            sizeCurve.AddKey(new Keyframe(1.0f, 3.2f, 1.2f, 0.0f));
+            sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1.0f, sizeCurve);
+
+            // Yumuşakça belirip gökyüzünde kaybolma (Color & Alpha Over Lifetime)
+            var colorOverLifetime = ps.colorOverLifetime;
+            colorOverLifetime.enabled = true;
+            Gradient grad = new Gradient();
+            grad.SetKeys(
+                new GradientColorKey[] {
+                    new GradientColorKey(new Color(0.96f, 0.98f, 1.0f), 0.0f),
+                    new GradientColorKey(new Color(0.93f, 0.95f, 0.98f), 1.0f)
+                },
+                new GradientAlphaKey[] {
+                    new GradientAlphaKey(0.0f, 0.0f),
+                    new GradientAlphaKey(0.78f, 0.12f),
+                    new GradientAlphaKey(0.60f, 0.65f),
+                    new GradientAlphaKey(0.0f, 1.0f)
+                }
+            );
+            colorOverLifetime.color = grad;
+
+            // Hafif rüzgar / salınım esintisi (Velocity Over Lifetime)
+            var vel = ps.velocityOverLifetime;
+            vel.enabled = true;
+            vel.space = ParticleSystemSimulationSpace.World;
+            vel.x = new ParticleSystem.MinMaxCurve(-0.04f, 0.04f);
+            vel.y = new ParticleSystem.MinMaxCurve(0f, 0.04f);
+            vel.z = new ParticleSystem.MinMaxCurve(-0.04f, 0.04f);
+
+            var renderer = ps.GetComponent<ParticleSystemRenderer>();
+            if (renderer != null)
+            {
+                renderer.renderMode = ParticleSystemRenderMode.Billboard;
+                renderer.material = GetChimneySmokeMaterial();
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+                renderer.alignment = ParticleSystemRenderSpace.View;
+                renderer.sortingOrder = ChimneySortingOrder + 1;
+            }
+
+            if (!ps.isPlaying && gameObject.activeInHierarchy)
+            {
+                ps.Play();
+            }
+        }
+
+        /// <summary>
+        /// Gemi seyir halindeyken duman atımını hafifçe artırır (1.8x), durduğunda rölantiye döner (1.0x).
+        /// </summary>
+        public void SetSmokeEmissionMultiplier(float multiplier)
+        {
+            if (m_ChimneySmokePS == null) return;
+            var emission = m_ChimneySmokePS.emission;
+            emission.rateOverTime = 2.8f * Mathf.Max(0.1f, multiplier);
+        }
+
+#if UNITY_EDITOR
+        [ContextMenu("💨 Baca ve Duman Efektini Yenile")]
+        public void RebuildChimneyAndSmoke()
+        {
+            EnsureChimneyAndSmoke();
+        }
+#endif
+
+        #endregion
     }
 }
 

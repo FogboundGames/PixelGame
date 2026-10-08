@@ -4,6 +4,7 @@ Shader "PixelGame/CartoonSmokePuff"
     {
         _BaseColor ("Base Color", Color) = (1, 1, 1, 0.85)
         _Softness ("Softness", Range(0.01, 0.5)) = 0.2
+        [Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Float) = 4
     }
 
     SubShader
@@ -22,6 +23,7 @@ Shader "PixelGame/CartoonSmokePuff"
 
             Blend SrcAlpha OneMinusSrcAlpha
             ZWrite Off
+            ZTest [_ZTest]
             Cull Off
 
             HLSLPROGRAM
