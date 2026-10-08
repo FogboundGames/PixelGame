@@ -10,7 +10,9 @@ namespace PixelGame.EditorTools
     {
         static SetupShipChimneySmoke()
         {
-            EditorApplication.delayCall += ExecuteAutoSetup;
+            // Otomatik tetikleme kapatıldı: her derlemede gemi prefab'ını yeniden kaydedip sahneyi kirli (*)
+            // yapıyordu. Baca prefab'a ve sahneye zaten kayıtlı; gerekirse PixelGame/Ships menüsünden elle çalıştırılır.
+            // EditorApplication.delayCall += ExecuteAutoSetup;
         }
 
         private static void ExecuteAutoSetup()

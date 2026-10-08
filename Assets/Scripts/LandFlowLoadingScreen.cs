@@ -83,6 +83,7 @@ namespace PixelGame
         private GameObject m_ClassicRoot; // Klasik ağaç (yalnız level geçişlerinde görünür)
         private Image m_ClassicLogoImage;
         private TextMeshProUGUI m_ClassicText;
+        private Image m_ClassicBadgeImage; // "LOADING" için açılış ekranındaki 3D rozetin aynısı
         private TextMeshProUGUI m_ClassicSubText;
         private RectTransform m_ClassicBarFill;
         private RectTransform m_ClassicBarBg;
@@ -587,31 +588,51 @@ namespace PixelGame
             textRect.anchorMin = new Vector2(0.5f, 0.32f);
             textRect.anchorMax = new Vector2(0.5f, 0.32f);
             textRect.pivot = new Vector2(0.5f, 0.5f);
-            textRect.sizeDelta = new Vector2(750f, 90f);
+            textRect.sizeDelta = new Vector2(820f, 110f);
             textRect.anchoredPosition = new Vector2(0f, -30f);
 
             m_ClassicText = textObj.AddComponent<TextMeshProUGUI>();
             if (m_Font != null) m_ClassicText.font = m_Font;
             m_ClassicText.text = "LOADING...";
-            m_ClassicText.fontSize = 52;
+            // Açılış ekranındaki "LOADING" rozetinin stili: sarı → turuncu, kalın lacivert kontur ve 3D gölge
+            m_ClassicText.fontSize = 62;
             m_ClassicText.enableAutoSizing = true;
-            m_ClassicText.fontSizeMin = 36;
-            m_ClassicText.fontSizeMax = 52;
+            m_ClassicText.fontSizeMin = 40;
+            m_ClassicText.fontSizeMax = 62;
             m_ClassicText.fontStyle = FontStyles.Bold;
             m_ClassicText.alignment = TextAlignmentOptions.Center;
             m_ClassicText.color = Color.white;
             m_ClassicText.enableVertexGradient = true;
             m_ClassicText.colorGradient = new VertexGradient(
-                Color.white,
-                Color.white,
-                new Color(0.85f, 0.95f, 1f, 1f),
-                new Color(0.85f, 0.95f, 1f, 1f)
+                new Color(1f, 0.95f, 0.15f, 1f), // Parlak sarı tepe
+                new Color(1f, 0.95f, 0.15f, 1f),
+                new Color(1f, 0.52f, 0.00f, 1f), // Sıcak turuncu alt
+                new Color(1f, 0.52f, 0.00f, 1f)
             );
             m_ClassicText.raycastTarget = false;
 
+            // Rozetteki gibi kalın lacivert kontur + alta düşen 3D gölge
             var outline = textObj.AddComponent<Outline>();
-            outline.effectColor = new Color(0.02f, 0.15f, 0.35f, 0.85f);
-            outline.effectDistance = new Vector2(2.5f, -2.5f);
+            outline.effectColor = new Color(0.03f, 0.16f, 0.42f, 1f);
+            outline.effectDistance = new Vector2(4f, -4f);
+            var depth = textObj.AddComponent<Shadow>();
+            depth.effectColor = new Color(0.02f, 0.10f, 0.30f, 1f);
+            depth.effectDistance = new Vector2(0f, -7f);
+
+            // "LOADING" mesajında açılış ekranındaki 3D rozet gösterilir (yazıyla aynı yerde)
+            GameObject badgeObj = new GameObject("LoadingBadge_3D");
+            badgeObj.transform.SetParent(centerContainer.transform, false);
+            RectTransform badgeRect = badgeObj.AddComponent<RectTransform>();
+            badgeRect.anchorMin = textRect.anchorMin;
+            badgeRect.anchorMax = textRect.anchorMax;
+            badgeRect.pivot = new Vector2(0.5f, 0.5f);
+            badgeRect.sizeDelta = new Vector2(460f, 96f);
+            badgeRect.anchoredPosition = textRect.anchoredPosition;
+            m_ClassicBadgeImage = badgeObj.AddComponent<Image>();
+            m_ClassicBadgeImage.sprite = m_LoadingBadgeSprite;
+            m_ClassicBadgeImage.preserveAspect = true;
+            m_ClassicBadgeImage.raycastTarget = false;
+            badgeObj.SetActive(false);
 
             // 5. Alt Başlık / Ödül Metni
             GameObject subTextObj = new GameObject("SubText");
@@ -650,15 +671,16 @@ namespace PixelGame
             m_ClassicBarBg.anchorMin = new Vector2(0.5f, 0.22f);
             m_ClassicBarBg.anchorMax = new Vector2(0.5f, 0.22f);
             m_ClassicBarBg.pivot = new Vector2(0.5f, 0.5f);
-            m_ClassicBarBg.sizeDelta = new Vector2(520f, 26f);
+            // Açılış ekranındaki barla aynı ölçü ve renkler
+            m_ClassicBarBg.sizeDelta = new Vector2(460f, 22f);
             m_ClassicBarBg.anchoredPosition = new Vector2(0f, -135f);
 
             Image bgBarImg = barBg.AddComponent<Image>();
-            bgBarImg.color = new Color(0.04f, 0.22f, 0.45f, 0.85f);
+            bgBarImg.color = new Color(0.03f, 0.16f, 0.42f, 0.92f); // Koyu okyanus laciverti
             bgBarImg.raycastTarget = false;
 
             var barBorder = barBg.AddComponent<Outline>();
-            barBorder.effectColor = new Color(0.25f, 0.65f, 0.95f, 0.55f);
+            barBorder.effectColor = new Color(0.45f, 0.85f, 1.0f, 0.85f); // Açık camgöbeği ışıltı konturu
             barBorder.effectDistance = new Vector2(2f, -2f);
 
             Mask barMask = barBg.AddComponent<Mask>();
@@ -674,7 +696,7 @@ namespace PixelGame
             m_ClassicBarFill.anchoredPosition = Vector2.zero;
 
             Image fillImg = barFill.AddComponent<Image>();
-            fillImg.color = new Color(1f, 0.85f, 0.20f, 1f);
+            fillImg.color = new Color(1f, 0.82f, 0.15f, 1f); // Canlı altın sarısı (açılış barıyla aynı)
             fillImg.raycastTarget = false;
 
             m_ClassicRoot.SetActive(false);
@@ -702,6 +724,16 @@ namespace PixelGame
                     m_ClassicLogoImage.transform.localScale = Vector3.one;
                     m_ClassicLogoPulseTween = m_ClassicLogoImage.transform
                         .DOScale(Vector3.one * 1.045f, 0.85f)
+                        .SetLoops(-1, LoopType.Yoyo)
+                        .SetEase(Ease.InOutSine)
+                        .SetUpdate(true);
+                }
+                if (m_ClassicBadgeImage != null && m_ClassicBadgeImage.gameObject.activeSelf)
+                {
+                    m_BadgePulseTween?.Kill();
+                    m_ClassicBadgeImage.transform.localScale = Vector3.one;
+                    m_BadgePulseTween = m_ClassicBadgeImage.transform
+                        .DOScale(Vector3.one * 1.05f, 0.85f)
                         .SetLoops(-1, LoopType.Yoyo)
                         .SetEase(Ease.InOutSine)
                         .SetUpdate(true);
@@ -743,6 +775,10 @@ namespace PixelGame
             if (m_ClassicLogoImage != null)
             {
                 m_ClassicLogoImage.transform.localScale = Vector3.one;
+            }
+            if (m_ClassicBadgeImage != null)
+            {
+                m_ClassicBadgeImage.transform.localScale = Vector3.one;
             }
 
             if (m_LoadingBadgeImage != null)
@@ -788,9 +824,14 @@ namespace PixelGame
                 }
             }
 
-            // Klasik ağaç: yazı her zaman görünür (rozet yok)
+            // Klasik ağaç: açılış ekranı gibi "LOADING" için 3D rozet, diğer mesajlarda yazı
+            if (m_ClassicBadgeImage != null)
+            {
+                m_ClassicBadgeImage.gameObject.SetActive(isDefaultLoading);
+            }
             if (m_ClassicText != null)
             {
+                m_ClassicText.gameObject.SetActive(!isDefaultLoading);
                 m_ClassicText.text = m_CurrentBaseMessage + "...";
             }
 

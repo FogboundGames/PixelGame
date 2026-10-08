@@ -1803,6 +1803,14 @@ namespace PixelGame
                 return true;
             }
 
+            // 1b. Bağlı gemi ama partneri henüz kuyruğa gelmedi: tek başına gönderilemez
+            if (ship.LinkId > 0)
+            {
+                ship.PlayWobble();
+                if (ship.Tether != null) ship.Tether.Rattle();
+                return false;
+            }
+
             // 2. Normal Tekil Gemi Kontrolü
             // En ön sıra kontrolü
             if (m_QueuePool != null && !m_QueuePool.IsFrontRow(ship))
@@ -2339,8 +2347,10 @@ namespace PixelGame
                 return;
             }
 
-            // Eğer herhangi bir slot boşsa deadlock kesinlikle imkansızdır; maliyetli kontrolleri yapma.
-            if (HasAnyEmptySlot())
+            // Boş slot varken oyuncu bir gemi gönderebiliyorsa deadlock imkansızdır; maliyetli kontrolleri yapma.
+            // (Boş slot olsa bile tek seçenek 2 slot isteyen bağlı çiftse oyun kilitlenebilir — aşağıda kontrol edilir.)
+            int emptySlotCount = CountEmptySlots();
+            if (emptySlotCount > 0 && CanPlayerSendAnyShip(emptySlotCount))
             {
                 m_DeadlockTimer = 0f;
                 m_DeadlockCheckIntervalTimer = 0f;
@@ -2477,19 +2487,22 @@ namespace PixelGame
             if (m_Slots == null || m_Slots.Count == 0) return false;
 
             int activeSlotCount = 0;
+            int emptySlots = 0;
             for (int i = 0; i < m_Slots.Count; i++)
             {
                 var slot = m_Slots[i];
                 if (slot == null || !slot.gameObject.activeInHierarchy) continue;
 
                 activeSlotCount++;
-                if (slot.IsEmpty || slot.DockedShip == null)
-                {
-                    return false;
-                }
+                if (slot.IsEmpty || slot.DockedShip == null) emptySlots++;
             }
 
             if (activeSlotCount == 0) return false;
+
+            // Boş slota gönderilebilecek bir gemi varsa fail DEĞİL. Yoksa (ör. tek boş slot var ama ön sıradaki
+            // tek seçenek 2 slot isteyen bağlı çift) slotlar doluymuş gibi devam edilir; eskiden boş slot görünce
+            // hiç fail verilmiyor, oyun sonsuza kadar kilitli kalıyordu.
+            if (emptySlots > 0 && CanPlayerSendAnyShip(emptySlots)) return false;
 
             // 2. Tabloda küp kalmadıysa kazanılmıştır, fail olamaz
             int totalRemaining = GetTotalRemainingCubes();
@@ -2523,7 +2536,7 @@ namespace PixelGame
                 if (slot == null || !slot.gameObject.activeInHierarchy) continue;
 
                 ShipController ship = slot.DockedShip;
-                if (ship == null) return false;
+                if (ship == null) continue; // boş slot (yukarıda gönderilebilir gemi olmadığı görüldü)
 
                 // Gemi şu anda kalkış yapabilecek durumdaysa (bağlıysa partneriyle birlikte kalkacaksa)
                 // slot boşalacak demektir -> fail DEĞİL
@@ -2557,8 +2570,45 @@ namespace PixelGame
                 return false;
             }
 
-            // Tüm slotlar dolu VE hiçbir gemi hamle yapamıyor, küp çekemiyor, hareket edemiyor!
+            // Gönderilebilir gemi yok VE hiçbir gemi hamle yapamıyor, küp çekemiyor, hareket edemiyor!
             return true;
+        }
+
+        private int CountEmptySlots()
+        {
+            if (m_Slots == null) return 0;
+            int n = 0;
+            for (int i = 0; i < m_Slots.Count; i++)
+            {
+                var slot = m_Slots[i];
+                if (slot == null || !slot.gameObject.activeInHierarchy) continue;
+                if (slot.IsEmpty || slot.DockedShip == null) n++;
+            }
+            return n;
+        }
+
+        /// <summary>
+        /// Oyuncu şu an kuyruktan bir gemi gönderebilir mi? TrySendShipFromQueue ile aynı kurallar:
+        /// tekil gemi ön sırada olmalı ve 1 boş slot ister; bağlı çift ikisi de gönderilebilir olmalı ve 2 boş slot ister.
+        /// </summary>
+        private bool CanPlayerSendAnyShip(int emptySlots)
+        {
+            if (emptySlots <= 0 || m_QueuePool == null) return false;
+            var waiting = m_QueuePool.GetActiveWaitingShips();
+            for (int i = 0; i < waiting.Count; i++)
+            {
+                var ship = waiting[i];
+                if (ship == null || ship.IsDocked || ship.IsMoving || ship.IsDeparting) continue;
+                if (ship.IsLinked)
+                {
+                    if (ship.LinkedPartner != null && ship.CanDispatchLinked() && emptySlots >= 2) return true;
+                }
+                else if (ship.LinkId == 0 && m_QueuePool.IsFrontRow(ship)) // partneri gelmemiş bağlı gemi gönderilemez
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public void TriggerLevelFail()

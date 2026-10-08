@@ -1241,6 +1241,11 @@ namespace PixelGame
             foreach (var ship in ships)
             {
                 if (ship == null || ship == source || UnityEditor.PrefabUtility.IsPartOfPrefabAsset(ship)) continue;
+                // Ayarlar zaten aynıysa dokunma (OnValidate her derlemede çalışıyor; yoksa sahne sürekli "değişti" (*) oluyordu)
+                if (ship.m_EnableChimneySmoke == source.m_EnableChimneySmoke && ship.m_ChimneyCorner == source.m_ChimneyCorner &&
+                    ship.m_ChimneyLocalPos == source.m_ChimneyLocalPos && ship.m_ChimneyBodyMaterial == source.m_ChimneyBodyMaterial &&
+                    ship.m_ChimneyRimMaterial == source.m_ChimneyRimMaterial && ship.m_ChimneySmokeMaterial == source.m_ChimneySmokeMaterial)
+                    continue;
                 UnityEditor.Undo.RecordObject(ship, "Baca ayarı (prefab)");
                 ship.m_EnableChimneySmoke = source.m_EnableChimneySmoke;
                 ship.m_ChimneyCorner = source.m_ChimneyCorner;
@@ -1571,6 +1576,7 @@ namespace PixelGame
         {
             s_CachedBoatTextures.Clear();
             s_CachedBoatMaterials.Clear();
+            s_CachedChimneyRimMaterials.Clear();
             s_ReuseSceneBoatMaterials = false;
         }
 
@@ -3456,6 +3462,20 @@ namespace PixelGame
             key.a = 255;
             if (s_CachedChimneyRimMaterials.TryGetValue(key, out Material cached) && cached != null) return cached;
 
+            // Editörde sahneye kayıtlı yaka materyalini yeniden kullan; her derlemede yenisi üretilip sahne
+            // sürekli "değişti" (*) oluyordu (gövde materyalindeki FindExistingBoatMaterial ile aynı sorun)
+            string expectedName = $"Ship_Chimney_Rim_Mat_{ColorUtility.ToHtmlStringRGB(shipColor)}";
+            if (!Application.isPlaying && s_ReuseSceneBoatMaterials && m_ChimneyTransform != null)
+            {
+                Transform rimTr = m_ChimneyTransform.Find("Chimney_Rim");
+                MeshRenderer rimMr = rimTr != null ? rimTr.GetComponent<MeshRenderer>() : null;
+                if (rimMr != null && rimMr.sharedMaterial != null && rimMr.sharedMaterial.name == expectedName)
+                {
+                    s_CachedChimneyRimMaterials[key] = rimMr.sharedMaterial;
+                    return rimMr.sharedMaterial;
+                }
+            }
+
             Material baseMat = GetChimneyRimMaterial();
             if (baseMat == null) return null;
 
@@ -3467,7 +3487,7 @@ namespace PixelGame
 
             Material mat = new Material(baseMat)
             {
-                name = $"Ship_Chimney_Rim_Mat_{ColorUtility.ToHtmlStringRGB(shipColor)}"
+                name = expectedName
             };
             CartoonShader.ApplyColor(mat, rimColor);
             // Gövdeyle aynı mat görünüm: ApplyColor'ın açtığı plastik parlama/specular/kenar ışığı kapatılır
