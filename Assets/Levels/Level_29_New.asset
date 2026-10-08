@@ -54,7 +54,7 @@ MonoBehaviour:
   m_MysteryCubeColor: {r: 0.125, g: 0.118, b: 0.306, a: 1}
   m_SlotSprite: {fileID: 0}
   m_SlotCount: 3
-  m_PoolColumns: 3
+  m_PoolColumns: 2
   m_PoolRows: 2
   m_DisableAutoPlaceTurbo: 1
   m_TruckCapacity: 16
@@ -64,7 +64,7 @@ MonoBehaviour:
   m_RoundCapacityRatio: 0.8
   m_UseCustomWagonSequence: 1
   m_WagonSequence:
-  - wagonColor: {r: 0.87058824, g: 0.22745098, b: 0.20392157, a: 1}
+  - wagonColor: {r: 0.8705883, g: 0.227451, b: 0.20392159, a: 1}
     capacity: 13
     paletteIndex: 0
     label: Renk #1 (1)
@@ -76,22 +76,22 @@ MonoBehaviour:
     label: Renk #2 (2)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.87058824, g: 0.22745098, b: 0.20392157, a: 1}
+  - wagonColor: {r: 0.8705883, g: 0.227451, b: 0.20392159, a: 1}
     capacity: 13
     paletteIndex: 0
     label: Renk #1 (3)
     linkId: 0
     isHidden: 0
+  - wagonColor: {r: 0.8705883, g: 0.227451, b: 0.20392159, a: 1}
+    capacity: 12
+    paletteIndex: 0
+    label: Renk #1 (4)
+    linkId: 0
+    isHidden: 0
   - wagonColor: {r: 0.1764706, g: 0.15686275, b: 0.1764706, a: 1}
     capacity: 5
     paletteIndex: 2
-    label: Renk #3 (4)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.87058824, g: 0.22745098, b: 0.20392157, a: 1}
-    capacity: 12
-    paletteIndex: 0
-    label: Renk #1 (5)
+    label: Renk #3 (5)
     linkId: 0
     isHidden: 0
   m_FigureShadowTexture: {fileID: 0}

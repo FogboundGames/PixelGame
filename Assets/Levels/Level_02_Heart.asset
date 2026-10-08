@@ -53,9 +53,9 @@ MonoBehaviour:
   m_MysteryRevealCondition: 0
   m_MysteryCubeColor: {r: 0.1254902, g: 0.11764706, b: 0.30588236, a: 1}
   m_SlotSprite: {fileID: 0}
-  m_SlotCount: 5
+  m_SlotCount: 4
   m_PoolColumns: 3
-  m_PoolRows: 6
+  m_PoolRows: 2
   m_DisableAutoPlaceTurbo: 0
   m_TruckCapacity: 20
   m_MinTruckCapacity: 10
@@ -67,115 +67,91 @@ MonoBehaviour:
   - wagonColor: {r: 0.7843137, g: 0.0392157, b: 0.3921569, a: 1}
     capacity: 20
     paletteIndex: 1
-    label: "Fu\u015Fya (#2) (#1)"
-    linkId: 2
+    label: Renk #2 (1)
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.7843137, g: 0.0392157, b: 0.3921569, a: 1}
+    capacity: 20
+    paletteIndex: 1
+    label: Renk #2 (2)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (3)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (4)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (5)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (6)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (7)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (8)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
     capacity: 19
-    paletteIndex: 1
-    label: "Fu\u015Fya (#2) (#1)"
-    linkId: 2
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 15
     paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#2)"
+    label: Renk #1 (9)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 20
+    capacity: 19
     paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#2)"
+    label: Renk #1 (10)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 10
+    capacity: 7
     paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#2)"
-    linkId: 1
+    label: Renk #1 (11)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    capacity: 19
+    paletteIndex: 0
+    label: Renk #1 (12)
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.7843137, g: 0.0392157, b: 0.3921569, a: 1}
-    capacity: 11
+    capacity: 10
     paletteIndex: 1
-    label: "Fu\u015Fya (#2) (#3)"
-    linkId: 1
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 10
-    paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#4)"
-    linkId: 0
-    isHidden: 1
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 20
-    paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#6)"
+    label: Renk #2 (13)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 17
+    capacity: 19
     paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#8)"
+    label: Renk #1 (14)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 20
-    paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#9)"
-    linkId: 0
-    isHidden: 1
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 10
-    paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#10)"
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 10
-    paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#10)"
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 10
-    paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#10)"
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 12
-    paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#11)"
-    linkId: 0
-    isHidden: 1
   - wagonColor: {r: 1, g: 0.7647059, b: 0.9019608, a: 1}
     capacity: 5
     paletteIndex: 2
-    label: "A\xE7\u0131k Pembe (#3) (#12)"
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 10
-    paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#13)"
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 10
-    paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#14)"
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 19
-    paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#14)"
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 10
-    paletteIndex: 0
-    label: "Fu\u015Fya (#1) (#14)"
+    label: Renk #3 (15)
     linkId: 0
     isHidden: 0
   m_FigureShadowTexture: {fileID: 0}

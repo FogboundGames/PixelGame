@@ -58,8 +58,8 @@ MonoBehaviour:
   m_MysteryCubeColor: {r: 0.125, g: 0.118, b: 0.306, a: 1}
   m_SlotSprite: {fileID: 0}
   m_SlotCount: 4
-  m_PoolColumns: 5
-  m_PoolRows: 4
+  m_PoolColumns: 4
+  m_PoolRows: 2
   m_DisableAutoPlaceTurbo: 0
   m_TruckCapacity: 20
   m_MinTruckCapacity: 10
@@ -71,109 +71,109 @@ MonoBehaviour:
   - wagonColor: {r: 0.7019608, g: 0.43921572, b: 0.23529413, a: 1}
     capacity: 20
     paletteIndex: 3
-    label: Turuncu (#4) (#1)
+    label: Renk #4 (1)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.8980393, g: 0.5764706, b: 0.18431373, a: 1}
     capacity: 20
     paletteIndex: 2
-    label: Turuncu (#3) (#2)
+    label: Renk #3 (2)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.7294118, g: 0.16470589, b: 0.20392159, a: 1}
     capacity: 20
     paletteIndex: 1
-    label: "K\u0131rm\u0131z\u0131 (#2) (#3)"
+    label: Renk #2 (3)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.7019608, g: 0.43921572, b: 0.23529413, a: 1}
     capacity: 20
     paletteIndex: 3
-    label: Turuncu (#4) (#4)
+    label: Renk #4 (4)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.8980393, g: 0.5764706, b: 0.18431373, a: 1}
     capacity: 20
     paletteIndex: 2
-    label: Turuncu (#3) (#5)
+    label: Renk #3 (5)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.96470594, g: 0.7372549, b: 0.28627452, a: 1}
     capacity: 20
     paletteIndex: 0
-    label: Turuncu (#1) (#6)
+    label: Renk #1 (6)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.96470594, g: 0.7372549, b: 0.28627452, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (7)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.96470594, g: 0.7372549, b: 0.28627452, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (8)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.7294118, g: 0.16470589, b: 0.20392159, a: 1}
+    capacity: 20
+    paletteIndex: 1
+    label: Renk #2 (9)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.96470594, g: 0.7372549, b: 0.28627452, a: 1}
+    capacity: 15
+    paletteIndex: 0
+    label: Renk #1 (10)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.96470594, g: 0.7372549, b: 0.28627452, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (11)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.8980393, g: 0.5764706, b: 0.18431373, a: 1}
     capacity: 20
     paletteIndex: 2
-    label: Turuncu (#3) (#7)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.96470594, g: 0.7372549, b: 0.28627452, a: 1}
-    capacity: 20
-    paletteIndex: 0
-    label: Turuncu (#1) (#8)
+    label: Renk #3 (12)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.7294118, g: 0.16470589, b: 0.20392159, a: 1}
-    capacity: 20
+    capacity: 17
     paletteIndex: 1
-    label: "K\u0131rm\u0131z\u0131 (#2) (#9)"
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.96470594, g: 0.7372549, b: 0.28627452, a: 1}
-    capacity: 20
-    paletteIndex: 0
-    label: Turuncu (#1) (#10)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.7294118, g: 0.16470589, b: 0.20392159, a: 1}
-    capacity: 20
-    paletteIndex: 1
-    label: "K\u0131rm\u0131z\u0131 (#2) (#11)"
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.96470594, g: 0.7372549, b: 0.28627452, a: 1}
-    capacity: 20
-    paletteIndex: 0
-    label: Turuncu (#1) (#12)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.7294118, g: 0.16470589, b: 0.20392159, a: 1}
-    capacity: 10
-    paletteIndex: 1
-    label: "K\u0131rm\u0131z\u0131 (#2) (#13)"
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.96470594, g: 0.7372549, b: 0.28627452, a: 1}
-    capacity: 20
-    paletteIndex: 0
-    label: Turuncu (#1) (#14)
+    label: Renk #2 (13)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.8980393, g: 0.5764706, b: 0.18431373, a: 1}
     capacity: 6
     paletteIndex: 2
-    label: Turuncu (#3) (#15)
+    label: Renk #3 (14)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.96470594, g: 0.7372549, b: 0.28627452, a: 1}
-    capacity: 20
+    capacity: 15
     paletteIndex: 0
-    label: Turuncu (#1) (#16)
+    label: Renk #1 (15)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.7294118, g: 0.16470589, b: 0.20392159, a: 1}
+    capacity: 13
+    paletteIndex: 1
+    label: Renk #2 (16)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.7019608, g: 0.43921572, b: 0.23529413, a: 1}
     capacity: 6
     paletteIndex: 3
-    label: Turuncu (#4) (#17)
+    label: Renk #4 (17)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.96470594, g: 0.7372549, b: 0.28627452, a: 1}
-    capacity: 10
+    capacity: 20
     paletteIndex: 0
-    label: Turuncu (#1) (#18)
+    label: Renk #1 (18)
     linkId: 0
     isHidden: 0
   m_FigureShadowTexture: {fileID: 0}
