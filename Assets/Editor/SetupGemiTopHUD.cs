@@ -22,8 +22,10 @@ namespace PixelGame.Editor
 
         static SetupGemiTopHUD()
         {
-            EditorApplication.delayCall += AutoRemoveCoinsIfNeeded;
-            EditorApplication.delayCall += AutoSetupRetryButtonIfNeeded;
+            // Otomatik tetikleme kapatıldı: Unity her açıldığında sahneyi habersiz değiştirip kirli (*)
+            // yapıyordu. Gerekirse PixelGame menüsünden elle çalıştırılır.
+            // EditorApplication.delayCall += AutoRemoveCoinsIfNeeded;
+            // EditorApplication.delayCall += AutoSetupRetryButtonIfNeeded;
         }
 
         private static void AutoRemoveCoinsIfNeeded()

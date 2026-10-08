@@ -1488,10 +1488,41 @@ namespace PixelGame
         private static readonly Dictionary<Color32, Texture2D> s_CachedBoatTextures = new Dictionary<Color32, Texture2D>();
         private static readonly Dictionary<Color32, Material> s_CachedBoatMaterials = new Dictionary<Color32, Material>();
 
+        // Editörde sahneye kayıtlı gemi materyali yeniden kullanılır; aksi halde her derleme/sahne açılışında
+        // yeni materyal üretilip sahne sürekli "değişti" (*) olarak işaretleniyordu. ClearMaterialCache
+        // (ör. "Gemi Güvertelerini ... Yenile" menüsü) bilinçli yeniden üretim istediği için bunu kapatır.
+        private static bool s_ReuseSceneBoatMaterials = true;
+
         public static void ClearMaterialCache()
         {
             s_CachedBoatTextures.Clear();
             s_CachedBoatMaterials.Clear();
+            s_ReuseSceneBoatMaterials = false;
+        }
+
+        /// <summary>
+        /// Editörde, renderer'lardan birinde bu renk için zaten kayıtlı gemi materyali varsa onu önbelleğe alıp döndürür.
+        /// </summary>
+        private Material FindExistingBoatMaterial(Color color)
+        {
+            if (Application.isPlaying || !s_ReuseSceneBoatMaterials || m_Renderers == null) return null;
+
+            Color32 key = (Color32)color;
+            key.a = 255;
+            if (s_CachedBoatMaterials.TryGetValue(key, out Material cached) && cached != null) return cached;
+
+            string expectedName = $"Ship_BoatMat_{ColorUtility.ToHtmlStringRGB(color)}";
+            foreach (var mr in m_Renderers)
+            {
+                if (mr == null) continue;
+                Material existing = mr.sharedMaterial;
+                if (existing != null && existing.name == expectedName)
+                {
+                    s_CachedBoatMaterials[key] = existing;
+                    return existing;
+                }
+            }
+            return null;
         }
 
         public static Texture2D GetOrCreateTintedBoatTexture(Color shipColor)
@@ -1623,7 +1654,7 @@ namespace PixelGame
                 m_Renderers = GetComponentsInChildren<MeshRenderer>(true);
             }
 
-            Material boatMat = GetOrCreateBoatMaterial(color);
+            Material boatMat = FindExistingBoatMaterial(color) ?? GetOrCreateBoatMaterial(color);
 
             foreach (var mr in m_Renderers)
             {

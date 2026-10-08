@@ -11,11 +11,16 @@ namespace PixelGame.Editor
 
         static CaptureGameViewScreenshot()
         {
+            // Otomatik tetikleme kapatıldı: her derlemede ve Play'den çıkışta sahneyi (gemi konumları,
+            // kuyruk, CoinPill, Retry butonu) değiştirip sürekli "kaydedilmemiş" (*) yapıyordu.
+            // Gerekirse PixelGame menüsünden elle çalıştırılır.
+            /*
             EditorApplication.playModeStateChanged += (s) =>
             {
                 if (s == PlayModeStateChange.EnteredEditMode) EditorApplication.delayCall += CaptureGemiScene;
             };
             EditorApplication.delayCall += CaptureGemiScene;
+            */
         }
 
         private static bool s_IsCapturing = false;

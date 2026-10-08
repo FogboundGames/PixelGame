@@ -22,7 +22,9 @@ namespace PixelGame.Editor
 
         static SetupMainCubePrefabShadow()
         {
-            EditorApplication.delayCall += ApplyShadowToPrefabAndScene;
+            // Otomatik tetikleme kapatıldı: Unity her açıldığında prefab'ları ve sahnedeki küpleri
+            // habersiz değiştirip sahneyi kirli (*) yapıyordu. Gerekirse Tools menüsünden elle çalıştırılır.
+            // EditorApplication.delayCall += ApplyShadowToPrefabAndScene;
         }
 
         private static GameObject CreateShadowQuad(string name, Transform parent)

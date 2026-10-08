@@ -301,6 +301,8 @@ namespace PixelGame
         /// </summary>
         public void ApplyLiveSettings()
         {
+            int fingerprintBefore = Application.isPlaying ? 0 : ComputeHierarchyFingerprint();
+
             // 1. Havuzun genel dikey yüksekliğini (Y) güncelle
             Vector3 lp = transform.localPosition;
             lp.y = m_OffsetY;
@@ -332,10 +334,32 @@ namespace PixelGame
                 }
             }
 
-            if (!Application.isPlaying)
+            // OnValidate sahne her yüklendiğinde (Play'den çıkış, derleme) de tetiklenir; hiçbir şey
+            // değişmediyse sahneyi kirletme, yoksa sahne sürekli "değişti" (*) görünüyordu.
+            if (!Application.isPlaying && ComputeHierarchyFingerprint() != fingerprintBefore)
             {
                 UnityEditor.EditorUtility.SetDirty(gameObject);
                 UnityEditor.SceneView.RepaintAll();
+            }
+        }
+
+        /// <summary>
+        /// Havuz ve altındaki tüm objelerin (spotlar, gemiler) isim/transform özetini döndürür;
+        /// ApplyLiveSettings'in gerçekten bir değişiklik yapıp yapmadığını anlamak için.
+        /// </summary>
+        private int ComputeHierarchyFingerprint()
+        {
+            unchecked
+            {
+                int hash = 17;
+                foreach (Transform t in GetComponentsInChildren<Transform>(true))
+                {
+                    hash = hash * 31 + t.GetInstanceID();
+                    hash = hash * 31 + t.localPosition.GetHashCode();
+                    hash = hash * 31 + t.localRotation.GetHashCode();
+                    hash = hash * 31 + t.localScale.GetHashCode();
+                }
+                return hash;
             }
         }
 #endif
