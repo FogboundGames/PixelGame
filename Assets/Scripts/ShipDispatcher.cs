@@ -859,7 +859,9 @@ namespace PixelGame
             var selectedCubes = new List<PixelCube>(reserved);
             for (int i = 0; i < reserved; i++)
             {
-                selectedCubes.Add(exposedCandidates[i]);
+                var c = exposedCandidates[i];
+                selectedCubes.Add(c);
+                s_ReservedCubes.Add(c);
             }
 
             float centerX = (m_BoardMinX + m_BoardMaxX) * 0.5f;
@@ -936,7 +938,8 @@ namespace PixelGame
         /// <summary>
         /// Küpün hücresinden başlayarak, panodaki katı (solid) piksel küplerine basmadan,
         /// sadece BOŞ HÜCRELER (outsideAir ve boş alanlar) üzerinden panonun alt sınırına
-        /// (minY - 1) inen 4-yönlü (ortogonal) en kısa yolu bulur.
+        /// (minY - 1) inen en kısa ve hedef gemiye yönelen yolu bulur.
+        /// Asla katı piksellerin üzerinden veya köşelerinden geçmez (sınırları %100 korur).
         /// </summary>
         private List<(int, int)> FindEmptySpaceGridPath(
             PixelCube startCube,
@@ -981,51 +984,89 @@ namespace PixelGame
                 return true;
             }
 
-            // Gemi hangi taraftaysa o tarafa öncelik veren 4-yönlü komşu sırası
-            float startWorldX = startCube.transform.position.x;
-            bool boatOnLeft = boatEntrance.x < startWorldX;
+            Vector2 boatTarget2D = new Vector2(boatEntrance.x, boatEntrance.y);
 
-            (int, int)[] directions = boatOnLeft
-                ? new (int, int)[] { (0, -1), (-1, 0), (0, 1), (1, 0) }
-                : new (int, int)[] { (0, -1), (1, 0), (0, 1), (-1, 0) };
-
-            var cameFrom = new Dictionary<(int, int), (int, int)>();
-            var queue = new Queue<(int, int)>();
-
-            foreach (var (dx, dy) in directions)
+            float Heuristic(int gx, int gy)
             {
-                int nx = startCell.Item1 + dx;
-                int ny = startCell.Item2 + dy;
-                if (IsWalkable(nx, ny) && !cameFrom.ContainsKey((nx, ny)))
-                {
-                    cameFrom[(nx, ny)] = startCell;
-                    queue.Enqueue((nx, ny));
-                }
+                Vector3 w = m_GridFrame.ToWorld(gx, gy);
+                // Hedef gemi girişine olan 2B mesafe
+                return Vector2.Distance(new Vector2(w.x, w.y), boatTarget2D);
             }
+
+            // A* Arama Yapısı
+            var openList = new List<((int x, int y) cell, float fScore)>(64);
+            var gScores = new Dictionary<(int, int), float>(128);
+            var cameFrom = new Dictionary<(int, int), (int, int)>(128);
+
+            gScores[startCell] = 0f;
+            openList.Add((startCell, Heuristic(startCell.Item1, startCell.Item2)));
 
             (int, int)? goal = null;
 
-            while (queue.Count > 0)
+            // 8 yönlü hareket vektörleri: 4 ortogonal + 4 diyagonal
+            (int dx, int dy, float cost)[] moves = new (int, int, float)[]
             {
-                var cur = queue.Dequeue();
+                (0, -1, 1.0f),  // Aşağı (kumsala doğru)
+                (-1, 0, 1.0f),  // Sol
+                (1, 0, 1.0f),   // Sağ
+                (-1, -1, 1.414f), // Sol-Aşağı diyagonal
+                (1, -1, 1.414f),  // Sağ-Aşağı diyagonal
+                (0, 1, 1.0f),   // Yukarı
+                (-1, 1, 1.414f),  // Sol-Yukarı diyagonal
+                (1, 1, 1.414f)   // Sağ-Yukarı diyagonal
+            };
 
-                // Hedef: Pano görselinin en alt sırasının altına (minY - 1) ulaşmak
-                if (cur.Item2 <= minY - 1)
+            int maxIterations = 600;
+            while (openList.Count > 0 && --maxIterations > 0)
+            {
+                // En düşük fScore'a sahip düğümü seç
+                int bestIdx = 0;
+                float bestF = openList[0].fScore;
+                for (int i = 1; i < openList.Count; i++)
                 {
-                    goal = cur;
+                    if (openList[i].fScore < bestF)
+                    {
+                        bestF = openList[i].fScore;
+                        bestIdx = i;
+                    }
+                }
+
+                var current = openList[bestIdx].cell;
+                openList.RemoveAt(bestIdx);
+
+                // Hedef: Panonun en alt sırasının altına ulaştıysak güvenli kumsal koridoruna vardık demektir
+                if (current.y <= minY - 1)
+                {
+                    goal = current;
                     break;
                 }
 
-                foreach (var (dx, dy) in directions)
+                float curG = gScores[current];
+
+                for (int m = 0; m < moves.Length; m++)
                 {
-                    int nx = cur.Item1 + dx;
-                    int ny = cur.Item2 + dy;
+                    int nx = current.x + moves[m].dx;
+                    int ny = current.y + moves[m].dy;
                     var next = (nx, ny);
 
-                    if (IsWalkable(nx, ny) && !cameFrom.ContainsKey(next))
+                    if (!IsWalkable(nx, ny)) continue;
+
+                    // DİYAGONAL KÖŞE KESME KORUMASI (No Corner Cutting):
+                    // Diyagonal geçerken her iki komşu ortogonal hücre de yürünebilir (boş) OLMALIDIR!
+                    // Böylece katı piksellerin köşelerinden sıyrılamaz, sadece açık boş alanlarda diyagonal yürür.
+                    if (moves[m].dx != 0 && moves[m].dy != 0)
                     {
-                        cameFrom[next] = cur;
-                        queue.Enqueue(next);
+                        if (!IsWalkable(current.x, ny) || !IsWalkable(nx, current.y))
+                            continue;
+                    }
+
+                    float tentativeG = curG + moves[m].cost;
+                    if (!gScores.TryGetValue(next, out float existingG) || tentativeG < existingG)
+                    {
+                        gScores[next] = tentativeG;
+                        cameFrom[next] = current;
+                        float f = tentativeG + Heuristic(nx, ny);
+                        openList.Add((next, f));
                     }
                 }
             }
@@ -1049,7 +1090,7 @@ namespace PixelGame
 
         /// <summary>
         /// Her küp için kendi anlık dünya pozisyonundan gemi girişine giden bağımsız,
-        /// sadece BOŞ ALANLAR üzerinden (pikselartın üstünden ASLA geçmeden) pürüzsüz yürüyüş yolu oluşturur.
+        /// sadece BOŞ ALANLAR üzerinden (pikselartın üstünden ASLA geçmeden) pürüzsüz ve akıcı yürüyüş yolu oluşturur.
         /// </summary>
         private ShoreLanePath BuildCubeObstacleAvoidancePath(
             PixelCube cube,
@@ -1078,9 +1119,27 @@ namespace PixelGame
 
             if (gridPath != null && gridPath.Count > 1)
             {
-                for (int i = 1; i < gridPath.Count; i++)
+                // Kolonel (aynı doğrultuda devam eden) gereksiz adımları ayıkla
+                var simplified = new List<(int, int)>(gridPath.Count);
+                simplified.Add(gridPath[0]);
+                for (int i = 1; i < gridPath.Count - 1; i++)
                 {
-                    var c = gridPath[i];
+                    int dx1 = gridPath[i].Item1 - simplified[simplified.Count - 1].Item1;
+                    int dy1 = gridPath[i].Item2 - simplified[simplified.Count - 1].Item2;
+                    int dx2 = gridPath[i + 1].Item1 - gridPath[i].Item1;
+                    int dy2 = gridPath[i + 1].Item2 - gridPath[i].Item2;
+
+                    // Aynı yönde düz bir hat boyunca devam ediyorsa aradaki noktayı atla
+                    if (dx1 * dy2 == dy1 * dx2 && (dx1 * dx2 >= 0) && (dy1 * dy2 >= 0))
+                        continue;
+
+                    simplified.Add(gridPath[i]);
+                }
+                simplified.Add(gridPath[gridPath.Count - 1]);
+
+                for (int i = 1; i < simplified.Count; i++)
+                {
+                    var c = simplified[i];
                     Vector3 p = m_GridFrame.ToWorld(c.Item1, c.Item2);
                     p.z = boardZ;
 
@@ -1134,19 +1193,27 @@ namespace PixelGame
             Vector3 pDrop = new Vector3(exitX, safeCorridorY, groundZ);
             rawWpts.Add(pDrop);
 
-            // B) Kumsal boyunca gemi X hizasına doğru yatay yürüyüş
+            // B) Kumsal boyunca gemiye doğru pürüzsüz ve akıcı kavis (Smooth Diagonal Flow):
+            // Robotik 90° dik köşeli düz yürüyüş yerine, kumsalın tamamen boş ve açık alanını
+            // kullanarak gemi girişine doğru tatlı bir kavisle süzülür.
             float deltaX = targetX - exitX;
-            if (Mathf.Abs(deltaX) > pitch * 0.5f)
+            if (Mathf.Abs(deltaX) > pitch * 0.25f)
             {
-                Vector3 pMid1 = new Vector3(exitX + deltaX * 0.35f, safeCorridorY, groundZ);
-                Vector3 pMid2 = new Vector3(exitX + deltaX * 0.70f, safeCorridorY, groundZ);
+                Vector3 pMid1 = new Vector3(
+                    exitX + deltaX * 0.28f,
+                    Mathf.Lerp(safeCorridorY, targetY, 0.16f),
+                    groundZ);
+                Vector3 pMid2 = new Vector3(
+                    exitX + deltaX * 0.65f,
+                    Mathf.Lerp(safeCorridorY, targetY, 0.48f),
+                    groundZ);
                 rawWpts.Add(pMid1);
                 rawWpts.Add(pMid2);
             }
 
             // C) Gemi girişine yaklaşma
-            float approachY = Mathf.Lerp(safeCorridorY, targetY, 0.55f);
-            float approachX = targetX + (isLeft ? -pitch * 0.12f : pitch * 0.12f);
+            float approachY = Mathf.Lerp(safeCorridorY, targetY, 0.80f);
+            float approachX = targetX + (isLeft ? -pitch * 0.08f : pitch * 0.08f);
             Vector3 pApproach = new Vector3(approachX, approachY, groundZ);
             rawWpts.Add(pApproach);
 
@@ -1169,9 +1236,7 @@ namespace PixelGame
             }
 
             // Köşeleri yumuşak ve doğal Bezier kavisle (Fillet) yuvarlatılmış akıcı yol oluştur:
-            // Dışa taşma (overshoot) %100 engellenir, 90° sivri kırılmalar kalktığı için
-            // küpler arka arkaya dönerken asla sarsılmaz ve titremez.
-            float cornerRadius = Mathf.Clamp(pitch * 0.80f, 0.10f, 0.22f);
+            float cornerRadius = Mathf.Clamp(pitch * 1.10f, 0.16f, 0.32f);
             ShoreLanePath path = ShoreLanePath.BuildFilleted(cleanWpts, cornerRadius, 0.025f);
             boardExitDist = path.ClosestDistance(boardExit);
             return path;
@@ -1258,6 +1323,13 @@ namespace PixelGame
                 Vector3 initialDir = (paths != null && k < paths.Count && paths[k] != null) 
                     ? paths[k].TangentAtDistance(0f) 
                     : Vector3.down;
+                Vector3 toBoat = shoreTargetAtLaunch - cube.transform.position;
+                toBoat.z = 0f;
+                if (toBoat.sqrMagnitude > 1e-4f)
+                {
+                    // İlk kalkış yönlenmesinde hem yolun başlangıç yönünü hem de hedef gemiyi dikkate al
+                    initialDir = (initialDir * 0.60f + toBoat.normalized * 0.40f).normalized;
+                }
                 motion.BeginRopeMotion(s, k, cubeCruises[k], liftHeight, initialDir);
                 motion.SetGroundPlaneZ(groundPlaneZ);
                 motions[k] = motion;
@@ -1757,7 +1829,7 @@ namespace PixelGame
         public bool TrySendShipFromQueue(ShipController ship)
         {
             if (m_IsAutoPlacing || m_IsLevelFailed) return false;
-            if (ship == null || ship.IsDocked || ship.IsMoving || ship.IsDeparting) return false;
+            if (ship == null || ship.IsDocked || ship.IsMoving || ship.IsDeparting || ship.IsQueueAnimating) return false;
 
             // 1. 🔗 Bağlı Gemi Kontrolü
             if (ship.IsLinked)
@@ -1765,7 +1837,7 @@ namespace PixelGame
                 ShipController partner = ship.LinkedPartner;
 
                 // Partner de en ön sırada mı?
-                if (!ship.CanDispatchLinked() || partner == null)
+                if (partner == null || !ship.CanDispatchLinked() || partner.IsQueueAnimating)
                 {
                     ship.PlayWobble();
                     if (partner != null) partner.PlayWobble();
@@ -1788,14 +1860,15 @@ namespace PixelGame
                 ShipSlot slotA = emptySlots[0];
                 ShipSlot slotB = emptySlots[1];
 
+                // Gemileri önce kuyruk ebeveyninden ayır ki arkadaki gemiler öne kayarken ebeveyn çakışması olmasın
+                ship.transform.SetParent(null, true);
+                partner.transform.SetParent(null, true);
+
                 // Her iki gemiyi de kuyruk sisteminden çıkar (alt alta olsalar dahi çift sıra kaydırmayı kusursuz işletir)
                 if (m_QueuePool != null)
                 {
                     m_QueuePool.OnLinkedShipsDispatched(ship, partner);
                 }
-
-                ship.transform.SetParent(null, true);
-                partner.transform.SetParent(null, true);
 
                 m_PlayerSentShipCount++;
                 ship.SailToSlot(slotA);
@@ -1828,14 +1901,15 @@ namespace PixelGame
                 return false;
             }
 
+            // Gemiyi kuyruk ebeveyninden hemen ayır ki arkadaki gemi geldiğinde çakışmasın
+            ship.transform.SetParent(null, true);
+
             // Kuyruktan çıkar, arkadaki gemiyi öne kaydır ve açık denizden yenisini getir
             if (m_QueuePool != null)
             {
                 m_QueuePool.OnFrontShipDispatched(ship);
             }
 
-            // Gemiyi kuyruk ebeveyninden hemen ayır ki arkadaki gemi geldiğinde çakışmasın
-            ship.transform.SetParent(null, true);
             m_PlayerSentShipCount++;
             ship.SailToSlot(emptySlot);
             return true;

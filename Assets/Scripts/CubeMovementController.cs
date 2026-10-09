@@ -504,6 +504,25 @@ namespace PixelGame
             m_GlideBreath = 0f;
             m_GlideSize = Mathf.Max(1e-3f, transform.lossyScale.y);
             m_State = MovementState.Anticipation;
+
+            // İlk hareketten itibaren hedeflenen gemiye doğru bakarak başla:
+            if (m_RopeDir.sqrMagnitude > 1e-4f)
+            {
+                float targetYaw = CargoRunnerHeading.TargetYaw(m_RopeDir, 35f);
+                m_CurrentHeadingYaw = targetYaw;
+                if (m_Waddle != null)
+                {
+                    m_Waddle.SnapHeading(targetYaw);
+                }
+                else if (m_CargoRunner != null)
+                {
+                    m_CargoRunner.TurnToward(m_RopeDir, 1f);
+                }
+                else
+                {
+                    transform.rotation = CargoRunnerHeading.Apply(m_BaseRotation, m_CurrentHeadingYaw, 0f);
+                }
+            }
         }
 
         /// <summary>

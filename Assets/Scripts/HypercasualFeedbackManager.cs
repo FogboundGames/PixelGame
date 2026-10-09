@@ -5,6 +5,17 @@ using UnityEngine;
 namespace PixelGame
 {
     /// <summary>
+    /// Küplerin gemilere binerken çıkardığı sesin tını ve karakter stili.
+    /// </summary>
+    public enum BoardingSoundStyle
+    {
+        WarmWoodMarimba = 0,   // 🪵 Tok ve Sıcak Ahşap Marimba (Block Blast / Woodoku tarzı, kulağı asla yormayan tatmin edici tını)
+        WaterDropletBloop = 1, // 💧 Ferah Su Damlası / Plop (Marina ve su temasıyla tam uyumlu, ferahlatıcı)
+        SoftPastelChime = 2,   // 🎵 Yumuşak Pastel Kalimba (Önceki sesin düşük oktavlı, tizleri ve tıklamaları törpülenmiş tatlı hali)
+        MutedMinimalPop = 3    // 🫧 Minimalist Tok Pop (Çok hafif, mikro ASMR balon patlaması)
+    }
+
+    /// <summary>
     /// Hypercasual Puzzle oyun deneyimini zenginleştiren merkezi geri bildirim yöneticisi:
     /// ✨ Küçük görsel parıltı (Sparkle / Star pop FX)
     /// 💦 Canlı su sıçraması (Water splash droplets & foam ripples)
@@ -41,6 +52,29 @@ namespace PixelGame
         [Header("🔊 Ses Ayarları")]
         [SerializeField] private bool m_EnableSound = true;
         [Range(0f, 1f)] [SerializeField] private float m_MasterVolume = 0.75f;
+
+        [Header("🚢 Gemiye Binme Sesi (Boarding Sound FX)")]
+        [Tooltip("Küpler gemiye binerken çalacak ses tınısı tarzı.")]
+        [SerializeField] private BoardingSoundStyle m_BoardingSoundStyle = BoardingSoundStyle.WarmWoodMarimba;
+        [Tooltip("Gemiye binme sesinin temel ses seviyesi (önceki 0.82 yerine daha yumuşak ve dengeli).")]
+        [Range(0.05f, 1f)] [SerializeField] private float m_BoardingVolume = 0.40f;
+        [Tooltip("Aynı anda çok sayıda küp bindiğinde seslerin üst üste binip gürültü yapmasını önleyen minimum aralık (sn).")]
+        [SerializeField] private float m_MinBoardingSoundInterval = 0.038f;
+        [Tooltip("Hızlı küp akışında seslerin ses seviyesini dinamik olarak dengeleyen polifoni koruması.")]
+        [SerializeField] private bool m_EnableBoardingDensityDamping = true;
+
+        public BoardingSoundStyle CurrentBoardingSoundStyle
+        {
+            get => m_BoardingSoundStyle;
+            set
+            {
+                if (m_BoardingSoundStyle != value)
+                {
+                    m_BoardingSoundStyle = value;
+                    RegenerateBoardingClips();
+                }
+            }
+        }
 
         [Header("📳 Mobil Titreşim (Haptics)")]
         [SerializeField] private bool m_EnableHaptics = true;
@@ -133,27 +167,10 @@ namespace PixelGame
                 m_SailSource.loop = true;
             }
 
-            // Müzikal pentatonik küp sesleri (C5 - D5 - E5 - G5 - A5 - C6 - D6 - E6 - G6 - A6):
-            // Modern hypercasual oyunlarındaki gibi parlak, tatlı, dopamin salgılatan kalimba & bubble-pop tınısı
+            // Seçilen tarza göre küp binme seslerini oluştur (Ahşap Marimba, Su Damlası Bloop, Pastel vb.)
             if (m_ChimeClips == null || m_ChimeClips.Length == 0 || System.Array.Exists(m_ChimeClips, c => c == null))
             {
-                float[] freqs = new float[] {
-                    523.25f, // C5
-                    587.33f, // D5
-                    659.25f, // E5
-                    783.99f, // G5
-                    880.00f, // A5
-                    1046.50f, // C6
-                    1174.66f, // D6
-                    1318.51f, // E6
-                    1567.98f, // G6
-                    1760.00f  // A6
-                };
-                m_ChimeClips = new AudioClip[freqs.Length];
-                for (int i = 0; i < freqs.Length; i++)
-                {
-                    m_ChimeClips[i] = CreateProceduralChimeClip(freqs[i]);
-                }
+                RegenerateBoardingClips();
             }
 
             if (m_ShipFullClip == null) m_ShipFullClip = CreateProceduralShipFullClip();
@@ -166,14 +183,89 @@ namespace PixelGame
             if (m_GameLaunchClip == null) m_GameLaunchClip = CreateProceduralGameLaunchClip();
         }
 
+        private void OnValidate()
+        {
+            if (m_ChimeSource != null)
+            {
+                RegenerateBoardingClips();
+            }
+        }
+
+        [ContextMenu("🪵 Stili Ahşap Marimba Yap (Önerilen Tok Tını)")]
+        public void SetStyleMarimba() => CurrentBoardingSoundStyle = BoardingSoundStyle.WarmWoodMarimba;
+
+        [ContextMenu("💧 Stili Su Damlası Bloop Yap (Ferah Tını)")]
+        public void SetStyleWaterBloop() => CurrentBoardingSoundStyle = BoardingSoundStyle.WaterDropletBloop;
+
+        [ContextMenu("🎵 Stili Pastel Kalimba Yap")]
+        public void SetStylePastel() => CurrentBoardingSoundStyle = BoardingSoundStyle.SoftPastelChime;
+
+        [ContextMenu("🫧 Stili Minimalist Pop Yap")]
+        public void SetStyleMinimalPop() => CurrentBoardingSoundStyle = BoardingSoundStyle.MutedMinimalPop;
+
         /// <summary>
-        /// Küpün gemiye bindiğinde çıkardığı, modern hypercasual puzzle oyunlarındaki gibi
-        /// psikolojik olarak son derece tatmin edici, sulu bubble-pop ve rezonanslı ahşap kalimba/marimba tınısı.
+        /// Seçili olan stile göre kargo küpü binme ses kliplerini yeniden üretir.
         /// </summary>
-        private AudioClip CreateProceduralChimeClip(float fundamentalFreq)
+        public void RegenerateBoardingClips()
+        {
+            switch (m_BoardingSoundStyle)
+            {
+                case BoardingSoundStyle.WarmWoodMarimba:
+                default:
+                {
+                    // C4 - D4 - E4 - G4 - A4 - C5 - D5 - E5 (Sıcak, bas-orta pentatonik gam: 261Hz - 659Hz)
+                    // Tiz ve yırtıcı frekanslardan tamamen arındırılmış, kulağı dinlendiren ahşap marimba tınısı
+                    float[] freqs = new float[] { 261.63f, 293.66f, 329.63f, 392.00f, 440.00f, 523.25f, 587.33f, 659.25f };
+                    m_ChimeClips = new AudioClip[freqs.Length];
+                    for (int i = 0; i < freqs.Length; i++)
+                    {
+                        m_ChimeClips[i] = CreateWarmWoodMarimbaClip(freqs[i]);
+                    }
+                    break;
+                }
+                case BoardingSoundStyle.WaterDropletBloop:
+                {
+                    // Ferah su damlası ve yumuşak bloop: Marina ve deniz atmosferiyle tam uyumlu
+                    float[] freqs = new float[] { 340f, 380f, 430f, 490f, 550f, 620f, 700f, 780f };
+                    m_ChimeClips = new AudioClip[freqs.Length];
+                    for (int i = 0; i < freqs.Length; i++)
+                    {
+                        m_ChimeClips[i] = CreateWaterDropletBloopClip(freqs[i]);
+                    }
+                    break;
+                }
+                case BoardingSoundStyle.SoftPastelChime:
+                {
+                    // Törpülenmiş pastel kalimba: Düşük oktav, metalik klikleri ve aşırı tizleri yumuşatılmış
+                    float[] freqs = new float[] { 392.00f, 440.00f, 523.25f, 587.33f, 659.25f, 783.99f, 880.00f, 1046.50f };
+                    m_ChimeClips = new AudioClip[freqs.Length];
+                    for (int i = 0; i < freqs.Length; i++)
+                    {
+                        m_ChimeClips[i] = CreateSoftPastelChimeClip(freqs[i]);
+                    }
+                    break;
+                }
+                case BoardingSoundStyle.MutedMinimalPop:
+                {
+                    // Minimalist kısa ASMR pop: Çok hafif, mikro dokunsal his
+                    float[] freqs = new float[] { 240f, 270f, 300f, 340f, 380f, 420f, 480f, 540f };
+                    m_ChimeClips = new AudioClip[freqs.Length];
+                    for (int i = 0; i < freqs.Length; i++)
+                    {
+                        m_ChimeClips[i] = CreateMutedMinimalPopClip(freqs[i]);
+                    }
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tok ve sıcak ahşap marimba / tok-tok sesi. Kulağı yoran tizler ve metalik klikler tamamen arındırılmıştır.
+        /// </summary>
+        private AudioClip CreateWarmWoodMarimbaClip(float fundamentalFreq)
         {
             int sampleRate = 44100;
-            float duration = 0.15f; // 150 ms
+            float duration = 0.11f; // 110 ms
             int count = Mathf.CeilToInt(sampleRate * duration);
             float[] samples = new float[count];
 
@@ -181,48 +273,130 @@ namespace PixelGame
             for (int i = 0; i < count; i++)
             {
                 float t = i / (float)sampleRate;
+                float attack = Mathf.Clamp01(t / 0.003f); // 3 ms yumuşak keçe tokmak teması
+                phase += 2f * Mathf.PI * fundamentalFreq / sampleRate;
 
-                // 1. İlk 18 ms içinde tatlı "bubble pop" mikro frekans bükülmesi (1.52x -> 1.0x f)
-                // Bu hızlı bükülme kulağa o bağımlılık yapan dolgun "pop / plink / bloop" hissini verir.
-                float curFreq = fundamentalFreq;
-                if (t < 0.018f)
-                {
-                    float pRatio = t / 0.018f;
-                    curFreq = fundamentalFreq * (1.52f - 0.52f * Mathf.Sqrt(pRatio));
-                }
-                phase += 2f * Mathf.PI * curFreq / sampleRate;
-
-                // 2. Çok yumuşak 1.5 ms atak (tık/patlama çıtırtısı yapmaz)
-                float attack = Mathf.Clamp01(t / 0.0015f);
-
-                // 3. Kalimba / Marimba harmonikleri:
-                // Temel ton (dolgun yuvarlak gövde)
+                // 1. Temel ahşap rezonans tonu
                 float h1 = Mathf.Sin(phase);
-                // 2. harmonik (tatlı gövde sıcaklığı)
-                float h2 = Mathf.Sin(phase * 2f) * 0.28f;
-                // 4. marimba çubuk kısmi tonu (~3.93x f): ahşap tınısını veren rezonans
-                float h3 = Mathf.Sin(phase * 3.93f) * 0.18f * Mathf.Exp(-t * 50f);
+                // 2. Sıcak 2. harmonik
+                float h2 = Mathf.Sin(phase * 2f) * 0.20f;
+                // 3. Alt bas tokluğu (sub-thud)
+                float sub = Mathf.Sin(phase * 0.5f) * 0.12f * Mathf.Exp(-t * 35f);
 
-                // 4. İlk 3 ms minik ahşap tokmak temas darbesi (mallet transient)
-                float click = 0f;
-                if (t < 0.003f)
+                // 4. Yumuşak tokmak gövde darbesi (düşük frekanslı 320 Hz)
+                float mallet = 0f;
+                if (t < 0.008f)
                 {
-                    click = Mathf.Sin(2f * Mathf.PI * 3400f * t) * (1f - t / 0.003f) * 0.32f;
+                    mallet = Mathf.Sin(2f * Mathf.PI * 320f * t) * (1f - t / 0.008f) * 0.25f;
                 }
 
-                // 5. Akıcı ve tatlı sönümlenme zarfı
-                float envelope = attack * Mathf.Exp(-t * 22f);
-
-                samples[i] = Mathf.Clamp((h1 + h2 + h3 + click) * envelope * 0.78f, -1f, 1f);
+                // Sönüm
+                float env = attack * Mathf.Exp(-t * 28f);
+                samples[i] = Mathf.Clamp((h1 + h2 + sub + mallet) * env * 0.72f, -1f, 1f);
             }
 
-            AudioClip clip = AudioClip.Create($"Chime_{Mathf.RoundToInt(fundamentalFreq)}", count, 1, sampleRate, false);
+            AudioClip clip = AudioClip.Create($"Marimba_{Mathf.RoundToInt(fundamentalFreq)}", count, 1, sampleRate, false);
             clip.SetData(samples, 0);
             return clip;
         }
 
         /// <summary>
-        /// Gemi tamamen dolduğunda çalan, dopamin salgılatan zafer major akor arpej tınısı (C6 - E6 - G6 - C7).
+        /// Ferah su damlası ve yumuşak bloop sesi. Marina/su temasına doğal uyum sağlar.
+        /// </summary>
+        private AudioClip CreateWaterDropletBloopClip(float baseFreq)
+        {
+            int sampleRate = 44100;
+            float duration = 0.095f; // 95 ms
+            int count = Mathf.CeilToInt(sampleRate * duration);
+            float[] samples = new float[count];
+
+            float phase = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float t = i / (float)sampleRate;
+                float progress = t / duration;
+
+                // Karakteristik su damlası yukarı bükülmesi
+                float curFreq = baseFreq * (0.88f + 0.28f * Mathf.Sqrt(progress));
+                phase += 2f * Mathf.PI * curFreq / sampleRate;
+
+                float attack = Mathf.Clamp01(t / 0.0025f);
+                float tone = Mathf.Sin(phase) + Mathf.Sin(phase * 2f) * 0.12f;
+                float env = attack * Mathf.Exp(-t * 30f);
+
+                samples[i] = Mathf.Clamp(tone * env * 0.70f, -1f, 1f);
+            }
+
+            AudioClip clip = AudioClip.Create($"Bloop_{Mathf.RoundToInt(baseFreq)}", count, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        /// <summary>
+        /// Törpülenmiş pastel kalimba tınısı. Tizler ve sert klikler yumuşatılmıştır.
+        /// </summary>
+        private AudioClip CreateSoftPastelChimeClip(float fundamentalFreq)
+        {
+            int sampleRate = 44100;
+            float duration = 0.12f; // 120 ms
+            int count = Mathf.CeilToInt(sampleRate * duration);
+            float[] samples = new float[count];
+
+            float phase = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float t = i / (float)sampleRate;
+                float curFreq = fundamentalFreq;
+                if (t < 0.015f)
+                {
+                    curFreq = fundamentalFreq * (1.15f - 0.15f * (t / 0.015f));
+                }
+                phase += 2f * Mathf.PI * curFreq / sampleRate;
+
+                float attack = Mathf.Clamp01(t / 0.002f);
+                float h1 = Mathf.Sin(phase);
+                float h2 = Mathf.Sin(phase * 2f) * 0.18f;
+                float env = attack * Mathf.Exp(-t * 24f);
+
+                samples[i] = Mathf.Clamp((h1 + h2) * env * 0.68f, -1f, 1f);
+            }
+
+            AudioClip clip = AudioClip.Create($"Pastel_{Mathf.RoundToInt(fundamentalFreq)}", count, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        /// <summary>
+        /// Minimalist ve kısa mikro ASMR patlama/klik sesi.
+        /// </summary>
+        private AudioClip CreateMutedMinimalPopClip(float baseFreq)
+        {
+            int sampleRate = 44100;
+            float duration = 0.06f; // 60 ms
+            int count = Mathf.CeilToInt(sampleRate * duration);
+            float[] samples = new float[count];
+
+            float phase = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float t = i / (float)sampleRate;
+                float curFreq = baseFreq * (1.1f - 0.2f * (t / duration));
+                phase += 2f * Mathf.PI * curFreq / sampleRate;
+
+                float attack = Mathf.Clamp01(t / 0.002f);
+                float tone = Mathf.Sin(phase);
+                float env = attack * Mathf.Exp(-t * 48f);
+
+                samples[i] = Mathf.Clamp(tone * env * 0.65f, -1f, 1f);
+            }
+
+            AudioClip clip = AudioClip.Create($"Pop_{Mathf.RoundToInt(baseFreq)}", count, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        /// <summary>
+        /// Gemi tamamen dolduğunda çalan, dopamin salgılatan zafer major akor arpej tınısı (C5 - E5 - G5 - C6).
         /// </summary>
         private AudioClip CreateProceduralShipFullClip()
         {
@@ -231,8 +405,8 @@ namespace PixelGame
             int count = Mathf.CeilToInt(sampleRate * duration);
             float[] samples = new float[count];
 
-            // C6 (1046.5), E6 (1318.5), G6 (1568.0), C7 (2093.0)
-            float[] freqs = new float[] { 1046.50f, 1318.51f, 1567.98f, 2093.00f };
+            // C5 (523.25), E5 (659.25), G5 (783.99), C6 (1046.50)
+            float[] freqs = new float[] { 523.25f, 659.25f, 783.99f, 1046.50f };
             float[] delays = new float[] { 0.000f, 0.035f, 0.070f, 0.105f };
             float[] weights = new float[] { 0.40f, 0.38f, 0.35f, 0.30f };
             float[] phases = new float[4];
@@ -250,19 +424,19 @@ namespace PixelGame
                         float freq = freqs[n];
                         if (dt < 0.015f)
                         {
-                            freq *= (1.25f - 0.25f * Mathf.Sqrt(dt / 0.015f));
+                            freq *= (1.15f - 0.15f * Mathf.Sqrt(dt / 0.015f));
                         }
                         phases[n] += 2f * Mathf.PI * freq / sampleRate;
 
                         float h1 = Mathf.Sin(phases[n]);
-                        float h2 = Mathf.Sin(phases[n] * 2f) * 0.22f;
-                        float att = Mathf.Clamp01(dt / 0.002f);
-                        float env = att * Mathf.Exp(-dt * 14f);
+                        float h2 = Mathf.Sin(phases[n] * 2f) * 0.18f;
+                        float att = Mathf.Clamp01(dt / 0.003f);
+                        float env = att * Mathf.Exp(-dt * 13f);
                         acc += (h1 + h2) * env * weights[n];
                     }
                 }
 
-                samples[i] = Mathf.Clamp(acc * 0.82f, -1f, 1f);
+                samples[i] = Mathf.Clamp(acc * 0.75f, -1f, 1f);
             }
 
             AudioClip clip = AudioClip.Create("ShipFull_Celebration", count, 1, sampleRate, false);
@@ -970,10 +1144,14 @@ namespace PixelGame
             m_ChimeSource.PlayOneShot(m_LiftoffClip, m_MasterVolume * 0.44f);
         }
 
+        private float m_LastBoardingSoundTime = -1f;
+        private int m_RecentBoardingClusterCount = 0;
+        private float m_LastClusterResetTime = -1f;
+
         /// <summary>
         /// Her küp gemiye bindiğinde (HopCargoToShip):
         /// ✨ Parıltı partikülü saçar.
-        /// 🔊 Artan pentatonik notayla melodik ses çalar (gemi dolduysa zafer akoru çalar).
+        /// 🔊 Seçilen tını stiliyle tatlı, yumuşak ve yoğunluk korumalı ses çalar.
         /// 📳 Hafif mobil titreşimi tetikler.
         /// </summary>
         public void PlayCubeBoardFeedback(Vector3 position, Color cubeColor, int cargoIndex, bool isShipFull = false)
@@ -987,19 +1165,47 @@ namespace PixelGame
             // 2. Melodik Tatmin Edici Ses (🔊 Chime / ShipFull)
             if (m_EnableSound && m_ChimeSource != null)
             {
+                float now = Time.time;
+
                 if (isShipFull && m_ShipFullClip != null)
                 {
                     m_ChimeSource.pitch = 1.0f;
-                    m_ChimeSource.PlayOneShot(m_ShipFullClip, m_MasterVolume * 0.95f);
+                    m_ChimeSource.PlayOneShot(m_ShipFullClip, m_MasterVolume * 0.75f);
+                    m_LastBoardingSoundTime = now;
+                    m_RecentBoardingClusterCount = 0;
                 }
                 else if (m_ChimeClips != null && m_ChimeClips.Length > 0)
                 {
-                    int noteIdx = Mathf.Abs(cargoIndex) % m_ChimeClips.Length;
-                    AudioClip clip = m_ChimeClips[noteIdx];
-                    if (clip != null)
+                    // Yoğunluk takip penceresi (son 0.35 saniye içinde kaç küp bindi?)
+                    if (now - m_LastClusterResetTime > 0.35f)
                     {
-                        m_ChimeSource.pitch = UnityEngine.Random.Range(0.985f, 1.015f);
-                        m_ChimeSource.PlayOneShot(clip, m_MasterVolume * 0.82f);
+                        m_RecentBoardingClusterCount = 0;
+                        m_LastClusterResetTime = now;
+                    }
+
+                    // Aşırı yoğun ses yığılmasını ve gürültü patlamasını önleyen mikro-aralık (en az m_MinBoardingSoundInterval)
+                    bool canPlaySound = (now - m_LastBoardingSoundTime) >= m_MinBoardingSoundInterval;
+
+                    if (canPlaySound)
+                    {
+                        m_LastBoardingSoundTime = now;
+                        m_RecentBoardingClusterCount++;
+
+                        // Polifoni / Yoğunluk Sönümleme (Density Damping):
+                        // Çok sayıda küp arka arkaya hızla bindiğinde ses seviyesi kademeli olarak
+                        // %50-%65 bandına sönümlenir; böylece toplam gürültü patlaması yaşanmaz!
+                        float densityDamping = m_EnableBoardingDensityDamping
+                            ? Mathf.Clamp(1.0f - (m_RecentBoardingClusterCount * 0.045f), 0.55f, 1.0f)
+                            : 1.0f;
+
+                        int noteIdx = Mathf.Abs(cargoIndex - 1) % m_ChimeClips.Length;
+                        AudioClip clip = m_ChimeClips[noteIdx];
+                        if (clip != null)
+                        {
+                            m_ChimeSource.pitch = UnityEngine.Random.Range(0.99f, 1.01f);
+                            float playVol = m_MasterVolume * m_BoardingVolume * densityDamping;
+                            m_ChimeSource.PlayOneShot(clip, playVol);
+                        }
                     }
                 }
             }

@@ -270,9 +270,17 @@ namespace PixelGame
             return false;
         }
 
+        public static ShipQueuePool Instance { get; private set; }
+
         private void Awake()
         {
+            Instance = this;
             EnsureSpots();
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
         }
 
         private void Start()
@@ -371,7 +379,7 @@ namespace PixelGame
         public void RebuildSpots(int targetCols, int targetRows)
         {
             m_Columns = Mathf.Clamp(targetCols, 1, 8);
-            m_Rows = Mathf.Clamp(targetRows, 1, 6);
+            m_Rows = Mathf.Clamp(targetRows, 1, 10);
             int totalNeeded = m_Columns * m_Rows;
 
             // Eğer sütun profilleri aktifse, bu sütun sayısına özel boyutu ve aralıkları otomatik uygula
@@ -477,7 +485,6 @@ namespace PixelGame
             PixelLevelData level = GetActiveLevel();
             int targetCols = (level != null && level.PoolColumns > 0) ? level.PoolColumns : m_Columns;
             int targetRows = (level != null && level.PoolRows > 0) ? level.PoolRows : m_Rows;
-            RebuildSpots(targetCols, targetRows);
 
             // Aynı frame içinde mükerrer çağrıları engelle (Start + LevelLoaded çakışması)
             if (Application.isPlaying && m_LastInitFrame == Time.frameCount && m_LastInitLevel == level)
@@ -487,7 +494,17 @@ namespace PixelGame
             m_LastInitFrame = Application.isPlaying ? Time.frameCount : -1;
             m_LastInitLevel = level;
 
+            // Eski çalışan kuyruk coroutine'lerini durdur ve tüm eski gemileri/halatları sıfırla
+            StopAllCoroutines();
+            ClearQueue();
+
+            RebuildSpots(targetCols, targetRows);
+
             m_WaitingShips.Clear();
+            for (int i = 0; i < m_QueueSpots.Count; i++)
+            {
+                m_WaitingShips.Add(null);
+            }
 
             // 1. Seviyede tanımlı özel gemi sırası var mı kontrol et
             m_LevelSequenceLanes.Clear();
@@ -520,21 +537,6 @@ namespace PixelGame
                 // Eğer özel sıra kullanılıyorsa ve tüm sıra baştan az sayıda gemiden ibaretse fazla spotları doldurma
                 if (m_UsingLevelSequence && LevelSequenceLanesExhausted() && i >= level.WagonSequence.Count)
                 {
-                    for (int c = spot.childCount - 1; c >= 0; c--)
-                    {
-                        var sc = spot.GetChild(c).GetComponent<ShipController>();
-                        if (sc != null)
-                        {
-                            sc.transform.SetParent(null);
-                            sc.gameObject.SetActive(false);
-#if UNITY_EDITOR
-                            if (!Application.isPlaying) DestroyImmediate(sc.gameObject);
-                            else Destroy(sc.gameObject);
-#else
-                            Destroy(sc.gameObject);
-#endif
-                        }
-                    }
                     continue;
                 }
 
@@ -546,19 +548,6 @@ namespace PixelGame
                     // Özel sırada bu sütunun şeridi bitti: spot boş kalsın (yedek gemi üretme)
                     if (m_UsingLevelSequence)
                     {
-                        for (int c = spot.childCount - 1; c >= 0; c--)
-                        {
-                            var sc = spot.GetChild(c).GetComponent<ShipController>();
-                            if (sc == null) continue;
-                            sc.transform.SetParent(null);
-                            sc.gameObject.SetActive(false);
-#if UNITY_EDITOR
-                            if (!Application.isPlaying) DestroyImmediate(sc.gameObject);
-                            else Destroy(sc.gameObject);
-#else
-                            Destroy(sc.gameObject);
-#endif
-                        }
                         continue;
                     }
 
@@ -568,26 +557,7 @@ namespace PixelGame
                     linkId = 0;
                 }
 
-                ShipController existingShip = spot.GetComponentInChildren<ShipController>();
-                if (existingShip != null && existingShip.gameObject.activeInHierarchy)
-                {
-                    existingShip.transform.localPosition = Vector3.zero;
-                    existingShip.transform.localRotation = Quaternion.identity;
-                    existingShip.transform.localScale = Vector3.one * m_ShipScale;
-                    existingShip.SetBaseScale(Vector3.one * m_ShipScale);
-                    existingShip.SetLinkedPartner(null, linkId);
-                    // Sahneye kayıtlı gemi prefab örneği değil: yazı ayarları prefab'dan gelsin (tek ayar yeri)
-                    if (m_ShipPrefab != null) existingShip.CopyBadgeSettingsFrom(m_ShipPrefab.GetComponent<ShipController>());
-                    existingShip.Configure(shipColor, capacity);
-                    existingShip.SetMysteryHidden(m_LastSequenceShipHidden);
-
-                    while (m_WaitingShips.Count <= i) m_WaitingShips.Add(null);
-                    m_WaitingShips[i] = existingShip;
-                }
-                else
-                {
-                    SpawnShipAtSpot(i, shipColor, capacity, linkId, m_LastSequenceShipHidden);
-                }
+                SpawnShipAtSpot(i, shipColor, capacity, linkId, m_LastSequenceShipHidden);
             }
 
             // Tüm gemiler oluştuktan sonra bağlı olanları eşleştir ve aralarına halat/zincir çek
@@ -871,26 +841,64 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Kuyruktaki bir geminin en ön sırada (Row 0) olup olmadığını kontrol eder.
+        /// Kuyruktaki bir geminin en ön sırada olup olmadığını kontrol eder.
+        /// Eğer geminin önündeki tüm sıralar boş/ayrılmış ise bu gemi sütunun en önündeki serbest gemidir.
         /// </summary>
         public bool IsFrontRow(ShipController ship)
         {
-            int index = m_WaitingShips.IndexOf(ship);
+            if (ship == null) return false;
+            int index = m_WaitingShips != null ? m_WaitingShips.IndexOf(ship) : -1;
+            if (index < 0 && ship.transform.parent != null)
+            {
+                int spotIdx = m_QueueSpots.IndexOf(ship.transform.parent);
+                if (spotIdx >= 0)
+                {
+                    index = spotIdx;
+                    while (m_WaitingShips.Count <= spotIdx) m_WaitingShips.Add(null);
+                    m_WaitingShips[spotIdx] = ship;
+                }
+            }
             if (index < 0) return false;
-            int rowIndex = index / m_Columns;
-            return rowIndex == 0;
+
+            int col = index % m_Columns;
+            int row = index / m_Columns;
+            if (row == 0) return true;
+
+            for (int r = 0; r < row; r++)
+            {
+                int checkIdx = r * m_Columns + col;
+                if (checkIdx < m_WaitingShips.Count)
+                {
+                    ShipController blocker = m_WaitingShips[checkIdx];
+                    if (blocker != null && blocker.gameObject.activeInHierarchy && !blocker.IsDeparting && !blocker.IsDocked)
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
         }
 
         /// <summary>
         /// Bir geminin çıkış yolunun açık olup olmadığını kontrol eder.
-        /// - Tekil gemi ise: En ön sırada (Row 0) olmalıdır.
+        /// - Tekil gemi ise: Önündeki tüm sıralar boş olmalıdır.
         /// - Bağlı gemi ise: Geminin önünde kendi bağlı partneri DIŞINDA başka bir engel gemi olmamalıdır.
         ///   (Böylece aynı sütunda alt alta bağlı olan gemiler birbirini engellemez!)
         /// </summary>
         public bool IsShipUnblockedForDispatch(ShipController ship)
         {
             if (ship == null) return false;
-            int index = m_WaitingShips.IndexOf(ship);
+            int index = m_WaitingShips != null ? m_WaitingShips.IndexOf(ship) : -1;
+            if (index < 0 && ship.transform.parent != null)
+            {
+                int spotIdx = m_QueueSpots.IndexOf(ship.transform.parent);
+                if (spotIdx >= 0)
+                {
+                    index = spotIdx;
+                    while (m_WaitingShips.Count <= spotIdx) m_WaitingShips.Add(null);
+                    m_WaitingShips[spotIdx] = ship;
+                }
+            }
             if (index < 0) return false;
 
             int col = index % m_Columns;
@@ -924,139 +932,211 @@ namespace PixelGame
 
         /// <summary>
         /// İki bağlı gemi birlikte slota gönderildiğinde kuyruğu günceller.
-        /// Eğer aynı sütundaysalar (alt alta), o sütunun iki sırasını birden temizleyip arkadakileri kaydırır.
+        /// Eğer aynı sütundaysalar (alt alta / tandem), o sütunun iki sırasını birden çıkarıp arkadakileri öne kaydırır.
         /// Farklı sütundaysalar her sütunu ayrı ayrı günceller.
         /// </summary>
         public void OnLinkedShipsDispatched(ShipController shipA, ShipController shipB)
         {
-            int idxA = m_WaitingShips.IndexOf(shipA);
-            int idxB = m_WaitingShips.IndexOf(shipB);
+            if (shipA == null && shipB == null) return;
+            if (shipA == null) { OnFrontShipDispatched(shipB); return; }
+            if (shipB == null) { OnFrontShipDispatched(shipA); return; }
 
-            if (idxA < 0 && idxB < 0) return;
+            int colA = -1;
+            int colB = -1;
 
-            // Eğer sadece biri kuyruktaysa normal gönder
-            if (idxA < 0) { OnFrontShipDispatched(shipB); return; }
-            if (idxB < 0) { OnFrontShipDispatched(shipA); return; }
-
-            int colA = idxA % m_Columns;
-            int colB = idxB % m_Columns;
-
-            if (colA != colB)
+            int idxA = m_WaitingShips != null ? m_WaitingShips.IndexOf(shipA) : -1;
+            if (idxA >= 0) colA = idxA % m_Columns;
+            else if (shipA.transform.parent != null)
             {
-                // Farklı sütunlardalar: Her birini kendi sütununda dispatch et
-                OnFrontShipDispatched(shipA);
-                OnFrontShipDispatched(shipB);
+                int spotIdx = m_QueueSpots.IndexOf(shipA.transform.parent);
+                if (spotIdx >= 0) colA = spotIdx % m_Columns;
+            }
+
+            int idxB = m_WaitingShips != null ? m_WaitingShips.IndexOf(shipB) : -1;
+            if (idxB >= 0) colB = idxB % m_Columns;
+            else if (shipB.transform.parent != null)
+            {
+                int spotIdx = m_QueueSpots.IndexOf(shipB.transform.parent);
+                if (spotIdx >= 0) colB = spotIdx % m_Columns;
+            }
+
+            if (colA >= 0 && colB >= 0 && colA == colB)
+            {
+                // Aynı sütundalar (alt alta): iki gemiyi birden sütundan temizleyip arkadaki tüm sıraları öne kaydır
+                ShiftColumnForward(colA, shipA, shipB);
             }
             else
             {
-                // AYNI SÜTUNDALAR (Alt alta):
-                int col = colA;
-                int rowMin = Mathf.Min(idxA / m_Columns, idxB / m_Columns);
-                int rowMax = Mathf.Max(idxA / m_Columns, idxB / m_Columns);
-
-                m_WaitingShips[idxA] = null;
-                m_WaitingShips[idxB] = null;
-
-                // Arkada kalan sıraları 2 basamak öne kaydır
-                int shiftCount = 2;
-                for (int r = rowMin; r < m_Rows - shiftCount; r++)
-                {
-                    int curIdx = r * m_Columns + col;
-                    int srcIdx = (r + shiftCount) * m_Columns + col;
-
-                    if (srcIdx < m_WaitingShips.Count && m_WaitingShips[srcIdx] != null)
-                    {
-                        ShipController advancingShip = m_WaitingShips[srcIdx];
-                        m_WaitingShips[curIdx] = advancingShip;
-                        m_WaitingShips[srcIdx] = null;
-
-                        Transform targetSpot = m_QueueSpots[curIdx];
-                        if (gameObject.activeInHierarchy)
-                        {
-                            StartCoroutine(MoveBackShipToFrontSpot(advancingShip, targetSpot, 0.10f * (r - rowMin + 1)));
-                        }
-                    }
-                }
-
-                // Boşalan son 2 sıraya denizden yeni gemiler gelsin
-                if (gameObject.activeInHierarchy)
-                {
-                    int last1 = (m_Rows - 2) * m_Columns + col;
-                    int last2 = (m_Rows - 1) * m_Columns + col;
-
-                    if (m_Rows >= 2)
-                    {
-                        SpawnAndSailInNewShip(last1, 0.15f);
-                        SpawnAndSailInNewShip(last2, 0.30f);
-                    }
-                    else
-                    {
-                        SpawnAndSailInNewShip(last2, 0.18f);
-                    }
-                }
+                // Farklı sütunlardalar: Her birini kendi sütununda dispatch et
+                if (colA >= 0) ShiftColumnForward(colA, shipA);
+                if (colB >= 0) ShiftColumnForward(colB, shipB);
             }
         }
 
         /// <summary>
         /// Ön sıradan bir gemi slota gönderildiğinde çağrılır.
-        /// Aynı sütundaki arka gemi öne kayar ve arkaya denizden yeni gemi gelir.
+        /// Aynı sütundaki arka gemiler öne kayar ve arkaya denizden yeni gemi gelir.
         /// </summary>
         public void OnFrontShipDispatched(ShipController frontShip)
         {
-            int frontIndex = m_WaitingShips.IndexOf(frontShip);
-            if (frontIndex < 0) return;
-
-            int col = frontIndex % m_Columns;
-
-            // Gönderilen gemi kuyruktan hemen düşer; arkası boşsa bile listede (slottaki gemi olarak) kalmasın
-            m_WaitingShips[frontIndex] = null;
-
-            // 1. Aynı sütundaki arkadaki tüm gemileri birer kademe öne kaydır
-            for (int r = 0; r < m_Rows - 1; r++)
+            if (frontShip == null) return;
+            int col = -1;
+            int frontIndex = m_WaitingShips != null ? m_WaitingShips.IndexOf(frontShip) : -1;
+            if (frontIndex >= 0)
             {
-                int curIdx = r * m_Columns + col;
-                int nxtIdx = (r + 1) * m_Columns + col;
+                col = frontIndex % m_Columns;
+            }
+            else if (frontShip.transform.parent != null)
+            {
+                int spotIdx = m_QueueSpots.IndexOf(frontShip.transform.parent);
+                if (spotIdx >= 0) col = spotIdx % m_Columns;
+            }
 
-                if (nxtIdx < m_WaitingShips.Count && m_WaitingShips[nxtIdx] != null)
+            if (col >= 0)
+            {
+                ShiftColumnForward(col, frontShip);
+            }
+        }
+
+        /// <summary>
+        /// Belirtilen sütundaki gemileri kaldırılan gemiler hariç Row 0'dan itibaren boşluksuz olarak
+        /// öne toplar ve arkada boşalan sıralara açık denizden yeni gemileri sırayla getirir.
+        /// </summary>
+        private void ShiftColumnForward(int col, params ShipController[] removedShips)
+        {
+            if (col < 0 || col >= m_Columns) return;
+
+            HashSet<ShipController> removedSet = new HashSet<ShipController>();
+            if (removedShips != null)
+            {
+                for (int i = 0; i < removedShips.Length; i++)
                 {
-                    ShipController advancingShip = m_WaitingShips[nxtIdx];
-                    m_WaitingShips[curIdx] = advancingShip;
-                    m_WaitingShips[nxtIdx] = null;
-
-                    Transform targetSpot = m_QueueSpots[curIdx];
-                    if (gameObject.activeInHierarchy)
+                    if (removedShips[i] != null)
                     {
-                        StartCoroutine(MoveBackShipToFrontSpot(advancingShip, targetSpot, 0.12f * (r + 1)));
+                        removedSet.Add(removedShips[i]);
+                        RemoveShipFromQueue(removedShips[i]);
                     }
                 }
             }
 
-            // 2. En arka sıradaki boşalan yere açık denizden yeni gemi yüzerek gelsin
-            int lastRowIdx = (m_Rows - 1) * m_Columns + col;
+            // 1. Bu sütundaki tüm mevcut geçerli gemileri Row 0'dan Row m_Rows-1'e kadar sırayla topla
+            List<ShipController> remaining = new List<ShipController>();
+            for (int r = 0; r < m_Rows; r++)
+            {
+                int idx = r * m_Columns + col;
+                ShipController s = idx < m_WaitingShips.Count ? m_WaitingShips[idx] : null;
+                if (s == null && idx < m_QueueSpots.Count && m_QueueSpots[idx] != null)
+                {
+                    for (int c = 0; c < m_QueueSpots[idx].childCount; c++)
+                    {
+                        var childShip = m_QueueSpots[idx].GetChild(c).GetComponent<ShipController>();
+                        if (childShip != null && !removedSet.Contains(childShip) && !childShip.IsDocked && !childShip.IsDeparting && childShip.gameObject.activeInHierarchy)
+                        {
+                            s = childShip;
+                            break;
+                        }
+                    }
+                }
+
+                if (s != null)
+                {
+                    if (removedSet.Contains(s) || s.IsDocked || s.IsDeparting)
+                    {
+                        if (idx < m_WaitingShips.Count) m_WaitingShips[idx] = null;
+                    }
+                    else if (s.gameObject.activeInHierarchy)
+                    {
+                        remaining.Add(s);
+                        if (idx < m_WaitingShips.Count) m_WaitingShips[idx] = null;
+                    }
+                    else
+                    {
+                        if (idx < m_WaitingShips.Count) m_WaitingShips[idx] = null;
+                    }
+                }
+            }
+
+            // 2. Kalan gemileri en ön sıralara (Row 0, 1, 2...) sırasıyla yerleştir ve kaydır
+            float baseDelay = 0.08f;
+            for (int r = 0; r < remaining.Count; r++)
+            {
+                int targetIdx = r * m_Columns + col;
+                ShipController ship = remaining[r];
+                m_WaitingShips[targetIdx] = ship;
+                Transform targetSpot = m_QueueSpots[targetIdx];
+
+                if (ship.transform.parent != targetSpot)
+                {
+                    if (gameObject.activeInHierarchy)
+                    {
+                        StartCoroutine(MoveBackShipToFrontSpot(ship, targetSpot, baseDelay * (r + 1)));
+                    }
+                    else
+                    {
+                        ship.transform.SetParent(targetSpot, false);
+                        ship.transform.localPosition = Vector3.zero;
+                        ship.transform.localRotation = Quaternion.identity;
+                    }
+                }
+            }
+
+            // 3. Kalan boş sıraları m_WaitingShips içinde null olarak temizle
+            for (int r = remaining.Count; r < m_Rows; r++)
+            {
+                int targetIdx = r * m_Columns + col;
+                if (targetIdx < m_WaitingShips.Count)
+                {
+                    m_WaitingShips[targetIdx] = null;
+                }
+            }
+
+            // 4. Boşalan arka sıralara açık denizden yeni gemileri sırayla getir
             if (gameObject.activeInHierarchy)
             {
-                SpawnAndSailInNewShip(lastRowIdx, 0.18f);
+                float spawnDelay = 0.14f;
+                for (int r = remaining.Count; r < m_Rows; r++)
+                {
+                    int targetIdx = r * m_Columns + col;
+                    SpawnAndSailInNewShip(targetIdx, spawnDelay);
+                    spawnDelay += 0.12f;
+                }
             }
         }
 
         /// <summary>
         /// Arka sıradaki gemiyi, öndeki gemi slota doğru yola çıkıp ön spottan uzaklaşması için
-        /// kısa bir gecikmenin ardından ön spota kaydırır. Gecikme olmadan ikisi tam aynı anda
-        /// aynı noktada başlayıp iç içe giriyordu.
+        /// kısa bir gecikmenin ardından ön spota kaydırır.
         /// </summary>
         private IEnumerator MoveBackShipToFrontSpot(ShipController backShip, Transform frontSpot, float delay)
         {
             if (delay > 0f) yield return new WaitForSeconds(delay);
             if (backShip == null || frontSpot == null) yield break;
+            if (backShip.IsDocked || backShip.IsDeparting) yield break;
 
+            // Spot altında başka aktif gemi kalmışsa (eski ebeveyn kalıntısı vs.) ayır
+            for (int i = frontSpot.childCount - 1; i >= 0; i--)
+            {
+                Transform child = frontSpot.GetChild(i);
+                if (child != backShip.transform)
+                {
+                    var otherShip = child.GetComponent<ShipController>();
+                    if (otherShip != null)
+                    {
+                        if (otherShip.IsDeparting || otherShip.IsDocked)
+                        {
+                            otherShip.transform.SetParent(null, true);
+                        }
+                    }
+                }
+            }
+
+            backShip.transform.DOKill(false);
             backShip.transform.SetParent(frontSpot, true);
 
-            // Su sallanması (bobbing) animasyon süresince pozisyonu eski tabana geri
-            // çekip DOTween ile çakışmasın diye geçici olarak susturulur.
+            // Su sallanması (bobbing) animasyon süresince susturulur
             backShip.SetQueueAnimating(true);
 
             // Su üzerinde öne doğru süzülme animasyonu
-            backShip.transform.DOKill(true);
             backShip.transform.DOLocalMove(Vector3.zero, 0.48f).SetEase(Ease.OutQuad)
                 .OnUpdate(() =>
                 {
@@ -1067,7 +1147,7 @@ namespace PixelGame
                 })
                 .OnComplete(() =>
                 {
-                    if (backShip != null)
+                    if (backShip != null && !backShip.IsDeparting && !backShip.IsDocked && backShip.transform.parent == frontSpot)
                     {
                         backShip.transform.localPosition = Vector3.zero;
                         backShip.transform.localRotation = Quaternion.identity;
@@ -1075,6 +1155,13 @@ namespace PixelGame
                         backShip.SetBaseScale(Vector3.one * m_ShipScale);
                         backShip.SetQueueAnimating(false);
                         RefreshLinkedShipTethers();
+                    }
+                })
+                .OnKill(() =>
+                {
+                    if (backShip != null)
+                    {
+                        backShip.SetQueueAnimating(false);
                     }
                 });
         }
@@ -1177,9 +1264,15 @@ namespace PixelGame
                         ship.transform.localPosition = Vector3.zero;
                         ship.transform.localRotation = Quaternion.identity;
                         ship.transform.localScale = Vector3.one * m_ShipScale;
-                        ship.SetBaseScale(Vector3.one * m_ShipScale);
                         ship.SetQueueAnimating(false);
                         RefreshLinkedShipTethers();
+                    }
+                })
+                .OnKill(() =>
+                {
+                    if (ship != null)
+                    {
+                        ship.SetQueueAnimating(false);
                     }
                 });
         }

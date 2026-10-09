@@ -393,6 +393,9 @@ namespace PixelGame
         public bool IsDocked => m_IsDocked;
         public bool IsFull => m_CurrentCargo >= m_Capacity;
         public bool IsDeparting => m_IsDeparting;
+        public bool IsMoving => m_IsMoving;
+        private bool m_IsQueueAnimating = false;
+        public bool IsQueueAnimating => m_IsQueueAnimating;
 
         // ---------------- 🔗 Bağlı Gemi (Linked Ships) ----------------
         private int m_LinkId = 0;
@@ -708,10 +711,10 @@ namespace PixelGame
             if (!IsLinked) return true;
             if (m_LinkedPartner == null) return true;
 
-            if (m_IsDocked || m_IsMoving || m_IsDeparting) return false;
-            if (m_LinkedPartner.IsDocked || m_LinkedPartner.IsMoving || m_LinkedPartner.IsDeparting) return false;
+            if (m_IsDocked || m_IsMoving || m_IsDeparting || m_IsQueueAnimating) return false;
+            if (m_LinkedPartner.IsDocked || m_LinkedPartner.IsMoving || m_LinkedPartner.IsDeparting || m_LinkedPartner.IsQueueAnimating) return false;
 
-            ShipQueuePool pool = UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
+            ShipQueuePool pool = ShipQueuePool.Instance != null ? ShipQueuePool.Instance : UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
             if (pool != null)
             {
                 // Her iki geminin de çıkış yolu açık olmalı
@@ -753,7 +756,6 @@ namespace PixelGame
         {
             m_PendingCargo = Mathf.Max(0, m_PendingCargo - 1);
         }
-        public bool IsMoving => m_IsMoving;
         public ShipSlot CurrentSlot => m_CurrentSlot;
 
         public event Action<ShipController> OnCargoFilled;
@@ -1545,6 +1547,14 @@ namespace PixelGame
             m_CurrentCargo = 0;
             m_PendingCargo = 0;
             m_ColorName = string.IsNullOrEmpty(colorName) ? ColorUtility.ToHtmlStringRGB(color) : colorName;
+
+            m_IsMoving = false;
+            m_IsQueueAnimating = false;
+            m_IsDocked = false;
+            m_IsDeparting = false;
+            m_IsPickedUp = false;
+            m_IsDragging = false;
+            m_CandidateSlot = null;
 
             ClearCargoBarrels();
             EnsureVisualComponents();
@@ -2502,6 +2512,7 @@ namespace PixelGame
         /// </summary>
         public void SetQueueAnimating(bool animating)
         {
+            m_IsQueueAnimating = animating;
             m_IsMoving = animating;
             if (animating)
             {
@@ -2646,7 +2657,8 @@ namespace PixelGame
 
         public void OnPointerClick(PointerEventData eventData)
         {
-            if (m_IsMoving || m_IsDeparting) return;
+            if (m_IsMoving || m_IsDeparting || m_IsQueueAnimating) return;
+            if (IsLinked && m_LinkedPartner != null && m_LinkedPartner.IsQueueAnimating) return;
 
             // Zaten slotta yanaşmış bir gemiye tıklandıysa canlı dokunma yaylanması yap
             if (m_IsDocked)
@@ -2727,16 +2739,16 @@ namespace PixelGame
             {
                 m_CandidateSlot = null;
 
-                ShipQueuePool queuePool = UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
+                ShipQueuePool queuePool = ShipQueuePool.Instance != null ? ShipQueuePool.Instance : UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
                 if (IsLinked && m_LinkedPartner != null && partnerSlot != null)
                 {
+                    transform.SetParent(null, true);
+                    m_LinkedPartner.transform.SetParent(null, true);
+
                     if (queuePool != null)
                     {
                         queuePool.OnLinkedShipsDispatched(this, m_LinkedPartner);
                     }
-
-                    transform.SetParent(null, true);
-                    m_LinkedPartner.transform.SetParent(null, true);
 
                     ShipDispatcher.Instance?.NotifyShipSent();
                     SailToSlot(candidate, m_SnapDuration);
@@ -2744,6 +2756,9 @@ namespace PixelGame
                 }
                 else
                 {
+                    // Kuyruk hiyerarşisinden dünya uzayına çıkar
+                    transform.SetParent(null, true);
+
                     // Kuyruk kontrolü: Ön sıradan slota gönderiliyorsa kuyruk yöneticisini bilgilendir
                     if (queuePool != null && queuePool.WaitingShips != null && queuePool.WaitingShips.Contains(this))
                     {
@@ -2752,9 +2767,6 @@ namespace PixelGame
                             queuePool.OnFrontShipDispatched(this);
                         }
                     }
-
-                    // Kuyruk hiyerarşisinden dünya uzayına çıkar
-                    transform.SetParent(null, true);
 
                     // Mevcut Bezier SailToSlotRoutine ile hızlı, tatmin edici snap (m_SnapDuration: 0.16s)
                     ShipDispatcher.Instance?.NotifyShipSent();

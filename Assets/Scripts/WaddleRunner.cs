@@ -268,6 +268,16 @@ namespace PixelGame
             transform.rotation = CargoRunnerHeading.Apply(m_BaseRotation, m_Heading, m_BankTilt);
         }
 
+        /// <summary>
+        /// Küpün bakış yönünü (heading yaw) gecikmesiz, anında hedeflenen açıya eşitler.
+        /// İlk hareket anında hedeflenen gemiye doğru bakarak başlaması için kullanılır.
+        /// </summary>
+        public void SnapHeading(float yaw)
+        {
+            m_Heading = yaw;
+            transform.rotation = CargoRunnerHeading.Apply(m_BaseRotation, m_Heading, m_BankTilt);
+        }
+
         private void LateUpdate()
         {
             if (!m_Engaged) return;

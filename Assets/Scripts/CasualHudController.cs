@@ -664,8 +664,16 @@ namespace PixelGame
             }
             else
             {
-                var activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
-                UnityEngine.SceneManagement.SceneManager.LoadScene(activeScene.buildIndex);
+                DOTween.KillAll();
+                if (LevelManager.Instance != null)
+                {
+                    LevelManager.Instance.LoadLevel(LevelManager.Instance.CurrentLevelIndex);
+                }
+                else
+                {
+                    var activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+                    UnityEngine.SceneManagement.SceneManager.LoadScene(activeScene.buildIndex);
+                }
             }
         }
 

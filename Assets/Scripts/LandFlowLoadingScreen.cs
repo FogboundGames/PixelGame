@@ -976,8 +976,20 @@ namespace PixelGame
         public void ShowFailLevelAndRestart(float minDuration = -1f)
         {
             SetMessage(m_FailLevelText, null);
-            var activeScene = SceneManager.GetActiveScene();
-            LoadSceneAsync(activeScene.buildIndex, minDuration);
+            Action reloadAction = () =>
+            {
+                DOTween.KillAll();
+                if (LevelManager.Instance != null)
+                {
+                    LevelManager.Instance.LoadLevel(LevelManager.Instance.CurrentLevelIndex);
+                }
+                else
+                {
+                    var activeScene = SceneManager.GetActiveScene();
+                    SceneManager.LoadScene(activeScene.buildIndex);
+                }
+            };
+            ShowAndLoad(reloadAction, minDuration > 0f ? minDuration : 0.6f, m_FailLevelText);
         }
 
         /// <summary>
@@ -1013,13 +1025,25 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Aktif sahneyi pürüzsüz ve asenkron (arkada takılma olmadan) şekilde yeniden başlatır.
+        /// Aktif seviyeyi pürüzsüz şekilde yeniden başlatır.
         /// </summary>
         public void RestartCurrentScene(float minDuration = -1f, string message = null)
         {
-            if (!string.IsNullOrEmpty(message)) SetMessage(message);
-            var activeScene = SceneManager.GetActiveScene();
-            LoadSceneAsync(activeScene.buildIndex, minDuration);
+            string msg = !string.IsNullOrEmpty(message) ? message : "YENİDEN BAŞLATILIYOR";
+            Action reloadAction = () =>
+            {
+                DOTween.KillAll();
+                if (LevelManager.Instance != null)
+                {
+                    LevelManager.Instance.LoadLevel(LevelManager.Instance.CurrentLevelIndex);
+                }
+                else
+                {
+                    var activeScene = SceneManager.GetActiveScene();
+                    SceneManager.LoadScene(activeScene.buildIndex);
+                }
+            };
+            ShowAndLoad(reloadAction, minDuration > 0f ? minDuration : 0.6f, msg);
         }
 
         /// <summary>

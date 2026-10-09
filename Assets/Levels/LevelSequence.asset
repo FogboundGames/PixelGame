@@ -14,7 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.LevelSequence
   m_Levels:
   - {fileID: 11400000, guid: f0e790c49316baaa880d3e341f85a2c6, type: 2}
-  - {fileID: 11400000, guid: fc78a2b57b8f86b0d848f09d7f9719f6, type: 2}
   - {fileID: 11400000, guid: c6a16d9c5ab81090eb27489b09e6753a, type: 2}
   - {fileID: 11400000, guid: 34fec1504c169afe18148c63f1334886, type: 2}
   - {fileID: 11400000, guid: e306336b412b46cba91733c61ff05438, type: 2}

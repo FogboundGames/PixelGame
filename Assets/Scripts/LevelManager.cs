@@ -64,6 +64,10 @@ namespace PixelGame
         private void Awake()
         {
             Instance = this;
+            if (Application.isPlaying && PlayerPrefs.HasKey(ProgressPrefKey))
+            {
+                m_CurrentLevelIndex = PlayerPrefs.GetInt(ProgressPrefKey);
+            }
             RefreshFromSequence();
             EnsureGenerator();
         }
