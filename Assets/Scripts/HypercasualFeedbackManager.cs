@@ -804,21 +804,40 @@ namespace PixelGame
             catch { }
         }
 
-        private static void VibrateAndroid(long ms, int amplitude)
+        // VibrationEffect.EFFECT_* sabitleri (API 29+). Cihaz üreticisinin ayarladığı hazır efektler
+        // ucuz titreşim motorlarında da hissedilir; çok kısa tek darbeler (12-28 ms) bu cihazlarda hiç hissedilmiyordu.
+        private const int EffectClick = 0;
+        private const int EffectTick = 2;
+        private const int EffectHeavyClick = 5;
+
+        private static void VibrateAndroid(long ms, int predefinedEffect)
         {
             try
             {
                 EnsureAndroidVibrator();
-                if (s_AndroidVibrator == null) return;
+                if (s_AndroidVibrator == null)
+                {
+                    // Yedek yol. Ayrıca Unity, VIBRATE iznini manifest'e ancak Handheld.Vibrate referansı görürse ekler.
+                    Handheld.Vibrate();
+                    return;
+                }
 
                 using (var version = new AndroidJavaClass("android.os.Build$VERSION"))
                 {
                     int sdkInt = version.GetStatic<int>("SDK_INT");
-                    if (sdkInt >= 26) // Android 8.0 Oreo+
+                    if (sdkInt >= 29) // Android 10+: hazır efektler
                     {
                         using (var effectClass = new AndroidJavaClass("android.os.VibrationEffect"))
+                        using (var effect = effectClass.CallStatic<AndroidJavaObject>("createPredefined", predefinedEffect))
                         {
-                            var effect = effectClass.CallStatic<AndroidJavaObject>("createOneShot", ms, amplitude);
+                            s_AndroidVibrator.Call("vibrate", effect);
+                        }
+                    }
+                    else if (sdkInt >= 26) // Android 8-9: cihazın varsayılan şiddetiyle tek darbe
+                    {
+                        using (var effectClass = new AndroidJavaClass("android.os.VibrationEffect"))
+                        using (var effect = effectClass.CallStatic<AndroidJavaObject>("createOneShot", ms, -1))
+                        {
                             s_AndroidVibrator.Call("vibrate", effect);
                         }
                     }
@@ -828,7 +847,10 @@ namespace PixelGame
                     }
                 }
             }
-            catch { }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning("[Haptics] Titreşim başarısız: " + e.Message);
+            }
         }
 #endif
 
@@ -841,7 +863,7 @@ namespace PixelGame
             m_LastHapticTime = Time.unscaledTime;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
-            VibrateAndroid(12, 45); // Çok hafif 12 ms darbe
+            VibrateAndroid(25, EffectTick);
 #elif UNITY_IOS && !UNITY_EDITOR
             Handheld.Vibrate();
 #endif
@@ -856,7 +878,7 @@ namespace PixelGame
             m_LastHapticTime = Time.unscaledTime;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
-            VibrateAndroid(28, 90); // Dolgun 28 ms darbe
+            VibrateAndroid(40, EffectClick);
 #elif UNITY_IOS && !UNITY_EDITOR
             Handheld.Vibrate();
 #endif
@@ -871,15 +893,34 @@ namespace PixelGame
             m_LastHapticTime = Time.unscaledTime;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
-            VibrateAndroid(35, 110);
+            VibrateAndroid(60, EffectHeavyClick);
 #elif UNITY_IOS && !UNITY_EDITOR
             Handheld.Vibrate();
 #endif
         }
 
+        private const string HapticsPrefKey = "PixelGame_HapticsEnabled";
+        private static int s_UserHapticsEnabled = -1;
+
+        /// <summary>Oyuncunun HUD'daki titreşim butonuyla seçtiği tercih (PlayerPrefs'te saklanır).</summary>
+        public static bool UserHapticsEnabled
+        {
+            get
+            {
+                if (s_UserHapticsEnabled < 0) s_UserHapticsEnabled = PlayerPrefs.GetInt(HapticsPrefKey, 1);
+                return s_UserHapticsEnabled == 1;
+            }
+            set
+            {
+                s_UserHapticsEnabled = value ? 1 : 0;
+                PlayerPrefs.SetInt(HapticsPrefKey, s_UserHapticsEnabled);
+                PlayerPrefs.Save();
+            }
+        }
+
         private bool CanTriggerHaptics()
         {
-            if (!m_EnableHaptics) return false;
+            if (!m_EnableHaptics || !UserHapticsEnabled) return false;
             if (m_HapticsOnlyOnMobile && !Application.isMobilePlatform) return false;
             if (Time.unscaledTime - m_LastHapticTime < MinHapticInterval) return false;
             return true;
@@ -896,12 +937,14 @@ namespace PixelGame
         /// </summary>
         public void PlayCubeLiftoffFeedback(Vector3 position, int index = 0)
         {
+            // Titreşim sesten bağımsız: ses klibi yoksa ya da ses kapalıysa da hissedilsin
+            if (index <= 0) TriggerHapticLight();
+
             if (!m_EnableSound || m_ChimeSource == null || m_LiftoffClip == null) return;
 
             if (index <= 0)
             {
                 PlayLiftoffSound(0);
-                TriggerHapticLight();
             }
             else
             {

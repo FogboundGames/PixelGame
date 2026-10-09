@@ -135,7 +135,7 @@ namespace PixelGame
             HideCoinPill();
             RefreshLevelFromScene();
             m_SoundEnabled = PlayerPrefs.GetInt(SoundPrefKey, 1) == 1;
-            m_HapticsEnabled = PlayerPrefs.GetInt(HapticsPrefKey, 1) == 1;
+            m_HapticsEnabled = HypercasualFeedbackManager.UserHapticsEnabled;
             ApplyAudioState();
             UpdateSoundVisual();
             UpdateHapticsVisual();
@@ -670,7 +670,6 @@ namespace PixelGame
         }
 
         private const string SoundPrefKey = "PixelGame_SoundEnabled";
-        private const string HapticsPrefKey = "PixelGame_HapticsEnabled";
 
         public void ToggleSound()
         {
@@ -706,8 +705,7 @@ namespace PixelGame
         public void ToggleHaptics()
         {
             m_HapticsEnabled = !m_HapticsEnabled;
-            PlayerPrefs.SetInt(HapticsPrefKey, m_HapticsEnabled ? 1 : 0);
-            PlayerPrefs.Save();
+            HypercasualFeedbackManager.UserHapticsEnabled = m_HapticsEnabled;
             UpdateHapticsVisual();
             if (m_HapticsEnabled)
             {
@@ -719,9 +717,8 @@ namespace PixelGame
         public void TriggerHaptic()
         {
             if (!m_HapticsEnabled) return;
-            #if UNITY_ANDROID || UNITY_IOS
-            Handheld.Vibrate();
-            #endif
+            // Tek titreşim motoru: Handheld.Vibrate uzun ve sert bir vızlama veriyordu
+            HypercasualFeedbackManager.Instance.TriggerHapticMedium();
         }
 
         private void UpdateHapticsVisual()
