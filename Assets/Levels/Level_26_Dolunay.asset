@@ -274,13 +274,13 @@ MonoBehaviour:
     capacity: 30
     paletteIndex: 1
     label: Renk #2 (11)
-    linkId: 3
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.8862746, b: 0.47058827, a: 1}
     capacity: 30
     paletteIndex: 0
     label: Renk #1 (12)
-    linkId: 3
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.11764707, g: 0.13333334, b: 0.2901961, a: 1}
     capacity: 23
@@ -304,13 +304,13 @@ MonoBehaviour:
     capacity: 10
     paletteIndex: 0
     label: Renk #1 (14)
-    linkId: 5
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.8862746, b: 0.47058827, a: 1}
     capacity: 20
     paletteIndex: 0
     label: Renk #1 (14)
-    linkId: 5
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.11764707, g: 0.13333334, b: 0.2901961, a: 1}
     capacity: 30

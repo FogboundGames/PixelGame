@@ -67,7 +67,7 @@ MonoBehaviour:
   m_SlotSprite: {fileID: 0}
   m_SlotCount: 5
   m_PoolColumns: 3
-  m_PoolRows: 23
+  m_PoolRows: 12
   m_DisableAutoPlaceTurbo: 0
   m_TruckCapacity: 20
   m_MinTruckCapacity: 10
@@ -122,7 +122,7 @@ MonoBehaviour:
     capacity: 20
     paletteIndex: 0
     label: Mavi (#1) (#6)
-    linkId: 7
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.18431373, g: 0.36862746, b: 0.56078434, a: 1}
     capacity: 12
@@ -140,7 +140,7 @@ MonoBehaviour:
     capacity: 20
     paletteIndex: 1
     label: Mavi (#2) (#9)
-    linkId: 7
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.32156864, g: 0.6117647, b: 0.9058824, a: 1}
     capacity: 15
@@ -266,25 +266,25 @@ MonoBehaviour:
     capacity: 20
     paletteIndex: 2
     label: "Sar\u0131 (#3) (#25)"
-    linkId: 6
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.32156864, g: 0.6117647, b: 0.9058824, a: 1}
     capacity: 17
     paletteIndex: 0
     label: Mavi (#1) (#26)
-    linkId: 6
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.32156864, g: 0.6117647, b: 0.9058824, a: 1}
     capacity: 10
     paletteIndex: 0
     label: Mavi (#1) (#26)
-    linkId: 5
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.8431373, g: 0.57254905, b: 0, a: 1}
     capacity: 20
     paletteIndex: 3
     label: Turuncu (#4) (#27)
-    linkId: 5
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.32156864, g: 0.6117647, b: 0.9058824, a: 1}
     capacity: 10

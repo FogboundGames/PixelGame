@@ -385,6 +385,17 @@ namespace PixelGame
             MeshRenderer[] body = GetBodyRenderers();
             if (body == null || body.Length == 0) return;
 
+            if (Application.isPlaying)
+            {
+                // Oyunda renk başına paylaşılan materyal: MPB SRP Batcher'ı bozup her parçayı ayrı draw call yapıyordu
+                Color emissionColor = emission > 0f ? color * emission : Color.black;
+                for (int i = 0; i < body.Length; i++)
+                {
+                    SharedColorMaterialCache.Apply(body[i], color, emissionColor);
+                }
+                return;
+            }
+
             if (s_PropertyBlock == null)
                 s_PropertyBlock = new MaterialPropertyBlock();
 
@@ -588,7 +599,11 @@ namespace PixelGame
                 mr.receiveShadows = false;
                 mr.sortingOrder = -1;
 
-                if (shadowColor.a > 0.001f)
+                if (shadowColor.a > 0.001f && Application.isPlaying)
+                {
+                    SharedColorMaterialCache.Apply(mr, shadowColor, Color.black);
+                }
+                else if (shadowColor.a > 0.001f)
                 {
                     MaterialPropertyBlock spb = new MaterialPropertyBlock();
                     mr.GetPropertyBlock(spb);

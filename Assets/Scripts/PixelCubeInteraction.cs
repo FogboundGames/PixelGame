@@ -273,6 +273,8 @@ namespace PixelGame
 
         public int PoppedCount => m_PoppedCubes.Count;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        // Debug butonu: sürüm build'inde OnGUI hiç derlenmesin (her kare IMGUI çağrısı maliyeti)
         private void OnGUI()
         {
             if (!m_ShowResetButtonOnScreen || m_PoppedCubes.Count == 0) return;
@@ -299,5 +301,6 @@ namespace PixelGame
 
             GUI.backgroundColor = oldBg;
         }
+#endif
     }
 }

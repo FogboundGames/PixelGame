@@ -82,7 +82,7 @@ MonoBehaviour:
     capacity: 10
     paletteIndex: 1
     label: Renk #2 (1)
-    linkId: 1
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.5882353, g: 0.36078432, b: 0.80392164, a: 1}
     capacity: 11
@@ -100,7 +100,7 @@ MonoBehaviour:
     capacity: 4
     paletteIndex: 4
     label: Renk #5 (1)
-    linkId: 1
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.96470594, g: 0.96470594, b: 0.98823535, a: 1}
     capacity: 20

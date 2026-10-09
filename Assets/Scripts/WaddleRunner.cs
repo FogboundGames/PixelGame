@@ -88,7 +88,11 @@ namespace PixelGame
         private Quaternion m_LegRRestRotation = Quaternion.identity;
         private Vector3 m_LegsRest;
         private bool m_IsAirborne;
-        public bool IsAirborne { get => m_IsAirborne; set => m_IsAirborne = value; }
+        public bool IsAirborne { get => m_IsAirborne; set { m_IsAirborne = value; if (value) m_Engaged = true; } }
+
+        // Panoda bekleyen küpte LateUpdate'in yapacak işi yok (gövde/bacaklar zaten dinlenme duruşunda).
+        // Yüzlerce küpün her kare transform yazması orta/alt cihazlarda CPU yiyordu; ilk yürüyüşe kadar atlanır.
+        private bool m_Engaged;
 
         /// <summary>Açıkken küp adım atmaz: gövde ve bacaklar prefab duruşunda kalır, küp yolda düz kayar.</summary>
         public bool Glide { get; set; } = true;
@@ -117,6 +121,7 @@ namespace PixelGame
         {
             // Panodaki küp, generator onu yerleştirip eğdikten sonra yürümeye başlar;
             // Awake'teki duruş o yüzden eski olabilir.
+            m_Engaged = true;
             m_BaseRotation = transform.rotation;
             m_LastPosition = transform.position;
             m_Heading = 0f;
@@ -265,6 +270,8 @@ namespace PixelGame
 
         private void LateUpdate()
         {
+            if (!m_Engaged) return;
+
             if (m_IsAirborne)
             {
                 // Gölge bir anda kaybolmaz: kısa sürede küçülerek söner
