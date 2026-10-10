@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_02_Piksel Kalp
   m_EditorClassIdentifier: PixelGame::PixelGame.PixelLevelData
   m_LevelName: Piksel Kalp
-  m_LevelIndex: 9
+  m_LevelIndex: 7
   m_DifficultyTier: 0
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: 61898abaffe8fb97d8aa9be0efc140ab, type: 3}
@@ -55,7 +55,7 @@ MonoBehaviour:
   m_SlotSprite: {fileID: 0}
   m_SlotCount: 4
   m_PoolColumns: 3
-  m_PoolRows: 2
+  m_PoolRows: 5
   m_DisableAutoPlaceTurbo: 0
   m_TruckCapacity: 20
   m_MinTruckCapacity: 10
@@ -64,16 +64,22 @@ MonoBehaviour:
   m_RoundCapacityRatio: 0.8
   m_UseCustomWagonSequence: 1
   m_WagonSequence:
-  - wagonColor: {r: 0.7843137, g: 0.0392157, b: 0.3921569, a: 1}
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
     capacity: 20
-    paletteIndex: 1
-    label: Renk #2 (1)
+    paletteIndex: 0
+    label: Renk #1 (1)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (2)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.7843137, g: 0.0392157, b: 0.3921569, a: 1}
     capacity: 20
     paletteIndex: 1
-    label: Renk #2 (2)
+    label: Renk #2 (1)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
@@ -89,10 +95,28 @@ MonoBehaviour:
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 20
+    capacity: 3
     paletteIndex: 0
     label: Renk #1 (5)
+    linkId: 1
+    isHidden: 0
+  - wagonColor: {r: 1, g: 0.7647059, b: 0.9019608, a: 1}
+    capacity: 5
+    paletteIndex: 2
+    label: Renk #3 (1)
     linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.7843137, g: 0.0392157, b: 0.3921569, a: 1}
+    capacity: 10
+    paletteIndex: 1
+    label: Renk #2 (2)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.7843137, g: 0.0392157, b: 0.3921569, a: 1}
+    capacity: 20
+    paletteIndex: 1
+    label: Renk #2 (3)
+    linkId: 1
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
     capacity: 20
@@ -113,45 +137,21 @@ MonoBehaviour:
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 19
+    capacity: 20
     paletteIndex: 0
     label: Renk #1 (9)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 19
+    capacity: 20
     paletteIndex: 0
     label: Renk #1 (10)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 7
+    capacity: 20
     paletteIndex: 0
     label: Renk #1 (11)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 19
-    paletteIndex: 0
-    label: Renk #1 (12)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.7843137, g: 0.0392157, b: 0.3921569, a: 1}
-    capacity: 10
-    paletteIndex: 1
-    label: Renk #2 (13)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.6078431, a: 1}
-    capacity: 19
-    paletteIndex: 0
-    label: Renk #1 (14)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.7647059, b: 0.9019608, a: 1}
-    capacity: 5
-    paletteIndex: 2
-    label: Renk #3 (15)
     linkId: 0
     isHidden: 0
   m_FigureShadowTexture: {fileID: 0}

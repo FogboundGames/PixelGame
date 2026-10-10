@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56621c704aae40878464c98bd3ff671a, type: 3}
   m_Name: Level_21_kucuk-32x32(7)
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
-  m_LevelName: kucuk-32x32(7)
-  m_LevelIndex: 24
+  m_LevelName: Motif
+  m_LevelIndex: 22
   m_DifficultyTier: 1
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: 085162949f5f6be178584009aa466f11, type: 3}
@@ -73,9 +73,9 @@ MonoBehaviour:
   m_MysteryRevealCondition: 0
   m_MysteryCubeColor: {r: 0.125, g: 0.118, b: 0.306, a: 1}
   m_SlotSprite: {fileID: 0}
-  m_SlotCount: 5
+  m_SlotCount: 4
   m_PoolColumns: 4
-  m_PoolRows: 2
+  m_PoolRows: 9
   m_DisableAutoPlaceTurbo: 0
   m_TruckCapacity: 30
   m_MinTruckCapacity: 4
@@ -84,288 +84,300 @@ MonoBehaviour:
   m_RoundCapacityRatio: 0.8
   m_UseCustomWagonSequence: 1
   m_WagonSequence:
-  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
-    capacity: 17
-    paletteIndex: 0
-    label: Siyah (#1) (#1) (#1)
+  - wagonColor: {r: 0.04705883, g: 0.6666667, b: 0.7411765, a: 1}
+    capacity: 20
+    paletteIndex: 2
+    label: Renk #3 (1)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.92549026, g: 0.86666673, b: 0.7294118, a: 1}
+    capacity: 20
+    paletteIndex: 3
+    label: Renk #4 (1)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.039215688, g: 0.098039225, b: 0.33333334, a: 1}
-    capacity: 30
+    capacity: 20
     paletteIndex: 1
-    label: Mavi (#2) (#2) (#2)
-    linkId: 2
-    isHidden: 0
-  - wagonColor: {r: 0.04705883, g: 0.6666667, b: 0.7411765, a: 1}
-    capacity: 4
-    paletteIndex: 2
-    label: Turkuaz (#3) (#3) (#3)
-    linkId: 2
-    isHidden: 0
-  - wagonColor: {r: 0.92549026, g: 0.86666673, b: 0.7294118, a: 1}
-    capacity: 26
-    paletteIndex: 3
-    label: "Sar\u0131 (#4) (#4) (#4)"
+    label: Renk #2 (1)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.92549026, g: 0.86666673, b: 0.7294118, a: 1}
+  - wagonColor: {r: 0.039215688, g: 0.098039225, b: 0.33333334, a: 1}
     capacity: 20
-    paletteIndex: 3
-    label: "Sar\u0131 (#5) (#5) (#5)"
+    paletteIndex: 1
+    label: Renk #2 (2)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.04705883, g: 0.6666667, b: 0.7411765, a: 1}
-    capacity: 30
-    paletteIndex: 2
-    label: Turkuaz (#6) (#6) (#6)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.92549026, g: 0.86666673, b: 0.7294118, a: 1}
+  - wagonColor: {r: 0.039215688, g: 0.098039225, b: 0.33333334, a: 1}
     capacity: 10
-    paletteIndex: 3
-    label: "Sar\u0131 (#7) (#7) (#7)"
+    paletteIndex: 1
+    label: Renk #2 (3)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.015686275, g: 0.6313726, b: 0.1254902, a: 1}
-    capacity: 22
-    paletteIndex: 4
-    label: "Ye\u015Fil (#8) (#8) (#8)"
+  - wagonColor: {r: 0.039215688, g: 0.098039225, b: 0.33333334, a: 1}
+    capacity: 20
+    paletteIndex: 1
+    label: Renk #2 (4)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.015686275, g: 0.6313726, b: 0.1254902, a: 1}
-    capacity: 30
-    paletteIndex: 4
-    label: "Ye\u015Fil (#9) (#9) (#9)"
+  - wagonColor: {r: 0.039215688, g: 0.098039225, b: 0.33333334, a: 1}
+    capacity: 20
+    paletteIndex: 1
+    label: Renk #2 (5)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.04705883, g: 0.6666667, b: 0.7411765, a: 1}
     capacity: 20
     paletteIndex: 2
-    label: Turkuaz (#22) (#22) (#10)
+    label: Renk #3 (2)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.7294118, g: 0.03529412, b: 0.03529412, a: 1}
-    capacity: 10
+    capacity: 20
     paletteIndex: 6
-    label: "K\u0131rm\u0131z\u0131 (#11) (#11) (#11)"
+    label: Renk #7 (1)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.039215688, g: 0.098039225, b: 0.33333334, a: 1}
+    capacity: 20
+    paletteIndex: 1
+    label: Renk #2 (6)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.9294118, g: 0.32941177, b: 0.08235294, a: 1}
+    capacity: 20
+    paletteIndex: 5
+    label: Renk #6 (1)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.039215688, g: 0.098039225, b: 0.33333334, a: 1}
+    capacity: 20
+    paletteIndex: 1
+    label: Renk #2 (7)
+    linkId: 0
+    isHidden: 1
+  - wagonColor: {r: 0.04705883, g: 0.6666667, b: 0.7411765, a: 1}
+    capacity: 20
+    paletteIndex: 2
+    label: Renk #3 (3)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.9921569, g: 0.7960785, b: 0.054901965, a: 1}
     capacity: 10
     paletteIndex: 7
-    label: "Sar\u0131 (#12) (#12) (#12)"
+    label: Renk #8 (1)
+    linkId: 2
+    isHidden: 0
+  - wagonColor: {r: 0.039215688, g: 0.098039225, b: 0.33333334, a: 1}
+    capacity: 20
+    paletteIndex: 1
+    label: Renk #2 (8)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
     capacity: 20
     paletteIndex: 0
-    label: Siyah (#13) (#13) (#13)
+    label: Renk #1 (1)
     linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (2)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.92549026, g: 0.86666673, b: 0.7294118, a: 1}
+    capacity: 20
+    paletteIndex: 3
+    label: Renk #4 (2)
+    linkId: 2
+    isHidden: 0
+  - wagonColor: {r: 0.015686275, g: 0.6313726, b: 0.1254902, a: 1}
+    capacity: 20
+    paletteIndex: 4
+    label: Renk #5 (1)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
+    capacity: 12
+    paletteIndex: 0
+    label: Renk #1 (3)
+    linkId: 3
     isHidden: 0
   - wagonColor: {r: 0.039215688, g: 0.098039225, b: 0.33333334, a: 1}
-    capacity: 4
+    capacity: 20
     paletteIndex: 1
-    label: Mavi (#14) (#14) (#14)
+    label: Renk #2 (9)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.04705883, g: 0.6666667, b: 0.7411765, a: 1}
+    capacity: 20
+    paletteIndex: 2
+    label: Renk #3 (4)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.92549026, g: 0.86666673, b: 0.7294118, a: 1}
-    capacity: 10
+    capacity: 20
     paletteIndex: 3
-    label: "Sar\u0131 (#15) (#15) (#15)"
+    label: Renk #4 (3)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.92549026, g: 0.86666673, b: 0.7294118, a: 1}
-    capacity: 18
-    paletteIndex: 3
-    label: "Sar\u0131 (#16) (#16) (#16)"
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.9294118, g: 0.32941177, b: 0.08235294, a: 1}
-    capacity: 30
-    paletteIndex: 5
-    label: Turuncu (#17) (#17) (#17)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.7294118, g: 0.03529412, b: 0.03529412, a: 1}
-    capacity: 29
-    paletteIndex: 6
-    label: "K\u0131rm\u0131z\u0131 (#18) (#18) (#18)"
+  - wagonColor: {r: 0.04705883, g: 0.6666667, b: 0.7411765, a: 1}
+    capacity: 20
+    paletteIndex: 2
+    label: Renk #3 (5)
     linkId: 3
     isHidden: 0
   - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
-    capacity: 10
+    capacity: 20
     paletteIndex: 0
-    label: Siyah (#19) (#19) (#19)
-    linkId: 3
-    isHidden: 0
-  - wagonColor: {r: 0.039215688, g: 0.098039225, b: 0.33333334, a: 1}
-    capacity: 10
-    paletteIndex: 1
-    label: Mavi (#20) (#20) (#20)
+    label: Renk #1 (4)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.039215688, g: 0.098039225, b: 0.33333334, a: 1}
-    capacity: 30
-    paletteIndex: 1
-    label: Mavi (#21) (#21) (#21)
+  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (5)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.92549026, g: 0.86666673, b: 0.7294118, a: 1}
+    capacity: 20
+    paletteIndex: 3
+    label: Renk #4 (4)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.92549026, g: 0.86666673, b: 0.7294118, a: 1}
+    capacity: 14
+    paletteIndex: 3
+    label: Renk #4 (5)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (6)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (7)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (8)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.015686275, g: 0.6313726, b: 0.1254902, a: 1}
+    capacity: 20
+    paletteIndex: 4
+    label: Renk #5 (2)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.92549026, g: 0.86666673, b: 0.7294118, a: 1}
+    capacity: 10
+    paletteIndex: 3
+    label: Renk #4 (6)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.9294118, g: 0.32941177, b: 0.08235294, a: 1}
+    capacity: 10
+    paletteIndex: 5
+    label: Renk #6 (2)
+    linkId: 0
+    isHidden: 1
+  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (9)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.04705883, g: 0.6666667, b: 0.7411765, a: 1}
+    capacity: 14
+    paletteIndex: 2
+    label: Renk #3 (6)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.04705883, g: 0.6666667, b: 0.7411765, a: 1}
+    capacity: 20
+    paletteIndex: 2
+    label: Renk #3 (7)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.9294118, g: 0.32941177, b: 0.08235294, a: 1}
     capacity: 19
     paletteIndex: 5
-    label: Turuncu (#10) (#10) (#22)
-    linkId: 0
+    label: Renk #6 (3)
+    linkId: 1
     isHidden: 0
-  - wagonColor: {r: 0.92549026, g: 0.86666673, b: 0.7294118, a: 1}
-    capacity: 10
-    paletteIndex: 3
-    label: "Sar\u0131 (#23) (#23) (#23)"
-    linkId: 0
+  - wagonColor: {r: 0.015686275, g: 0.6313726, b: 0.1254902, a: 1}
+    capacity: 12
+    paletteIndex: 4
+    label: Renk #5 (3)
+    linkId: 1
     isHidden: 0
-  - wagonColor: {r: 0.92549026, g: 0.86666673, b: 0.7294118, a: 1}
-    capacity: 10
-    paletteIndex: 3
-    label: "Sar\u0131 (#24) (#24) (#24)"
+  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (10)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
-    capacity: 28
-    paletteIndex: 0
-    label: Siyah (#25) (#25) (#25)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.039215688, g: 0.098039225, b: 0.33333334, a: 1}
     capacity: 20
-    paletteIndex: 1
-    label: Mavi (#26) (#26) (#26)
+    paletteIndex: 0
+    label: Renk #1 (11)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.04705883, g: 0.6666667, b: 0.7411765, a: 1}
-    capacity: 30
+    capacity: 20
     paletteIndex: 2
-    label: Turkuaz (#27) (#27) (#27)
+    label: Renk #3 (8)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
     capacity: 20
     paletteIndex: 0
-    label: Siyah (#28) (#28) (#28)
+    label: Renk #1 (12)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
+    capacity: 20
+    paletteIndex: 0
+    label: Renk #1 (13)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
+    capacity: 10
+    paletteIndex: 0
+    label: Renk #1 (14)
     linkId: 0
     isHidden: 1
   - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
-    capacity: 17
+    capacity: 20
     paletteIndex: 0
-    label: Siyah (#29) (#29) (#29)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.039215688, g: 0.098039225, b: 0.33333334, a: 1}
-    capacity: 10
-    paletteIndex: 1
-    label: Mavi (#30) (#30) (#30)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.04705883, g: 0.6666667, b: 0.7411765, a: 1}
-    capacity: 10
-    paletteIndex: 2
-    label: Turkuaz (#31) (#31) (#31)
+    label: Renk #1 (15)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
     capacity: 20
     paletteIndex: 0
-    label: Siyah (#32) (#32) (#32)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.039215688, g: 0.098039225, b: 0.33333334, a: 1}
-    capacity: 30
-    paletteIndex: 1
-    label: Mavi (#33) (#33) (#33)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.04705883, g: 0.6666667, b: 0.7411765, a: 1}
-    capacity: 30
-    paletteIndex: 2
-    label: Turkuaz (#34) (#34) (#34)
+    label: Renk #1 (16)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
     capacity: 20
     paletteIndex: 0
-    label: Siyah (#35) (#35) (#35)
+    label: Renk #1 (17)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.039215688, g: 0.098039225, b: 0.33333334, a: 1}
-    capacity: 20
-    paletteIndex: 1
-    label: Mavi (#36) (#36) (#36)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.039215688, g: 0.098039225, b: 0.33333334, a: 1}
-    capacity: 16
-    paletteIndex: 1
-    label: Mavi (#37) (#37) (#37)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.04705883, g: 0.6666667, b: 0.7411765, a: 1}
-    capacity: 20
-    paletteIndex: 2
-    label: Turkuaz (#38) (#38) (#38)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
-    capacity: 30
-    paletteIndex: 0
-    label: Siyah (#39) (#39) (#39)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.04705883, g: 0.6666667, b: 0.7411765, a: 1}
-    capacity: 10
-    paletteIndex: 2
-    label: Turkuaz (#40) (#40) (#40)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
-    capacity: 10
-    paletteIndex: 0
-    label: Siyah (#41) (#41) (#41)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
-    capacity: 30
-    paletteIndex: 0
-    label: Siyah (#42) (#42) (#42)
+  - wagonColor: {r: 0.7294118, g: 0.03529412, b: 0.03529412, a: 1}
+    capacity: 19
+    paletteIndex: 6
+    label: Renk #7 (2)
     linkId: 0
     isHidden: 1
-  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
-    capacity: 10
-    paletteIndex: 0
-    label: Siyah (#43) (#43) (#43)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
-    capacity: 20
-    paletteIndex: 0
-    label: Siyah (#44) (#44) (#44)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
-    capacity: 20
-    paletteIndex: 0
-    label: Siyah (#45) (#45) (#45)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
-    capacity: 30
-    paletteIndex: 0
-    label: Siyah (#46) (#46) (#46)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.1764706, g: 0.16078432, b: 0.13725491, a: 1}
-    capacity: 20
-    paletteIndex: 0
-    label: Siyah (#47) (#47) (#47)
-    linkId: 0
-    isHidden: 0
   m_FigureShadowTexture: {fileID: 0}
   m_UseCustomColorTheme: 0
   m_ColorTheme:

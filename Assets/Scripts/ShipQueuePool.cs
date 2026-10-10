@@ -291,6 +291,34 @@ namespace PixelGame
             }
         }
 
+        private float m_NextQueueHealTime;
+        private readonly Dictionary<ShipController, float> m_MisplacedSince = new Dictionary<ShipController, float>();
+
+        // Güvenlik ağı: kuyruk listesindeki yeriyle fiziksel spotu uyuşmayan (yarıda kesilmiş/bayat
+        // kaydırma yüzünden ortada kalmış) gemiyi yerine süzdürür.
+        private void Update()
+        {
+            if (!Application.isPlaying || Time.unscaledTime < m_NextQueueHealTime) return;
+            m_NextQueueHealTime = Time.unscaledTime + 0.5f;
+            if (!gameObject.activeInHierarchy) return;
+
+            int n = Mathf.Min(m_WaitingShips.Count, m_QueueSpots.Count);
+            for (int i = 0; i < n; i++)
+            {
+                ShipController s = m_WaitingShips[i];
+                Transform spot = m_QueueSpots[i];
+                if (s == null || spot == null || !s.gameObject.activeInHierarchy) continue;
+                bool busy = s.IsMoving || s.IsDocked || s.IsDeparting || s.IsDragging || s.IsQueueAnimating || DOTween.IsTweening(s.transform);
+                if (busy || s.transform.parent == spot) { m_MisplacedSince.Remove(s); continue; }
+
+                // Normal kaydırma kısa gecikmeyle başlar; sadece uzun süre yanlış yerde kalan gemiye müdahale et
+                if (!m_MisplacedSince.TryGetValue(s, out float since)) { m_MisplacedSince[s] = Time.unscaledTime; continue; }
+                if (Time.unscaledTime - since < 0.6f) continue;
+                m_MisplacedSince.Remove(s);
+                StartCoroutine(MoveBackShipToFrontSpot(s, spot, 0f));
+            }
+        }
+
 #if UNITY_EDITOR
         private void OnValidate()
         {
@@ -1113,6 +1141,11 @@ namespace PixelGame
             if (backShip == null || frontSpot == null) yield break;
             if (backShip.IsDocked || backShip.IsDeparting) yield break;
 
+            // Beklerken kuyruk yeniden kaydırıldıysa (sütundan art arda gemi gönderildi) bu emir bayattır:
+            // gemiyi eski hedefine taşırsa liste "önde" derken gemi ortada kalıyordu.
+            int targetIdx = m_QueueSpots.IndexOf(frontSpot);
+            if (targetIdx < 0 || targetIdx >= m_WaitingShips.Count || m_WaitingShips[targetIdx] != backShip) yield break;
+
             // Spot altında başka aktif gemi kalmışsa (eski ebeveyn kalıntısı vs.) ayır
             for (int i = frontSpot.childCount - 1; i >= 0; i--)
             {
@@ -1264,6 +1297,8 @@ namespace PixelGame
                         ship.transform.localPosition = Vector3.zero;
                         ship.transform.localRotation = Quaternion.identity;
                         ship.transform.localScale = Vector3.one * m_ShipScale;
+                        // m_ShipScale dünya ölçeği: spot ölçeğine bölünerek doğru yerel ölçek kurulur (yoksa gemi ~%35 büyük kalıyordu)
+                        ship.SetBaseScale(Vector3.one * m_ShipScale);
                         ship.SetQueueAnimating(false);
                         RefreshLinkedShipTethers();
                     }

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: "Level_03_Alt\u0131n Y\u0131ld\u0131z"
   m_EditorClassIdentifier: PixelGame::PixelGame.PixelLevelData
   m_LevelName: "Alt\u0131n Y\u0131ld\u0131z"
-  m_LevelIndex: 5
+  m_LevelIndex: 4
   m_DifficultyTier: 0
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: f16dad97d6094c5fa353b599dab245b3, type: 3}
@@ -65,45 +65,45 @@ MonoBehaviour:
   m_UseCustomWagonSequence: 1
   m_WagonSequence:
   - wagonColor: {r: 0.7254902, g: 0.4901961, b: 0.1333333, a: 1}
-    capacity: 15
+    capacity: 10
     paletteIndex: 0
     label: Renk #1 (1)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.7254902, g: 0.4901961, b: 0.1333333, a: 1}
-    capacity: 15
+    capacity: 10
     paletteIndex: 0
     label: Renk #1 (2)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 1, g: 0.8, b: 0.1254902, a: 1}
-    capacity: 13
-    paletteIndex: 1
-    label: Renk #2 (3)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.8, b: 0.1254902, a: 1}
-    capacity: 12
-    paletteIndex: 1
-    label: Renk #2 (4)
-    linkId: 0
-    isHidden: 0
   - wagonColor: {r: 0.7254902, g: 0.4901961, b: 0.1333333, a: 1}
-    capacity: 10
+    capacity: 20
     paletteIndex: 0
-    label: Renk #1 (5)
+    label: Renk #1 (3)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.8, b: 0.1254902, a: 1}
-    capacity: 12
+    capacity: 17
     paletteIndex: 1
-    label: Renk #2 (6)
+    label: Renk #2 (1)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 1, g: 0.8, b: 0.1254902, a: 1}
+    capacity: 10
+    paletteIndex: 1
+    label: Renk #2 (2)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.9882353, b: 0.8431373, a: 1}
     capacity: 1
     paletteIndex: 2
-    label: Renk #3 (7)
+    label: Renk #3 (1)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 1, g: 0.8, b: 0.1254902, a: 1}
+    capacity: 10
+    paletteIndex: 1
+    label: Renk #2 (3)
     linkId: 0
     isHidden: 0
   m_FigureShadowTexture: {fileID: 0}

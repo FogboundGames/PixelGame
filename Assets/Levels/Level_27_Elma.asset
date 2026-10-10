@@ -59,7 +59,7 @@ MonoBehaviour:
   - wagonColor: {r: 0.83921576, g: 0.2509804, b: 0.18823531, a: 1}
     capacity: 20
     paletteIndex: 0
-    label: Gemi 1 (R0)
+    label: Renk #1 (1)
     linkId: 0
     isHidden: 0
   m_FigureShadowTexture: {fileID: 0}
