@@ -104,6 +104,38 @@ namespace PixelGame
         [Tooltip("Boşsa panodaki küpün kendisi yürür. Bir prefab atanırsa (ör. Mixamo koşucusu MainCube_Running) küp yerinde gizlenir, yerine bu prefab küpün renginde yürür.")]
         [SerializeField] private GameObject m_CargoStandInPrefab;
 
+        [Header("🔄 Tersine Gemi Koşucuları (Reversed Ship Runner Flow)")]
+        [Tooltip("Açık olduğunda küpler panodan gemiye değil; koşan karakterler gemiden sahile atlayıp OtCerceve etrafından piksel art yüklerini (konteynerleri) almaya gider ve gemiye geri döner.")]
+        [SerializeField] private bool m_UseReversedShipRunners = true;
+
+        [Tooltip("Gemiden sahile atlayıp yükleri taşıyan animasyonlu koşucu prefabı (boş bırakılırsa MainCube_Running_Tabletop kullanılır).")]
+        [SerializeField] private GameObject m_RunnerPrefab;
+
+        [Tooltip("Eğik kameralı kumsal sahnesi için koşucu (bacaklar zemine basar). Doluysa Runner Prefab yerine bu kullanılır.")]
+        [SerializeField] private GameObject m_TabletopRunnerPrefab;
+        private const string TabletopRunnerPrefabPath = "Assets/Prefabs/MainCube_Running_Tabletop.prefab";
+
+        [Tooltip("Koşucunun panodaki bir küpe göre boyutu (1 = küple aynı).")]
+        [SerializeField, Min(0.1f)] private float m_RunnerSizeVsCube = 1.3f;
+
+        [Tooltip("Sırttaki yük ile koşucunun üstü arasındaki boşluk (küp boyunun oranı).")]
+        [SerializeField] private float m_CarriedCargoGap = 0.02f;
+        [Tooltip("Sırttaki yükün kameradan uzağa (koşucunun arkasına) kayması (küp boyunun oranı).")]
+        [SerializeField] private float m_CarriedCargoBackShift = 0.15f;
+
+        [Tooltip("Sahnede etrafından koşulacak çerçeve (OtCerceve). Boş bırakılırsa sahnede otomatik bulunur.")]
+        [SerializeField] private RectTransform m_OtCerceve;
+
+        [Tooltip("Koşucuların gemiden kalkış aralığı (saniye).")]
+        [SerializeField] private float m_RunnerStaggerDelay = 0.12f;
+
+        [Tooltip("Slottaki gemiden koşucuların teker teker çıkma aralığı (saniye).")]
+        [SerializeField, Min(0.01f)] private float m_RunnerLaunchInterval = 0.1f;
+        private int m_RunnerSerial;
+
+        [Tooltip("Kargo konteynerini taşırken koşucunun kafasındaki yerel ofset.")]
+        [SerializeField] private Vector3 m_CarriedCargoOffset = new Vector3(0f, 0.45f, 0f);
+
         [Header("✨ Küp Karakter Hareketi (Hypercasual Polished Movement)")]
         [Tooltip("Küp karakterlerin gemi ve arabalara giderkenki akıcı, organik hareket ayarları.")]
         [SerializeField] private CubeMovementSettings m_CubeMovementSettings;
@@ -243,9 +275,20 @@ namespace PixelGame
             m_RopeGates.Clear();
             m_ActiveExtractingShips.Clear(); // önceki bölümden kalan çekim kayıtları yeni bölümün fail kontrolünü kilitlemesin
             m_ActiveCargoFlightCount = 0;    // yarıda kalan uçuşlar sayacı şişirip kazanma kontrolünü sonsuza dek bekletmesin
+            s_ReservedCubes.Clear();
             m_GridFrameValid = false;
             EnsureBoardBounds(forceRefresh: true);
             EnsureReferences();
+            if (data != null)
+            {
+                SetActivePalette(data);
+            }
+            else
+            {
+                s_PaletteColors.Clear();
+                s_PaletteIndices.Clear();
+                EnsurePaletteInitialized();
+            }
             ClearDockedShips();
             if (m_QueuePool != null)
             {
@@ -256,14 +299,21 @@ namespace PixelGame
         private void Awake()
         {
             s_Instance = this;
+            s_ReservedCubes.Clear();
             SanitizeSettings();
             EnsureReferences();
+            EnsurePaletteInitialized();
             EnsureBoardBounds(forceRefresh: true);
         }
 
         private void OnValidate()
         {
             SanitizeSettings();
+#if UNITY_EDITOR
+            // Masa üstü (eğik kameralı) sahne için yapılmış koşucu: bacaklar kumsala doğru basar.
+            if (m_TabletopRunnerPrefab == null)
+                m_TabletopRunnerPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(TabletopRunnerPrefabPath);
+#endif
         }
 
         private void SanitizeSettings()
@@ -287,6 +337,7 @@ namespace PixelGame
         {
             s_Instance = this;
             EnsureReferences();
+            EnsurePaletteInitialized();
             EnsureBoardBounds();
             PixelArtGenerator.LevelLoaded -= OnLevelLoaded;
             PixelArtGenerator.LevelLoaded += OnLevelLoaded;
@@ -296,6 +347,8 @@ namespace PixelGame
         {
             PixelArtGenerator.LevelLoaded -= OnLevelLoaded;
             SetTurboSpeed(false);
+            s_ReservedCubes.Clear();
+            m_ActiveExtractingShips.Clear();
         }
 
         private void Update()
@@ -320,11 +373,19 @@ namespace PixelGame
         private void Start()
         {
             EnsureReferences();
+            EnsurePaletteInitialized();
             ClearDockedShips();
             if (m_QueuePool != null)
             {
                 m_QueuePool.InitializeQueue();
             }
+            StartCoroutine(InitialDockedShipsCheckRoutine());
+        }
+
+        private IEnumerator InitialDockedShipsCheckRoutine()
+        {
+            yield return new WaitForSeconds(0.2f);
+            TriggerWaitingShipsCheck();
         }
 
         public void EnsureReferences()
@@ -394,12 +455,62 @@ namespace PixelGame
         // koyu maviye bağlıyordu (ve eşleşme geçişsiz olduğu için gemiler yanlış küpleri topluyordu).
         private static readonly List<Color> s_PaletteColors = new List<Color>();
         private static readonly List<int> s_PaletteIndices = new List<int>();
-        private const float PaletteSnapMaxSqrDistance = 0.12f;
+        private const float PaletteSnapMaxSqrDistance = 0.035f;
         private static int s_YellowPaletteEntryCount;
 
         private static bool IsYellowTone(Color c) => c.r > 0.75f && c.g > 0.50f && c.b < 0.35f;
 
         public static PixelLevelData ActivePaletteLevel { get; private set; }
+
+        public void EnsurePaletteInitialized()
+        {
+            if (m_Generator == null) m_Generator = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
+            PixelLevelData level = m_Generator != null ? m_Generator.ActiveLevelData : null;
+            if (level == null && LevelManager.Instance != null) level = LevelManager.Instance.CurrentLevel;
+
+            if (level != null && level.ColorPalette != null && level.ColorPalette.Count > 0)
+            {
+                if (ActivePaletteLevel != level || s_PaletteColors.Count == 0)
+                {
+                    SetActivePalette(level);
+                }
+                return;
+            }
+
+            if (s_PaletteColors.Count == 0)
+            {
+                var allCubes = UnityEngine.Object.FindObjectsByType<PixelCube>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+                if (allCubes != null && allCubes.Length > 0)
+                {
+                    EnsurePaletteFromCubes(allCubes);
+                }
+            }
+        }
+
+        public static void EnsurePaletteFromCubes(IEnumerable<PixelCube> cubes)
+        {
+            if (s_PaletteColors.Count > 0) return;
+            var unique = new List<Color>();
+            foreach (var c in cubes)
+            {
+                if (c == null) continue;
+                Color col = c.CurrentColor;
+                bool exists = false;
+                for (int i = 0; i < unique.Count; i++)
+                {
+                    float dr = unique[i].r - col.r, dg = unique[i].g - col.g, db = unique[i].b - col.b;
+                    if (dr * dr + dg * dg + db * db < 0.005f) { exists = true; break; }
+                }
+                if (!exists) unique.Add(col);
+            }
+            s_PaletteColors.Clear();
+            s_PaletteIndices.Clear();
+            for (int i = 0; i < unique.Count; i++)
+            {
+                s_PaletteColors.Add(unique[i]);
+                s_PaletteIndices.Add(i);
+            }
+        }
 
         /// <summary>
         /// ColorsMatch'in kullanacağı paleti ayarlar. null verilirse eski toleranslı karşılaştırmaya döner.
@@ -430,6 +541,20 @@ namespace PixelGame
                 AddPaletteVariant(NormalizeShipColor(entry.targetColor), i);
                 AddPaletteVariant(NormalizeShipColor(adjusted), i);
             }
+
+            if (level.UseCustomWagonSequence && level.WagonSequence != null)
+            {
+                for (int w = 0; w < level.WagonSequence.Count; w++)
+                {
+                    var wagon = level.WagonSequence[w];
+                    if (wagon == null) continue;
+                    int palIdx = wagon.paletteIndex;
+                    if (palIdx >= 0 && palIdx < level.ColorPalette.Count)
+                    {
+                        AddPaletteVariant(wagon.wagonColor, palIdx);
+                    }
+                }
+            }
         }
 
         private static void AddPaletteVariant(Color c, int index)
@@ -459,10 +584,16 @@ namespace PixelGame
 
         /// <summary>
         /// İki rengin aynı oyun rengi olup olmadığını söyler. Aktif palet varsa iki renk de en yakın palet
-        /// girdisine oturtulup indeksleri karşılaştırılır; yoksa toleranslı RGB karşılaştırmasına düşer.
+        /// girdisine oturtulup indeksleri karşılaştırılır; yoksa hassas RGB karşılaştırmasına düşer.
+        /// Asla yeşili koyu griye ya da açık maviyi beyaza eşlemez.
         /// </summary>
         public static bool ColorsMatch(Color a, Color b)
         {
+            if (s_PaletteColors.Count == 0 && Instance != null)
+            {
+                Instance.EnsurePaletteInitialized();
+            }
+
             if (s_PaletteColors.Count > 0)
             {
                 int ia = GetPaletteIndex(a);
@@ -473,7 +604,7 @@ namespace PixelGame
             float dr = a.r - b.r;
             float dg = a.g - b.g;
             float db = a.b - b.b;
-            if ((dr * dr + dg * dg + db * db) < 0.12f) return true;
+            if ((dr * dr + dg * dg + db * db) < 0.008f) return true;
 
             // Sarı / Amber tonları için özel tolerans (küp ve gemi her koşulda %100 eşleşir):
             if (IsYellowTone(a) && IsYellowTone(b)) return true;
@@ -555,6 +686,8 @@ namespace PixelGame
             var allCubes = PixelCube.ActiveCubes;
             if (allCubes == null || allCubes.Count == 0) return result;
 
+            s_ReservedCubes.RemoveWhere(c => c == null || c.IsPopped || !c.gameObject.activeSelf);
+
             Dictionary<(int, int), PixelCube> gridMap = new Dictionary<(int, int), PixelCube>(allCubes.Count);
             int minX = int.MaxValue, maxX = int.MinValue;
             int minY = int.MaxValue, maxY = int.MinValue;
@@ -605,6 +738,21 @@ namespace PixelGame
         {
             var list = GetExposedMatchingCubes(shipColor);
             return list != null && list.Count > 0;
+        }
+
+        public bool HasMatchingCube(Color shipColor)
+        {
+            EnsurePaletteInitialized();
+            var allCubes = PixelCube.ActiveCubes;
+            if (allCubes == null) return false;
+            for (int i = 0; i < allCubes.Count; i++)
+            {
+                var c = allCubes[i];
+                if (c == null || c.IsPopped || s_ReservedCubes.Contains(c) || c.IsMystery) continue;
+                if (ColorsMatch(c.CurrentColor, shipColor) || ColorsMatch(c.OriginalColor, shipColor))
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -703,7 +851,8 @@ namespace PixelGame
                     // Slot gemiye yola çıkarken ayrılır; tren ancak gemi slota oturunca başlasın
                     if (ship != null && ship.IsDocked && !ship.IsMoving && ship.CanAcceptMore && !m_ActiveExtractingShips.Contains(ship))
                     {
-                        if (HasExposedMatchingCube(ship.ShipColor))
+                        bool canLaunch = HasExposedMatchingCube(ship.ShipColor);
+                        if (canLaunch)
                         {
                             StartCoroutine(ExtractMatchingCubesToShipRoutine(ship));
                         }
@@ -724,9 +873,11 @@ namespace PixelGame
             {
                 while (ship != null && ship.CanAcceptMore)
                 {
+                    // Açıktaki tüm uygun küpler (kapasite kadar) bir kerede ayrılır; koşucular
+                    // m_RunnerLaunchInterval arayla tek tek çıkar, dönmeleri beklenmez.
                     if (!TryLaunchRope(ship, out float boardClearTime))
                     {
-                        // Dışta bu renkten küp yok!
+                        // Dışta bu renkten şu an açık küp yok!
                         // Seviyede bu renkten hala içeride (ortada) kilitli küp var mı kontrol et
                         int totalRemaining = GetRemainingCountForColor(ship.ShipColor);
                         if (totalRemaining == 0)
@@ -741,17 +892,38 @@ namespace PixelGame
                             {
                                 ship.DepartAndFreeSlot();
                             }
+                            break;
                         }
-                        // else: içeride hâlâ bu renkten küp var ama şu an dışları kapalı —
-                        // gemi slotta bekler, açılınca TriggerWaitingShipsCheck yeniden başlatır.
+
+                        // İçeride hâlâ bu renkten küp var ama şu an dışları kapalı (iç katmandalar).
+                        // Eğer yolda koşan koşucular varsa, onlar dıştaki küpleri aldıkça arkadaki küpler açılır.
+                        if (ship.HasPendingCargo || m_ActiveCargoFlightCount > 0)
+                        {
+                            bool newCubeExposed = false;
+                            while (ship != null && ship.CanAcceptMore && (ship.HasPendingCargo || m_ActiveCargoFlightCount > 0))
+                            {
+                                if (HasExposedMatchingCube(ship.ShipColor))
+                                {
+                                    newCubeExposed = true;
+                                    break;
+                                }
+                                yield return new WaitForSeconds(0.08f);
+                            }
+
+                            if (newCubeExposed)
+                            {
+                                continue; // Dış katman soyulup yeni küp açıldı; sıradaki koşucuları hemen gönder!
+                            }
+                        }
+
+                        // Açılan yeni küp kalmadı ve yolda koşan da yok; başka bir gemi dış katmanı açana kadar bekle
                         break;
                     }
 
-                    // Bir sonraki tren ancak bu trenin kuyruğu panodan çıkınca kurulur;
-                    // yoksa yeni trenin yolu, hâlâ panoda kayan küplerin içinden geçebilirdi.
+                    // Bir sonraki tren ancak bu trenin fırlatılması tamamlanınca (m_RunnerLaunchInterval * reserved) kurulur
                     while (ship != null && Time.time < boardClearTime) yield return null;
 
-                    // Tren panodan ayrılınca içerideki küpler dışarı açılmış olabilir!
+                    // Tren panodan ayrılınca veya yeni küpler açılınca bekleyen diğer gemileri de tetikle
                     TriggerWaitingShipsCheck();
                 }
 
@@ -786,12 +958,14 @@ namespace PixelGame
         /// Dışta uygun küp yoksa false döner. <paramref name="boardClearTime"/>, trenin kuyruğunun
         /// panodan çıkacağı andır.
         /// </summary>
-        private bool TryLaunchRope(ShipController ship, out float boardClearTime)
+        private bool TryLaunchRope(ShipController ship, out float boardClearTime, int maxPerLaunch = int.MaxValue)
         {
             boardClearTime = Time.time;
             if (ship == null || !ship.CanAcceptMore) return false;
             if (!TryBuildLiveGrid(out var gridMap, out var outsideAir, out int minY)) return false;
             if (!EnsureGridFrame()) return false;
+
+            s_ReservedCubes.RemoveWhere(c => c == null || c.IsPopped || !c.gameObject.activeSelf);
 
             // 1. Bu geminin rengiyle eşleşen ve henüz rezerve edilmemiş TÜM canlı küpleri topla
             var matchingCubes = new List<PixelCube>();
@@ -814,19 +988,17 @@ namespace PixelGame
 
             if (matchingCubes.Count == 0) return false;
 
-            // 2. Sadece dış havaya / boş alana doğrudan temas eden (dış katmandaki) küpleri aday olarak al
+            EnsureBoardBounds();
+            Vector3 shoreCenter = GetShorePoint(ship);
+
+            // "en dıştan içe doğru alım yapmaları gerekiyor":
+            // SADECE ve SADECE dış havaya açık (isExposed) küpler seçilebilir.
+            // İçerideki kilitli küpler dıştakiler soyulmadan ASLA seçilemez!
             var exposedCandidates = new List<PixelCube>();
             for (int i = 0; i < matchingCubes.Count; i++)
             {
                 PixelCube c = matchingCubes[i];
-                int x = c.GridX, y = c.GridY;
-                bool isExposed = outsideAir != null && (
-                    outsideAir.Contains((x - 1, y)) ||
-                    outsideAir.Contains((x + 1, y)) ||
-                    outsideAir.Contains((x, y - 1)) ||
-                    outsideAir.Contains((x, y + 1)));
-
-                if (isExposed)
+                if (IsExposed(c, outsideAir))
                 {
                     exposedCandidates.Add(c);
                 }
@@ -834,34 +1006,61 @@ namespace PixelGame
 
             if (exposedCandidates.Count == 0) return false;
 
-            EnsureBoardBounds();
-            Vector3 shoreCenter = GetShorePoint(ship);
+            // En dıştan içe doğru sıralama:
+            // 1. Tahtanın en dış kenar sınırına en yakın olan katman (edgeDist = 0: en dış çeper) önce gelir.
+            // 2. Aynı katmandakiler merkezden en uzakta olanlar (dış kenarlar/köşeler) önce alınır.
+            // 3. Eşitlik durumunda sahile / gemiye yakın olan önce alınır.
+            float gridCenterX = (minX + maxX) * 0.5f;
+            float gridCenterY = (minY + maxY) * 0.5f;
 
-            // Dıştaki küpleri sahil/gemiye yakınlığına göre sırala
             exposedCandidates.Sort((a, b) =>
             {
-                float distA = (a.transform.position - shoreCenter).sqrMagnitude;
-                float distB = (b.transform.position - shoreCenter).sqrMagnitude;
-                return distA.CompareTo(distB);
+                int edgeDistA = Mathf.Min(a.GridX - minX, Mathf.Min(maxX - a.GridX, Mathf.Min(a.GridY - minY, maxY - a.GridY)));
+                int edgeDistB = Mathf.Min(b.GridX - minX, Mathf.Min(maxX - b.GridX, Mathf.Min(b.GridY - minY, maxY - b.GridY)));
+                if (edgeDistA != edgeDistB)
+                {
+                    return edgeDistA.CompareTo(edgeDistB); // Artan: 0 (en dış sınır) önce
+                }
+
+                float distCenterA = (a.GridX - gridCenterX) * (a.GridX - gridCenterX) + (a.GridY - gridCenterY) * (a.GridY - gridCenterY);
+                float distCenterB = (b.GridX - gridCenterX) * (b.GridX - gridCenterX) + (b.GridY - gridCenterY) * (b.GridY - gridCenterY);
+                int cmpCenter = distCenterB.CompareTo(distCenterA); // Azalan: merkeze en uzak önce
+                if (cmpCenter != 0) return cmpCenter;
+
+                float distShoreA = (a.transform.position - shoreCenter).sqrMagnitude;
+                float distShoreB = (b.transform.position - shoreCenter).sqrMagnitude;
+                return distShoreA.CompareTo(distShoreB);
             });
 
-            // Geminin üstünde yazan kalan kapasite kadar (veya dışta mevcut küp kadar) küpü rezerve et
-            int needed = ship.RemainingCapacity;
-            int targetCount = Mathf.Min(needed, exposedCandidates.Count);
+            List<PixelCube> candidates = exposedCandidates;
+
+            // Geminin üstünde yazan kalan kapasite kadar küpü rezerve et (Ör: 20 veya 30)
+            int needed = Mathf.Max(0, ship.Capacity - (ship.CurrentCargo + ship.PendingCargo));
+            int targetCount = Mathf.Min(Mathf.Min(needed, candidates.Count), Mathf.Max(1, maxPerLaunch));
             if (targetCount <= 0) return false;
 
             int reserved = 0;
             while (reserved < targetCount && ship.TryReserveCargo()) reserved++;
             if (reserved == 0) return false;
 
-            // 3. Seçilen küpler mevcut pozisyonlarından doğrudan ve bağımsız şekilde,
-            // SADECE BOŞ ALANLARDAN (pikselartın üstünden ASLA geçmeden) gemiye yürür
             var selectedCubes = new List<PixelCube>(reserved);
             for (int i = 0; i < reserved; i++)
             {
-                var c = exposedCandidates[i];
+                var c = candidates[i];
                 selectedCubes.Add(c);
                 s_ReservedCubes.Add(c);
+            }
+
+            if (m_UseReversedShipRunners)
+            {
+                StartCoroutine(RunReversedShipRunnersToCollectCargo(selectedCubes, ship, shoreCenter));
+
+                if (m_Generator != null) m_Generator.RegenerateContourShadowFromLiveCubeState();
+
+                m_ActiveCargoFlightCount += reserved;
+                // Bir sonraki koşucu, bu grubun dönmesini beklemeden sabit aralıkla çıkar.
+                boardClearTime = Time.time + m_RunnerLaunchInterval * reserved;
+                return true;
             }
 
             float centerX = (m_BoardMinX + m_BoardMaxX) * 0.5f;
@@ -1481,24 +1680,6 @@ namespace PixelGame
                 MaterialPropertyBlock b = new MaterialPropertyBlock();
                 srcMr.GetPropertyBlock(b);
                 mr.SetPropertyBlock(b);
-            }
-
-            // Referans fotoğraftaki gibi yürürken de altındaki yumuşak sahte gölgeyi koru
-            GameObject shadowQuad = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            shadowQuad.name = "CubeShadow";
-            shadowQuad.transform.SetParent(cargo.transform, false);
-            shadowQuad.transform.localPosition = new Vector3(0f, -0.58f, 0.52f);
-            shadowQuad.transform.localRotation = Quaternion.identity;
-            shadowQuad.transform.localScale = new Vector3(1.45f, 0.85f, 1f);
-            Collider sc = shadowQuad.GetComponent<Collider>();
-            if (sc != null) Destroy(sc);
-            MeshRenderer smr = shadowQuad.GetComponent<MeshRenderer>();
-            if (smr != null)
-            {
-                smr.sharedMaterial = PixelCube.GetDefaultShadowMaterial();
-                smr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                smr.receiveShadows = false;
-                smr.sortingOrder = -1;
             }
 
             return cargo;
@@ -2841,5 +3022,633 @@ namespace PixelGame
                 }
             }
         }
+
+        #region Reversed Ship Runners (Tersine Gemi Koşucuları)
+
+        /// <summary>Koşucu prefabının gövde materyali (panodaki küpler de bununla çizilsin diye).</summary>
+        public Material GetRunnerBodyMaterial()
+        {
+            GameObject prefab = GetRunnerPrefab();
+            if (prefab == null) return null;
+            foreach (var r in prefab.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null || r.sharedMaterial == null) continue;
+                if (r.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                return SharedColorMaterialCache.ResolveSource(r.sharedMaterial);
+            }
+            return null;
+        }
+
+        private GameObject m_LoadedRunnerFallback;
+        private GameObject GetRunnerPrefab()
+        {
+            // Dik koşucu (MainCube_Running) bu sahnede bacaklarını ekranın altına doğru, kumun üstüne
+            // yatırıyordu; zemine basan masa üstü varyantını tercih et.
+#if UNITY_EDITOR
+            if (m_TabletopRunnerPrefab == null)
+                m_TabletopRunnerPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(TabletopRunnerPrefabPath);
+#endif
+            if (m_TabletopRunnerPrefab != null) return m_TabletopRunnerPrefab;
+            if (m_RunnerPrefab != null) return m_RunnerPrefab;
+            if (m_CargoStandInPrefab != null) return m_CargoStandInPrefab;
+            if (m_LoadedRunnerFallback != null) return m_LoadedRunnerFallback;
+
+#if UNITY_EDITOR
+            m_LoadedRunnerFallback = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/MainCube_Running_Tabletop.prefab");
+            if (m_LoadedRunnerFallback == null)
+            {
+                m_LoadedRunnerFallback = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/MainCube_Running.prefab");
+            }
+#endif
+
+            if (m_LoadedRunnerFallback == null)
+            {
+                var runnerInScene = FindFirstObjectByType<RunnerLegUpright>(FindObjectsInactive.Include);
+                if (runnerInScene != null) m_LoadedRunnerFallback = runnerInScene.gameObject;
+            }
+
+            return m_LoadedRunnerFallback;
+        }
+
+        private Mesh m_CachedContainerMesh;
+        private Mesh GetContainerMesh()
+        {
+            if (m_CachedContainerMesh != null) return m_CachedContainerMesh;
+
+#if UNITY_EDITOR
+            var fbx = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Kenney/kenney_watercraft-pack/Models/FBX format/cargo-container-a.fbx");
+            if (fbx != null)
+            {
+                var mf = fbx.GetComponentInChildren<MeshFilter>();
+                if (mf != null && mf.sharedMesh != null)
+                {
+                    m_CachedContainerMesh = mf.sharedMesh;
+                    return m_CachedContainerMesh;
+                }
+            }
+#endif
+
+            var anyCube = FindFirstObjectByType<PixelCube>(FindObjectsInactive.Include);
+            if (anyCube != null)
+            {
+                var mf = anyCube.GetComponent<MeshFilter>();
+                if (mf != null && mf.sharedMesh != null)
+                {
+                    m_CachedContainerMesh = mf.sharedMesh;
+                    return m_CachedContainerMesh;
+                }
+            }
+
+            return null;
+        }
+
+        private RectTransform GetOtCerceveRect()
+        {
+            if (m_OtCerceve != null) return m_OtCerceve;
+
+            var rects = Resources.FindObjectsOfTypeAll<RectTransform>();
+            for (int i = 0; i < rects.Length; i++)
+            {
+                var rt = rects[i];
+                if (rt != null && rt.gameObject.name == "OtCerceve" && rt.gameObject.scene.isLoaded)
+                {
+                    m_OtCerceve = rt;
+                    return m_OtCerceve;
+                }
+            }
+            return null;
+        }
+
+        public bool TryGetOtCerceveWorldBounds(out Vector3 min, out Vector3 max, out Vector3[] corners)
+        {
+            corners = new Vector3[4];
+            EnsureBoardBounds();
+
+            float groundZ = BeachGroundZ();
+            if (float.IsNaN(groundZ)) groundZ = m_ShoreZ;
+
+            // OtCerceve çerçevesinin dünya koordinatları:
+            // Küp panosunun dış sınırları etrafında temiz bir yürüme koridoru (3D kumsal düzlemi üzerinde).
+            float margin = 0.32f;
+            float minX = m_BoardMinX - margin;
+            float maxX = m_BoardMaxX + margin;
+            float minY = m_BoardBottomY - margin;
+            float maxY = m_BoardTopY + margin;
+
+            min = new Vector3(minX, minY, groundZ);
+            max = new Vector3(maxX, maxY, groundZ);
+            corners[0] = new Vector3(min.x, min.y, groundZ);
+            corners[1] = new Vector3(min.x, max.y, groundZ);
+            corners[2] = new Vector3(max.x, max.y, groundZ);
+            corners[3] = new Vector3(max.x, min.y, groundZ);
+            return true;
+        }
+
+        private float CalculateReversedRunnersDuration(List<PixelCube> cubes, ShipController ship, Vector3 shoreCenter)
+        {
+            float baseSpeed = Mathf.Max(3.2f, EffectiveRopeSpeed());
+            float maxDist = 0f;
+            for (int i = 0; i < cubes.Count; i++)
+            {
+                if (cubes[i] == null) continue;
+                float d = Vector3.Distance(shoreCenter, cubes[i].transform.position);
+                if (d > maxDist) maxDist = d;
+            }
+            float runTime = (maxDist * 2.2f) / baseSpeed;
+            float hopsTime = m_HopDuration * 2f + 0.4f;
+            float staggerTotal = (cubes.Count - 1) * m_RunnerStaggerDelay;
+            return runTime + hopsTime + staggerTotal + 0.6f;
+        }
+
+        private List<Vector3> BuildOtCerceveWaypoints(
+            Vector3 shoreStart,
+            Vector3 cubeTarget,
+            Vector3 otMin,
+            Vector3 otMax,
+            Vector3[] otCorners,
+            float groundZ)
+        {
+            var waypoints = new List<Vector3>(8);
+            waypoints.Add(new Vector3(shoreStart.x, shoreStart.y, groundZ));
+
+            float centerX = (otMin.x + otMax.x) * 0.5f;
+            float pathLeftX = otMin.x;
+            float pathRightX = otMax.x;
+            float pathBottomY = otMin.y;
+            float pathTopY = otMax.y;
+
+            // Hedef küpe en yakın çerçeve kenarını belirle
+            float distBottom = Mathf.Abs(cubeTarget.y - pathBottomY);
+            float distLeft = Mathf.Abs(cubeTarget.x - pathLeftX);
+            float distRight = Mathf.Abs(cubeTarget.x - pathRightX);
+            float distTop = Mathf.Abs(cubeTarget.y - pathTopY);
+
+            float minDist = Mathf.Min(distBottom, Mathf.Min(distLeft, Mathf.Min(distRight, distTop)));
+
+            if (minDist == distBottom)
+            {
+                // Alttan doğrudan çerçeveye çıkış ve hedefe yöneliş
+                waypoints.Add(new Vector3(Mathf.Lerp(shoreStart.x, cubeTarget.x, 0.5f), pathBottomY, groundZ));
+                waypoints.Add(new Vector3(cubeTarget.x, pathBottomY + 0.08f, groundZ));
+                waypoints.Add(new Vector3(cubeTarget.x, cubeTarget.y, groundZ));
+            }
+            else if (minDist == distLeft)
+            {
+                // Sol çerçeve kenarı boyunca koşu
+                waypoints.Add(new Vector3(pathLeftX, pathBottomY, groundZ));
+                waypoints.Add(new Vector3(pathLeftX, cubeTarget.y, groundZ));
+                waypoints.Add(new Vector3(cubeTarget.x, cubeTarget.y, groundZ));
+            }
+            else if (minDist == distRight)
+            {
+                // Sağ çerçeve kenarı boyunca koşu
+                waypoints.Add(new Vector3(pathRightX, pathBottomY, groundZ));
+                waypoints.Add(new Vector3(pathRightX, cubeTarget.y, groundZ));
+                waypoints.Add(new Vector3(cubeTarget.x, cubeTarget.y, groundZ));
+            }
+            else
+            {
+                // Üst çerçeve kenarı boyunca koşu
+                bool goLeft = cubeTarget.x <= centerX;
+                float flankX = goLeft ? pathLeftX : pathRightX;
+                waypoints.Add(new Vector3(flankX, pathBottomY, groundZ));
+                waypoints.Add(new Vector3(flankX, pathTopY, groundZ));
+                waypoints.Add(new Vector3(cubeTarget.x, pathTopY, groundZ));
+                waypoints.Add(new Vector3(cubeTarget.x, cubeTarget.y, groundZ));
+            }
+
+            return waypoints;
+        }
+
+        private void ApplyColorToRunner(GameObject runner, Color color)
+        {
+            if (runner == null) return;
+            foreach (var r in runner.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null) continue;
+                if (r.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                SharedColorMaterialCache.Apply(r, color, Color.black);
+            }
+        }
+
+        /// <summary>
+        /// Yükü koşucunun gerçek görünür sınırlarının üstüne (sırtına) oturtur; koşucunun child'ı
+        /// olduğu için koşarken onunla birlikte döner ve hareket eder.
+        /// </summary>
+        private void PlaceCargoOnRunnerBack(Transform cargo, Mesh cargoMesh, Transform runner)
+        {
+            if (cargo == null || runner == null) return;
+
+            bool hasBounds = false;
+            Bounds body = new Bounds(runner.position, Vector3.zero);
+            foreach (var r in runner.GetComponentsInChildren<Renderer>())
+            {
+                if (r == null || !r.enabled || r.transform.IsChildOf(cargo)) continue;
+                if (r.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                if (!hasBounds) { body = r.bounds; hasBounds = true; }
+                else body.Encapsulate(r.bounds);
+            }
+            if (!hasBounds) return;
+
+            Vector3 cargoScale = cargo.lossyScale;
+            Bounds mb = cargoMesh != null ? cargoMesh.bounds : new Bounds(Vector3.zero, Vector3.one);
+            Vector3 pivotToCenter = cargo.rotation * Vector3.Scale(mb.center, cargoScale);
+
+            RunnerLegUpright leg = runner.GetComponent<RunnerLegUpright>();
+            Vector3 centerWorld;
+            if (leg != null && leg.IsTabletop)
+            {
+                // Masa üstü: zemin XY, sırt kameraya bakan taraf (-Z). Yükü gövdenin üstüne koy,
+                // hafifçe geriye (+Y = kameradan uzak) kaydır.
+                float cubeD = Mathf.Abs(mb.size.z * cargoScale.z);
+                float cubeH = Mathf.Abs(mb.size.y * cargoScale.y);
+                centerWorld = new Vector3(
+                    body.center.x,
+                    body.center.y + cubeH * m_CarriedCargoBackShift,
+                    body.min.z - cubeD * (0.5f + m_CarriedCargoGap));
+            }
+            else
+            {
+                float cubeH = Mathf.Abs(mb.size.y * cargoScale.y);
+                centerWorld = new Vector3(
+                    body.center.x,
+                    body.max.y + cubeH * (0.5f + m_CarriedCargoGap),
+                    body.center.z + cubeH * m_CarriedCargoBackShift);
+            }
+            cargo.position = centerWorld - pivotToCenter;
+        }
+
+        private GameObject CreateCarriedCargoVisual(PixelCube sourceCube, Transform runnerParent)
+        {
+            GameObject carried = new GameObject("CarriedCargo");
+            carried.transform.SetParent(runnerParent, false);
+            carried.transform.localPosition = m_CarriedCargoOffset;
+            carried.transform.localRotation = Quaternion.identity;
+            // Koşucu zaten panodaki küp boyutunda; yük de dünyada aynı boyutta olsun
+            // (küpün ölçeğini bir de koşucunun ölçeğiyle çarpınca yük nokta kadar kalıyordu).
+            Vector3 refWorld = sourceCube != null ? sourceCube.transform.lossyScale : Vector3.one;
+            Vector3 parentWorld = runnerParent != null ? runnerParent.lossyScale : Vector3.one;
+            carried.transform.localScale = new Vector3(
+                parentWorld.x > 1e-4f ? refWorld.x / parentWorld.x : 1f,
+                parentWorld.y > 1e-4f ? refWorld.y / parentWorld.y : 1f,
+                parentWorld.z > 1e-4f ? refWorld.z / parentWorld.z : 1f);
+            carried.transform.rotation = sourceCube != null ? sourceCube.transform.rotation : carried.transform.rotation;
+
+            MeshFilter mf = carried.AddComponent<MeshFilter>();
+            Mesh sourceMesh = null;
+            MeshFilter sourceMf = sourceCube != null ? sourceCube.GetComponent<MeshFilter>() : null;
+            if (sourceMf != null && sourceMf.sharedMesh != null) sourceMesh = sourceMf.sharedMesh;
+            if (sourceMesh == null) sourceMesh = GetContainerMesh();
+            mf.sharedMesh = sourceMesh;
+
+            MeshRenderer mr = carried.AddComponent<MeshRenderer>();
+            // Materyalsiz MeshRenderer pembe (missing material) çiziliyordu: küpün kendi materyalini ver.
+            MeshRenderer sourceMr = sourceCube != null ? sourceCube.GetComponent<MeshRenderer>() : null;
+            if (sourceMr != null && sourceMr.sharedMaterial != null)
+                mr.sharedMaterial = SharedColorMaterialCache.ResolveSource(sourceMr.sharedMaterial);
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            Color c = sourceCube != null ? sourceCube.CurrentColor : Color.white;
+            SharedColorMaterialCache.Apply(mr, c, Color.black);
+
+            PlaceCargoOnRunnerBack(carried.transform, sourceMesh, runnerParent);
+
+            // İstenmeyen sahte gölge nesnelerini temizle
+            for (int i = carried.transform.childCount - 1; i >= 0; i--)
+            {
+                Transform ch = carried.transform.GetChild(i);
+                if (ch != null && ch.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    ch.gameObject.SetActive(false);
+                    Destroy(ch.gameObject);
+                }
+            }
+
+            return carried;
+        }
+
+        private IEnumerator RunReversedShipRunnersToCollectCargo(
+            List<PixelCube> cubes,
+            ShipController ship,
+            Vector3 shoreTargetAtLaunch)
+        {
+            if (cubes == null || cubes.Count == 0 || ship == null) yield break;
+            int count = cubes.Count;
+
+            EnsureBoardBounds();
+            TryGetOtCerceveWorldBounds(out Vector3 otMin, out Vector3 otMax, out Vector3[] otCorners);
+
+            float groundPlaneZ = BeachGroundZ();
+            if (float.IsNaN(groundPlaneZ)) groundPlaneZ = m_ShoreZ;
+
+            for (int k = 0; k < count; k++)
+            {
+                if (ship == null || ship.IsDeparting) break;
+                PixelCube targetCube = cubes[k];
+                if (targetCube == null || targetCube.IsPopped) continue;
+
+                // Koşucular artık tek tek çıktığı için k hep 0 olurdu; sağ/sol sırası global sayaçla dönsün.
+                StartCoroutine(SingleRunnerMissionRoutine(m_RunnerSerial++, count, targetCube, ship, shoreTargetAtLaunch, otMin, otMax, otCorners, groundPlaneZ));
+
+                if (k < count - 1)
+                {
+                    yield return new WaitForSeconds(m_RunnerLaunchInterval);
+                }
+            }
+        }
+
+        /// <summary>Koşucunun kökünden zemine doğru (+z) en derin görünür noktasına uzaklık.</summary>
+        private static float RunnerGroundDepth(GameObject runner)
+        {
+            if (runner == null) return 0f;
+            bool has = false;
+            float maxZ = 0f;
+            foreach (var r in runner.GetComponentsInChildren<Renderer>())
+            {
+                if (r == null || !r.enabled) continue;
+                if (r.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                float z = r.bounds.max.z;
+                if (!has || z > maxZ) { maxZ = z; has = true; }
+            }
+            return has ? Mathf.Max(0f, maxZ - runner.transform.position.z) : 0f;
+        }
+
+        private IEnumerator SingleRunnerMissionRoutine(
+            int indexInQueue,
+            int totalInGroup,
+            PixelCube targetCube,
+            ShipController ship,
+            Vector3 shoreTargetAtLaunch,
+            Vector3 otMin,
+            Vector3 otMax,
+            Vector3[] otCorners,
+            float groundPlaneZ)
+        {
+            if (ship == null || targetCube == null) yield break;
+
+            GameObject runnerPrefabToUse = GetRunnerPrefab();
+
+            bool entersLeft = (indexInQueue % 2 == 0);
+            Vector3 deckOffset = new Vector3(entersLeft ? -0.06f : 0.06f, 0.16f, 0.02f);
+            Vector3 shipDeckPos = ship.transform.position + deckOffset;
+            Vector3 shorePoint = GetShorePoint(ship);
+            shorePoint.z = groundPlaneZ;
+
+            // Jenerik Instantiate<GameObject> burada InvalidCastException atıyordu (koşucu hiç doğmuyor,
+            // rezervasyon da düşmediği için gemi slotta takılı kalıyordu). Jenerik olmayan sürümle
+            // klonla ve dönen nesneden GameObject'i güvenle çıkar.
+            GameObject runner = null;
+            if (runnerPrefabToUse != null)
+            {
+                Object clone = Instantiate((Object)runnerPrefabToUse, shipDeckPos, Quaternion.identity);
+                runner = clone as GameObject;
+                if (runner == null && clone is Component cloneComp) runner = cloneComp.gameObject;
+            }
+
+            if (runner == null)
+            {
+                Debug.LogError($"[ShipDispatcher] Koşucu oluşturulamadı (prefab: {(runnerPrefabToUse != null ? runnerPrefabToUse.name : "null")}). Rezervasyon geri bırakılıyor.");
+                s_ReservedCubes.Remove(targetCube);
+                ship.ReleaseCargoReservation();
+                m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - 1);
+                yield break;
+            }
+            runner.name = $"Runner_{indexInQueue}_{targetCube.name}";
+
+            // Mor renkli veya istenmeyen sahte gölge (CubeShadow, WalkFootstepShadow vb.) kalıntılarını tamamen yok et
+            for (int i = runner.transform.childCount - 1; i >= 0; i--)
+            {
+                Transform ch = runner.transform.GetChild(i);
+                if (ch != null && ch.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    ch.gameObject.SetActive(false);
+                    Destroy(ch.gameObject);
+                }
+            }
+
+            // Boyutlar birebir aynı:
+            Vector3 refScale = (targetCube != null && targetCube.transform.lossyScale.sqrMagnitude > 1e-4f)
+                ? targetCube.transform.lossyScale
+                : (runnerPrefabToUse != null ? runnerPrefabToUse.transform.localScale : Vector3.one);
+            runner.transform.localScale = refScale * m_RunnerSizeVsCube;
+
+            // Dik ve düz dursun: panodaki küplerle aynı duruş, yürürken yana dönme/yatma yok.
+            Quaternion upright = targetCube != null ? targetCube.transform.rotation : Quaternion.identity;
+            RunnerLegUpright legUpright = runner.GetComponent<RunnerLegUpright>();
+            if (legUpright != null) legUpright.LockUpright(upright);
+            else runner.transform.rotation = upright;
+
+            // Ayaklar kumun içine gömülmesin: koşucunun en derin noktası (ayak tabanı) zemin düzlemine
+            // değecek şekilde yol z'sini kameraya doğru kaydır. Ayak izleri yine zemin düzleminde kalır.
+            float runnerPathZ = groundPlaneZ - RunnerGroundDepth(runner);
+            shorePoint.z = runnerPathZ;
+
+            // Koşucu karakter kesinlikle geminin renginde:
+            Color runnerColor = ship.ShipColor;
+            ApplyColorToRunner(runner, runnerColor);
+
+            PixelCube pc = runner.GetComponent<PixelCube>();
+            if (pc != null)
+            {
+                Destroy(pc); // Koşucu sahada koşan karakterdir, tahtadaki küp listesine (ActiveCubes) girmemeli!
+            }
+
+            CubeMovementSettings s = MovementSettings;
+            CubeMovementController motion = runner.GetComponent<CubeMovementController>();
+            if (motion == null) motion = runner.AddComponent<CubeMovementController>();
+            // Ayak izleri panodaki küpün rengiyle birebir aynı olsun
+            motion.CubeColor = targetCube != null ? targetCube.CurrentColor : runnerColor;
+            motion.SetGroundPlaneZ(groundPlaneZ);
+
+            ICargoRunner cargoRunner = runner.GetComponent<ICargoRunner>();
+            WaddleRunner waddle = runner.GetComponent<WaddleRunner>();
+            WalkingCargoVisual visual = runner.GetComponent<WalkingCargoVisual>();
+
+            // Phase 1: Hop from ship deck onto shore
+            float hopDuration = Mathf.Max(0.18f, m_HopDuration);
+            Vector3 camUp = ShipController.MainCamera != null ? ShipController.MainCamera.transform.up : Vector3.up;
+            Vector3 hopCtrl = (shipDeckPos + shorePoint) * 0.5f + camUp * m_HopArcHeight;
+
+            ShipController.SpawnWaterRipple(shipDeckPos, 0.20f, 0.6f, 0.35f);
+
+            float tHop = 0f;
+            Vector3 prevPos = shipDeckPos;
+            while (tHop < hopDuration && runner != null)
+            {
+                tHop += Time.deltaTime;
+                float u = Mathf.Clamp01(tHop / hopDuration);
+                float ease = Mathf.SmoothStep(0f, 1f, u);
+                Vector3 pos = QuadraticBezier(shipDeckPos, hopCtrl, shorePoint, ease);
+                runner.transform.position = pos;
+
+                if (u > 0.2f && u < 0.85f)
+                {
+                    if (waddle != null) waddle.IsAirborne = true;
+                    if (visual != null) visual.SetAirborne(Time.deltaTime);
+                }
+
+                Vector3 moveDir = pos - prevPos;
+                prevPos = pos;
+                if (moveDir.sqrMagnitude > 1e-5f)
+                {
+                    motion.SteerToward(moveDir.normalized, 0f, Time.deltaTime);
+                }
+                yield return null;
+            }
+
+            if (runner == null) yield break;
+            runner.transform.position = shorePoint;
+            if (waddle != null) waddle.IsAirborne = false;
+
+            if (HypercasualFeedbackManager.Instance != null)
+            {
+                HypercasualFeedbackManager.Instance.TriggerHapticLight();
+            }
+
+            // Phase 2: Run along OtCerceve to target container
+            Vector3 cubeWorldPos = targetCube.transform.position;
+            List<Vector3> forwardWaypoints = BuildOtCerceveWaypoints(shorePoint, cubeWorldPos, otMin, otMax, otCorners, runnerPathZ);
+            ShoreLanePath forwardPath = ShoreLanePath.BuildFilleted(forwardWaypoints, 0.22f, 8);
+
+            float dist = 0f;
+            float cruiseSpeed = Mathf.Max(3.2f, EffectiveRopeSpeed());
+            float pathLen = forwardPath.Length;
+
+            motion.BeginRopeMotion(s, indexInQueue, cruiseSpeed, 0f, forwardPath.TangentAtDistance(0f));
+
+            while (dist < pathLen && runner != null && targetCube != null)
+            {
+                float dt = Time.deltaTime;
+                if (dt <= 0f) { yield return null; continue; }
+
+                dist += cruiseSpeed * dt;
+                float clampedDist = Mathf.Min(dist, pathLen);
+                Vector3 p = forwardPath.PointAtDistance(clampedDist);
+                motion.ApplyRopeFrame(p, 0f, Vector3.zero, camUp, dt);
+
+                yield return null;
+            }
+
+            if (runner == null || targetCube == null)
+            {
+                if (targetCube != null) s_ReservedCubes.Remove(targetCube);
+                if (ship != null) ship.ReleaseCargoReservation();
+                m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - 1);
+                yield break;
+            }
+
+            // Phase 3: Pick up cargo container
+            if (HypercasualFeedbackManager.Instance != null)
+            {
+                HypercasualFeedbackManager.Instance.PlayCubeLiftoffFeedback(targetCube.transform.position, indexInQueue);
+            }
+
+            GameObject carriedCargo = CreateCarriedCargoVisual(targetCube, runner.transform);
+            targetCube.SetPoppedVisualState(true, regenerateContourShadow: true);
+            TriggerWaitingShipsCheck();
+
+            if (runner != null)
+            {
+                runner.transform.DOPunchScale(new Vector3(-0.1f, 0.15f, -0.1f) * runner.transform.localScale.x, 0.15f, 2, 0.5f);
+            }
+
+            // Phase 4: Run back along OtCerceve to shore
+            List<Vector3> returnWaypoints = new List<Vector3>(forwardWaypoints);
+            returnWaypoints.Reverse();
+            ShoreLanePath returnPath = ShoreLanePath.BuildFilleted(returnWaypoints, 0.22f, 8);
+
+            dist = 0f;
+            pathLen = returnPath.Length;
+            motion.BeginRopeMotion(s, indexInQueue, cruiseSpeed, 0f, returnPath.TangentAtDistance(0f));
+
+            while (dist < pathLen && runner != null)
+            {
+                float dt = Time.deltaTime;
+                if (dt <= 0f) { yield return null; continue; }
+
+                dist += cruiseSpeed * dt;
+                float clampedDist = Mathf.Min(dist, pathLen);
+                Vector3 p = returnPath.PointAtDistance(clampedDist);
+                motion.ApplyRopeFrame(p, 0f, Vector3.zero, camUp, dt);
+
+                yield return null;
+            }
+
+            if (runner == null)
+            {
+                if (targetCube != null) s_ReservedCubes.Remove(targetCube);
+                m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - 1);
+                yield break;
+            }
+
+            // Phase 5: Hop from shore onto ship deck
+            Vector3 shoreEnd = runner.transform.position;
+            float returnHopDuration = Mathf.Max(0.2f, m_HopDuration);
+            float tReturnHop = 0f;
+            prevPos = shoreEnd;
+
+            while (tReturnHop < returnHopDuration && runner != null)
+            {
+                float dt = Time.deltaTime;
+                tReturnHop += dt;
+                float u = Mathf.Clamp01(tReturnHop / returnHopDuration);
+                float ease = 1f - (1f - u) * (1f - u);
+
+                Vector3 targetDeckNow = ship != null ? ship.transform.position + deckOffset : shoreEnd;
+                Vector3 hopReturnCtrl = (shoreEnd + targetDeckNow) * 0.5f + camUp * m_HopArcHeight;
+                Vector3 p = QuadraticBezier(shoreEnd, hopReturnCtrl, targetDeckNow, ease);
+                runner.transform.position = p;
+
+                if (u > 0.35f)
+                {
+                    if (waddle != null) waddle.IsAirborne = true;
+                    if (visual != null) visual.SetAirborne(dt);
+                }
+
+                Vector3 moveDir = p - prevPos;
+                prevPos = p;
+                if (moveDir.sqrMagnitude > 1e-5f)
+                {
+                    motion.SteerToward(moveDir.normalized, 0f, dt);
+                }
+
+                yield return null;
+            }
+
+            // Boarding completion & load ship
+            if (ship != null)
+            {
+                ship.AddCargo(1);
+                ship.TriggerWaterDipImpact(0.12f, 0.35f);
+                ShipController.SpawnWaterRipple(ship.transform.position + new Vector3(0f, -0.05f, 0.05f), 0.28f, 0.95f, 0.45f);
+                HypercasualWaterController.TriggerWaterRipple(ship.transform.position, 0.70f, 0.25f);
+
+                HypercasualFeedbackManager.Instance.PlayCubeBoardFeedback(
+                    runner != null ? runner.transform.position : ship.transform.position,
+                    runnerColor,
+                    ship.CurrentCargo,
+                    ship.IsFull);
+            }
+
+            if (runner != null)
+            {
+                float sinkT = 0f;
+                Vector3 finalScale = runner.transform.localScale;
+                while (sinkT < 0.15f && runner != null)
+                {
+                    sinkT += Time.deltaTime;
+                    float su = Mathf.Clamp01(sinkT / 0.15f);
+                    runner.transform.localScale = Vector3.Lerp(finalScale, finalScale * 0.1f, su);
+                    yield return null;
+                }
+
+                Destroy(runner);
+            }
+
+            s_ReservedCubes.Remove(targetCube);
+            m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - 1);
+            CheckWinCondition();
+        }
+
+        #endregion
     }
 }

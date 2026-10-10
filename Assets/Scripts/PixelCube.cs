@@ -113,10 +113,6 @@ namespace PixelGame
             }
 
             EnsureShadowReferences();
-            if (m_ShadowObject != null)
-            {
-                m_ShadowObject.SetActive(true);
-            }
         }
 
         private void Start()
@@ -169,7 +165,7 @@ namespace PixelGame
             }
 #endif
 
-            Shader s = Shader.Find("Sprites/Default") ?? Shader.Find("Universal Render Pipeline/Unlit");
+            Shader s = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Sprites/Default");
             if (s != null)
             {
                 s_CachedShadowMaterial = new Material(s);
@@ -184,6 +180,37 @@ namespace PixelGame
 
         public void EnsureShadowReferences()
         {
+            PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
+            bool enableShadows = gen != null && gen.EnableCubeShadows;
+
+            if (!enableShadows)
+            {
+                HideShadows();
+                Transform st = transform.Find("CubeShadow");
+                if (st != null)
+                {
+                    st.gameObject.SetActive(false);
+                    #if UNITY_EDITOR
+                    if (!Application.isPlaying) DestroyImmediate(st.gameObject);
+                    else
+                    #endif
+                    Destroy(st.gameObject);
+                }
+                m_ShadowObject = null;
+                Transform sbt = transform.Find("CubeShadow_Bottom");
+                if (sbt != null)
+                {
+                    sbt.gameObject.SetActive(false);
+                    #if UNITY_EDITOR
+                    if (!Application.isPlaying) DestroyImmediate(sbt.gameObject);
+                    else
+                    #endif
+                    Destroy(sbt.gameObject);
+                }
+                m_ShadowBottomObject = null;
+                return;
+            }
+
             if (m_ShadowObject == null)
             {
                 Transform st = transform.Find("CubeShadow");
@@ -585,6 +612,12 @@ namespace PixelGame
 
             // Referans fotoğraftaki gibi alt kısımda duran yumuşak pill/capsule sahte gölge (55-60% sarkma)
             float yPos = offset.y != 0 ? offset.y : -0.58f;
+            MeshFilter mf = GetComponent<MeshFilter>();
+            if (mf != null && mf.sharedMesh != null && (offset.y == 0 || Mathf.Approximately(offset.y, -0.58f)))
+            {
+                // Mesh tabanının 0.08 birim altına dinamik olarak yerleştir (ör. RoundedCube min.y=-0.50 => -0.58; CargoContainer min.y=0.00 => -0.08)
+                yPos = mf.sharedMesh.bounds.min.y - 0.08f;
+            }
             float mul = scaleMultiplier > 0.001f ? scaleMultiplier : 1f;
             m_ShadowObject.transform.localPosition = new Vector3(offset.x, yPos, 0.52f);
             m_ShadowObject.transform.localRotation = Quaternion.identity;
@@ -663,8 +696,11 @@ namespace PixelGame
             if (m_CubeCollider == null) m_CubeCollider = GetComponent<Collider>();
             if (m_CubeCollider != null) m_CubeCollider.enabled = false;
             EnsureShadowReferences();
-            // Küp panodan ayrılıp gemiye yürürken sahte gölgesi referans fotoğraftaki gibi altında kalır
-            if (m_ShadowObject != null) m_ShadowObject.SetActive(true);
+            PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (m_ShadowObject != null && gen != null && gen.EnableCubeShadows)
+            {
+                m_ShadowObject.SetActive(true);
+            }
 
             MeshRenderer[] body = GetBodyRenderers();
             m_HomeShadowModes = new UnityEngine.Rendering.ShadowCastingMode[body.Length];
@@ -680,7 +716,6 @@ namespace PixelGame
 
             if (Application.isPlaying && regenerateContourShadow)
             {
-                PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
                 if (gen != null) gen.RegenerateContourShadowFromLiveCubeState();
             }
         }

@@ -52,8 +52,31 @@ namespace PixelGame
             if (m_RightUpLeg != null) m_RightSideX = transform.InverseTransformPoint(m_RightUpLeg.position).x;
         }
 
+        /// <summary>
+        /// Koşucuyu sabit, dik bir duruşa kilitler: gittiği yöne dönmez, BeginWalk duruşu yeniden
+        /// "taban" kabul etmez (önceden her fazda dönmüş hali taban olup koşucu giderek yamuluyordu).
+        /// </summary>
+        public void LockUpright(Quaternion uprightRotation)
+        {
+            m_LockedUpright = true;
+            m_BaseRotation = uprightRotation;
+            m_Heading = 0f;
+            transform.rotation = uprightRotation;
+        }
+
+        private bool m_LockedUpright;
+
+        /// <summary>Masa üstü (eğik kameralı) duruş: zemin XY düzlemi, "yukarı" kameraya doğru (-Z).</summary>
+        public bool IsTabletop => m_TabletopMode;
+
         public void BeginWalk(int indexInRope)
         {
+            if (m_LockedUpright)
+            {
+                transform.rotation = m_BaseRotation;
+                m_Heading = 0f;
+                return;
+            }
             m_BaseRotation = transform.rotation;
             m_Heading = 0f;
         }
@@ -64,6 +87,12 @@ namespace PixelGame
         /// </summary>
         public void TurnToward(Vector3 screenMove, float deltaTime)
         {
+            if (m_LockedUpright)
+            {
+                transform.rotation = m_BaseRotation;
+                return;
+            }
+
             if (m_TabletopMode)
             {
                 // Yere dik eksen (yerel Z) etrafında: ön yüz (yerel -Y) gidiş yönüne baksın

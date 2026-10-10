@@ -16,8 +16,7 @@ namespace PixelGame.Editor
 
         static CleanupSceneShadows()
         {
-            // İstenildiğinde Tools menüsünden elle çalıştırılabilir
-            // EditorApplication.delayCall += RunPurge;
+            EditorApplication.delayCall += RunPurge;
         }
 
         [MenuItem("Tools/PixelGame/🧹 Pano ve Obje Arkasındaki Gölgeleri Tamamen Temizle", priority = 20)]
@@ -46,7 +45,10 @@ namespace PixelGame.Editor
                 bool isBoardShadow = name == "BoardGridShadow" || 
                                      name == "FigureContourShadow" || 
                                      name.Contains("BoardGridShadow") || 
-                                     name.Contains("FigureContourShadow");
+                                     name.Contains("FigureContourShadow") ||
+                                     name == "CubeShadow" ||
+                                     name == "CubeShadow_Bottom" ||
+                                     name == "[WalkFootstepShadow]";
 
                 if (!isBoardShadow)
                 {
@@ -54,7 +56,7 @@ namespace PixelGame.Editor
                     if (mr != null && mr.sharedMaterial != null)
                     {
                         string matName = mr.sharedMaterial.name;
-                        if (matName.Contains("BoardFrameShadow") || matName.Contains("FigureContourShadow"))
+                        if (matName.Contains("BoardFrameShadow") || matName.Contains("FigureContourShadow") || matName.Contains("CubeFakeShadow"))
                         {
                             isBoardShadow = true;
                         }
@@ -90,22 +92,7 @@ namespace PixelGame.Editor
                 sceneModified = true;
             }
 
-            // 3. Sahnedeki ShipDispatcher ayarlarını (hız ve zıplama) orijinal haline döndür
-            ShipDispatcher dispatcher = Object.FindFirstObjectByType<ShipDispatcher>();
-            if (dispatcher != null)
-            {
-                SerializedObject soDisp = new SerializedObject(dispatcher);
-                SerializedProperty spSpeed = soDisp.FindProperty("m_RopeSpeed");
-                SerializedProperty spDur = soDisp.FindProperty("m_HopDuration");
-                SerializedProperty spArc = soDisp.FindProperty("m_HopArcHeight");
-                if (spSpeed != null) spSpeed.floatValue = 1.25f;
-                if (spDur != null) spDur.floatValue = 0.3f;
-                if (spArc != null) spArc.floatValue = 0.6f;
-                soDisp.ApplyModifiedProperties();
-                sceneModified = true;
-            }
-
-            // 4. Sahnedeki küplerde kalan CubeShadow nesnelerini temizle
+            // 3. Sahnedeki küplerde kalan CubeShadow nesnelerini temizle
             PixelCube[] sceneCubes = Object.FindObjectsByType<PixelCube>(FindObjectsSortMode.None);
             foreach (var cube in sceneCubes)
             {
@@ -124,31 +111,40 @@ namespace PixelGame.Editor
                 }
             }
 
-            // 4. MainCube.prefab içerisindeki CubeShadow nesnesini de temizle
-            string prefabPath = "Assets/Prefabs/MainCube.prefab";
-            GameObject prefabRoot = PrefabUtility.LoadPrefabContents(prefabPath);
-            if (prefabRoot != null)
+            // 4. Prefab'lar içerisindeki CubeShadow nesnelerini temizle
+            string[] prefabsToClean = new string[]
             {
-                bool prefabModified = false;
-                Transform shadowChild = prefabRoot.transform.Find("CubeShadow");
-                if (shadowChild != null)
-                {
-                    Object.DestroyImmediate(shadowChild.gameObject);
-                    prefabModified = true;
-                }
-                Transform shadowBottomChild = prefabRoot.transform.Find("CubeShadow_Bottom");
-                if (shadowBottomChild != null)
-                {
-                    Object.DestroyImmediate(shadowBottomChild.gameObject);
-                    prefabModified = true;
-                }
+                "Assets/Prefabs/MainCube.prefab",
+                "Assets/Prefabs/MainCube_Running.prefab",
+                "Assets/Prefabs/MainCube_Tabletop.prefab",
+                "Assets/Prefabs/MainCube_Running_Tabletop.prefab"
+            };
 
-                if (prefabModified)
+            foreach (string prefabPath in prefabsToClean)
+            {
+                if (!System.IO.File.Exists(prefabPath)) continue;
+
+                GameObject prefabRoot = PrefabUtility.LoadPrefabContents(prefabPath);
+                if (prefabRoot != null)
                 {
-                    PrefabUtility.SaveAsPrefabAsset(prefabRoot, prefabPath);
-                    Debug.Log("<color=#00FFAA>[CleanupSceneShadows]</color> MainCube prefab'ındaki sahte gölgeler temizlendi.");
+                    bool prefabModified = false;
+                    for (int i = prefabRoot.transform.childCount - 1; i >= 0; i--)
+                    {
+                        Transform ch = prefabRoot.transform.GetChild(i);
+                        if (ch.name == "CubeShadow" || ch.name == "CubeShadow_Bottom" || ch.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            Object.DestroyImmediate(ch.gameObject);
+                            prefabModified = true;
+                        }
+                    }
+
+                    if (prefabModified)
+                    {
+                        PrefabUtility.SaveAsPrefabAsset(prefabRoot, prefabPath);
+                        Debug.Log($"<color=#00FFAA>[CleanupSceneShadows]</color> {prefabPath} içerisindeki sahte gölgeler temizlendi.");
+                    }
+                    PrefabUtility.UnloadPrefabContents(prefabRoot);
                 }
-                PrefabUtility.UnloadPrefabContents(prefabRoot);
             }
 
             if (sceneModified)

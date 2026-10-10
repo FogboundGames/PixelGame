@@ -45,6 +45,11 @@ namespace PixelGame
         [Header("✨ Kum Pufu Partikülü")]
         [SerializeField] private bool m_EnableSandPuff = true;
         [SerializeField] private Color m_SandPuffColor = new Color(0.96f, 0.82f, 0.46f, 0.75f);
+        [Tooltip("Ayak izi opaklık çarpanı (1 = ayarlardaki opaklık, düşük = daha soluk).")]
+        [SerializeField, Range(0f, 1f)] private float m_FootprintFade = 1f;
+        [Tooltip("Ayak izinin dünya biriminde en küçük boyutu (küpler çok küçükken bile görünsün).")]
+        [SerializeField, Min(0f)] private float m_MinFootprintWorldSize = 0.16f;
+        public static float MinFootprintWorldSize => s_Instance != null ? s_Instance.m_MinFootprintWorldSize : 0.16f;
 
         // İç nesne havuzu sınıfı
         private class PooledFootprint
@@ -60,6 +65,8 @@ namespace PixelGame
         private readonly List<PooledFootprint> m_ActiveList = new List<PooledFootprint>(160);
         private MaterialPropertyBlock m_PropBlock;
         private static readonly int s_ColorPropId = Shader.PropertyToID("_Color");
+        // URP shader'ları rengi _BaseColor'dan okur; materyal hangisi olursa olsun iz küp renginde çıksın.
+        private static readonly int s_BaseColorPropId = Shader.PropertyToID("_BaseColor");
 
         private Mesh m_QuadMesh;
         private ParticleSystem m_PuffParticleSystem;
@@ -252,8 +259,8 @@ namespace PixelGame
             // Hemen yok olacak şekilde kısa ömür (0.46s)
             float lifetime = settings != null ? Mathf.Min(settings.FootprintLifetime, 0.60f) : 0.46f;
             float baseSize = settings != null ? settings.FootprintSize : 0.22f;
-            // Çok hafif daha belirgin (0.58f opaklık)
-            float startAlpha = settings != null ? Mathf.Max(settings.FootprintOpacity, 0.50f) : 0.58f;
+            // Küp renginde ama soluk iz (m_FootprintFade ile ayarlanır)
+            float startAlpha = (settings != null ? settings.FootprintOpacity : 0.58f) * m_FootprintFade;
             bool enablePuff = settings != null ? settings.FootstepPuff : m_EnableSandPuff;
 
             // Küp hangi renkse o rengi kullan; yoksa kumsal rengi
@@ -283,7 +290,9 @@ namespace PixelGame
             Quaternion rot = Quaternion.Euler(0f, 0f, headingAngle + splayAngle);
 
             // Ölçek: Küp boyu ile orantılı sevimli basılmış ayak izi (genişlik x boy)
-            float s = Mathf.Max(0.01f, cubeSize) * baseSize;
+            // Büyük ızgaralı levellerde (ör. 30x30) küp çok küçük kalıyor ve iz 2-3 piksele iniyordu:
+            // küçük levellerdeki (eski) iz boyutunun altına düşmesin.
+            float s = Mathf.Max(Mathf.Max(0.01f, cubeSize) * baseSize, m_MinFootprintWorldSize);
             Vector3 scale = new Vector3(s * 0.78f, s * 1.18f, 1f);
 
             fp.Transform.position = pos;
@@ -297,6 +306,7 @@ namespace PixelGame
             // İlk belirgin rengi uygula
             Color initialColor = new Color(baseColor.r, baseColor.g, baseColor.b, startAlpha);
             m_PropBlock.SetColor(s_ColorPropId, initialColor);
+            m_PropBlock.SetColor(s_BaseColorPropId, initialColor);
             fp.Renderer.SetPropertyBlock(m_PropBlock);
 
             // DOTWEEN İLE HEMEN YOK OLUŞ:
@@ -307,6 +317,7 @@ namespace PixelGame
                 {
                     Color stepCol = new Color(baseColor.r, baseColor.g, baseColor.b, alpha);
                     m_PropBlock.SetColor(s_ColorPropId, stepCol);
+                    m_PropBlock.SetColor(s_BaseColorPropId, stepCol);
                     fp.Renderer.SetPropertyBlock(m_PropBlock);
                 }
             })

@@ -766,7 +766,9 @@ namespace PixelGame
             if (moved < 1e-4f) return;
 
             float cubeSize = Mathf.Max(0.01f, transform.lossyScale.y);
-            float stepInterval = Mathf.Max(0.05f, s.FootstepDistance * cubeSize);
+            // İz en küçük boyutuna (SandFootprintManager) çekildiğinde adımlar da ona göre aralansın, üst üste binmesin
+            float printScaleSize = Mathf.Max(cubeSize, SandFootprintManager.MinFootprintWorldSize / Mathf.Max(0.01f, s.FootprintSize));
+            float stepInterval = Mathf.Max(0.05f, s.FootstepDistance * printScaleSize);
 
             m_StepDistanceAccumulator += moved;
             if (m_StepDistanceAccumulator >= stepInterval)
