@@ -69,15 +69,9 @@ MonoBehaviour:
   m_UseCustomWagonSequence: 1
   m_WagonSequence:
   - wagonColor: {r: 0.9607844, g: 0.94117653, b: 0.8941177, a: 1}
-    capacity: 20
+    capacity: 30
     paletteIndex: 0
     label: Renk #1 (1)
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.23529413, g: 0.54901963, b: 0.90196085, a: 1}
-    capacity: 16
-    paletteIndex: 1
-    label: Renk #2 (1)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.8705883, g: 0.227451, b: 0.20392159, a: 1}
@@ -86,16 +80,16 @@ MonoBehaviour:
     label: Renk #3 (1)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.9607844, g: 0.94117653, b: 0.8941177, a: 1}
-    capacity: 10
-    paletteIndex: 0
-    label: Renk #1 (2)
-    linkId: 0
-    isHidden: 0
   - wagonColor: {r: 0.47058827, g: 0.29411766, b: 0.15686275, a: 1}
     capacity: 7
     paletteIndex: 3
     label: Renk #4 (1)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.23529413, g: 0.54901963, b: 0.90196085, a: 1}
+    capacity: 16
+    paletteIndex: 1
+    label: Renk #2 (1)
     linkId: 0
     isHidden: 0
   m_FigureShadowTexture: {fileID: 0}
