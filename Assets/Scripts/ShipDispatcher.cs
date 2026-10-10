@@ -60,46 +60,11 @@ namespace PixelGame
         [Tooltip("Kıyı noktasının kum tarafına (geminin tersine) ne kadar içeride olacağı (dünya birimi).")]
         [SerializeField] private float m_ShorelineInset = 0.05f;
 
-        // Kullanıcının çizdiği kırmızı sahil şeridine tam uyan 37 adet dünya koordinatı:
+        // Yeni düz ahşap iskele kıyı şeridi (World Y = -3.20f)
         private static readonly Vector2[] s_DefaultShoreline = new Vector2[]
         {
-            new Vector2(-9.1525f, 13.0634f),
-            new Vector2(-7.9381f, 9.4827f),
-            new Vector2(-6.9903f, 6.8910f),
-            new Vector2(-6.2194f, 4.9714f),
-            new Vector2(-5.5706f, 3.5289f),
-            new Vector2(-5.0080f, 2.4365f),
-            new Vector2(-4.5074f, 1.6073f),
-            new Vector2(-4.0517f, 0.9796f),
-            new Vector2(-3.6286f, 0.5078f),
-            new Vector2(-3.2292f, 0.1573f),
-            new Vector2(-2.8466f, -0.0991f),
-            new Vector2(-2.4759f, -0.2828f),
-            new Vector2(-2.1132f, -0.4111f),
-            new Vector2(-1.7560f, -0.4981f),
-            new Vector2(-1.4021f, -0.5551f),
-            new Vector2(-1.0504f, -0.5907f),
-            new Vector2(-0.6998f, -0.6115f),
-            new Vector2(-0.3498f, -0.6219f),
-            new Vector2(0.0000f, -0.6242f),
-            new Vector2(0.3498f, -0.6185f),
-            new Vector2(0.7000f, -0.6031f),
-            new Vector2(1.0509f, -0.5741f),
-            new Vector2(1.4035f, -0.5252f),
-            new Vector2(1.7589f, -0.4483f),
-            new Vector2(2.1187f, -0.3326f),
-            new Vector2(2.4854f, -0.1649f),
-            new Vector2(2.8624f, 0.0715f),
-            new Vector2(3.2542f, 0.3969f),
-            new Vector2(3.6668f, 0.8372f),
-            new Vector2(4.1085f, 1.4249f),
-            new Vector2(4.5903f, 2.2028f),
-            new Vector2(5.1274f, 3.2286f),
-            new Vector2(5.7416f, 4.5823f),
-            new Vector2(6.4645f, 6.3801f),
-            new Vector2(7.3442f, 8.7986f),
-            new Vector2(8.4582f, 12.1206f),
-            new Vector2(9.9393f, 16.8323f)
+            new Vector2(-6.0f, -3.20f),
+            new Vector2( 6.0f, -3.20f)
         };
         [Tooltip("Boşsa panodaki küpün kendisi yürür. Bir prefab atanırsa (ör. Mixamo koşucusu MainCube_Running) küp yerinde gizlenir, yerine bu prefab küpün renginde yürür.")]
         [SerializeField] private GameObject m_CargoStandInPrefab;
@@ -324,9 +289,8 @@ namespace PixelGame
             // yalnızca anlamsız değerler düzeltilir (üst sınırla zorla düşürmek ayarı etkisiz kılıyordu).
             if (m_RopeSpeed < 0.6f) m_RopeSpeed = 2.0f;
 
-            // Eğer m_Shoreline eski koordinatları taşıyorsa (orta nokta Y <= -0.85f ise veya liste boşsa),
-            // kullanıcının çizdiği kırmızı kıyı çizgisine otomatik güncelle:
-            if (m_Shoreline == null || m_Shoreline.Count < 2 || (m_Shoreline.Count > 10 && m_Shoreline[m_Shoreline.Count / 2].y < -0.85f))
+            // Eğer m_Shoreline eski koordinatları taşıyorsa, düz ahşap iskele çizgisine otomatik güncelle:
+            if (m_Shoreline == null || m_Shoreline.Count < 2 || m_Shoreline[m_Shoreline.Count / 2].y > -2.0f)
             {
                 m_Shoreline = new List<Vector2>(s_DefaultShoreline);
                 m_ShorelineInset = 0.05f;
@@ -1888,7 +1852,7 @@ namespace PixelGame
             if (ship != null)
             {
                 Vector3 shipPos = ship.transform.position;
-                IList<Vector2> shoreline = (m_Shoreline != null && m_Shoreline.Count >= 2 && m_Shoreline[m_Shoreline.Count / 2].y > -0.85f)
+                IList<Vector2> shoreline = (m_Shoreline != null && m_Shoreline.Count >= 2 && m_Shoreline[m_Shoreline.Count / 2].y < -2.0f)
                     ? (IList<Vector2>)m_Shoreline
                     : s_DefaultShoreline;
 

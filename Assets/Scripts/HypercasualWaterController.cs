@@ -22,8 +22,8 @@ namespace PixelGame
         [SerializeField] private Camera m_WorldCamera;
 
         [Header("🏖️ Yeni Arkaplan Su Alanı")]
-        [SerializeField] [Range(0.0f, 0.4f)] private float m_WaterMinV = 0.01f;
-        [SerializeField] [Range(0.5f, 1.0f)] private float m_WaterMaxV = 0.88f;
+        [SerializeField] [Range(0.0f, 0.4f)] private float m_WaterMinV = 0.00f;
+        [SerializeField] [Range(0.1f, 1.0f)] private float m_WaterMaxV = 0.31f;
         [SerializeField] [Range(0.0f, 0.2f)] private float m_WaterBlueDominance = 0.02f;
 
         [Header("✨ Dalga & Parıltı Ayarları")]
@@ -216,8 +216,8 @@ namespace PixelGame
             Vector3 viewportPos = m_WorldCamera.WorldToViewportPoint(worldPos);
             Vector2 uv = new Vector2(viewportPos.x, viewportPos.y);
 
-            // Sadece su bölgesinde olan dalgaları kabul et (yeni arkaplanın lagün ve alt kuyruk alanı)
-            if (uv.y < 0.04f || uv.y > 0.88f) return;
+            // Sadece su bölgesinde olan dalgaları kabul et (düz iskelenin altındaki su alanı)
+            if (uv.y < 0.01f || uv.y > 0.32f) return;
 
             if (m_Ripples.Count >= 4)
             {

@@ -122,6 +122,8 @@ namespace PixelGame
         [SerializeField] private float m_BuoyVisualWidthRatio = 1.51f;
 
         [Header("🫧 Slot Görseli (Köpük Halkası)")]
+        [Tooltip("Slot görselini (can simidi / köpük) gizler; görsel arka plandaki ahşap iskele ve babalar (posts) kullanılır.")]
+        [SerializeField] private bool m_HideSlotIndicators = true;
         [Tooltip("Slot görselinin slot genişliğine göre ölçeği.")]
         [SerializeField] private float m_SlotVisualScale = 1.30f;
         [Tooltip("Slot görselinin ekranda görünen yükseklik / genişlik oranı. 1'den büyükse dikey elips olur ve gemiyi boyuna sarar.")]
@@ -135,8 +137,10 @@ namespace PixelGame
         [SerializeField] private Material m_SlotVisualMaterialJoined;
 
         [Header("🪵 Kavisli İskele (Curved Marina Pier Visual)")]
-        [Tooltip("Kullanıcının referans görselindeki kavisli ahşap iskele modelini (3, 4 ve 5 slot seçenekli) aktif eder.")]
-        [SerializeField] private bool m_EnableCurvedPier = true;
+        [Tooltip("Kavisli ahşap iskele modelini (eski dairesel koy için) aktif eder. Yeni düz iskeleli arka planda false olmalıdır.")]
+        [SerializeField] private bool m_EnableCurvedPier = false;
+        [SerializeField] private Texture m_Background3Slots;
+        [SerializeField] private Texture m_Background4Slots;
         [SerializeField] private Material m_PierMaterial4Slots;
         [SerializeField] private Material m_PierMaterial5Slots;
         [SerializeField] private Material m_PierMaterial3Slots;
@@ -160,9 +164,9 @@ namespace PixelGame
         [SerializeField] private float m_WaterTiltX = -28f;
 
         [Header("📍 Dikey Yükseklik & Derinlik")]
-        [Tooltip("Slot şeridinin Y eksenindeki yüksekliği (Kumsal kıyısına yakınlık: -2.20f).")]
-        [Range(-5f, 5f)]
-        [SerializeField] private float m_OffsetY = -2.20f;
+        [Tooltip("Slot şeridinin Y eksenindeki yüksekliği (Kumsal kıyısına yakınlık: -5.40f).")]
+        [Range(-8f, 5f)]
+        [SerializeField] private float m_OffsetY = -5.40f;
 
         [Tooltip("Slot şeridinin Z eksenindeki derinliği.")]
         [Range(-3f, 3f)]
@@ -171,7 +175,7 @@ namespace PixelGame
         [Header("🌊 Sahil Kavis / Yay Eğrisi (Shoreline Arc)")]
         [Tooltip("Slotların sahil koyu kıyısına uyumlu yay/kavis yapması için Y ekseni eğrilik gücü (0 = Düz sıra).")]
         [Range(-0.3f, 0.3f)]
-        [SerializeField] private float m_ArcCurveY = 0.042f;
+        [SerializeField] private float m_ArcCurveY = 0f;
 
         [Tooltip("Kavisin sol/sağ asimetrisi.")]
         [Range(-0.2f, 0.2f)]
@@ -432,19 +436,19 @@ namespace PixelGame
             {
                 m_Config3Slots = new MarinaSlotCountConfig(3)
                 {
-                    RowOffsetY = -2.26f, // Kumsal koyuna tam oturan Y yüksekliği
+                    RowOffsetY = -5.40f, // Arka plandaki ahşap iskele ve babalar seviyesi (rıhtımın tam kıyısı)
                     RowOffsetZ = 0.05f,
                     PierWidth = m_PierWidth3Slots > 0.01f ? m_PierWidth3Slots : 7.2f,
                     PierOffsetY = 2.06f,
                     PierOffsetZ = 0.04f,
                     PierScaleMultiplier = m_PierScaleMultiplier > 0.01f ? m_PierScaleMultiplier : 1.07f,
-                    BaySpacingPx = 171f,
+                    BaySpacingPx = 174f,
                     BaySlotOffsetY = 0f,
-                    ArcCurveY = 0.042f,
+                    ArcCurveY = 0f,
                     SlotAngle = 0f,
                     SlotWidth = m_SlotWidth > 0.01f ? m_SlotWidth : 1.05f,
                     SlotLength = m_SlotLength > 0.01f ? m_SlotLength : 1.55f,
-                    LegacySpacing = 1.68f,
+                    LegacySpacing = 1.454f,
                     PierMaterial = m_PierMaterial3Slots
                 };
             }
@@ -454,19 +458,19 @@ namespace PixelGame
             {
                 m_Config4Slots = new MarinaSlotCountConfig(4)
                 {
-                    RowOffsetY = -2.23f, // 4 slot koy kavis oturumu
+                    RowOffsetY = -5.40f, // Düz iskele hizası (rıhtımın tam kıyısı)
                     RowOffsetZ = 0.05f,
                     PierWidth = m_PierWidth4Slots > 0.01f ? m_PierWidth4Slots : 8.1f,
                     PierOffsetY = 2.06f,
                     PierOffsetZ = 0.04f,
                     PierScaleMultiplier = m_PierScaleMultiplier > 0.01f ? m_PierScaleMultiplier : 1.07f,
-                    BaySpacingPx = 173f,
+                    BaySpacingPx = 174f,
                     BaySlotOffsetY = 0f,
-                    ArcCurveY = 0.042f,
+                    ArcCurveY = 0f,
                     SlotAngle = 0f,
                     SlotWidth = m_SlotWidth > 0.01f ? m_SlotWidth : 1.05f,
                     SlotLength = m_SlotLength > 0.01f ? m_SlotLength : 1.55f,
-                    LegacySpacing = 1.68f,
+                    LegacySpacing = 1.454f,
                     PierMaterial = m_PierMaterial4Slots
                 };
             }
@@ -476,7 +480,7 @@ namespace PixelGame
             {
                 m_Config5Slots = new MarinaSlotCountConfig(5)
                 {
-                    RowOffsetY = -2.20f, // 5 slot standart sahil çizgisi
+                    RowOffsetY = -5.40f, // 5 adet ahşap babaya tam oturan Y seviyesi
                     RowOffsetZ = 0.05f,
                     PierWidth = m_PierWidth5Slots > 0.01f ? m_PierWidth5Slots : 8.55f,
                     PierOffsetY = 2.06f,
@@ -484,16 +488,20 @@ namespace PixelGame
                     PierScaleMultiplier = m_PierScaleMultiplier > 0.01f ? m_PierScaleMultiplier : 1.07f,
                     BaySpacingPx = 174f,
                     BaySlotOffsetY = 0f,
-                    ArcCurveY = 0.042f,
+                    ArcCurveY = 0f,
                     SlotAngle = 0f,
                     SlotWidth = m_SlotWidth > 0.01f ? m_SlotWidth : 1.05f,
                     SlotLength = m_SlotLength > 0.01f ? m_SlotLength : 1.55f,
-                    LegacySpacing = 1.528f,
+                    LegacySpacing = 1.454f,
                     PierMaterial = m_PierMaterial5Slots
                 };
             }
 
 #if UNITY_EDITOR
+            if (m_Background3Slots == null)
+                m_Background3Slots = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Kenney/BeachBackground_3Slots.png");
+            if (m_Background4Slots == null)
+                m_Background4Slots = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Kenney/BeachBackground_4Slots.png");
             if (m_Config3Slots.PierMaterial == null)
                 m_Config3Slots.PierMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Marina/Pier_Curved_3Slots_Mat.mat");
             if (m_Config4Slots.PierMaterial == null)
@@ -512,19 +520,19 @@ namespace PixelGame
             {
                 m_Config3Slots = new MarinaSlotCountConfig(3)
                 {
-                    RowOffsetY = -2.26f,
+                    RowOffsetY = -5.40f,
                     RowOffsetZ = 0.05f,
                     PierWidth = 7.2f,
                     PierOffsetY = 2.06f,
                     PierOffsetZ = 0.04f,
                     PierScaleMultiplier = 1.07f,
-                    BaySpacingPx = 171f,
+                    BaySpacingPx = 174f,
                     BaySlotOffsetY = 0f,
-                    ArcCurveY = 0.042f,
+                    ArcCurveY = 0f,
                     SlotAngle = 0f,
                     SlotWidth = 1.05f,
                     SlotLength = 1.55f,
-                    LegacySpacing = 1.68f,
+                    LegacySpacing = 1.454f,
                     PierMaterial = m_PierMaterial3Slots
                 };
             }
@@ -533,19 +541,19 @@ namespace PixelGame
             {
                 m_Config4Slots = new MarinaSlotCountConfig(4)
                 {
-                    RowOffsetY = -2.23f,
+                    RowOffsetY = -5.40f,
                     RowOffsetZ = 0.05f,
                     PierWidth = 8.1f,
                     PierOffsetY = 2.06f,
                     PierOffsetZ = 0.04f,
                     PierScaleMultiplier = 1.07f,
-                    BaySpacingPx = 173f,
+                    BaySpacingPx = 174f,
                     BaySlotOffsetY = 0f,
-                    ArcCurveY = 0.042f,
+                    ArcCurveY = 0f,
                     SlotAngle = 0f,
                     SlotWidth = 1.05f,
                     SlotLength = 1.55f,
-                    LegacySpacing = 1.68f,
+                    LegacySpacing = 1.454f,
                     PierMaterial = m_PierMaterial4Slots
                 };
             }
@@ -554,7 +562,7 @@ namespace PixelGame
             {
                 m_Config5Slots = new MarinaSlotCountConfig(5)
                 {
-                    RowOffsetY = -2.20f,
+                    RowOffsetY = -5.40f,
                     RowOffsetZ = 0.05f,
                     PierWidth = 8.55f,
                     PierOffsetY = 2.06f,
@@ -562,11 +570,11 @@ namespace PixelGame
                     PierScaleMultiplier = 1.07f,
                     BaySpacingPx = 174f,
                     BaySlotOffsetY = 0f,
-                    ArcCurveY = 0.042f,
+                    ArcCurveY = 0f,
                     SlotAngle = 0f,
                     SlotWidth = 1.05f,
                     SlotLength = 1.55f,
-                    LegacySpacing = 1.528f,
+                    LegacySpacing = 1.454f,
                     PierMaterial = m_PierMaterial5Slots
                 };
             }
@@ -774,6 +782,7 @@ namespace PixelGame
             else
             {
                 ApplyLegacyDockLayout(activeSlots, count, cfg);
+                UpdateBackgroundTexture(count);
             }
         }
 
@@ -902,7 +911,7 @@ namespace PixelGame
             if (m_FitToScreenWidth && fitCam != null && fitCam.orthographic)
             {
                 float available = 2f * fitCam.orthographicSize * fitCam.aspect - 2f * m_ScreenEdgeMargin;
-                float needed = (count - 1) * rawSpacing + slotWidth * m_BuoyVisualWidthRatio;
+                float needed = (count - 1) * rawSpacing + slotWidth;
                 if (needed > available && needed > 0.001f) fit = Mathf.Max(0.5f, available / needed);
             }
             float spacing = rawSpacing * fit;
@@ -918,63 +927,58 @@ namespace PixelGame
                 float angle = slotAngle + m_ArcAngleFan * t;
 
                 tr.localPosition = new Vector3(posX, posY, 0f);
-                tr.localRotation = Quaternion.Euler(m_WaterTiltX, 0f, 0f) * Quaternion.Euler(0f, angle, 0f);
+                ShipQueuePool queuePool = UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
+                Quaternion baseSlotRot = queuePool != null ? queuePool.transform.rotation : Quaternion.Euler(m_WaterTiltX, 0f, 0f);
+                tr.rotation = baseSlotRot * Quaternion.Euler(0f, angle, 0f);
                 tr.localScale = new Vector3(slotWidth * fit, 1f, slotLength * fit);
 
+                // Slot görselleri (can simidi, köpük vb.) gizlenir;
+                // Arka plan görselindeki ahşap iskele ve babalar (kahverengi yerler) doğrudan slot olarak kullanılır.
                 Transform foamSlot = tr.Find("FoamSlot");
+                if (foamSlot != null && foamSlot.gameObject.activeSelf) foamSlot.gameObject.SetActive(false);
                 Transform lifebuoy = tr.Find("[Slot_Lifebuoy]");
-                Transform visualTr = lifebuoy != null ? lifebuoy : foamSlot;
+                if (lifebuoy != null && lifebuoy.gameObject.activeSelf) lifebuoy.gameObject.SetActive(false);
+                Transform indicator = tr.Find("IndicatorMesh");
+                if (indicator != null && indicator.gameObject.activeSelf) indicator.gameObject.SetActive(false);
+            }
+        }
 
-                if (visualTr != null)
+        public void UpdateBackgroundTexture(int count)
+        {
+            EnsureBackgroundTexturesInitialized();
+            GameObject bgObj = GameObject.Find("BackgroundImage");
+            if (bgObj != null)
+            {
+                UnityEngine.UI.RawImage rawImg = bgObj.GetComponent<UnityEngine.UI.RawImage>();
+                if (rawImg != null)
                 {
-                    Vector3 visualBasePos = new Vector3(0f, 0.025f, visualTr == lifebuoy ? m_SlotVisualOffsetZ : 0f);
-                    visualTr.localPosition = visualBasePos;
-
-                    if (visualTr == lifebuoy && m_SlotVisualMaterial != null)
+                    Texture targetTex = (count % 2 != 0) ? m_Background3Slots : m_Background4Slots;
+                    if (targetTex != null && rawImg.texture != targetTex)
                     {
-                        MeshRenderer visualRenderer = visualTr.GetComponent<MeshRenderer>();
-                        if (visualRenderer != null)
-                        {
-                            bool isLast = i == count - 1;
-                            Material target = (!isLast && m_SlotVisualMaterialJoined != null) ? m_SlotVisualMaterialJoined : m_SlotVisualMaterial;
-                            if (visualRenderer.sharedMaterial != target) visualRenderer.sharedMaterial = target;
-                            visualRenderer.sortingOrder = i;
-                        }
+#if UNITY_EDITOR
+                        UnityEditor.Undo.RecordObject(rawImg, "Switch Marina Background Texture");
+#endif
+                        rawImg.texture = targetTex;
+#if UNITY_EDITOR
+                        UnityEditor.EditorUtility.SetDirty(rawImg);
+#endif
                     }
-                    visualTr.localRotation = Quaternion.identity;
-
-                    Vector3 circleComp = Vector3.one;
-                    if (visualTr == lifebuoy)
-                    {
-                        Camera cam = Camera.main;
-                        float camPitch = cam != null ? Mathf.DeltaAngle(0f, cam.transform.eulerAngles.x) : 0f;
-                        float tiltFactor = Mathf.Sin(Mathf.Abs(m_WaterTiltX - camPitch) * Mathf.Deg2Rad);
-                        if (tiltFactor < 0.05f) tiltFactor = 0.47f;
-                        float zComp = (m_SlotVisualScreenAspect / tiltFactor) * (slotWidth / Mathf.Max(0.001f, slotLength));
-                        circleComp = new Vector3(m_SlotVisualScale, 1f, m_SlotVisualScale * zComp);
-                    }
-                    visualTr.localScale = circleComp;
-
-                    if (!visualTr.gameObject.activeSelf)
-                    {
-                        visualTr.gameObject.SetActive(true);
-                    }
-
-                    FoamSlotBobbing bobbing = visualTr.GetComponent<FoamSlotBobbing>();
-                    if (bobbing == null)
-                    {
-                        bobbing = visualTr.gameObject.AddComponent<FoamSlotBobbing>();
-                    }
-                    bobbing.PhaseOffset = i * 0.75f;
-                    bobbing.SetBasePosition(visualBasePos);
-                    bobbing.SetBaseScale(circleComp);
-                }
-
-                if (lifebuoy != null && foamSlot != null)
-                {
-                    foamSlot.gameObject.SetActive(false);
                 }
             }
+        }
+
+        private void EnsureBackgroundTexturesInitialized()
+        {
+#if UNITY_EDITOR
+            if (m_Background3Slots == null)
+            {
+                m_Background3Slots = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Kenney/BeachBackground_3Slots.png");
+            }
+            if (m_Background4Slots == null)
+            {
+                m_Background4Slots = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Kenney/BeachBackground_4Slots.png");
+            }
+#endif
         }
     }
 }
