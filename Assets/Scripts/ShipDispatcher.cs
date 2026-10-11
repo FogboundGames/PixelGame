@@ -97,6 +97,9 @@ namespace PixelGame
         [SerializeField, Min(0.5f)] private float m_RunnerFrameMarginCubes = 1.2f;
         [Tooltip("Denizcinin küpü alırken küp merkezinden ne kadar önde durduğu (küp cinsinden).")]
         [SerializeField, Range(0f, 1.5f)] private float m_PickupStandoffCubes = 0.75f;
+        [Tooltip("Resmin içindeki (çerçeve dışındaki) her adımın çerçevede yürümeye göre maliyet çarpanı. 1: en kısa yol, " +
+                 "küplere yanaşır. Büyüdükçe denizci çerçeveyi dolaşıp içeri küpe en yakın yerden girer.")]
+        [SerializeField, Range(1f, 5f)] private float m_RunnerInnerStepCost = 2.5f;
         [Tooltip("Açık: denizci küpü alırken, alma animasyonunun ikinci yarısında dönüş yoluna doğru yerinde döner.\n" +
                  "Kapalı: alırken küpe dönük kalır, yönünü yürümeye başlarken çevirir.")]
         [SerializeField] private bool m_SailorTurnWhilePickingUp = false;
@@ -3221,21 +3224,14 @@ namespace PixelGame
         /// Referans oyundaki karınca yolu: kıyıdan çerçevenin alt kenarına çıkar, çerçeve boyunca (resmin dışından)
         /// hedefin AÇIKLIĞININ hizasına kadar yürür, oradan sadece boş hücreleri takip ederek küpe ulaşır.
         /// Açıklık (boş hücrelerden resmin dışına çıkış), toplam yürüme mesafesi en kısa olacak şekilde seçilir.
-        /// Çerçeve, bölüm başındaki tam resmin sınırlarından m_RunnerFrameMarginCubes küp dışarıdadır.
+        /// Çerçeve sabittir (OtCerceve / bölüm başındaki resmin sınırları + m_RunnerFrameMarginCubes); küpler alındıkça
+        /// küçülmez, böylece boşalan alan da yürünebilir iç bölge sayılır.
         /// </summary>
         private List<Vector3> FindRunnerGridPath(Vector3 shoreStart, PixelCube targetCube, bool ignoreReserved, float groundZ)
         {
             Vector3 cubeWorld = targetCube.transform.position;
-            if (!TryBuildLiveGrid(out var gridMap, out _, out int minY, ignoreReserved))
+            if (!TryBuildLiveGrid(out var gridMap, out _, out _, ignoreReserved))
                 return null;
-
-            int minX = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
-            foreach (var key in gridMap.Keys)
-            {
-                if (key.Item1 < minX) minX = key.Item1;
-                if (key.Item1 > maxX) maxX = key.Item1;
-                if (key.Item2 > maxY) maxY = key.Item2;
-            }
 
             // Çerçeve: sahnedeki OtCerceve'nin (görünmese de) kumsala izdüşümü. Resim çerçeveden taşarsa o kenar
             // resmin bir pay dışına itilir; OtCerceve yoksa resmin sınırlarından hesaplanır.
@@ -3284,7 +3280,20 @@ namespace PixelGame
                 return len + Vector3.Distance(r[r.Count - 1], last);
             }
 
-            // Hedeften dışarı doğru boş hücrelerde BFS; resmin canlı sınırının hemen dışındaki hücreler çıkış adayı
+            // Hücre sabit çerçevenin çizgisine yarım küpten yakınsa ya da dışındaysa çerçeve koridorundadır (çıkış).
+            // Çerçeve küpler alındıkça küçülmez: resim boşaldıkça koşucu boşalan kumdan kestirme yürür.
+            float half = pitch * 0.5f;
+            int FrameSide((int, int) c)
+            {
+                Vector3 w = m_GridFrame.ToWorld(c.Item1, c.Item2);
+                if (w.y < fB + half) return 0;
+                if (w.x < fL + half) return 1;
+                if (w.x > fR - half) return 2;
+                if (w.y > fT - half) return 3;
+                return -1;
+            }
+
+            // Hedeften dışarı doğru boş hücrelerde BFS; çerçeveye varan hücreler çıkış adayı
             var start = (targetCube.GridX, targetCube.GridY);
             var cameFrom = new Dictionary<(int, int), (int, int)>();
             var steps = new Dictionary<(int, int), int>();
@@ -3298,12 +3307,11 @@ namespace PixelGame
             {
                 var cur = queue.Dequeue();
                 int curSteps = steps[cur];
-                bool outside = cur.Item1 < minX || cur.Item1 > maxX || cur.Item2 < minY || cur.Item2 > maxY;
-                if (outside)
+                int side = cur == start ? -1 : FrameSide(cur);
+                if (side >= 0)
                 {
-                    int side = cur.Item2 < minY ? 0 : cur.Item1 < minX ? 1 : cur.Item1 > maxX ? 2 : 3;
                     Vector3 ew = ToGround(cur);
-                    float cost = RouteLength(FrameRoute(ew, side), ew) + curSteps * pitch;
+                    float cost = RouteLength(FrameRoute(ew, side), ew) + curSteps * pitch * m_RunnerInnerStepCost;
                     if (cost < bestCost) { bestCost = cost; best = cur; bestSide = side; }
                     continue;   // çıkış hücresinden öteye gerek yok (dışarısı açık koridor)
                 }
@@ -3311,7 +3319,6 @@ namespace PixelGame
                 {
                     var nxt = (cur.Item1 + d.Item1, cur.Item2 + d.Item2);
                     if (cameFrom.ContainsKey(nxt)) continue;
-                    if (nxt.Item1 < minX - 1 || nxt.Item1 > maxX + 1 || nxt.Item2 < minY - 1 || nxt.Item2 > maxY + 1) continue;
                     // Panoda duran küpler engeldir (ignoreReserved ise koşucusu yolda olanlar gitmiş sayılır)
                     if (gridMap.ContainsKey(nxt)) continue;
                     cameFrom[nxt] = cur;
