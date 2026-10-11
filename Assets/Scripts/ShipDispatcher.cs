@@ -97,6 +97,9 @@ namespace PixelGame
         [SerializeField, Min(0.5f)] private float m_RunnerFrameMarginCubes = 1.2f;
         [Tooltip("Denizcinin küpü alırken küp merkezinden ne kadar önde durduğu (küp cinsinden).")]
         [SerializeField, Range(0f, 1.5f)] private float m_PickupStandoffCubes = 0.75f;
+        [Tooltip("Açık: denizci küpü alırken, alma animasyonunun ikinci yarısında dönüş yoluna doğru yerinde döner.\n" +
+                 "Kapalı: alırken küpe dönük kalır, yönünü yürümeye başlarken çevirir.")]
+        [SerializeField] private bool m_SailorTurnWhilePickingUp = false;
 
         [Tooltip("Gemiden sahile atlayıp yükleri taşıyan animasyonlu koşucu prefabı (boş bırakılırsa MainCube_Running_Tabletop kullanılır).")]
         [SerializeField] private GameObject m_RunnerPrefab;
@@ -3818,7 +3821,7 @@ namespace PixelGame
                 while (tPick < pickupTime && runner != null)
                 {
                     tPick += Time.deltaTime;
-                    if (tPick > pickupTime * 0.45f) sailorVis.SetFacingOverride(backDir);
+                    if (m_SailorTurnWhilePickingUp && tPick > pickupTime * 0.45f) sailorVis.SetFacingOverride(backDir);
                     yield return null;
                 }
                 if (sailorVis != null) sailorVis.ClearFacingOverride();

@@ -3,9 +3,15 @@ using UnityEngine;
 namespace PixelGame
 {
     /// <summary>
-    /// Denizci koşucunun görseli: modeli kumsal düzleminde (zemin XY, yukarı = kameraya doğru -Z) dik tutar,
-    /// yürüdüğü yöne çevirir ve görev aşamalarına göre animasyon oynatır. Kökün dönüşünü
-    /// (CubeMovementController'ın sağa-sola yatırması) yok sayar; sadece ModelPivot'un dünya dönüşünü yazar.
+    /// Denizci koşucunun görseli: modeli kumsal düzleminde (zemin XY, yukarı = kameraya doğru -Z) dik tutar ve
+    /// yürüdüğü yöne çevirir. Animasyon akışı Animator Controller'dadır (Sailor_Runner.controller); bu script
+    /// yalnızca parametreleri ayarlar:
+    ///   HopDown (trigger)  : gemiden kumsala iniş
+    ///   Pickup  (trigger)  : küpü alma
+    ///   HopBoard (trigger) : gemiye binip küpü bırakma
+    ///   Carrying (bool)    : elinde küp var mı
+    ///   MoveSpeed (float)  : yürüme durumlarının hız çarpanı (ayak kaymasın diye yürüme hızına göre)
+    /// Hangi klibin oynayacağı, geçiş süreleri ve sırası Animator'dan değiştirilir.
     /// </summary>
     public class SailorRunnerVisual : MonoBehaviour
     {
@@ -19,23 +25,30 @@ namespace PixelGame
         [SerializeField] private Transform m_ModelPivot;
         [SerializeField] private Animator m_Animator;
         [SerializeField] private Transform m_CargoSocket;
-        [Tooltip("Koşu yerine yürüme kliplerini (hızlandırarak) kullan; daha az zıplar.")]
-        [SerializeField] private bool m_UseWalkClips = true;
         [Tooltip("Dönüş yumuşaklığı: büyüdükçe daha hızlı döner.")]
         [SerializeField] private float m_TurnRate = 10f;
-        [Tooltip("Yürüme klibinin 1x hızda karşıladığı hız (model birimi/sn).")]
-        [SerializeField] private float m_WalkClipReferenceSpeed = 1.25f;
-        [Tooltip("Koşu klibinin 1x hızda karşıladığı hız (model birimi/sn).")]
-        [SerializeField] private float m_RunClipReferenceSpeed = 2.5f;
-        [SerializeField] private Vector2 m_AnimatorSpeedRange = new Vector2(0.6f, 3.5f);
+        [Tooltip("Yürüme durumundaki klibin 1x hızda karşıladığı hız (model birimi/sn). Animator'da yürüme klibini " +
+                 "koşu klibiyle değiştirirsen bunu da ~2.5 yap. Ayaklar kayıyorsa düşür.")]
+        [SerializeField] private float m_ClipReferenceSpeed = 1.25f;
+        [Tooltip("MoveSpeed parametresinin alt/üst sınırı.")]
+        [SerializeField] private Vector2 m_MoveSpeedRange = new Vector2(0.6f, 3.5f);
+
+        // Animator parametre adları (Sailor_Runner.controller ile aynı olmalı)
+        public const string ParamHopDown = "HopDown";
+        public const string ParamPickup = "Pickup";
+        public const string ParamHopBoard = "HopBoard";
+        public const string ParamCarrying = "Carrying";
+        public const string ParamMoveSpeed = "MoveSpeed";
+        private static readonly int s_HopDown = Animator.StringToHash(ParamHopDown);
+        private static readonly int s_Pickup = Animator.StringToHash(ParamPickup);
+        private static readonly int s_HopBoard = Animator.StringToHash(ParamHopBoard);
+        private static readonly int s_Carrying = Animator.StringToHash(ParamCarrying);
+        private static readonly int s_MoveSpeed = Animator.StringToHash(ParamMoveSpeed);
 
         private Vector3 m_LastPos;
         private Vector3 m_Facing = Vector3.up;
         private Vector3 m_SmoothVel;
         private float m_SmoothSpeed;
-        private string m_State;
-        private string m_QueuedState;
-        private float m_QueuedAt = -1f;
 
         public Transform CargoSocket => m_CargoSocket;
 
@@ -142,23 +155,34 @@ namespace PixelGame
             ApplyFacing(1f);
         }
 
-        /// <summary>Durumu yumuşak geçişle oynatır; aynı durum tekrar istenirse baştan başlatmaz.</summary>
+        /// <summary>
+        /// Görev aşamasını Animator'a bildirir (tetikleyici/parametre). Geçişin kendisi ve süresi Animator'dadır;
+        /// yürüme durumlarına (StateRunEmpty/StateRunCarry) Animator'daki geçişlerle kendiliğinden geçilir.
+        /// </summary>
         public void Play(string state, float fade = 0.08f)
         {
-            m_QueuedState = null;
-            state = MapState(state);
-            if (m_Animator == null || m_State == state) return;
-            m_State = state;
-            m_Animator.CrossFadeInFixedTime(state, fade);
+            if (m_Animator == null || m_Animator.runtimeAnimatorController == null) return;
+            if (state == StateHopDown)
+            {
+                m_Animator.ResetTrigger(s_Pickup); m_Animator.ResetTrigger(s_HopBoard);
+                m_Animator.SetBool(s_Carrying, false);
+                m_Animator.SetTrigger(s_HopDown);
+            }
+            else if (state == StatePickup)
+            {
+                m_Animator.SetBool(s_Carrying, true);
+                m_Animator.SetTrigger(s_Pickup);
+            }
+            else if (state == StateHopBoard)
+            {
+                m_Animator.SetTrigger(s_HopBoard);
+            }
+            else if (state == StateRunEmpty) m_Animator.SetBool(s_Carrying, false);
+            else if (state == StateRunCarry) m_Animator.SetBool(s_Carrying, true);
         }
 
-        /// <summary>Tek seferlik klibi oynatır, bitince sıradaki duruma geçer (ör. Pickup → Run_Carry).</summary>
-        public void PlayThen(string state, string next)
-        {
-            Play(state, 0.05f);
-            m_QueuedState = next;
-            m_QueuedAt = Time.time + ClipLength(state);
-        }
+        /// <summary>Eski çağrılarla uyum: sonraki durum Animator'daki geçişle kendiliğinden gelir.</summary>
+        public void PlayThen(string state, string next) => Play(state);
 
         private bool m_HasFacingOverride;
         private Vector3 m_FacingOverride;
@@ -178,24 +202,12 @@ namespace PixelGame
             m_SmoothVel = Vector3.zero;
         }
 
-        public float GetClipLength(string state) => ClipLength(state);
-
-        private string MapState(string state)
+        /// <summary>Controller'daki klibin süresi (ör. küpü alırken ne kadar duracağı için "Pickup").</summary>
+        public float GetClipLength(string clipName)
         {
-            if (!m_UseWalkClips || state == null) return state;
-            if (state == StateRunEmpty) return "Walk_Empty";
-            if (state == StateRunCarry) return "Walk_Carry";
-            return state;
-        }
-
-        private bool IsLocomotion(string state) => state == StateRunEmpty || state == StateRunCarry || state == "Walk_Empty" || state == "Walk_Carry";
-
-        private float ClipLength(string state)
-        {
-            state = MapState(state);
             if (m_Animator == null || m_Animator.runtimeAnimatorController == null) return 0.3f;
             foreach (var clip in m_Animator.runtimeAnimatorController.animationClips)
-                if (clip != null && clip.name == state) return clip.length;
+                if (clip != null && clip.name == clipName) return clip.length;
             return 0.3f;
         }
 
@@ -203,13 +215,6 @@ namespace PixelGame
         {
             float dt = Time.deltaTime;
             if (dt <= 0f) return;
-
-            if (m_QueuedState != null && Time.time >= m_QueuedAt)
-            {
-                string next = m_QueuedState;
-                m_QueuedState = null;
-                Play(next, 0f);
-            }
 
             Vector3 delta = transform.position - m_LastPos;
             m_LastPos = transform.position;
@@ -227,17 +232,12 @@ namespace PixelGame
             FollowSocket();
             FollowRing();
 
-            // Yürüme/koşu kliplerinde ayak kaymasın: klip hızını yumuşatılmış yürüme hızına eşle
+            // Yürüme durumlarında ayak kaymasın: MoveSpeed = yumuşatılmış yürüme hızı / klibin referans hızı
             m_SmoothSpeed = Mathf.Lerp(m_SmoothSpeed, vel.magnitude / unit, 1f - Mathf.Exp(-dt / 0.2f));
-            if (m_Animator != null && IsLocomotion(m_State))
+            if (m_Animator != null && m_Animator.runtimeAnimatorController != null)
             {
-                bool walk = m_State == "Walk_Empty" || m_State == "Walk_Carry";
-                float reference = Mathf.Max(0.1f, walk ? m_WalkClipReferenceSpeed : m_RunClipReferenceSpeed);
-                m_Animator.speed = Mathf.Clamp(m_SmoothSpeed / reference, m_AnimatorSpeedRange.x, m_AnimatorSpeedRange.y);
-            }
-            else if (m_Animator != null)
-            {
-                m_Animator.speed = 1f;
+                float moveSpeed = Mathf.Clamp(m_SmoothSpeed / Mathf.Max(0.1f, m_ClipReferenceSpeed), m_MoveSpeedRange.x, m_MoveSpeedRange.y);
+                m_Animator.SetFloat(s_MoveSpeed, moveSpeed);
             }
         }
 
