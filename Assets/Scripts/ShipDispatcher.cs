@@ -91,6 +91,12 @@ namespace PixelGame
         [SerializeField, Range(0.2f, 1f)] private float m_SailorCargoSize = 0.6f;
         [Tooltip("Denizcinin panodaki küpe göre boy çarpanı. 1/Sailor Cargo Size (≈1.67) → elindeki küp panodaki küple aynı boyda.")]
         [SerializeField, Min(0.3f)] private float m_SailorSizeVsCube = 1.67f;
+        [Tooltip("Denizcilerin gemiden art arda çıkış aralığı (sn).")]
+        [SerializeField, Min(0.05f)] private float m_SailorLaunchInterval = 0.35f;
+        [Tooltip("Koşucuların yürüdüğü çerçevenin, bölüm başındaki resmin dış küp merkezlerinden uzaklığı (küp cinsinden).")]
+        [SerializeField, Min(0.5f)] private float m_RunnerFrameMarginCubes = 1.2f;
+        [Tooltip("Denizcinin küpü alırken küp merkezinden ne kadar önde durduğu (küp cinsinden).")]
+        [SerializeField, Range(0f, 1.5f)] private float m_PickupStandoffCubes = 0.75f;
 
         [Tooltip("Gemiden sahile atlayıp yükleri taşıyan animasyonlu koşucu prefabı (boş bırakılırsa MainCube_Running_Tabletop kullanılır).")]
         [SerializeField] private GameObject m_RunnerPrefab;
@@ -250,6 +256,9 @@ namespace PixelGame
 
         private void OnLevelLoaded(PixelLevelData data)
         {
+            // Eski bölümden kalan işler (denizci indirme döngüleri, görevler, otomatik yerleştirme) yeni bölümde
+            // çalışmaya devam edip yeni bölümün küplerini alıyordu: hepsini durdur
+            StopAllCoroutines();
             DestroyLiveRunners();
             m_PlayerSentShipCount = 0;
             m_IsLevelFailed = false;
@@ -277,6 +286,7 @@ namespace PixelGame
                 EnsurePaletteInitialized();
             }
             ClearDockedShips();
+            ClearShipsOutsideQueue();
             if (m_QueuePool != null)
             {
                 m_QueuePool.InitializeQueue();
@@ -412,6 +422,29 @@ namespace PixelGame
         /// <summary>
         /// Tüm yanaşma slotlarındaki gemileri temizler. Seviye başlangıcında slotların boş olmasını garanti eder.
         /// </summary>
+        /// <summary>
+        /// Bölüm yeniden yüklenirken slota giden ya da kalkıp ayrılan (yanaşmamış) gemileri de siler.
+        /// Bunların hareket tween'leri DOTween.KillAll ile ölünce yarı yolda donup slotta garip görüntü bırakıyordu.
+        /// Kuyruktaki gemilere dokunulmaz (kuyruk kendi yeniden kurulur).
+        /// </summary>
+        private void ClearShipsOutsideQueue()
+        {
+            if (!Application.isPlaying) return;
+            var waiting = m_QueuePool != null ? m_QueuePool.WaitingShips : null;
+            var ships = new List<ShipController>(ShipController.ActiveShips);
+            for (int i = 0; i < ships.Count; i++)
+            {
+                var ship = ships[i];
+                if (ship == null) continue;
+                if (waiting != null && waiting.Contains(ship)) continue;
+                // Kuyruk havuzunun altındaki (henüz sahneye girmemiş) gemiler de kuyruğa aittir
+                if (m_QueuePool != null && ship.transform.IsChildOf(m_QueuePool.transform)) continue;
+                if (!(ship.IsMoving || ship.IsDeparting || ship.IsDocked || ship.transform.parent == null)) continue;
+                ship.gameObject.SetActive(false);
+                Destroy(ship.gameObject);
+            }
+        }
+
         public void ClearDockedShips()
         {
             if (m_Slots == null) return;
@@ -681,6 +714,7 @@ namespace PixelGame
             for (int i = 0; i < allCubes.Count; i++)
             {
                 PixelCube c = allCubes[i];
+                // Rezerve küpler de (koşucusu yolda, henüz alınmadı) panoda durur: önü gerçekten açılmayan küpe denizci yollanmaz
                 if (c != null && !c.IsPopped && c.gameObject.activeSelf)
                 {
                     gridMap[(c.GridX, c.GridY)] = c;
@@ -717,6 +751,8 @@ namespace PixelGame
                 }
             }
 
+            // Şu an gerçekten açık olan küplerin hepsi: en alt sıra önce, aynı sırada soldan sağa
+            result.Sort((a, b) => a.GridY != b.GridY ? a.GridY.CompareTo(b.GridY) : a.GridX.CompareTo(b.GridX));
             return result;
         }
 
@@ -861,7 +897,9 @@ namespace PixelGame
                 {
                     // Açıktaki tüm uygun küpler (kapasite kadar) bir kerede ayrılır; koşucular
                     // m_RunnerLaunchInterval arayla tek tek çıkar, dönmeleri beklenmez.
-                    if (!TryLaunchRope(ship, out float boardClearTime))
+                    // Koşucular tek tek gönderilir: her seferinde panonun o anki hâline bakılır, bir küp alınıp
+                    // arkası açıldığı anda sıradaki denizci oraya gider (önden hesap yok)
+                    if (!TryLaunchRope(ship, out float boardClearTime, m_UseReversedShipRunners ? 1 : int.MaxValue))
                     {
                         // Dışta bu renkten şu an açık küp yok!
                         // Seviyede bu renkten hala içeride (ortada) kilitli küp var mı kontrol et
@@ -974,46 +1012,22 @@ namespace PixelGame
 
             if (matchingCubes.Count == 0) return false;
 
+            // Seçim kuralı (GetExposedMatchingCubes ile aynı): yalnızca şu an gerçekten açık küpler,
+            // en alt sıra önce, aynı sırada soldan sağa.
+            int needed = Mathf.Max(0, ship.Capacity - (ship.CurrentCargo + ship.PendingCargo));
+            int limit = Mathf.Min(needed, Mathf.Max(1, maxPerLaunch));
+            if (limit <= 0) return false;
+
+            var candidates = GetExposedMatchingCubes(ship.ShipColor);
+            if (candidates.Count > limit) candidates.RemoveRange(limit, candidates.Count - limit);
+
+            if (candidates.Count == 0) return false;
+
             EnsureBoardBounds();
             Vector3 shoreCenter = GetShorePoint(ship);
 
-            // "en dıştan içe doğru alım yapmaları gerekiyor":
-            // SADECE ve SADECE dış havaya açık (isExposed) küpler seçilebilir.
-            // İçerideki kilitli küpler dıştakiler soyulmadan ASLA seçilemez!
-            var exposedCandidates = new List<PixelCube>();
-            for (int i = 0; i < matchingCubes.Count; i++)
-            {
-                PixelCube c = matchingCubes[i];
-                if (IsExposed(c, outsideAir))
-                {
-                    exposedCandidates.Add(c);
-                }
-            }
-
-            if (exposedCandidates.Count == 0) return false;
-
-            // Alttan yukarı sıralama:
-            // 1. Alınabilir küpler arasında en alt sıradakiler önce gelir; o sıra bitmeden üste geçilmez.
-            //    (En alt sıradakilerin önü kapalıysa zaten aday değiller; ulaşılabilirler arasındaki en alt sıra seçilir.)
-            // 2. Aynı sıradakilerden sahile / gemiye yakın olan önce alınır.
-            exposedCandidates.Sort((a, b) =>
-            {
-                if (a.GridY != b.GridY) return a.GridY.CompareTo(b.GridY); // Artan: en alt sıra önce
-
-                float distShoreA = (a.transform.position - shoreCenter).sqrMagnitude;
-                float distShoreB = (b.transform.position - shoreCenter).sqrMagnitude;
-                return distShoreA.CompareTo(distShoreB);
-            });
-
-            List<PixelCube> candidates = exposedCandidates;
-
-            // Geminin üstünde yazan kalan kapasite kadar küpü rezerve et (Ör: 20 veya 30)
-            int needed = Mathf.Max(0, ship.Capacity - (ship.CurrentCargo + ship.PendingCargo));
-            int targetCount = Mathf.Min(Mathf.Min(needed, candidates.Count), Mathf.Max(1, maxPerLaunch));
-            if (targetCount <= 0) return false;
-
             int reserved = 0;
-            while (reserved < targetCount && ship.TryReserveCargo()) reserved++;
+            while (reserved < candidates.Count && ship.TryReserveCargo()) reserved++;
             if (reserved == 0) return false;
 
             var selectedCubes = new List<PixelCube>(reserved);
@@ -1032,7 +1046,9 @@ namespace PixelGame
 
                 m_ActiveCargoFlightCount += reserved;
                 // Bir sonraki koşucu, bu grubun dönmesini beklemeden sabit aralıkla çıkar.
-                boardClearTime = Time.time + m_RunnerLaunchInterval * reserved;
+                bool sailorRunners = m_UseSailorRunner && GetRunnerPrefab() != null && GetRunnerPrefab().GetComponent<SailorRunnerVisual>() != null;
+                float launchInterval = sailorRunners ? Mathf.Max(m_RunnerLaunchInterval, m_SailorLaunchInterval) : m_RunnerLaunchInterval;
+                boardClearTime = Time.time + launchInterval * reserved;
                 return true;
             }
 
@@ -1890,7 +1906,9 @@ namespace PixelGame
         }
 
         /// <summary>Panodaki canlı (patlamamış) küplerin ızgarası ve dış hava hücreleri.</summary>
-        private bool TryBuildLiveGrid(out Dictionary<(int, int), PixelCube> gridMap, out HashSet<(int, int)> outsideAir, out int minY)
+        /// <param name="ignoreReserved">true: başka bir koşucunun almaya gittiği (rezerve) küpler gitmiş sayılır.
+        /// Art arda gönderilen aynı renk gemiler en alt sıra rezerve edilince kenarlara değil bir üst sıraya geçsin diye.</param>
+        private bool TryBuildLiveGrid(out Dictionary<(int, int), PixelCube> gridMap, out HashSet<(int, int)> outsideAir, out int minY, bool ignoreReserved = false)
         {
             gridMap = new Dictionary<(int, int), PixelCube>();
             outsideAir = null;
@@ -1905,6 +1923,7 @@ namespace PixelGame
             foreach (var c in allCubes)
             {
                 if (c == null || c.IsPopped || !c.gameObject.activeSelf) continue;
+                if (ignoreReserved && s_ReservedCubes.Contains(c)) continue;
                 gridMap[(c.GridX, c.GridY)] = c;
                 if (c.GridX < minX) minX = c.GridX;
                 if (c.GridX > maxX) maxX = c.GridX;
@@ -2247,9 +2266,8 @@ namespace PixelGame
             // Eğer şu anda hareket eden veya sürüklenen herhangi bir gemi varsa bekle
             if (IsAnyShipMoving()) return;
 
-            // Eğer şu anda küpler gemilere yürüyorsa (aktif transfer varsa) bekle;
-            // küpler yürürken araya girip hızı aniden 2x yapma!
-            if (m_ActiveCargoFlightCount > 0 || m_ActiveExtractingShips.Count > 0) return;
+            // Not: slotta küp toplayan gemi / yolda koşucu olması 2x'i engellemez. Koşucular sürekli aktif olduğu
+            // için bu koşul 2x'i pratikte "slotlar tamamen boşken"e kısıtlıyordu.
 
             // Kuyrukta açık denizde veya sırada henüz gelmemiş başka gemi var mı?
             if (!m_QueuePool.HasNoMoreFutureShips()) return;
@@ -3099,6 +3117,38 @@ namespace PixelGame
             return null;
         }
 
+        /// <summary>
+        /// OtCerceve (UI) dikdörtgeninin kamera üzerinden kumsal düzlemine izdüşümü. Obje kapalı olsa da çalışır;
+        /// görsel gösterilmez, sadece koşucuların yürüdüğü çerçeve olarak kullanılır.
+        /// </summary>
+        private bool TryGetOtCerceveGroundRect(float groundZ, out float left, out float right, out float bottom, out float top)
+        {
+            left = right = bottom = top = 0f;
+            RectTransform rt = GetOtCerceveRect();
+            Camera cam = ShipController.MainCamera != null ? ShipController.MainCamera : Camera.main;
+            if (rt == null || cam == null) return false;
+
+            // UI köşeleri Canvas'ın kamerasıyla ekrana, ekrandan da oyun kamerasıyla kumsala indirilir
+            Canvas canvas = rt.GetComponentInParent<Canvas>(true);
+            Camera uiCam = (canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay && canvas.worldCamera != null) ? canvas.worldCamera : cam;
+            bool overlay = canvas != null && canvas.renderMode == RenderMode.ScreenSpaceOverlay;
+
+            var corners = new Vector3[4];
+            rt.GetWorldCorners(corners);
+            var ground = new Plane(Vector3.back, new Vector3(0f, 0f, groundZ));
+            left = bottom = float.MaxValue; right = top = float.MinValue;
+            for (int i = 0; i < 4; i++)
+            {
+                Vector3 screen = overlay ? corners[i] : uiCam.WorldToScreenPoint(corners[i]);
+                Ray ray = cam.ScreenPointToRay(screen);
+                if (!ground.Raycast(ray, out float d)) return false;
+                Vector3 g = ray.GetPoint(d);
+                left = Mathf.Min(left, g.x); right = Mathf.Max(right, g.x);
+                bottom = Mathf.Min(bottom, g.y); top = Mathf.Max(top, g.y);
+            }
+            return right > left && top > bottom && float.IsFinite(left) && float.IsFinite(top);
+        }
+
         public bool TryGetOtCerceveWorldBounds(out Vector3 min, out Vector3 max, out Vector3[] corners)
         {
             corners = new Vector3[4];
@@ -3141,10 +3191,10 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Koşucu yolu: hedef küpten panonun dışına SADECE boş hücrelerden geçen en kısa çıkış bulunur
-        /// (eşitlikte alt taraf tercih edilir), koşucu çerçeve boyunca o çıkışa gelir ve boşluğu takip
-        /// ederek küpe ulaşır. Böylece küplerin üstünden geçmez; açılan boşluktan içeri girer.
-        /// Yol bulunamazsa eski düz çerçeve yoluna düşülür.
+        /// Koşucu yolu: kıyıdan açık kumsal üzerinden en alttaki küp sırasının hemen altına yürür,
+        /// oradan SADECE boş hücrelerden geçerek hedef küpe ulaşır. Giriş noktası, kıyıya uzaklık +
+        /// içerideki yol uzunluğu en kısa olacak şekilde seçilir. Küplerin içinden geçmez, çerçeve
+        /// boyunca dolaşıp tepeden inmez. Yol bulunamazsa eski çerçeve yoluna düşülür.
         /// </summary>
         private List<Vector3> BuildGridAwareRunnerWaypoints(
             Vector3 shoreStart,
@@ -3155,8 +3205,26 @@ namespace PixelGame
             float groundZ)
         {
             Vector3 cubeWorld = targetCube.transform.position;
-            if (!EnsureGridFrame() || !TryBuildLiveGrid(out var gridMap, out _, out int minY))
+            if (!EnsureGridFrame())
                 return BuildOtCerceveWaypoints(shoreStart, cubeWorld, otMin, otMax, otCorners, groundZ);
+
+            // 1. deneme: panoda fiziksel olarak duran her küp engel (rezerve olsalar da); koşucu küplerin yanından yürür.
+            // 2. deneme: hedef yalnızca rezerve küpler alınınca açılıyorsa (ör. duvarın 2. sırası) rezerve küpler yok sayılır.
+            var path = FindRunnerGridPath(shoreStart, targetCube, false, groundZ) ?? FindRunnerGridPath(shoreStart, targetCube, true, groundZ);
+            return path ?? BuildOtCerceveWaypoints(shoreStart, cubeWorld, otMin, otMax, otCorners, groundZ);
+        }
+
+        /// <summary>
+        /// Referans oyundaki karınca yolu: kıyıdan çerçevenin alt kenarına çıkar, çerçeve boyunca (resmin dışından)
+        /// hedefin AÇIKLIĞININ hizasına kadar yürür, oradan sadece boş hücreleri takip ederek küpe ulaşır.
+        /// Açıklık (boş hücrelerden resmin dışına çıkış), toplam yürüme mesafesi en kısa olacak şekilde seçilir.
+        /// Çerçeve, bölüm başındaki tam resmin sınırlarından m_RunnerFrameMarginCubes küp dışarıdadır.
+        /// </summary>
+        private List<Vector3> FindRunnerGridPath(Vector3 shoreStart, PixelCube targetCube, bool ignoreReserved, float groundZ)
+        {
+            Vector3 cubeWorld = targetCube.transform.position;
+            if (!TryBuildLiveGrid(out var gridMap, out _, out int minY, ignoreReserved))
+                return null;
 
             int minX = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
             foreach (var key in gridMap.Keys)
@@ -3166,41 +3234,94 @@ namespace PixelGame
                 if (key.Item2 > maxY) maxY = key.Item2;
             }
 
+            // Çerçeve: sahnedeki OtCerceve'nin (görünmese de) kumsala izdüşümü. Resim çerçeveden taşarsa o kenar
+            // resmin bir pay dışına itilir; OtCerceve yoksa resmin sınırlarından hesaplanır.
+            EnsureBoardBounds();
+            float pitch = Mathf.Max(0.05f, m_GridFrame.Pitch);
+            float margin = pitch * m_RunnerFrameMarginCubes;
+            float fL = m_BoardMinX - margin, fR = m_BoardMaxX + margin, fB = m_BoardBottomY - margin, fT = m_BoardTopY + margin;
+            if (TryGetOtCerceveGroundRect(groundZ, out float oL, out float oR, out float oB, out float oT))
+            {
+                fL = Mathf.Min(oL, fL); fR = Mathf.Max(oR, fR); fB = Mathf.Min(oB, fB); fT = Mathf.Max(oT, fT);
+            }
+
+            Vector3 ToGround((int, int) c)
+            {
+                Vector3 w = m_GridFrame.ToWorld(c.Item1, c.Item2);
+                w.z = groundZ;
+                return w;
+            }
+
+            // Kıyıdan çerçeve boyunca çıkış hücresinin hizasına giden rota (çıkış hücresi hariç)
+            List<Vector3> FrameRoute(Vector3 exitWorld, int side)
+            {
+                var r = new List<Vector3>(6);
+                Vector3 P(float x, float y) => new Vector3(x, y, groundZ);
+                r.Add(P(shoreStart.x, shoreStart.y));
+                float bx = Mathf.Clamp(shoreStart.x, fL, fR);
+                r.Add(P(bx, fB));
+                if (side == 0) { r.Add(P(Mathf.Clamp(exitWorld.x, fL, fR), fB)); }
+                else if (side == 1) { r.Add(P(fL, fB)); r.Add(P(fL, Mathf.Clamp(exitWorld.y, fB, fT))); }
+                else if (side == 2) { r.Add(P(fR, fB)); r.Add(P(fR, Mathf.Clamp(exitWorld.y, fB, fT))); }
+                else
+                {
+                    // Üst kenar: soldan mı sağdan mı dolaşmak daha kısa?
+                    float viaL = (bx - fL) + (fT - fB) + Mathf.Abs(exitWorld.x - fL);
+                    float viaR = (fR - bx) + (fT - fB) + Mathf.Abs(fR - exitWorld.x);
+                    float sx = viaL <= viaR ? fL : fR;
+                    r.Add(P(sx, fB)); r.Add(P(sx, fT)); r.Add(P(Mathf.Clamp(exitWorld.x, fL, fR), fT));
+                }
+                return r;
+            }
+
+            float RouteLength(List<Vector3> r, Vector3 last)
+            {
+                float len = 0f;
+                for (int i = 1; i < r.Count; i++) len += Vector3.Distance(r[i - 1], r[i]);
+                return len + Vector3.Distance(r[r.Count - 1], last);
+            }
+
+            // Hedeften dışarı doğru boş hücrelerde BFS; resmin canlı sınırının hemen dışındaki hücreler çıkış adayı
             var start = (targetCube.GridX, targetCube.GridY);
             var cameFrom = new Dictionary<(int, int), (int, int)>();
+            var steps = new Dictionary<(int, int), int>();
             var queue = new Queue<(int, int)>();
-            cameFrom[start] = start;
+            cameFrom[start] = start; steps[start] = 0;
             queue.Enqueue(start);
-            (int, int)? exit = null;
-
-            // Aşağı önce: eşit uzunluktaki çıkışlardan gemilerin olduğu alt taraf seçilir
+            (int, int)? best = null; int bestSide = 0;
+            float bestCost = float.MaxValue;
             var dirs = new (int, int)[] { (0, -1), (-1, 0), (1, 0), (0, 1) };
             while (queue.Count > 0)
             {
                 var cur = queue.Dequeue();
-                if (cur.Item1 < minX || cur.Item1 > maxX || cur.Item2 < minY || cur.Item2 > maxY)
+                int curSteps = steps[cur];
+                bool outside = cur.Item1 < minX || cur.Item1 > maxX || cur.Item2 < minY || cur.Item2 > maxY;
+                if (outside)
                 {
-                    exit = cur;
-                    break;
+                    int side = cur.Item2 < minY ? 0 : cur.Item1 < minX ? 1 : cur.Item1 > maxX ? 2 : 3;
+                    Vector3 ew = ToGround(cur);
+                    float cost = RouteLength(FrameRoute(ew, side), ew) + curSteps * pitch;
+                    if (cost < bestCost) { bestCost = cost; best = cur; bestSide = side; }
+                    continue;   // çıkış hücresinden öteye gerek yok (dışarısı açık koridor)
                 }
                 foreach (var d in dirs)
                 {
                     var nxt = (cur.Item1 + d.Item1, cur.Item2 + d.Item2);
                     if (cameFrom.ContainsKey(nxt)) continue;
                     if (nxt.Item1 < minX - 1 || nxt.Item1 > maxX + 1 || nxt.Item2 < minY - 1 || nxt.Item2 > maxY + 1) continue;
-                    // Panoda duran (alınmamış ya da rezerve edilip henüz alınmamış) küpler engeldir
+                    // Panoda duran küpler engeldir (ignoreReserved ise koşucusu yolda olanlar gitmiş sayılır)
                     if (gridMap.ContainsKey(nxt)) continue;
                     cameFrom[nxt] = cur;
+                    steps[nxt] = curSteps + 1;
                     queue.Enqueue(nxt);
                 }
             }
 
-            if (!exit.HasValue)
-                return BuildOtCerceveWaypoints(shoreStart, cubeWorld, otMin, otMax, otCorners, groundZ);
+            if (!best.HasValue) return null;
 
             // Çıkıştan hedefe hücre listesi (düz giden ara noktalar atılır)
             var cells = new List<(int, int)>();
-            for (var c = exit.Value; ; c = cameFrom[c])
+            for (var c = best.Value; ; c = cameFrom[c])
             {
                 cells.Add(c);
                 if (c == start) break;
@@ -3214,17 +3335,19 @@ namespace PixelGame
             }
             simplified.Add(cells[cells.Count - 1]);
 
-            Vector3 ToGround((int, int) c)
-            {
-                Vector3 w = m_GridFrame.ToWorld(c.Item1, c.Item2);
-                w.z = groundZ;
-                return w;
-            }
+            Vector3 exitPoint = ToGround(simplified[0]);
+            var waypoints = FrameRoute(exitPoint, bestSide);
+            for (int i = 0; i < simplified.Count - 1; i++) waypoints.Add(ToGround(simplified[i]));
 
-            Vector3 exitWorld = ToGround(simplified[0]);
-            var waypoints = BuildOtCerceveWaypoints(shoreStart, exitWorld, otMin, otMax, otCorners, groundZ);
-            for (int i = 1; i < simplified.Count - 1; i++) waypoints.Add(ToGround(simplified[i]));
-            waypoints.Add(new Vector3(cubeWorld.x, cubeWorld.y, groundZ));
+            // Küpün içine girmesin: geldiği yönden küpün önünde (merkezden m_PickupStandoffCubes küp geride) dursun
+            Vector3 cubeOnGround = new Vector3(cubeWorld.x, cubeWorld.y, groundZ);
+            Vector3 approachFrom = waypoints[waypoints.Count - 1];
+            Vector3 toCube = cubeOnGround - approachFrom;
+            float standoff = pitch * m_PickupStandoffCubes;
+            if (toCube.magnitude > standoff + pitch * 0.05f)
+                waypoints.Add(cubeOnGround - toCube.normalized * standoff);
+            else if (toCube.sqrMagnitude < 1e-8f)
+                waypoints.Add(cubeOnGround);
             return waypoints;
         }
 
@@ -3297,9 +3420,35 @@ namespace PixelGame
             {
                 if (r != null && r.name.StartsWith("TeamColor", System.StringComparison.Ordinal)) { hasTeamParts = true; break; }
             }
+            if (hasTeamParts)
+            {
+                // Denizci: yukarıdan en çok şapka göründüğü için şapkanın tamamı takım renginde, ponpon beyaz (kontrast)
+                foreach (var r in runner.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (r == null) continue;
+                    if (r.name == "TeamColor_Pompom") SharedColorMaterialCache.Apply(r, new Color(0.97f, 0.97f, 0.95f), Color.black);
+                    else if (r.name == "Cap" || r.name.StartsWith("TeamColor", System.StringComparison.Ordinal)) SharedColorMaterialCache.Apply(r, color, Color.black);
+                    else if (r.name == "Torso" || r.name == "ArmL" || r.name == "ArmR")
+                    {
+                        // Tişört çizgileri (lacivert slotlar) takım renginde; şort ve ayakkabı lacivert kalır
+                        Material[] mats = r.sharedMaterials;
+                        bool changed = false;
+                        for (int m = 0; m < mats.Length; m++)
+                        {
+                            Material src = SharedColorMaterialCache.ResolveSource(mats[m]);
+                            if (src != null && src.name.StartsWith("M_Navy", System.StringComparison.Ordinal))
+                            {
+                                mats[m] = SharedColorMaterialCache.Get(src, color, Color.black);
+                                changed = true;
+                            }
+                        }
+                        if (changed) r.sharedMaterials = mats;
+                    }
+                }
+                return;
+            }
             foreach (var r in runner.GetComponentsInChildren<Renderer>(true))
             {
-                if (hasTeamParts && (r == null || !r.name.StartsWith("TeamColor", System.StringComparison.Ordinal))) continue;
                 if (r == null) continue;
                 if (r.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
                 SharedColorMaterialCache.Apply(r, color, Color.black);
@@ -3435,7 +3584,9 @@ namespace PixelGame
 
                 if (k < count - 1)
                 {
-                    yield return new WaitForSeconds(m_RunnerLaunchInterval);
+                    // Denizciler dip dibe çıkmasın: kendi (daha seyrek) aralıklarıyla
+                    bool sailor = m_UseSailorRunner && GetRunnerPrefab() != null && GetRunnerPrefab().GetComponent<SailorRunnerVisual>() != null;
+                    yield return new WaitForSeconds(sailor ? Mathf.Max(m_RunnerLaunchInterval, m_SailorLaunchInterval) : m_RunnerLaunchInterval);
                 }
             }
         }
@@ -3534,6 +3685,8 @@ namespace PixelGame
             // Koşucu karakter kesinlikle geminin renginde:
             Color runnerColor = ship.ShipColor;
             ApplyColorToRunner(runner, runnerColor);
+            SailorRunnerVisual sailorSetup = runner.GetComponent<SailorRunnerVisual>();
+            if (sailorSetup != null) sailorSetup.SetupTeamRing(runnerColor, groundPlaneZ);
 
             PixelCube pc = runner.GetComponent<PixelCube>();
             if (pc != null)
@@ -3547,12 +3700,14 @@ namespace PixelGame
             // Ayak izleri panodaki küpün rengiyle birebir aynı olsun
             motion.CubeColor = targetCube != null ? targetCube.CurrentColor : runnerColor;
             motion.SetGroundPlaneZ(groundPlaneZ);
+            // Denizcinin gövde hareketini animasyon yapıyor: kod tarafındaki bob/esneme/yatma kapalı
+            motion.PositionOnly = runner.GetComponent<SailorRunnerVisual>() != null;
 
             ICargoRunner cargoRunner = runner.GetComponent<ICargoRunner>();
             WaddleRunner waddle = runner.GetComponent<WaddleRunner>();
             WalkingCargoVisual visual = runner.GetComponent<WalkingCargoVisual>();
             SailorRunnerVisual sailorVis = runner.GetComponent<SailorRunnerVisual>();
-            if (sailorVis != null) sailorVis.Play(SailorRunnerVisual.StateHopDown, 0f);
+            if (sailorVis != null) { sailorVis.Play(SailorRunnerVisual.StateHopDown, 0f); sailorVis.SetRingVisible(false); }
 
             // Phase 1: Hop from ship deck onto shore
             float hopDuration = Mathf.Max(0.18f, m_HopDuration);
@@ -3589,6 +3744,7 @@ namespace PixelGame
             if (runner == null) yield break;
             runner.transform.position = shorePoint;
             if (waddle != null) waddle.IsAirborne = false;
+            if (sailorVis != null) sailorVis.SetRingVisible(true);
 
             if (HypercasualFeedbackManager.Instance != null)
             {
@@ -3642,7 +3798,7 @@ namespace PixelGame
             targetCube.SetPoppedVisualState(true, regenerateContourShadow: true);
             TriggerWaitingShipsCheck();
 
-            if (runner != null)
+            if (runner != null && sailorVis == null)
             {
                 runner.transform.DOPunchScale(new Vector3(-0.1f, 0.15f, -0.1f) * runner.transform.localScale.x, 0.15f, 2, 0.5f);
             }
@@ -3651,6 +3807,29 @@ namespace PixelGame
             List<Vector3> returnWaypoints = new List<Vector3>(forwardWaypoints);
             returnWaypoints.Reverse();
             ShoreLanePath returnPath = ShoreLanePath.BuildFilleted(returnWaypoints, runnerCornerRadius, 8);
+
+            // Denizci küpü alırken yerinde durur: önce küpe bakar, alma animasyonunun ikinci yarısında
+            // dönüş yoluna doğru yumuşakça döner, sonra yürür (anında 180° dönüp küpü savurmasın)
+            if (sailorVis != null && runner != null)
+            {
+                float pickupTime = sailorVis.GetClipLength(SailorRunnerVisual.StatePickup);
+                Vector3 backDir = returnPath.TangentAtDistance(0f);
+                float tPick = 0f;
+                while (tPick < pickupTime && runner != null)
+                {
+                    tPick += Time.deltaTime;
+                    if (tPick > pickupTime * 0.45f) sailorVis.SetFacingOverride(backDir);
+                    yield return null;
+                }
+                if (sailorVis != null) sailorVis.ClearFacingOverride();
+            }
+            if (runner == null)
+            {
+                if (targetCube != null) s_ReservedCubes.Remove(targetCube);
+                if (ship != null) ship.ReleaseCargoReservation();
+                m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - 1);
+                yield break;
+            }
 
             dist = 0f;
             pathLen = returnPath.Length;
@@ -3679,7 +3858,7 @@ namespace PixelGame
             // Phase 5: Hop from shore onto ship deck
             Vector3 shoreEnd = runner.transform.position;
             float returnHopDuration = Mathf.Max(0.2f, m_HopDuration);
-            if (sailorVis != null) sailorVis.Play(SailorRunnerVisual.StateHopBoard, 0.05f);
+            if (sailorVis != null) { sailorVis.Play(SailorRunnerVisual.StateHopBoard, 0.05f); sailorVis.SetRingVisible(false); }
             float tReturnHop = 0f;
             prevPos = shoreEnd;
 

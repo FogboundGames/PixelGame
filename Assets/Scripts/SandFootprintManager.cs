@@ -305,6 +305,7 @@ namespace PixelGame
 
             // İlk belirgin rengi uygula
             Color initialColor = new Color(baseColor.r, baseColor.g, baseColor.b, startAlpha);
+            if (m_PropBlock == null) m_PropBlock = new MaterialPropertyBlock();   // Play'de yeniden derleme sonrası boş kalabiliyor
             m_PropBlock.SetColor(s_ColorPropId, initialColor);
             m_PropBlock.SetColor(s_BaseColorPropId, initialColor);
             fp.Renderer.SetPropertyBlock(m_PropBlock);

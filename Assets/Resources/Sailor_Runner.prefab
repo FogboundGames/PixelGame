@@ -80,9 +80,13 @@ MonoBehaviour:
   m_ModelPivot: {fileID: 847029568390341684}
   m_Animator: {fileID: 8105645742544626212}
   m_CargoSocket: {fileID: 1668791165106981128}
-  m_TurnSpeed: 720
-  m_ClipReferenceSpeed: 2.5
+  m_UseWalkClips: 1
+  m_TurnRate: 10
+  m_WalkClipReferenceSpeed: 1.25
+  m_RunClipReferenceSpeed: 2.5
   m_AnimatorSpeedRange: {x: 0.8, y: 3}
+  m_RingDiameter: 1.05
+  m_RingAlpha: 0
 --- !u!1001 &1178437165868292222
 PrefabInstance:
   m_ObjectHideFlags: 0

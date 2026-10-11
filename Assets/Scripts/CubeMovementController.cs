@@ -544,6 +544,15 @@ namespace PixelGame
             float speed = Mathf.Lerp(m_RopeSmoothSpeed, rawSpeed, 1f - Mathf.Exp(-dt / 0.08f));
             m_RopeSmoothSpeed = speed;
 
+            // Kendi animasyonu olan koşucu (denizci): sadece konumu taşı; bob/esneme/yatma animasyonla çakışıp titretiyordu
+            if (PositionOnly)
+            {
+                transform.position = basePos;
+                if (moved > 1e-5f) m_RopeDir = delta / moved;
+                ApplyFootsteps(moved, dt);
+                return;
+            }
+
             // İp henüz bu küpü çekmedi: yerinde dur, hiçbir şey yazma (ucuz)
             if (m_State == MovementState.Idle)
             {
@@ -850,8 +859,16 @@ namespace PixelGame
         }
 
         /// <summary>Binme sırasında yön ve yatmayı dışarıdan sürmek için.</summary>
+        /// <summary>Kendi animasyonu olan koşucularda true: ApplyRopeFrame/SteerToward sadece konum ve yön tutar, gövdeyi esnetmez/döndürmez.</summary>
+        public bool PositionOnly { get; set; }
+
         public void SteerToward(Vector3 dir, float bankTarget, float dt)
         {
+            if (PositionOnly)
+            {
+                if (dir.sqrMagnitude > 1e-8f) m_RopeDir = dir.normalized;
+                return;
+            }
             if (dir.sqrMagnitude > 1e-8f)
             {
                 float follow = 1f - Mathf.Exp(-dt / Mathf.Max(0.01f, Settings.RotationSmoothness));

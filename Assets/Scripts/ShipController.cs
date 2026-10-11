@@ -2407,6 +2407,8 @@ namespace PixelGame
                 mr.receiveShadows = false;
 
                 ripple.transform.DOScale(Vector3.one * maxScale, duration).SetEase(Ease.OutQuad);
+                // Yedek silme: tween DOTween.KillAll (bölüm yeniden başlatma) ile ölürse halka suda kalıyordu
+                if (Application.isPlaying) { Destroy(ripple, duration + 0.1f); Destroy(mat, duration + 0.1f); }
                 mat.DOFade(0f, "_BaseColor", duration).SetEase(Ease.InQuad)
                     .OnComplete(() =>
                     {
@@ -2479,6 +2481,8 @@ namespace PixelGame
                 Vector3 drift = Vector3.up * 0.12f + new Vector3(UnityEngine.Random.Range(-0.04f, 0.04f), UnityEngine.Random.Range(0f, 0.04f), UnityEngine.Random.Range(-0.04f, 0.04f));
                 puff.transform.DOMove(worldPos + drift, duration).SetEase(Ease.OutQuad);
                 puff.transform.DOScale(Vector3.one * maxScale, duration).SetEase(Ease.OutQuad);
+                // Yedek silme: tween DOTween.KillAll ile ölürse duman sahnede kalmasın
+                if (Application.isPlaying) { Destroy(puff, duration + 0.1f); Destroy(instMat, duration + 0.1f); }
                 instMat.DOFade(0f, "_BaseColor", duration).SetEase(Ease.InQuad)
                     .OnComplete(() =>
                     {

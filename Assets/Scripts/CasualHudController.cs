@@ -373,7 +373,8 @@ namespace PixelGame
             LandFlowLoadingScreen screen = LandFlowLoadingScreen.Instance ?? LandFlowLoadingScreen.EnsureInstance();
             if (screen != null)
             {
-                screen.ShowFailLevelAndRestart();
+                // Zaten bir yeniden başlatma/yükleme sürüyorsa ikincisini başlatma
+                if (!screen.IsBusy) screen.ShowFailLevelAndRestart();
                 return;
             }
 
@@ -528,7 +529,7 @@ namespace PixelGame
             htRect.sizeDelta = Vector2.zero;
 
             TextMeshProUGUI headerTmp = headerTextObj.AddComponent<TextMeshProUGUI>();
-            headerTmp.text = "SEVİYE BAŞARISIZ";
+            headerTmp.text = "LEVEL FAILED";
             headerTmp.fontSize = 32;
             headerTmp.fontStyle = FontStyles.Bold;
             headerTmp.alignment = TextAlignmentOptions.Center;
@@ -631,7 +632,7 @@ namespace PixelGame
             btnTextRect.offsetMax = new Vector2(-20f, 0f);
 
             TextMeshProUGUI btnTmp = btnTextObj.AddComponent<TextMeshProUGUI>();
-            btnTmp.text = "TEKRAR DENE";
+            btnTmp.text = "TRY AGAIN";
             btnTmp.fontSize = 28;
             btnTmp.fontStyle = FontStyles.Bold;
             btnTmp.alignment = TextAlignmentOptions.Center;
@@ -644,6 +645,12 @@ namespace PixelGame
 
         public void RestartLevel()
         {
+            // Yükleme ekranı açıkken (fail sonrası otomatik yeniden başlatma ya da önceki retry sürerken) ikinci bir
+            // yeniden başlatma başlatılmaz: ikisinin DOTween.KillAll'ları yükleme ekranını görünmez ama dokunuşu
+            // engeller hâlde bırakıp oyunu kilitliyordu.
+            LandFlowLoadingScreen busy = LandFlowLoadingScreen.Instance;
+            if (busy != null && busy.IsBusy) return;
+
             HideLevelFailPopup();
             Time.timeScale = 1.0f;
             Debug.Log("<color=#FF4444><b>[CasualHUD]</b></color> Seviye yeniden başlatılıyor...");

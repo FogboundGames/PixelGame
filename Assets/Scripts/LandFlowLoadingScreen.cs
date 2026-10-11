@@ -116,6 +116,8 @@ namespace PixelGame
         private static bool s_BootShown = false;
 
         public bool IsVisible => m_IsVisible;
+        /// <summary>Bir yükleme/yeniden başlatma akışı sürüyor ya da ekran görünür.</summary>
+        public bool IsBusy => m_IsVisible || m_ActiveLoadingRoutine != null;
 
         private void Awake()
         {
@@ -1029,7 +1031,7 @@ namespace PixelGame
         /// </summary>
         public void RestartCurrentScene(float minDuration = -1f, string message = null)
         {
-            string msg = !string.IsNullOrEmpty(message) ? message : "YENİDEN BAŞLATILIYOR";
+            string msg = !string.IsNullOrEmpty(message) ? message : "RESTARTING";
             Action reloadAction = () =>
             {
                 DOTween.KillAll();
@@ -1157,6 +1159,19 @@ namespace PixelGame
 
             Hide();
             m_ActiveLoadingRoutine = null;
+
+            // Güvenlik: kapanma tween'i başka bir akışın DOTween.KillAll'ı ile ölürse ekran görünmez ama dokunuşu
+            // engeller hâlde kalıyordu. Kapanma süresi geçtiğinde başka bir yükleme başlamadıysa zorla kapat.
+            yield return new WaitForSecondsRealtime(m_FadeOutDuration + 0.15f);
+            if (m_ActiveLoadingRoutine == null && m_IsVisible)
+            {
+                m_CanvasGroup.DOKill();
+                m_CanvasGroup.alpha = 0f;
+                m_IsVisible = false;
+                m_CanvasGroup.blocksRaycasts = false;
+                m_CanvasGroup.interactable = false;
+                StopBadgeAndTextAnimations();
+            }
         }
 
         /// <summary>
