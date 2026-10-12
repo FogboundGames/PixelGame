@@ -315,7 +315,7 @@ namespace PixelGame
 
         [Header("🌑 Gemi Silüet Gölgesi")]
         [Tooltip("Geminin gövde şeklini takip eden, sağa düşen net gölge. Açıkken eski yumuşak (quad) gölge ve gövdenin gerçek ışık gölgesi kapanır.")]
-        [SerializeField] private bool m_EnableSilhouetteShadow = true;
+        [SerializeField] private bool m_EnableSilhouetteShadow = false;
         [Tooltip("Işık yönü: gövdenin her birim yüksekliği gölgeyi ne kadar kaydırır (X: sağ, Y: aşağı/kıç yönü negatif). Büyüdükçe gölge uzar.")]
         [SerializeField] private Vector2 m_SilhouetteShadowDirection = new Vector2(0.70f, -0.15f);
         [Tooltip("Gölge rengi ve opaklığı (alfa).")]
@@ -458,7 +458,15 @@ namespace PixelGame
             }
         }
 
-        public bool IsDocked => m_IsDocked;
+        public bool IsDocked
+        {
+            get => m_IsDocked;
+            set
+            {
+                m_IsDocked = value;
+                EnsureSilhouetteShadow();
+            }
+        }
         public bool IsFull => m_CurrentCargo >= m_Capacity;
         public bool IsDeparting => m_IsDeparting;
         public bool IsMoving => m_IsMoving;
@@ -1007,7 +1015,7 @@ namespace PixelGame
         public void EnsureSilhouetteShadow()
         {
             Transform existing = transform.Find(SilhouetteShadowName);
-            if (!m_EnableSilhouetteShadow)
+            if (!m_EnableSilhouetteShadow || m_IsDocked)
             {
                 if (existing != null) existing.gameObject.SetActive(false);
                 return;

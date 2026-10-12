@@ -18,7 +18,7 @@ namespace PixelGame
     {
         [Header("🏖️ Zemin Konumu ve Boyutları")]
         [Tooltip("Görünmez kumsal zemin düzleminin merkez konumu")]
-        [SerializeField] private Vector3 m_Center = new Vector3(0f, 3.40f, 0.35f);
+        [SerializeField] private Vector3 m_Center = new Vector3(0f, 3.40f, 0.423f);
 
         [Tooltip("Görünmez kumsal zemin düzleminin genişlik ve yüksekliği")]
         [SerializeField] private Vector2 m_Size = new Vector2(11.5f, 5.4f);
@@ -28,7 +28,7 @@ namespace PixelGame
 
         [Header("🌑 Gölge Yakalayıcı")]
         [SerializeField] private Material m_ShadowCatcherMaterial;
-        [SerializeField] private Color m_ShadowColor = new Color(0.08f, 0.12f, 0.22f, 0.42f);
+        [SerializeField] private Color m_ShadowColor = new Color(0.04f, 0.08f, 0.16f, 0.38f);
 
         private GameObject m_GroundQuad;
         private MeshRenderer m_Renderer;
@@ -125,6 +125,27 @@ namespace PixelGame
         private void UpdateGroundTransform()
         {
             if (m_GroundQuad == null) return;
+
+            // Küplerin arka yüzünü bularak zemini tam küplerin arkasına yapıştır (gölgenin havada durmasını engeller)
+            PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (gen != null && gen.CubesContainer != null)
+            {
+                float backZ = float.MinValue;
+                bool found = false;
+                foreach (PixelCube cube in gen.CubesContainer.GetComponentsInChildren<PixelCube>(false))
+                {
+                    if (cube == null || cube.IsLeaving) continue;
+                    MeshRenderer body = cube.GetComponent<MeshRenderer>();
+                    if (body == null || !body.enabled) continue;
+                    backZ = Mathf.Max(backZ, body.bounds.max.z);
+                    found = true;
+                }
+                if (found && backZ > -100f)
+                {
+                    m_Center.z = backZ + 0.002f;
+                }
+            }
+
             m_GroundQuad.transform.localPosition = m_Center;
             m_GroundQuad.transform.localRotation = Quaternion.Euler(m_TiltX, 0f, 0f);
             m_GroundQuad.transform.localScale = new Vector3(m_Size.x, m_Size.y, 1f);

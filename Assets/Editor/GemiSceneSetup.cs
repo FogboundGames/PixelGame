@@ -158,7 +158,7 @@ namespace PixelGame.Editor
 
             dirLight.transform.SetParent(null, true);
             dirLight.transform.position = new Vector3(-3f, 8f, -6f);
-            dirLight.transform.rotation = Quaternion.Euler(48f, -32f, 0f);
+            dirLight.transform.rotation = Quaternion.Euler(36f, 12f, 0f);
             dirLight.color = new Color(1.0f, 0.95f, 0.88f, 1f);
             dirLight.intensity = 1.25f;
             dirLight.shadows = LightShadows.Soft;

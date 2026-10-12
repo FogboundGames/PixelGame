@@ -108,7 +108,7 @@ namespace PixelGame.Editor
 
             if (ground != null)
             {
-                ground.Center = new Vector3(0f, 3.40f, 0.35f);
+                ground.Center = new Vector3(0f, 3.40f, 0.423f);
                 ground.Size = new Vector2(11.5f, 5.4f);
                 ground.TiltX = 0f;
                 ground.EnsureGround();

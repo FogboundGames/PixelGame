@@ -18,7 +18,6 @@ Shader "PixelGame/ShipSilhouetteShadow"
         _Softness ("Edge Softness (object space)", Float) = 0
         _RingT ("Ring Expand (0 = core, 1 = outermost)", Range(0, 1)) = 0
         _RingAlpha ("Ring Alpha Multiplier", Range(0, 1)) = 1
-        _StencilRef ("Stencil Ref", Int) = 37
     }
 
     SubShader
@@ -42,7 +41,7 @@ Shader "PixelGame/ShipSilhouetteShadow"
 
             Stencil
             {
-                Ref [_StencilRef]
+                Ref 37
                 Comp NotEqual
                 Pass Replace
             }
@@ -71,7 +70,6 @@ Shader "PixelGame/ShipSilhouetteShadow"
                 float _Softness;
                 float _RingT;
                 float _RingAlpha;
-                int _StencilRef;
             CBUFFER_END
 
             Varyings vert(Attributes input)

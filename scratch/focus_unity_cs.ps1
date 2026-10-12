@@ -2,7 +2,7 @@ Add-Type @'
   using System;
   using System.Runtime.InteropServices;
   using System.Text;
-  public class WinApiHelper {
+  public class WinApiHelper2 {
     [DllImport("user32.dll")]
     public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
     public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
@@ -20,8 +20,10 @@ Add-Type @'
             string title = sb.ToString();
             uint pid;
             GetWindowThreadProcessId(hWnd, out pid);
+            if (!string.IsNullOrEmpty(title)) {
+                Console.WriteLine("Window: " + pid + " - " + title);
+            }
             if (!string.IsNullOrEmpty(title) && (title.Contains("Unity") || title.Contains("PixelGame"))) {
-                Console.WriteLine("Found: " + pid + " - " + title);
                 SetForegroundWindow(hWnd);
             }
             return true;
@@ -30,4 +32,4 @@ Add-Type @'
   }
 '@
 
-[WinApiHelper]::FocusUnity()
+[WinApiHelper2]::FocusUnity()

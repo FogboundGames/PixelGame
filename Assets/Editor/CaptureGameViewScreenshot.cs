@@ -16,8 +16,6 @@ namespace PixelGame.Editor
             EditorApplication.delayCall += () =>
             {
                 if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;
-                if (s_Captured) return;
-                s_Captured = true;
                 CaptureGemiScene();
             };
         }
@@ -38,41 +36,73 @@ namespace PixelGame.Editor
                     }
                 }
 
+                AssetDatabase.ImportAsset("Assets/PixelArt/Optimized/Yelkenli_canvas.png", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/Levels/Level_30_Yelkenli.asset", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/Resources/mystery_cube_question.png", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/Textures/mystery_cube_question.png", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/Kenney/BeachBackground_3Slots.png", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/Kenney/BeachBackground_4Slots.png", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/Kenney/BeachBackground_Clean.png", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/UI/CasualUI/btn_marine_retry.png", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/UI/CasualUI/btn_marine_settings.png", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/UI/CasualUI/btn_marine_speed_1x.png", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/UI/CasualUI/btn_marine_speed_2x.png", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/UI/CasualUI/bg_level_capsule.png", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/UI/CasualUI/bg_level_marine.png", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/Textures/Marina/slot_berth_inner.png", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/Textures/Marina/slot_berth_docked.png", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/Textures/Marina/slot_berth_closed.png", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/Materials/Marina/Slot_Berth_Docked_Mat.mat", ImportAssetOptions.ForceUpdate);
+                PixelCube.ClearMysteryMaterialCache();
+
                 MarinaSlotLayout marina = Object.FindFirstObjectByType<MarinaSlotLayout>();
                 if (marina != null)
                 {
                     marina.ApplyLayout();
                 }
 
-                AssetDatabase.ImportAsset("Assets/Resources/mystery_cube_question.png", ImportAssetOptions.ForceUpdate);
-                AssetDatabase.ImportAsset("Assets/Textures/mystery_cube_question.png", ImportAssetOptions.ForceUpdate);
-                PixelCube.ClearMysteryMaterialCache();
-
                 PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
                 if (gen != null)
+                {
+                    // Boşluk oranını eskisi gibi (level ayarı neyse) koru — asla değiştirme
+                    if (gen.ActiveLevelData != null)
                     {
-                        // Boşluk oranını eskisi gibi (level ayarı neyse) koru — asla değiştirme
-                        if (gen.ActiveLevelData != null)
-                        {
-                            gen.CubeSpacingX = gen.ActiveLevelData.CubeSpacingX;
-                            gen.CubeSpacing = gen.ActiveLevelData.CubeSpacing;
-                            gen.CubeDepth = gen.ActiveLevelData.CubeDepth;
-                        }
-                        gen.UpdateExistingCubesLive();
-                        gen.UpdateExistingCubesTransforms();
+                        gen.CubeSpacingX = gen.ActiveLevelData.CubeSpacingX;
+                        gen.CubeSpacing = gen.ActiveLevelData.CubeSpacing;
+                        gen.CubeDepth = gen.ActiveLevelData.CubeDepth;
                     }
+                    gen.GeneratePixelArt();
+                    gen.UpdateExistingCubesLive();
+                    gen.UpdateExistingCubesTransforms();
+                }
 
                     ShipController.ClearMaterialCache();
 
                     ShipQueuePool shipPool = Object.FindFirstObjectByType<ShipQueuePool>();
                     if (shipPool != null)
                     {
-                        PixelLevelData curLevel = gen != null ? gen.ActiveLevelData : null;
-                        if (curLevel != null)
-                        {
-                            shipPool.RebuildSpots(curLevel.PoolColumns, curLevel.PoolRows);
-                        }
-                        shipPool.InitializeQueue();
+                        shipPool.transform.position = new Vector3(0f, -6.95f, 0f);
+                        shipPool.transform.rotation = Quaternion.Euler(-28f, 0f, 0f);
+                        shipPool.transform.localScale = Vector3.one * 1.35f;
+
+                        var qSo = new SerializedObject(shipPool);
+                        qSo.FindProperty("m_Columns").intValue = 3;
+                        qSo.FindProperty("m_Rows").intValue = 1;
+                        qSo.FindProperty("m_SpacingX").floatValue = 1.62f;
+                        qSo.FindProperty("m_SpacingY").floatValue = 1.25f;
+                        qSo.FindProperty("m_ShipScale").floatValue = 0.23f;
+                        qSo.ApplyModifiedPropertiesWithoutUndo();
+
+                        shipPool.RebuildSpots(3, 1);
+                        shipPool.ClearQueue();
+
+                        Color whiteColor = new Color(0.96f, 0.94f, 0.89f, 1f);
+                        Color brownColor = new Color(0.47f, 0.29f, 0.16f, 1f);
+                        Color redColor = new Color(0.87f, 0.23f, 0.20f, 1f);
+
+                        shipPool.SpawnShipAtSpot(0, whiteColor, 30);
+                        shipPool.SpawnShipAtSpot(1, brownColor, 7);
+                        shipPool.SpawnShipAtSpot(2, redColor, 11);
                     }
 
                     ShipController[] ships = Object.FindObjectsByType<ShipController>(FindObjectsSortMode.None);
@@ -81,6 +111,8 @@ namespace PixelGame.Editor
                         if (ship != null)
                         {
                             ship.ApplyColorToShip(ship.ShipColor);
+                            ship.EnsureFakeShadow();
+                            ship.EnsureSilhouetteShadow();
                         }
                     }
 
@@ -101,23 +133,18 @@ namespace PixelGame.Editor
                     CasualHudController hud = Object.FindFirstObjectByType<CasualHudController>();
                     if (hud != null) hud.HideCoinPill();
 
-                    SetupGemiTopHUD.EnsureRetryButtonInScene();
+                    SetupGemiTopHUD.BuildTopHUD();
 
                     var allActiveSlots = marina != null ? marina.GetComponentsInChildren<ShipSlot>() : null;
-                    if (allActiveSlots != null && allActiveSlots.Length >= 2 && ships != null && ships.Length >= 2)
+                    if (allActiveSlots != null)
                     {
-                        Vector3 targetLocalPos = new Vector3(0f, 0.08f, 0.02f);
-                        ships[0].transform.position = allActiveSlots[0].transform.TransformPoint(targetLocalPos);
-                        ships[0].transform.rotation = allActiveSlots[0].transform.rotation;
-                        ships[1].transform.position = allActiveSlots[1].transform.TransformPoint(targetLocalPos);
-                        ships[1].transform.rotation = allActiveSlots[1].transform.rotation;
+                        for (int sIdx = 0; sIdx < allActiveSlots.Length; sIdx++)
+                        {
+                            allActiveSlots[sIdx].ReleaseShip();
+                        }
                     }
 
                 Capture();
-
-                // Çekimden sonra sırayı tekrar temizle
-                ShipQueuePool pool = Object.FindFirstObjectByType<ShipQueuePool>();
-                if (pool != null) pool.InitializeQueue();
             }
             catch (System.Exception ex)
             {

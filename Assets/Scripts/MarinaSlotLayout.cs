@@ -144,6 +144,7 @@ namespace PixelGame
         [Header("🫧 Slot Görseli (Köpük Halkası)")]
         [Tooltip("Slot görselini (can simidi / köpük) gizler; görsel arka plandaki ahşap iskele ve babalar (posts) kullanılır.")]
         [SerializeField] private bool m_HideSlotIndicators = true;
+        public bool HideSlotIndicators { get => m_HideSlotIndicators; set => m_HideSlotIndicators = value; }
         [Tooltip("Slot görselinin slot genişliğine göre ölçeği.")]
         [SerializeField] private float m_SlotVisualScale = 1.30f;
         [Tooltip("Slot görselinin ekranda görünen yükseklik / genişlik oranı. 1'den büyükse dikey elips olur ve gemiyi boyuna sarar.")]
@@ -161,6 +162,9 @@ namespace PixelGame
                  "babalar ve tamponlar olmadan. Açıkken Indicator gösterilmez.")]
         [SerializeField] private bool m_UseInnerBerthVisual = true;
         [SerializeField] private Material m_SlotBerthInnerMaterial;
+        [Header("🚢 Gemi Yanaşma Su Teması & Gölge Görseli (Docked Hull Shadow)")]
+        [Tooltip("Gemi slota yanaştığında gövdenin altına serilen temas gölgesi ve su temas halkası materyali.")]
+        [SerializeField] private Material m_SlotBerthDockedMaterial;
         [Tooltip("Açık slot görselinin boy çarpanı (Slot Berth Length × bu). Kilitli slotları etkilemez.")]
         [Range(0.5f, 3f)]
         [SerializeField] private float m_OpenBerthLengthScale = 1.65f;
@@ -515,6 +519,45 @@ namespace PixelGame
         public int OpenSlotCount => m_SlotCount;
         public int TotalBaysCount => (m_SlotCount % 2 != 0) ? 5 : 6;
         public int ClosedSlotCount => Mathf.Max(0, TotalBaysCount - OpenSlotCount);
+        public bool MatchBackgroundBays
+        {
+            get => m_MatchBackgroundBays;
+            set { m_MatchBackgroundBays = value; ApplyLayout(); }
+        }
+
+        public float BayFillRatio
+        {
+            get => m_BayFillRatio;
+            set { m_BayFillRatio = value; ApplyLayout(); }
+        }
+
+        public float BayCenterPx
+        {
+            get => m_BayCenterPx;
+            set { m_BayCenterPx = value; ApplyLayout(); }
+        }
+
+        public float BayCenterYPx
+        {
+            get => m_BayCenterYPx;
+            set { m_BayCenterYPx = value; ApplyLayout(); }
+        }
+
+        public float BaySpacingPx
+        {
+            get => m_UsePerCountSettings ? GetConfig(m_SlotCount).BaySpacingPx : 174f;
+            set
+            {
+                if (m_UsePerCountSettings) GetConfig(m_SlotCount).BaySpacingPx = value;
+                ApplyLayout();
+            }
+        }
+
+        public Material SlotBerthDockedMaterial
+        {
+            get => m_SlotBerthDockedMaterial;
+            set { m_SlotBerthDockedMaterial = value; ApplyLayout(); }
+        }
 
         public Material LockedBarrierMaterial
         {
@@ -1196,7 +1239,14 @@ namespace PixelGame
                     berthTr = bGo.transform;
                 }
 
-                if (!berthTr.gameObject.activeSelf) berthTr.gameObject.SetActive(true);
+                if (m_HideSlotIndicators)
+                {
+                    if (berthTr.gameObject.activeSelf) berthTr.gameObject.SetActive(false);
+                }
+                else
+                {
+                    if (!berthTr.gameObject.activeSelf) berthTr.gameObject.SetActive(true);
+                }
 
                 berthTr.localPosition = new Vector3(0f, m_SlotBerthOffsetY, m_SlotBerthOffsetZ);
                 berthTr.localRotation = Quaternion.identity;
@@ -1226,6 +1276,57 @@ namespace PixelGame
                 var bBobbing = berthTr.GetComponent<MarinaBuoyBobbing>();
                 if (bBobbing == null) berthTr.gameObject.AddComponent<MarinaBuoyBobbing>();
 
+                // 🚢 Gemi Geldiğinde Gövde Temas Gölgesi & Su Temas Halkası (Docked Hull Contact Shadow & Wake)
+                Transform dockedShadowTr = tr.Find("[Slot_DockedShadow]");
+                if (dockedShadowTr == null)
+                {
+                    GameObject dsGo = new GameObject("[Slot_DockedShadow]");
+                    dsGo.transform.SetParent(tr, false);
+                    dockedShadowTr = dsGo.transform;
+                }
+                if (m_HideSlotIndicators)
+                {
+                    if (dockedShadowTr.gameObject.activeSelf) dockedShadowTr.gameObject.SetActive(false);
+                }
+                else
+                {
+                    if (!dockedShadowTr.gameObject.activeSelf) dockedShadowTr.gameObject.SetActive(true);
+                }
+                dockedShadowTr.localPosition = new Vector3(0f, m_SlotBerthOffsetY + 0.001f, m_SlotBerthOffsetZ);
+                dockedShadowTr.localRotation = Quaternion.identity;
+                dockedShadowTr.localScale = berthTr.localScale;
+
+                MeshFilter dsMf = dockedShadowTr.GetComponent<MeshFilter>();
+                if (dsMf == null) dsMf = dockedShadowTr.gameObject.AddComponent<MeshFilter>();
+                if (dsMf.sharedMesh != bMesh) dsMf.sharedMesh = bMesh;
+
+                MeshRenderer dsMr = dockedShadowTr.GetComponent<MeshRenderer>();
+                if (dsMr == null) dsMr = dockedShadowTr.gameObject.AddComponent<MeshRenderer>();
+                
+                if (m_SlotBerthDockedMaterial == null)
+                {
+#if UNITY_EDITOR
+                    m_SlotBerthDockedMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Marina/Slot_Berth_Docked_Mat.mat");
+#endif
+                }
+                Material dShadowMat = m_SlotBerthDockedMaterial != null ? m_SlotBerthDockedMaterial : berthMat;
+                if (dsMr.sharedMaterial != dShadowMat) dsMr.sharedMaterial = dShadowMat;
+                dsMr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                dsMr.receiveShadows = false;
+                dsMr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+                dsMr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+                dsMr.sortingOrder = 3;
+
+                var dsBobbing = dockedShadowTr.GetComponent<MarinaBuoyBobbing>();
+                if (dsBobbing == null) dockedShadowTr.gameObject.AddComponent<MarinaBuoyBobbing>();
+
+                // Slot bileşeninin referanslarını güncelle
+                ShipSlot shipSlot = tr.GetComponent<ShipSlot>();
+                if (shipSlot != null)
+                {
+                    shipSlot.EnsureIndicatorReference();
+                }
+
                 // Açık slot görseli olarak indicator asset'i: kesikli kutunun yerini ve boyutunu alır
                 if (useIndicator)
                 {
@@ -1254,6 +1355,14 @@ namespace PixelGame
             int endOpenBay = startOpenBay + count - 1;
 
             var existingBarriers = new List<MarinaLockedSlotBarrier>(GetComponentsInChildren<MarinaLockedSlotBarrier>(true));
+            if (m_HideSlotIndicators)
+            {
+                foreach (var eb in existingBarriers)
+                {
+                    if (eb != null && eb.gameObject.activeSelf) eb.gameObject.SetActive(false);
+                }
+                return;
+            }
             int usedBarrierCount = 0;
 
             ShipQueuePool qPool = UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
