@@ -22,6 +22,23 @@ namespace PixelGame
 
         /// <summary>Yanaşma slotları (salt okunur). Gemi rengi dağıtımında kullanılır.</summary>
         public IReadOnlyList<ShipSlot> Slots => m_Slots;
+
+        /// <summary>Sahildeki açık (yanaşılabilir) aktif slot sayısı.</summary>
+        public int OpenSlotCount => m_Slots != null ? m_Slots.Count : 0;
+
+        /// <summary>Rıhtım iskelesindeki toplam bölme sayısı (tekillerde 5, çiftlerde 6).</summary>
+        public int TotalBaysCount
+        {
+            get
+            {
+                var marina = Object.FindFirstObjectByType<MarinaSlotLayout>();
+                return marina != null ? marina.TotalBaysCount : (OpenSlotCount % 2 != 0 ? 5 : 6);
+            }
+        }
+
+        /// <summary>Sahildeki kilitli / kapalı yanaşma bölmesi sayısı.</summary>
+        public int ClosedSlotCount => Mathf.Max(0, TotalBaysCount - OpenSlotCount);
+
         [SerializeField] private ShipQueuePool m_QueuePool;
 
         [Header("🎨 Piksel Sanatı Bağlantısı")]
@@ -1134,7 +1151,7 @@ namespace PixelGame
         private UpperBeachGround m_BeachGround;
 
         /// <summary>Kumsal zemin düzleminin dünya z'si; zemin yoksa NaN.</summary>
-        private float BeachGroundZ()
+        public float BeachGroundZ()
         {
             if (m_BeachGround == null) m_BeachGround = UnityEngine.Object.FindFirstObjectByType<UpperBeachGround>();
             return m_BeachGround != null ? m_BeachGround.GroundWorldZ : float.NaN;
@@ -3828,6 +3845,23 @@ namespace PixelGame
             }
 
             // Phase 3: Pick up cargo container
+            // Orta bölgedeki / dikey sütun küplerinde denizci küpün önünde tam dik dursun ve yerinde hafif dönme/titreme yapmasın
+            EnsureBoardBounds();
+            float boardCenterX = (m_BoardMinX + m_BoardMaxX) * 0.5f;
+            float boardHalfSpan = Mathf.Max(0.5f, (m_BoardMaxX - m_BoardMinX) * 0.5f);
+            float xDistFromCenter = Mathf.Abs(targetCube.transform.position.x - boardCenterX);
+            bool isMiddleArea = xDistFromCenter <= boardHalfSpan * 0.75f;
+            Vector3 toCubeVec = targetCube.transform.position - runner.transform.position;
+            toCubeVec.z = 0f;
+            bool isVerticalApproach = Mathf.Abs(toCubeVec.y) >= Mathf.Abs(toCubeVec.x) * 0.85f;
+            bool isMiddlePickup = isMiddleArea && isVerticalApproach;
+
+            if (sailorVis != null && isMiddlePickup)
+            {
+                Vector3 middleFaceDir = toCubeVec.y >= 0f ? Vector3.up : Vector3.down;
+                sailorVis.SnapFacing(middleFaceDir);
+            }
+
             if (HypercasualFeedbackManager.Instance != null)
             {
                 HypercasualFeedbackManager.Instance.PlayCubeLiftoffFeedback(targetCube.transform.position, indexInQueue);
@@ -3848,7 +3882,7 @@ namespace PixelGame
             returnWaypoints.Reverse();
             ShoreLanePath returnPath = ShoreLanePath.BuildFilleted(returnWaypoints, runnerCornerRadius, 8);
 
-            // Denizci küpü alırken yerinde durur: önce küpe bakar, alma animasyonunun ikinci yarısında
+            // Denizci küpü alırken yerinde durur: orta küplerde dik kalır; diğer küplerde ayara bağlı
             // dönüş yoluna doğru yumuşakça döner, sonra yürür (anında 180° dönüp küpü savurmasın)
             if (sailorVis != null && runner != null)
             {
@@ -3858,7 +3892,10 @@ namespace PixelGame
                 while (tPick < pickupTime && runner != null)
                 {
                     tPick += Time.deltaTime;
-                    if (m_SailorTurnWhilePickingUp && tPick > pickupTime * 0.45f) sailorVis.SetFacingOverride(backDir);
+                    if (!isMiddlePickup && m_SailorTurnWhilePickingUp && tPick > pickupTime * 0.45f)
+                    {
+                        sailorVis.SetFacingOverride(backDir);
+                    }
                     yield return null;
                 }
                 if (sailorVis != null) sailorVis.ClearFacingOverride();

@@ -100,6 +100,12 @@ namespace PixelGame
         [Tooltip("Gemi slota oturduğunda slot merkezine göre yerel dikey su seviyesi (Y) ofseti.")]
         [SerializeField] private float m_DockHeightOffset = 0.08f;
 
+        [Tooltip("Gemi, kıçı slot görselinin arka kenarına oturacak şekilde yanaşır (gemi boyundan bağımsız).")]
+        [SerializeField] private bool m_AlignSternToSlotBack = true;
+        [Tooltip("Kıçın slot arka kenarından içeri payı (slot boyunun oranı). Kesikli çerçeve kenardan ~%3 içeride.")]
+        [Range(0f, 0.3f)]
+        [SerializeField] private float m_SternInsetRatio = 0.05f;
+
         public const float DefaultDockForwardOffset = 0.28f;
         public const float DefaultDockHeightOffset = 0.08f;
 
@@ -2116,7 +2122,66 @@ namespace PixelGame
         public Vector3 GetDockPosition(ShipSlot slot)
         {
             if (slot == null) return Vector3.zero;
-            return slot.transform.TransformPoint(new Vector3(0f, m_DockHeightOffset, m_DockForwardOffset));
+            return slot.transform.TransformPoint(ComputeDockLocalPosition(slot));
+        }
+
+        /// <summary>
+        /// Yanaşma noktası (slot yerel uzayında). Geminin kıçı slot görselinin ([Slot_Berth]) arka (açık su) kenarına
+        /// oturacak şekilde hesaplanır; böylece gemi ileri taşıp slotun alt kısmını boş bırakmaz.
+        /// Ölçülemezse sabit ofsete düşer.
+        /// </summary>
+        private Vector3 ComputeDockLocalPosition(ShipSlot slot)
+        {
+            Vector3 fallback = new Vector3(0f, m_DockHeightOffset, m_DockForwardOffset);
+            if (!m_AlignSternToSlotBack || slot == null) return fallback;
+
+            Transform berth = slot.transform.Find("[Slot_Berth]");
+            if (berth == null || !TryGetSternLocalZ(out float sternLocalZ)) return fallback;
+
+            Transform slotTr = slot.transform;
+            float baseScaleZ = m_BaseScale != Vector3.zero ? m_BaseScale.z : transform.lossyScale.z;
+            float rootToSternWorld = Mathf.Max(0f, -sternLocalZ) * Mathf.Abs(baseScaleZ);
+
+            // Berth quad'ı yerel -0.5..+0.5 (z) aralığında; -z ucu açık suya bakan arka kenar
+            float berthBackLocalZ = berth.localPosition.z - berth.localScale.z * 0.5f;
+            float berthWorldLength = berth.localScale.z * Mathf.Abs(slotTr.lossyScale.z);
+            Vector3 backWorld = slotTr.TransformPoint(new Vector3(0f, m_DockHeightOffset, berthBackLocalZ));
+            Vector3 slotForward = slotTr.TransformDirection(Vector3.forward).normalized;
+
+            Vector3 rootWorld = backWorld + slotForward * (rootToSternWorld + berthWorldLength * m_SternInsetRatio);
+            Vector3 local = slotTr.InverseTransformPoint(rootWorld);
+            return new Vector3(0f, m_DockHeightOffset, local.z);
+        }
+
+        /// <summary>Gövde görsellerinin gemi kök uzayındaki en arka (kıç) z değeri.</summary>
+        private bool TryGetSternLocalZ(out float sternZ)
+        {
+            sternZ = float.MaxValue;
+            foreach (Renderer r in GetComponentsInChildren<Renderer>(false))
+            {
+                if (r is ParticleSystemRenderer || r is TrailRenderer || r is LineRenderer) continue;
+                if (r.GetComponent<TMPro.TMP_Text>() != null) continue;
+                string n = r.gameObject.name;
+                if (n.Contains("Shadow") || n.Contains("Smoke") || n.Contains("Canvas")) continue;
+
+                Bounds b;
+                if (r is SkinnedMeshRenderer smr) b = smr.localBounds;
+                else
+                {
+                    MeshFilter mf = r.GetComponent<MeshFilter>();
+                    if (mf == null || mf.sharedMesh == null) continue;
+                    b = mf.sharedMesh.bounds;
+                }
+
+                for (int c = 0; c < 8; c++)
+                {
+                    Vector3 corner = b.center + Vector3.Scale(b.extents,
+                        new Vector3((c & 1) == 0 ? -1f : 1f, (c & 2) == 0 ? -1f : 1f, (c & 4) == 0 ? -1f : 1f));
+                    float z = transform.InverseTransformPoint(r.transform.TransformPoint(corner)).z;
+                    if (z < sternZ) sternZ = z;
+                }
+            }
+            return sternZ < float.MaxValue;
         }
 
         /// <summary>
@@ -2235,7 +2300,7 @@ namespace PixelGame
             Vector3 startWorldScale = transform.lossyScale;
             Quaternion startRot = transform.rotation;
 
-            Vector3 targetLocalPos = new Vector3(0f, m_DockHeightOffset, m_DockForwardOffset);
+            Vector3 targetLocalPos = ComputeDockLocalPosition(targetSlot);
             Quaternion targetSlotWorldRot = targetSlot.transform.rotation;
             Vector3 targetWorld = targetSlot.transform.TransformPoint(targetLocalPos);
             Vector3 slotUp = targetSlotWorldRot * Vector3.up;

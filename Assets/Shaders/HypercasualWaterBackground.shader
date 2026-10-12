@@ -208,13 +208,13 @@ Shader "PixelGame/HypercasualWaterBackground"
 
                 half4 texCol = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, finalUV);
 
-                // Kum / Beach alanını açma ayarı (Lighter Beach Sand)
+                // Zemin (Ground) alanını tonlama / açma ayarı (Off-White Leaning Gray)
                 float sandFactor = (1.0 - waterMask);
                 if (sandFactor > 0.01 && (_SandBrightness != 1.0 || _SandLighten > 0.001))
                 {
-                    half3 lightSand = texCol.rgb * _SandBrightness;
-                    lightSand = lerp(lightSand, half3(1.0, 0.98, 0.95), _SandLighten * 0.35);
-                    texCol.rgb = lerp(texCol.rgb, lightSand, sandFactor);
+                    half3 lightGround = texCol.rgb * _SandBrightness;
+                    lightGround = lerp(lightGround, half3(0.96, 0.97, 0.985), _SandLighten);
+                    texCol.rgb = lerp(texCol.rgb, lightGround, sandFactor);
                 }
 
                 // Su alanını koyulaştırma ve gemileri ön plana çıkarma (Darker & Deeper Tropical Ocean Water)

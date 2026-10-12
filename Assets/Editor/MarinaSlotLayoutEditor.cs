@@ -58,6 +58,10 @@ namespace PixelGame.Editor
                 EditorGUILayout.BeginHorizontal();
                 string activeStatus = layout.SlotCount == currentTabCount ? "🟢 Sahnede Aktif" : $"⚪ Sahne şu an: {layout.SlotCount} Slot";
                 EditorGUILayout.LabelField(activeStatus, EditorStyles.miniLabel);
+                EditorGUILayout.LabelField($"🔒 {layout.OpenSlotCount} Açık / {layout.ClosedSlotCount} Kilitli", EditorStyles.boldLabel, GUILayout.Width(130));
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.BeginHorizontal();
 
                 if (layout.SlotCount != currentTabCount)
                 {
@@ -82,6 +86,7 @@ namespace PixelGame.Editor
 
                 if (configProp != null)
                 {
+                    SerializedProperty rowOffsetXProp = configProp.FindPropertyRelative("RowOffsetX");
                     SerializedProperty rowOffsetYProp = configProp.FindPropertyRelative("RowOffsetY");
                     SerializedProperty rowOffsetZProp = configProp.FindPropertyRelative("RowOffsetZ");
                     SerializedProperty pierMatProp = configProp.FindPropertyRelative("PierMaterial");
@@ -99,6 +104,10 @@ namespace PixelGame.Editor
 
                     // 1. Kıyı Yerleşimi
                     EditorGUILayout.LabelField($"🏖️ {currentTabCount} Slot Kıyı & Sahil Yerleşimi", EditorStyles.boldLabel);
+                    if (rowOffsetXProp != null)
+                    {
+                        EditorGUILayout.Slider(rowOffsetXProp, -1.0f, 1.0f, new GUIContent("↔️ Sahil Yatay Hizalama (RowOffsetX)", "Tüm slot şeridinin yatay konumu (iskele babaları arasına tam ortalama)."));
+                    }
                     EditorGUILayout.Slider(rowOffsetYProp, -4.0f, 0.0f, new GUIContent("↕️ Sahil Kıyı Yüksekliği (RowOffsetY)", "Tüm slot şeridinin Y yüksekliği (Kumsal çizgisine oturma seviyesi)."));
                     EditorGUILayout.Slider(rowOffsetZProp, -1.0f, 1.0f, new GUIContent("↔️ Kıyı Derinliği (RowOffsetZ)", "Slot şeridinin Z derinliği."));
 
@@ -181,6 +190,19 @@ namespace PixelGame.Editor
                 EditorGUILayout.Slider(arcFanProp, -10f, 10f, new GUIContent("🪭 Açı Yelpazesi"));
                 EditorGUILayout.PropertyField(fitToScreenProp, new GUIContent("📱 Ekrana Sığdır (Fit to Screen)"));
                 EditorGUILayout.IntSlider(slotCountProp, 1, 8, new GUIContent("⚓ Sahnedeki Aktif Slot Sayısı"));
+
+                EditorGUILayout.Space(6);
+                EditorGUILayout.LabelField("🔒 Kapalı / Kilitli Slot Çerçevesi (Locked Bay Marker)", EditorStyles.boldLabel);
+                SerializedProperty barrierMatProp = serializedObject.FindProperty("m_LockedBarrierMaterial");
+                SerializedProperty barrierWProp = serializedObject.FindProperty("m_LockedBarrierWidth");
+                SerializedProperty barrierHProp = serializedObject.FindProperty("m_LockedBarrierHeight");
+                SerializedProperty barrierOffYProp = serializedObject.FindProperty("m_LockedBarrierOffsetY");
+
+                if (barrierMatProp != null) EditorGUILayout.PropertyField(barrierMatProp, new GUIContent("🎨 Çerçeve Materyali"));
+                if (barrierWProp != null) EditorGUILayout.Slider(barrierWProp, 0.5f, 2.5f, new GUIContent("↔️ Çerçeve Genişliği"));
+                if (barrierHProp != null) EditorGUILayout.Slider(barrierHProp, 0.5f, 2.5f, new GUIContent("↕️ Çerçeve Yüksekliği / Boyu"));
+                if (barrierOffYProp != null) EditorGUILayout.Slider(barrierOffYProp, -1f, 1f, new GUIContent("📍 Dikey Y Ofseti"));
+
                 EditorGUI.indentLevel--;
             }
 

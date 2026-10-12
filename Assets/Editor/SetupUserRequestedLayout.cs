@@ -16,7 +16,7 @@ namespace PixelGame.Editor
             EditorApplication.delayCall += () =>
             {
                 if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;
-                string key = "SetupUserRequestedLayout_Applied_v1";
+                string key = "SetupUserRequestedLayout_Applied_v2";
                 if (!SessionState.GetBool(key, false))
                 {
                     SessionState.SetBool(key, true);

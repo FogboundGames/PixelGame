@@ -323,16 +323,26 @@ namespace PixelGame.Editor
             levelCapRt.anchorMax = new Vector2(0.5f, 1f);
             levelCapRt.pivot = new Vector2(0.5f, 1f);
             levelCapRt.anchoredPosition = new Vector2(0f, -80f);
-            levelCapRt.sizeDelta = new Vector2(400f, 145f);
+            levelCapRt.sizeDelta = new Vector2(300f, 105.6f); // butonların görünen yüksekliği (96 x 1.1)
             levelCapRt.localScale = Vector3.one;
 
+            // Butonlarla aynı lacivert zemin (metinsiz, 9-slice) üstüne düz metin
             Image levelCapImg = levelCapsuleGo.GetComponent<Image>();
-            Sprite capSprite = LoadSprite("bg_level_marine");
-            if (capSprite == null) capSprite = LoadSprite("bg_level_ref");
-            if (capSprite == null) capSprite = LoadSprite("bg_level_capsule");
-            if (capSprite != null) levelCapImg.sprite = capSprite;
+            Sprite capSprite = LoadSprite("btn_marine_blank");
+            if (capSprite != null)
+            {
+                levelCapImg.sprite = capSprite;
+                levelCapImg.type = Image.Type.Sliced;
+                levelCapImg.pixelsPerUnitMultiplier = 4.8f; // köşe yarıçapı butonlarınkiyle aynı
+                levelCapImg.preserveAspect = false;
+            }
+            else
+            {
+                capSprite = LoadSprite("bg_level_marine");
+                if (capSprite != null) levelCapImg.sprite = capSprite;
+                levelCapImg.preserveAspect = true;
+            }
             levelCapImg.color = Color.white;
-            levelCapImg.preserveAspect = true;
             levelCapImg.raycastTarget = false;
 
             GameObject levelTextGo = new GameObject("LevelText", typeof(RectTransform));

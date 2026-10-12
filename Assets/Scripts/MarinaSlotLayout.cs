@@ -15,6 +15,9 @@ namespace PixelGame
         public int SlotCount = 5;
 
         [Header("🏖️ Kıyı / Sahil Konumu (Shore Placement)")]
+        [Tooltip("Tüm slot şeridinin yatay X eksenindeki ofseti (rıhtım babaları arasına tam ortalama).")]
+        public float RowOffsetX = 0.042f;
+
         [Tooltip("Tüm slot şeridinin Y eksenindeki kıyı yüksekliği (kumsal çizgisine oturma).")]
         public float RowOffsetY = -2.20f;
 
@@ -121,6 +124,23 @@ namespace PixelGame
         [Tooltip("Simidin köpüğüyle birlikte görünen genişliği / slot genişliği (ölçülen: ~1.51).")]
         [SerializeField] private float m_BuoyVisualWidthRatio = 1.51f;
 
+        [Header("🪵 Arka Plan Babalarına Hizalama")]
+        [Tooltip("Slot aralığını arka plan dokusundaki babalar arası mesafeden (BaySpacingPx) hesaplar; " +
+                 "arka plan ekrana gerildiği için her en-boy oranında slotlar babaların tam ortasına oturur.")]
+        [SerializeField] private bool m_MatchBackgroundBays = true;
+        [Tooltip("Yanaşma görselinin genişliği / babalar arası mesafe. ~0.72 iki babanın arasını değmeden doldurur.")]
+        [Range(0.4f, 1f)]
+        [SerializeField] private float m_BayFillRatio = 0.82f;
+        [Tooltip("Arka plan dokusunda sıranın ortasının X pikseli (3 slotta orta boşluk, 4 slotta orta baba).")]
+        [SerializeField] private float m_BayCenterPx = 541f;
+        [Tooltip("Arka plan dokusunda yanaşma görselinin merkezinin üstten Y pikseli (iskele tahtasının hemen altı, babaların arası). " +
+                 "Büyütünce slotlar aşağı iner.")]
+        [SerializeField] private float m_BayCenterYPx = 1353f;
+        [Tooltip("Arka plan görselinin orijinal piksel boyutu (yukarıdaki piksel değerleri buna göre). Import sonrası doku boyutu farklı olabilir.")]
+        [SerializeField] private Vector2 m_BackgroundSourceSizePx = new Vector2(1080f, 1920f);
+
+        private Vector2 m_LastBackgroundSize;
+
         [Header("🫧 Slot Görseli (Köpük Halkası)")]
         [Tooltip("Slot görselini (can simidi / köpük) gizler; görsel arka plandaki ahşap iskele ve babalar (posts) kullanılır.")]
         [SerializeField] private bool m_HideSlotIndicators = true;
@@ -135,6 +155,66 @@ namespace PixelGame
         [Tooltip("Son slot dışındaki slotların görseli (ör. sağ kolu kesilmiş iskele): sağ komşunun sol kolu birleşme yerini kapatır, " +
                  "böylece yan yana slotlar tek parça iskele gibi görünür. Boşsa hepsi m_SlotVisualMaterial kullanır.")]
         [SerializeField] private Material m_SlotVisualMaterialJoined;
+
+        [Header("🟦 Açık Slot Görseli (İç Kesikli Alan)")]
+        [Tooltip("Açık slotlarda slot_berth görselinin yalnızca iç kısmı (kesikli çerçeve + yumuşak dolgu) kullanılır; " +
+                 "babalar ve tamponlar olmadan. Açıkken Indicator gösterilmez.")]
+        [SerializeField] private bool m_UseInnerBerthVisual = true;
+        [SerializeField] private Material m_SlotBerthInnerMaterial;
+        [Tooltip("Açık slot görselinin boy çarpanı (Slot Berth Length × bu). Kilitli slotları etkilemez.")]
+        [Range(0.5f, 3f)]
+        [SerializeField] private float m_OpenBerthLengthScale = 1.65f;
+
+        [Header("⛔ Kapalı Slot Görseli")]
+        [Tooltip("Kapalı bölmelerde asma kilit yerine açık slotla aynı boyutta, koyu dolgulu ve çapraz çizgili soluk slot gösterilir.")]
+        [SerializeField] private bool m_UseClosedSlotVisual = true;
+        [SerializeField] private Material m_SlotBerthClosedMaterial;
+
+        [Header("🟨 Açık Slot Görseli (Indicator)")]
+        [Tooltip("Açık slotlarda kesikli mavi kutu yerine slotun altındaki IndicatorMesh (Kenney indicator-square-b) gösterilir.")]
+        [SerializeField] private bool m_UseIndicatorMeshVisual = true;
+        [Tooltip("Indicator rengi; düşük alfa eski slotlar gibi yumuşak, yarı saydam görünüm verir.")]
+        [SerializeField] private Color m_IndicatorColor = new Color(1f, 1f, 1f, 0.5f);
+        [Tooltip("Indicator'ın kalınlık (yükseklik) çarpanı. Küçük değer çerçeveyi suya yapışık, ince gösterir.")]
+        [Range(0.02f, 1f)]
+        [SerializeField] private float m_IndicatorHeightScale = 0.1f;
+
+        [NonSerialized] private Material m_IndicatorRuntimeMaterial;
+
+        [Header("🛥️ Su Üstü Yanaşma Slotu (Floating Berth Slip)")]
+        [Tooltip("İskele parmakları arasına yerleştirilen 3B yüzer yanaşma slotu materyali.")]
+        [SerializeField] private Material m_SlotBerthMaterial;
+
+        [Tooltip("Yüzer yanaşma slotu XZ düzlem 3B mesh'i.")]
+        [SerializeField] private Mesh m_SlotBerthMesh;
+
+        [Tooltip("Yüzer yanaşma slotunun genişliği (tahta babalar arasına tam oturan genişlik).")]
+        [SerializeField] private float m_SlotBerthWidth = 0.98f;
+
+        [Tooltip("Yüzer yanaşma slotunun uzunluğu (Z ekseni).")]
+        [SerializeField] private float m_SlotBerthLength = 1.20f;
+
+        [Tooltip("Yüzer yanaşma slotunun su yüzeyinden dikey yüksekliği.")]
+        [SerializeField] private float m_SlotBerthOffsetY = 0.015f;
+
+        [Tooltip("Yüzer yanaşma slotunun Z eksenindeki konumu (iskele kıyısına oturma).")]
+        [SerializeField] private float m_SlotBerthOffsetZ = 0.15f;
+
+        [Header("🔒 Kapalı / Kilitli Slot Görseli (Locked Bay Marker)")]
+        [Tooltip("Bölümde kilitli olan bölmelere konulan kilitli slot çerçevesi ve asma kilit (🔒) materyali.")]
+        [SerializeField] private Material m_LockedBarrierMaterial;
+
+        [Tooltip("Kapalı slot çerçevesinin genişliği.")]
+        [SerializeField] private float m_LockedBarrierWidth = 0.98f;
+
+        [Tooltip("Kapalı slot çerçevesinin yüksekliği / boyu.")]
+        [SerializeField] private float m_LockedBarrierHeight = 0.98f;
+
+        [Tooltip("Kapalı slot çerçevesinin dikey Y ofseti.")]
+        [SerializeField] private float m_LockedBarrierOffsetY = 0.0f;
+
+        [Tooltip("Kapalı slot çerçevesinin derinlik Z ofseti.")]
+        [SerializeField] private float m_LockedBarrierOffsetZ = 0.02f;
 
         [Header("🪵 Kavisli İskele (Curved Marina Pier Visual)")]
         [Tooltip("Kavisli ahşap iskele modelini (eski dairesel koy için) aktif eder. Yeni düz iskeleli arka planda false olmalıdır.")]
@@ -367,6 +447,42 @@ namespace PixelGame
             }
         }
 
+        public Material SlotBerthMaterial
+        {
+            get => m_SlotBerthMaterial;
+            set { m_SlotBerthMaterial = value; ApplyLayout(); }
+        }
+
+        public Mesh SlotBerthMesh
+        {
+            get => m_SlotBerthMesh;
+            set { m_SlotBerthMesh = value; ApplyLayout(); }
+        }
+
+        public float SlotBerthWidth
+        {
+            get => m_SlotBerthWidth;
+            set { m_SlotBerthWidth = value; ApplyLayout(); }
+        }
+
+        public float SlotBerthLength
+        {
+            get => m_SlotBerthLength;
+            set { m_SlotBerthLength = value; ApplyLayout(); }
+        }
+
+        public float SlotBerthOffsetY
+        {
+            get => m_SlotBerthOffsetY;
+            set { m_SlotBerthOffsetY = value; ApplyLayout(); }
+        }
+
+        public float SlotBerthOffsetZ
+        {
+            get => m_SlotBerthOffsetZ;
+            set { m_SlotBerthOffsetZ = value; ApplyLayout(); }
+        }
+
         public float ArcCurveY
         {
             get => m_UsePerCountSettings ? GetConfig(m_SlotCount).ArcCurveY : m_ArcCurveY;
@@ -394,6 +510,40 @@ namespace PixelGame
         {
             get => m_SlotCount;
             set => SetSlotCount(value);
+        }
+
+        public int OpenSlotCount => m_SlotCount;
+        public int TotalBaysCount => (m_SlotCount % 2 != 0) ? 5 : 6;
+        public int ClosedSlotCount => Mathf.Max(0, TotalBaysCount - OpenSlotCount);
+
+        public Material LockedBarrierMaterial
+        {
+            get => m_LockedBarrierMaterial;
+            set { m_LockedBarrierMaterial = value; ApplyLayout(); }
+        }
+
+        public float LockedBarrierWidth
+        {
+            get => m_LockedBarrierWidth;
+            set { m_LockedBarrierWidth = value; ApplyLayout(); }
+        }
+
+        public float LockedBarrierHeight
+        {
+            get => m_LockedBarrierHeight;
+            set { m_LockedBarrierHeight = value; ApplyLayout(); }
+        }
+
+        public float LockedBarrierOffsetY
+        {
+            get => m_LockedBarrierOffsetY;
+            set { m_LockedBarrierOffsetY = value; ApplyLayout(); }
+        }
+
+        public float LockedBarrierOffsetZ
+        {
+            get => m_LockedBarrierOffsetZ;
+            set { m_LockedBarrierOffsetZ = value; ApplyLayout(); }
         }
 
         public void SetCurvedPierMaterials(Material mat4, Material mat5, Material mat3)
@@ -436,6 +586,7 @@ namespace PixelGame
             {
                 m_Config3Slots = new MarinaSlotCountConfig(3)
                 {
+                    RowOffsetX = 0.042f, // Rıhtım babaları arasına tam ortalayan X ofseti
                     RowOffsetY = -5.40f, // Arka plandaki ahşap iskele ve babalar seviyesi (rıhtımın tam kıyısı)
                     RowOffsetZ = 0.05f,
                     PierWidth = m_PierWidth3Slots > 0.01f ? m_PierWidth3Slots : 7.2f,
@@ -446,7 +597,7 @@ namespace PixelGame
                     BaySlotOffsetY = 0f,
                     ArcCurveY = 0f,
                     SlotAngle = 0f,
-                    SlotWidth = m_SlotWidth > 0.01f ? m_SlotWidth : 1.05f,
+                    SlotWidth = m_SlotWidth > 0.01f ? m_SlotWidth : 1.00f,
                     SlotLength = m_SlotLength > 0.01f ? m_SlotLength : 1.55f,
                     LegacySpacing = 1.454f,
                     PierMaterial = m_PierMaterial3Slots
@@ -458,6 +609,7 @@ namespace PixelGame
             {
                 m_Config4Slots = new MarinaSlotCountConfig(4)
                 {
+                    RowOffsetX = 0.025f,
                     RowOffsetY = -5.40f, // Düz iskele hizası (rıhtımın tam kıyısı)
                     RowOffsetZ = 0.05f,
                     PierWidth = m_PierWidth4Slots > 0.01f ? m_PierWidth4Slots : 8.1f,
@@ -468,7 +620,7 @@ namespace PixelGame
                     BaySlotOffsetY = 0f,
                     ArcCurveY = 0f,
                     SlotAngle = 0f,
-                    SlotWidth = m_SlotWidth > 0.01f ? m_SlotWidth : 1.05f,
+                    SlotWidth = m_SlotWidth > 0.01f ? m_SlotWidth : 1.00f,
                     SlotLength = m_SlotLength > 0.01f ? m_SlotLength : 1.55f,
                     LegacySpacing = 1.454f,
                     PierMaterial = m_PierMaterial4Slots
@@ -480,6 +632,7 @@ namespace PixelGame
             {
                 m_Config5Slots = new MarinaSlotCountConfig(5)
                 {
+                    RowOffsetX = 0.042f,
                     RowOffsetY = -5.40f, // 5 adet ahşap babaya tam oturan Y seviyesi
                     RowOffsetZ = 0.05f,
                     PierWidth = m_PierWidth5Slots > 0.01f ? m_PierWidth5Slots : 8.55f,
@@ -490,7 +643,7 @@ namespace PixelGame
                     BaySlotOffsetY = 0f,
                     ArcCurveY = 0f,
                     SlotAngle = 0f,
-                    SlotWidth = m_SlotWidth > 0.01f ? m_SlotWidth : 1.05f,
+                    SlotWidth = m_SlotWidth > 0.01f ? m_SlotWidth : 1.00f,
                     SlotLength = m_SlotLength > 0.01f ? m_SlotLength : 1.55f,
                     LegacySpacing = 1.454f,
                     PierMaterial = m_PierMaterial5Slots
@@ -498,6 +651,14 @@ namespace PixelGame
             }
 
 #if UNITY_EDITOR
+            if (m_SlotBerthMaterial == null)
+                m_SlotBerthMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Marina/Slot_Berth_Mat.mat");
+            if (m_SlotBerthClosedMaterial == null)
+                m_SlotBerthClosedMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Marina/Slot_Berth_Closed_Mat.mat");
+            if (m_SlotBerthInnerMaterial == null)
+                m_SlotBerthInnerMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Marina/Slot_Berth_Inner_Mat.mat");
+            if (m_SlotBerthMesh == null)
+                m_SlotBerthMesh = UnityEditor.AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes/Marina/Slot_Berth_Quad.asset");
             if (m_Background3Slots == null)
                 m_Background3Slots = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Kenney/BeachBackground_3Slots.png");
             if (m_Background4Slots == null)
@@ -508,6 +669,8 @@ namespace PixelGame
                 m_Config4Slots.PierMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Marina/Pier_Curved_4Slots_Mat.mat");
             if (m_Config5Slots.PierMaterial == null)
                 m_Config5Slots.PierMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Marina/Pier_Curved_5Slots_Mat.mat");
+            if (m_LockedBarrierMaterial == null)
+                m_LockedBarrierMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Marina/Slot_Locked_Barrier_Mat.mat");
 #endif
         }
 
@@ -520,6 +683,7 @@ namespace PixelGame
             {
                 m_Config3Slots = new MarinaSlotCountConfig(3)
                 {
+                    RowOffsetX = 0.042f,
                     RowOffsetY = -5.40f,
                     RowOffsetZ = 0.05f,
                     PierWidth = 7.2f,
@@ -530,7 +694,7 @@ namespace PixelGame
                     BaySlotOffsetY = 0f,
                     ArcCurveY = 0f,
                     SlotAngle = 0f,
-                    SlotWidth = 1.05f,
+                    SlotWidth = 1.00f,
                     SlotLength = 1.55f,
                     LegacySpacing = 1.454f,
                     PierMaterial = m_PierMaterial3Slots
@@ -541,6 +705,7 @@ namespace PixelGame
             {
                 m_Config4Slots = new MarinaSlotCountConfig(4)
                 {
+                    RowOffsetX = 0.025f,
                     RowOffsetY = -5.40f,
                     RowOffsetZ = 0.05f,
                     PierWidth = 8.1f,
@@ -551,7 +716,7 @@ namespace PixelGame
                     BaySlotOffsetY = 0f,
                     ArcCurveY = 0f,
                     SlotAngle = 0f,
-                    SlotWidth = 1.05f,
+                    SlotWidth = 1.00f,
                     SlotLength = 1.55f,
                     LegacySpacing = 1.454f,
                     PierMaterial = m_PierMaterial4Slots
@@ -562,6 +727,7 @@ namespace PixelGame
             {
                 m_Config5Slots = new MarinaSlotCountConfig(5)
                 {
+                    RowOffsetX = 0.042f,
                     RowOffsetY = -5.40f,
                     RowOffsetZ = 0.05f,
                     PierWidth = 8.55f,
@@ -572,7 +738,7 @@ namespace PixelGame
                     BaySlotOffsetY = 0f,
                     ArcCurveY = 0f,
                     SlotAngle = 0f,
-                    SlotWidth = 1.05f,
+                    SlotWidth = 1.00f,
                     SlotLength = 1.55f,
                     LegacySpacing = 1.454f,
                     PierMaterial = m_PierMaterial5Slots
@@ -594,11 +760,19 @@ namespace PixelGame
             EnsureConfigsInitialized();
             PixelArtGenerator.LevelLoaded -= OnLevelLoaded;
             PixelArtGenerator.LevelLoaded += OnLevelLoaded;
+#if UNITY_EDITOR
+            // Edit modunda Update yalnızca sahne değişince çalışır; Game view yeniden boyutlanınca da hizala
+            UnityEditor.EditorApplication.update -= Update;
+            if (!Application.isPlaying) UnityEditor.EditorApplication.update += Update;
+#endif
         }
 
         private void OnDisable()
         {
             PixelArtGenerator.LevelLoaded -= OnLevelLoaded;
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.update -= Update;
+#endif
         }
 
         private void Start()
@@ -699,6 +873,50 @@ namespace PixelGame
             ApplyLayout();
         }
 
+        private static Mesh s_BerthQuadMesh;
+
+        private static Mesh GetBerthQuadMesh()
+        {
+            if (s_BerthQuadMesh != null && s_BerthQuadMesh.vertexCount == 4) return s_BerthQuadMesh;
+
+#if UNITY_EDITOR
+            s_BerthQuadMesh = UnityEditor.AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes/Marina/Slot_Berth_Quad.asset");
+            if (s_BerthQuadMesh != null && s_BerthQuadMesh.vertexCount == 4) return s_BerthQuadMesh;
+#endif
+
+            s_BerthQuadMesh = new Mesh { name = "Slot_Berth_Quad" };
+            s_BerthQuadMesh.vertices = new Vector3[]
+            {
+                new Vector3(-0.5f, 0f, -0.5f), // 0: sol-alt (açık su / giriş)
+                new Vector3( 0.5f, 0f, -0.5f), // 1: sağ-alt (açık su / giriş)
+                new Vector3(-0.5f, 0f,  0.5f), // 2: sol-üst (kumsal / rıhtım)
+                new Vector3( 0.5f, 0f,  0.5f)  // 3: sağ-üst (kumsal / rıhtım)
+            };
+            s_BerthQuadMesh.uv = new Vector2[]
+            {
+                new Vector2(0f, 0f),
+                new Vector2(1f, 0f),
+                new Vector2(0f, 1f),
+                new Vector2(1f, 1f)
+            };
+            s_BerthQuadMesh.triangles = new int[] { 0, 2, 1, 2, 3, 1 };
+            s_BerthQuadMesh.normals = new Vector3[] { Vector3.up, Vector3.up, Vector3.up, Vector3.up };
+            s_BerthQuadMesh.RecalculateBounds();
+
+#if UNITY_EDITOR
+            if (!System.IO.File.Exists("Assets/Meshes/Marina/Slot_Berth_Quad.asset"))
+            {
+                if (!UnityEditor.AssetDatabase.IsValidFolder("Assets/Meshes/Marina"))
+                {
+                    if (!UnityEditor.AssetDatabase.IsValidFolder("Assets/Meshes")) UnityEditor.AssetDatabase.CreateFolder("Assets", "Meshes");
+                    UnityEditor.AssetDatabase.CreateFolder("Assets/Meshes", "Marina");
+                }
+                UnityEditor.AssetDatabase.CreateAsset(s_BerthQuadMesh, "Assets/Meshes/Marina/Slot_Berth_Quad.asset");
+            }
+#endif
+            return s_BerthQuadMesh;
+        }
+
         private static Mesh s_PierQuadMesh;
 
         private static Mesh GetPierQuadMesh()
@@ -770,10 +988,11 @@ namespace PixelGame
             if (count == 0) return;
 
             MarinaSlotCountConfig cfg = m_UsePerCountSettings ? GetConfig(count) : null;
+            float rowOffsetX = cfg != null ? cfg.RowOffsetX : 0.042f;
             float rowOffsetY = cfg != null ? cfg.RowOffsetY : m_OffsetY;
             float rowOffsetZ = cfg != null ? cfg.RowOffsetZ : m_OffsetZ;
 
-            transform.localPosition = new Vector3(transform.localPosition.x, rowOffsetY, rowOffsetZ);
+            transform.localPosition = new Vector3(rowOffsetX, rowOffsetY, rowOffsetZ);
 
             if (m_EnableCurvedPier)
             {
@@ -888,6 +1107,18 @@ namespace PixelGame
                 {
                     foamSlot.gameObject.SetActive(false);
                 }
+                Transform berth = tr.Find("[Slot_Berth]");
+                if (berth != null && berth.gameObject.activeSelf)
+                {
+                    berth.gameObject.SetActive(false);
+                }
+            }
+
+            var existingBarriers = GetComponentsInChildren<MarinaLockedSlotBarrier>(true);
+            for (int b = 0; b < existingBarriers.Length; b++)
+            {
+                if (existingBarriers[b] != null && existingBarriers[b].gameObject.activeSelf)
+                    existingBarriers[b].gameObject.SetActive(false);
             }
         }
 
@@ -905,16 +1136,31 @@ namespace PixelGame
             float arcCurveY = cfg != null ? cfg.ArcCurveY : m_ArcCurveY;
             float slotAngle = cfg != null ? cfg.SlotAngle : m_SlotAngle;
 
-            // Sıra ekrana sığmıyorsa aralık ve slot boyutu birlikte küçülür
             float fit = 1f;
-            Camera fitCam = Camera.main;
-            if (m_FitToScreenWidth && fitCam != null && fitCam.orthographic)
+            float spacing;
+            float baySpacingPx = cfg != null && cfg.BaySpacingPx > 1f ? cfg.BaySpacingPx : 174f;
+            BackgroundFrame bgFrame = default;
+            bool matchBays = m_MatchBackgroundBays && TryGetBackgroundFrame(out bgFrame);
+            if (matchBays)
             {
-                float available = 2f * fitCam.orthographicSize * fitCam.aspect - 2f * m_ScreenEdgeMargin;
-                float needed = (count - 1) * rawSpacing + slotWidth;
-                if (needed > available && needed > 0.001f) fit = Mathf.Max(0.5f, available / needed);
+                // Aralık babalara kilitlenir; slot görseli de iki baba arasındaki boşluğu dolduracak kadar ölçeklenir
+                float scaleX = Mathf.Max(0.0001f, Mathf.Abs(transform.lossyScale.x));
+                spacing = bgFrame.PxToWorldX(baySpacingPx) / scaleX;
+                float berthWidth = m_SlotBerthWidth > 0.001f ? m_SlotBerthWidth : 0.98f;
+                fit = m_BayFillRatio * spacing / berthWidth;
             }
-            float spacing = rawSpacing * fit;
+            else
+            {
+                // Sıra ekrana sığmıyorsa aralık ve slot boyutu birlikte küçülür
+                Camera fitCam = Camera.main;
+                if (m_FitToScreenWidth && fitCam != null && fitCam.orthographic)
+                {
+                    float available = 2f * fitCam.orthographicSize * fitCam.aspect - 2f * m_ScreenEdgeMargin;
+                    float needed = (count - 1) * rawSpacing + slotWidth;
+                    if (needed > available && needed > 0.001f) fit = Mathf.Max(0.5f, available / needed);
+                }
+                spacing = rawSpacing * fit;
+            }
             float startX = -(count - 1) * spacing * 0.5f;
 
             for (int i = 0; i < count; i++)
@@ -932,15 +1178,292 @@ namespace PixelGame
                 tr.rotation = baseSlotRot * Quaternion.Euler(0f, angle, 0f);
                 tr.localScale = new Vector3(slotWidth * fit, 1f, slotLength * fit);
 
-                // Slot görselleri (can simidi, köpük vb.) gizlenir;
-                // Arka plan görselindeki ahşap iskele ve babalar (kahverengi yerler) doğrudan slot olarak kullanılır.
+                // Eski slot görselleri (can simidi, köpük vb.) gizlenir
                 Transform foamSlot = tr.Find("FoamSlot");
                 if (foamSlot != null && foamSlot.gameObject.activeSelf) foamSlot.gameObject.SetActive(false);
                 Transform lifebuoy = tr.Find("[Slot_Lifebuoy]");
                 if (lifebuoy != null && lifebuoy.gameObject.activeSelf) lifebuoy.gameObject.SetActive(false);
                 Transform indicator = tr.Find("IndicatorMesh");
-                if (indicator != null && indicator.gameObject.activeSelf) indicator.gameObject.SetActive(false);
+                bool useIndicator = m_UseIndicatorMeshVisual && !m_UseInnerBerthVisual && indicator != null;
+                if (indicator != null && indicator.gameObject.activeSelf != useIndicator) indicator.gameObject.SetActive(useIndicator);
+
+                // 🛥️ Su Üstü Yanaşma Slotu (Floating Berth Slip)
+                Transform berthTr = tr.Find("[Slot_Berth]");
+                if (berthTr == null)
+                {
+                    GameObject bGo = new GameObject("[Slot_Berth]");
+                    bGo.transform.SetParent(tr, false);
+                    berthTr = bGo.transform;
+                }
+
+                if (!berthTr.gameObject.activeSelf) berthTr.gameObject.SetActive(true);
+
+                berthTr.localPosition = new Vector3(0f, m_SlotBerthOffsetY, m_SlotBerthOffsetZ);
+                berthTr.localRotation = Quaternion.identity;
+                float fitSlotWidth = slotWidth > 0.001f ? slotWidth : 1f;
+                float fitSlotLength = slotLength > 0.001f ? slotLength : 1.55f;
+                float openBerthLength = m_SlotBerthLength * (m_UseInnerBerthVisual ? m_OpenBerthLengthScale : 1f);
+                berthTr.localScale = new Vector3(m_SlotBerthWidth / fitSlotWidth, 1f, openBerthLength / fitSlotLength);
+
+                MeshFilter bMf = berthTr.GetComponent<MeshFilter>();
+                if (bMf == null) bMf = berthTr.gameObject.AddComponent<MeshFilter>();
+                Mesh bMesh = m_SlotBerthMesh != null ? m_SlotBerthMesh : GetBerthQuadMesh();
+                if (bMf.sharedMesh != bMesh) bMf.sharedMesh = bMesh;
+
+                MeshRenderer bMr = berthTr.GetComponent<MeshRenderer>();
+                if (bMr == null) bMr = berthTr.gameObject.AddComponent<MeshRenderer>();
+                Material berthMat = m_UseInnerBerthVisual && m_SlotBerthInnerMaterial != null ? m_SlotBerthInnerMaterial : m_SlotBerthMaterial;
+                if (berthMat != null && bMr.sharedMaterial != berthMat)
+                {
+                    bMr.sharedMaterial = berthMat;
+                }
+                bMr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                bMr.receiveShadows = false;
+                bMr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+                bMr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+                bMr.sortingOrder = 3;
+
+                var bBobbing = berthTr.GetComponent<MarinaBuoyBobbing>();
+                if (bBobbing == null) berthTr.gameObject.AddComponent<MarinaBuoyBobbing>();
+
+                // Açık slot görseli olarak indicator asset'i: kesikli kutunun yerini ve boyutunu alır
+                if (useIndicator)
+                {
+                    FitIndicatorToBerth(tr, indicator, berthTr.localPosition,
+                        m_SlotBerthWidth / fitSlotWidth, m_SlotBerthLength / fitSlotLength);
+                    if (berthTr.gameObject.activeSelf) berthTr.gameObject.SetActive(false);
+                }
             }
+
+            // -------------------------------------------------------------
+            // KAPALI / KİLİTLİ SLOT BÖLMELERİ (LOCKED BAY MARKERS WITH LOCK ICON)
+            // -------------------------------------------------------------
+            // Rıhtım iskelesindeki toplam bölme sayısı (tekil sayılarda 5 koy, çiftlerde 6 koy).
+            // Aktif slotların dışındaki bölmelere oyuncuya kilitli olduğunu net gösteren
+            // su üstü yanaşma slotu çerçevesi ve altın asma kilit (🔒) yerleştirilir.
+            int totalBays = (count % 2 != 0) ? 5 : 6;
+            if (count > totalBays) totalBays = count;
+
+            // Kapalı slotların görseli açık slotunkiyle aynı boy ve ofsette dursun
+            float closedBerthLength = m_SlotBerthLength * (m_UseInnerBerthVisual ? m_OpenBerthLengthScale : 1f);
+            Transform refSlot = activeSlots[0].transform;
+            Transform refBerth = refSlot.Find("[Slot_Berth]");
+            Vector3 openBerthOffsetWorld = refBerth != null ? refBerth.position - refSlot.position : Vector3.zero;
+
+            int startOpenBay = (totalBays - count) / 2;
+            int endOpenBay = startOpenBay + count - 1;
+
+            var existingBarriers = new List<MarinaLockedSlotBarrier>(GetComponentsInChildren<MarinaLockedSlotBarrier>(true));
+            int usedBarrierCount = 0;
+
+            ShipQueuePool qPool = UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
+            Quaternion barrierBaseRot = qPool != null ? qPool.transform.rotation : Quaternion.Euler(m_WaterTiltX, 0f, 0f);
+
+            for (int b = 0; b < totalBays; b++)
+            {
+                // Açık slot bölmeleri aktif gemi slotlarıdır, bariyer konulmaz
+                if (b >= startOpenBay && b <= endOpenBay) continue;
+
+                // Kapalı bölmenin konumu ve açısı
+                float bt = (totalBays % 2 != 0) ? (b - (totalBays / 2)) : (b - (totalBays - 1) * 0.5f);
+                float bayPosX = bt * spacing;
+                float bayPosY = arcCurveY * (bt * bt) + m_ArcAsymmetry * bt;
+                float bayAngle = slotAngle + m_ArcAngleFan * bt;
+
+                MarinaLockedSlotBarrier barrier = null;
+                if (usedBarrierCount < existingBarriers.Count)
+                {
+                    barrier = existingBarriers[usedBarrierCount++];
+                }
+                else
+                {
+                    GameObject bGo = new GameObject($"[Locked_Slot_Barrier_Bay_{b}]");
+                    bGo.transform.SetParent(transform, false);
+                    barrier = bGo.AddComponent<MarinaLockedSlotBarrier>();
+                    existingBarriers.Add(barrier);
+                    usedBarrierCount++;
+                }
+
+                barrier.gameObject.name = $"[Locked_Slot_Barrier_Bay_{b}]";
+                bool closedSlotLook = m_UseClosedSlotVisual && m_SlotBerthClosedMaterial != null;
+                barrier.Setup(
+                    b,
+                    m_LockedBarrierMaterial,
+                    GetPierQuadMesh(),
+                    closedSlotLook ? m_SlotBerthClosedMaterial : m_SlotBerthMaterial,
+                    m_SlotBerthMesh != null ? m_SlotBerthMesh : GetBerthQuadMesh(),
+                    m_LockedBarrierWidth * fit,
+                    m_LockedBarrierHeight * fit,
+                    m_SlotBerthWidth * fit,
+                    (closedSlotLook ? closedBerthLength : m_SlotBerthLength) * fit
+                );
+
+                Transform bTr = barrier.transform;
+                bTr.localPosition = new Vector3(bayPosX, bayPosY + m_LockedBarrierOffsetY, m_LockedBarrierOffsetZ);
+                bTr.rotation = barrierBaseRot * Quaternion.Euler(0f, bayAngle, 0f);
+                bTr.localScale = Vector3.one;
+
+                if (closedSlotLook)
+                {
+                    // Kilit rozeti yok; kapalı slot, açık slotla aynı yer ve boyutta ama koyu/çizgili görselle durur
+                    if (barrier.VisualTransform != null && barrier.VisualTransform.gameObject.activeSelf)
+                        barrier.VisualTransform.gameObject.SetActive(false);
+                    if (barrier.BerthTransform != null)
+                        barrier.BerthTransform.position = transform.TransformPoint(bayPosX, bayPosY, 0f) + openBerthOffsetWorld;
+                }
+
+                if (!barrier.gameObject.activeSelf)
+                {
+                    barrier.gameObject.SetActive(true);
+                }
+            }
+
+            // Fazla kalan kapalı slot bariyerlerini gizle
+            for (int i = usedBarrierCount; i < existingBarriers.Count; i++)
+            {
+                if (existingBarriers[i] != null && existingBarriers[i].gameObject.activeSelf)
+                {
+                    existingBarriers[i].gameObject.SetActive(false);
+                }
+            }
+
+            // Sıranın ortasını (yerel x=0) arka plandaki orta bölmeye, yanaşma görselini de babaların arasına oturt
+            if (matchBays)
+            {
+                Transform firstSlot = activeSlots[0].transform;
+                Transform firstBerth = firstSlot.Find("[Slot_Berth]");
+                Vector3 berthOffset = firstBerth != null ? firstBerth.position - firstSlot.position : Vector3.zero;
+                Vector3 rowVisualCenter = transform.position + berthOffset;
+                Vector3 target = bgFrame.PxToWorld(m_BayCenterPx, m_BayCenterYPx);
+                Vector3 delta = target - rowVisualCenter;
+                transform.position += bgFrame.Right * Vector3.Dot(delta, bgFrame.Right)
+                                    + bgFrame.Up * Vector3.Dot(delta, bgFrame.Up);
+            }
+        }
+
+        /// <summary>
+        /// Indicator modelini (FBX) slot yerel uzayında ölçüp, taban izi verilen genişlik/uzunluğa ve merkezi
+        /// yanaşma noktasına denk gelecek şekilde ölçekler ve konumlar.
+        /// </summary>
+        private void FitIndicatorToBerth(Transform slotTr, Transform indicator, Vector3 center, float width, float length)
+        {
+            indicator.localRotation = Quaternion.identity;
+            indicator.localPosition = center;
+            indicator.localScale = Vector3.one;
+
+            bool any = false;
+            Vector3 min = Vector3.positiveInfinity, max = Vector3.negativeInfinity;
+            foreach (MeshFilter mf in indicator.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (mf.sharedMesh == null) continue;
+                Bounds b = mf.sharedMesh.bounds;
+                for (int c = 0; c < 8; c++)
+                {
+                    Vector3 corner = b.center + Vector3.Scale(b.extents,
+                        new Vector3((c & 1) == 0 ? -1f : 1f, (c & 2) == 0 ? -1f : 1f, (c & 4) == 0 ? -1f : 1f));
+                    Vector3 p = slotTr.InverseTransformPoint(mf.transform.TransformPoint(corner));
+                    min = Vector3.Min(min, p);
+                    max = Vector3.Max(max, p);
+                    any = true;
+                }
+            }
+            if (!any) return;
+
+            Vector3 size = max - min;
+            if (size.x < 0.0001f || size.z < 0.0001f) return;
+            float sx = width / size.x;
+            float sz = length / size.z;
+            float sy = (sx + sz) * 0.5f * m_IndicatorHeightScale;
+            indicator.localScale = new Vector3(sx, sy, sz);
+
+            // Ölçek pivot etrafında uygulandı; modelin taban merkezini yanaşma noktasına kaydır
+            Vector3 meshCenter = (min + max) * 0.5f;
+            Vector3 scaledCenter = center + Vector3.Scale(meshCenter - center, new Vector3(sx, sy, sz));
+            Vector3 scaledBottom = center + Vector3.Scale(new Vector3(meshCenter.x, min.y, meshCenter.z) - center, new Vector3(sx, sy, sz));
+            indicator.localPosition = center + new Vector3(center.x - scaledCenter.x, center.y - scaledBottom.y, center.z - scaledCenter.z);
+
+            // Yumuşak, yarı saydam görünüm (eski kesikli slot gibi): ışıksız, şeffaf materyal
+            if (m_IndicatorRuntimeMaterial == null)
+            {
+                Shader s = Shader.Find("Sprites/Default");
+                if (s != null) m_IndicatorRuntimeMaterial = new Material(s) { name = "Slot_Indicator_Soft (Runtime)", hideFlags = HideFlags.DontSave };
+            }
+            if (m_IndicatorRuntimeMaterial != null) m_IndicatorRuntimeMaterial.color = m_IndicatorColor;
+
+            foreach (MeshRenderer r in indicator.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                if (m_IndicatorRuntimeMaterial != null && r.sharedMaterial != m_IndicatorRuntimeMaterial)
+                    r.sharedMaterial = m_IndicatorRuntimeMaterial;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                r.receiveShadows = false;
+                r.sortingOrder = 3;
+            }
+        }
+
+        /// <summary>Ekrana gerilmiş arka plan dokusunun piksel koordinatlarını dünya uzayına eşler.</summary>
+        private struct BackgroundFrame
+        {
+            public Vector3 BottomLeft;
+            public Vector3 AxisU;   // doku genişliği boyunca (soldan sağa)
+            public Vector3 AxisV;   // doku yüksekliği boyunca (alttan üste)
+            public Rect UV;
+            public float TexWidth;
+            public float TexHeight;
+            public Vector3 Right;
+            public Vector3 Up;
+
+            /// <summary>Dokuda soldan px, üstten py pikseldeki noktanın dünya konumu.</summary>
+            public Vector3 PxToWorld(float px, float pyFromTop)
+            {
+                float u = (px / TexWidth - UV.x) / UV.width;
+                float v = ((1f - pyFromTop / TexHeight) - UV.y) / UV.height;
+                return BottomLeft + AxisU * u + AxisV * v;
+            }
+
+            public float PxToWorldX(float px) => AxisU.magnitude * px / (TexWidth * UV.width);
+        }
+
+        private bool TryGetBackgroundFrame(out BackgroundFrame frame)
+        {
+            frame = default;
+            GameObject bgObj = GameObject.Find("BackgroundImage");
+            UnityEngine.UI.RawImage rawImg = bgObj != null ? bgObj.GetComponent<UnityEngine.UI.RawImage>() : null;
+            if (rawImg == null || rawImg.texture == null) return false;
+            if (rawImg.uvRect.width < 0.0001f || rawImg.uvRect.height < 0.0001f) return false;
+
+            Camera cam = rawImg.canvas != null && rawImg.canvas.worldCamera != null ? rawImg.canvas.worldCamera : Camera.main;
+            if (cam == null || !cam.orthographic) return false;
+
+            var corners = new Vector3[4];
+            rawImg.rectTransform.GetWorldCorners(corners); // 0: sol-alt, 1: sol-üst, 2: sağ-üst, 3: sağ-alt
+            Vector3 axisU = corners[3] - corners[0];
+            if (axisU.sqrMagnitude < 0.0001f) return false;
+
+            frame = new BackgroundFrame
+            {
+                BottomLeft = corners[0],
+                AxisU = axisU,
+                AxisV = corners[1] - corners[0],
+                UV = rawImg.uvRect,
+                // Import ayarı (NPOT -> ToNearest) dokuyu 1024x2048'e gerdiği için texture.width/height
+                // piksel ölçümleriyle uyuşmaz; ölçümler orijinal görsel boyutuna göre yapıldı.
+                TexWidth = m_BackgroundSourceSizePx.x > 1f ? m_BackgroundSourceSizePx.x : rawImg.texture.width,
+                TexHeight = m_BackgroundSourceSizePx.y > 1f ? m_BackgroundSourceSizePx.y : rawImg.texture.height,
+                Right = cam.transform.right,
+                Up = cam.transform.up
+            };
+            return true;
+        }
+
+        private void Update()
+        {
+            // Arka plan boyutu değişince (Game view / cihaz döndürme) babalara yeniden hizala
+            if (!m_MatchBackgroundBays || m_EnableCurvedPier) return;
+            if (!TryGetBackgroundFrame(out BackgroundFrame frame)) return;
+            Vector2 size = new Vector2(frame.AxisU.magnitude, frame.AxisV.magnitude);
+            if ((size - m_LastBackgroundSize).sqrMagnitude < 0.000001f) return;
+            m_LastBackgroundSize = size;
+            ApplyLayout();
         }
 
         public void UpdateBackgroundTexture(int count)

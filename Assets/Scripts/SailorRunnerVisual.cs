@@ -196,6 +196,20 @@ namespace PixelGame
             m_HasFacingOverride = true;
         }
 
+        /// <summary>
+        /// Yönü anında hedefe kilitler ve yumuşatma gecikmesini sıfırlar (ör. orta küp alma anında dönme/titreme olmasın).
+        /// </summary>
+        public void SnapFacing(Vector3 dir)
+        {
+            dir.z = 0f;
+            if (dir.sqrMagnitude < 1e-6f) return;
+            m_Facing = dir.normalized;
+            m_FacingOverride = m_Facing;
+            m_HasFacingOverride = true;
+            m_SmoothVel = Vector3.zero;
+            ApplyFacing(1f);
+        }
+
         public void ClearFacingOverride()
         {
             m_HasFacingOverride = false;
@@ -225,10 +239,17 @@ namespace PixelGame
             m_SmoothVel = Vector3.Lerp(m_SmoothVel, vel, 1f - Mathf.Exp(-dt / 0.08f));
             float sv = m_SmoothVel.magnitude;
             float unit = m_ModelPivot != null ? Mathf.Max(1e-4f, m_ModelPivot.lossyScale.y) : 1f;
-            if (m_HasFacingOverride) m_Facing = m_FacingOverride;
+            if (m_HasFacingOverride)
+            {
+                m_Facing = m_FacingOverride;
+                m_SmoothVel = Vector3.zero;
+            }
             // Çok yavaşken (durma/kalkış anı) yön güncellenmez: sıfıra yakın hızda yön titriyordu
-            else if (sv > 0.3f * unit) m_Facing = m_SmoothVel / sv;
-            ApplyFacing(1f - Mathf.Exp(-dt * m_TurnRate));
+            else if (sv > 0.3f * unit)
+            {
+                m_Facing = m_SmoothVel / sv;
+            }
+            ApplyFacing(m_HasFacingOverride ? 1f : (1f - Mathf.Exp(-dt * m_TurnRate)));
             FollowSocket();
             FollowRing();
 

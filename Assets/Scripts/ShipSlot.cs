@@ -43,7 +43,11 @@ namespace PixelGame
         {
             if (m_IndicatorTransform == null || !m_IndicatorTransform.gameObject.activeSelf)
             {
-                m_IndicatorTransform = transform.Find("[Slot_Lifebuoy]");
+                m_IndicatorTransform = transform.Find("[Slot_Berth]");
+                if (m_IndicatorTransform == null)
+                {
+                    m_IndicatorTransform = transform.Find("[Slot_Lifebuoy]");
+                }
                 if (m_IndicatorTransform == null)
                 {
                     m_IndicatorTransform = transform.Find("FoamSlot");

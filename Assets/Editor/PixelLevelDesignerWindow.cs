@@ -1306,8 +1306,10 @@ namespace PixelGame.Editor
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField($"Toplam Küp: {totalCubes}", EditorStyles.boldLabel, GUILayout.Width(130));
             EditorGUILayout.LabelField($"Renk: {colorCount}", EditorStyles.boldLabel, GUILayout.Width(90));
-            EditorGUILayout.LabelField($"Ray Slotu: {m_SelectedLevel.SlotCount}", EditorStyles.boldLabel, GUILayout.Width(95));
-            EditorGUILayout.LabelField($"Vagon: ~{reqWagons}", EditorStyles.boldLabel, GUILayout.Width(100));
+            int totalBaysHeader = (m_SelectedLevel.SlotCount % 2 != 0) ? 5 : 6;
+            int closedBaysHeader = Mathf.Max(0, totalBaysHeader - m_SelectedLevel.SlotCount);
+            EditorGUILayout.LabelField($"Slot: {m_SelectedLevel.SlotCount} Açık/{closedBaysHeader} Kilitli", EditorStyles.boldLabel, GUILayout.Width(145));
+            EditorGUILayout.LabelField($"Vagon: ~{reqWagons}", EditorStyles.boldLabel, GUILayout.Width(95));
 
             if (diffRep.valid)
             {
@@ -2057,14 +2059,18 @@ namespace PixelGame.Editor
                     NotifyLiveSceneUpdate();
                 }
 
-                int slots = DrawStepperRow("🛤️ Ray slotu", "Aynı anda yanaşabilen gemi sayısı. Az slot = daha zor.", m_SelectedLevel.SlotCount, 1, 8);
+                int slots = DrawStepperRow("⚓ Yanaşma Slotu", "Aynı anda yanaşabilen açık gemi slotu sayısı. Kalan bölmeler kilitli duba ve zincirle kapanır.", m_SelectedLevel.SlotCount, 1, 8);
                 if (slots != m_SelectedLevel.SlotCount)
                 {
-                    Undo.RecordObject(m_SelectedLevel, "Ray Slotu");
+                    Undo.RecordObject(m_SelectedLevel, "Yanaşma Slotu");
                     m_SelectedLevel.SlotCount = slots;
                     EditorUtility.SetDirty(m_SelectedLevel);
                     NotifyLiveSceneUpdate();
                 }
+
+                int totalBaysRow = (m_SelectedLevel.SlotCount % 2 != 0) ? 5 : 6;
+                int closedBaysRow = Mathf.Max(0, totalBaysRow - m_SelectedLevel.SlotCount);
+                EditorGUILayout.LabelField($"   ⚓ {m_SelectedLevel.SlotCount} Açık Slot / 🔒 {closedBaysRow} Kilitli Bölme (Toplam {totalBaysRow} Bölme)", EditorStyles.miniLabel);
             });
 
             DrawSequenceCard("🔢 Gemi Sayıları", wide, () =>
