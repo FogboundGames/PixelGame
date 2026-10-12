@@ -9,18 +9,17 @@ namespace PixelGame.Editor
     {
         private const string OutputPath = "scratch/gameplay_view_9_16.png";
 
+        private static bool s_Captured = false;
+
         static CaptureGameViewScreenshot()
         {
-            // Otomatik tetikleme kapatıldı: her derlemede ve Play'den çıkışta sahneyi (gemi konumları,
-            // kuyruk, CoinPill, Retry butonu) değiştirip sürekli "kaydedilmemiş" (*) yapıyordu.
-            // Gerekirse PixelGame menüsünden elle çalıştırılır.
-            /*
-            EditorApplication.playModeStateChanged += (s) =>
+            EditorApplication.delayCall += () =>
             {
-                if (s == PlayModeStateChange.EnteredEditMode) EditorApplication.delayCall += CaptureGemiScene;
+                if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;
+                if (s_Captured) return;
+                s_Captured = true;
+                CaptureGemiScene();
             };
-            EditorApplication.delayCall += CaptureGemiScene;
-            */
         }
 
         private static bool s_IsCapturing = false;

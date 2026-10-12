@@ -59,7 +59,7 @@ MonoBehaviour:
   m_SlotSprite: {fileID: 0}
   m_SlotCount: 3
   m_PoolColumns: 3
-  m_PoolRows: 2
+  m_PoolRows: 1
   m_DisableAutoPlaceTurbo: 1
   m_TruckCapacity: 16
   m_MinTruckCapacity: 4

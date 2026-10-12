@@ -2129,7 +2129,12 @@ namespace PixelGame
 
             for (int i = m_CubesContainer.childCount - 1; i >= 0; i--)
             {
-                Destroy(m_CubesContainer.GetChild(i).gameObject);
+                Transform child = m_CubesContainer.GetChild(i);
+                if (child != null)
+                {
+                    child.gameObject.SetActive(false);
+                    Destroy(child.gameObject);
+                }
             }
         }
 

@@ -82,7 +82,7 @@ namespace PixelGame
         {
             new ColumnLayoutPreset(1, 0.50f, 1.55f, 2.60f, -6.88f),
             new ColumnLayoutPreset(2, 0.472f, 1.55f, 2.60f, -6.88f),
-            new ColumnLayoutPreset(3, 0.354f, 1.48f, 2.30f, -7.40f),
+            new ColumnLayoutPreset(3, 0.380f, 1.48f, 2.30f, -6.80f),
             new ColumnLayoutPreset(4, 0.330f, 1.08f, 2.20f, -6.88f),
             new ColumnLayoutPreset(5, 0.295f, 0.82f, 2.48f, -8.15f),
             new ColumnLayoutPreset(6, 0.278f, 0.68f, 2.20f, -6.88f)
@@ -508,14 +508,14 @@ namespace PixelGame
         /// Seviyede özel gemi sırası (WagonSequence) varsa tam o sıra ve kapasiteler kullanılır;
         /// yoksa dinamik kilitlenmesiz renk ve kapasite algoritması devreye girer.
         /// </summary>
-        public void InitializeQueue()
+        public void InitializeQueue(bool force = false)
         {
             PixelLevelData level = GetActiveLevel();
             int targetCols = (level != null && level.PoolColumns > 0) ? level.PoolColumns : m_Columns;
             int targetRows = (level != null && level.PoolRows > 0) ? level.PoolRows : m_Rows;
 
             // Aynı frame içinde mükerrer çağrıları engelle (Start + LevelLoaded çakışması)
-            if (Application.isPlaying && m_LastInitFrame == Time.frameCount && m_LastInitLevel == level)
+            if (!force && Application.isPlaying && m_LastInitFrame == Time.frameCount && m_LastInitLevel == level)
             {
                 return;
             }
@@ -598,8 +598,11 @@ namespace PixelGame
             {
                 if (m_WaitingShips[i] != null)
                 {
-                    var shipGo = m_WaitingShips[i].gameObject;
-                    m_WaitingShips[i].transform.SetParent(null);
+                    var ship = m_WaitingShips[i];
+                    ship.StopAllCoroutines();
+                    ship.transform.DOKill(false);
+                    var shipGo = ship.gameObject;
+                    ship.transform.SetParent(null);
                     shipGo.SetActive(false);
 #if UNITY_EDITOR
                     if (!Application.isPlaying)

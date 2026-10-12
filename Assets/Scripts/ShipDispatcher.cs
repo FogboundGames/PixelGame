@@ -52,7 +52,7 @@ namespace PixelGame
         [Tooltip("Sahil sonundan gemiye doğru zıplama yayının yüksekliği (parabolik zıplama tepe noktası).")]
         [SerializeField] private float m_HopArcHeight = 0.48f;
         [Tooltip("Kıyı noktasının dünya Y'si (ship == null durumunda yedek).")]
-        [SerializeField] private float m_ShoreY = -2.88f;
+        [SerializeField] private float m_ShoreY = -3.25f;
         [Tooltip("Kıyı noktasının dünya Z'si (ship == null durumunda yedek).")]
         [SerializeField] private float m_ShoreZ = 0.07f;
         [Tooltip("Kumun suya değdiği kıyı çizgisi (dünya X,Y). Küpler bu çizgide, geminin en yakın noktasına kadar yürür ve oradan gemiye zıplar. Boşsa geminin hemen önü kullanılır.")]
@@ -60,11 +60,11 @@ namespace PixelGame
         [Tooltip("Kıyı noktasının kum tarafına (geminin tersine) ne kadar içeride olacağı (dünya birimi).")]
         [SerializeField] private float m_ShorelineInset = 0.05f;
 
-        // Yeni düz ahşap iskele kıyı şeridi (World Y = -3.20f)
+        // Yeni düz ahşap iskele kıyı şeridi (World Y = -3.25f)
         private static readonly Vector2[] s_DefaultShoreline = new Vector2[]
         {
-            new Vector2(-6.0f, -3.20f),
-            new Vector2( 6.0f, -3.20f)
+            new Vector2(-6.0f, -3.25f),
+            new Vector2( 6.0f, -3.25f)
         };
         [Tooltip("Boşsa panodaki küpün kendisi yürür. Bir prefab atanırsa (ör. Mixamo koşucusu MainCube_Running) küp yerinde gizlenir, yerine bu prefab küpün renginde yürür.")]
         [SerializeField] private GameObject m_CargoStandInPrefab;
@@ -83,7 +83,11 @@ namespace PixelGame
         {
             for (int i = m_LiveRunners.Count - 1; i >= 0; i--)
             {
-                if (m_LiveRunners[i] != null) Destroy(m_LiveRunners[i]);
+                if (m_LiveRunners[i] != null)
+                {
+                    m_LiveRunners[i].SetActive(false);
+                    Destroy(m_LiveRunners[i]);
+                }
             }
             m_LiveRunners.Clear();
         }
@@ -260,14 +264,18 @@ namespace PixelGame
             }
         }
 
-        private void OnLevelLoaded(PixelLevelData data)
+        /// <summary>
+        /// Seviye yeniden başlatılırken (Retry / Restart) tüm sahnede süren hareketleri,
+        /// koşucuları, kargo teslimatlarını ve durum sayaçlarını anında, temiz şekilde durdurur.
+        /// </summary>
+        public void PrepareForLevelReload()
         {
-            // Eski bölümden kalan işler (denizci indirme döngüleri, görevler, otomatik yerleştirme) yeni bölümde
-            // çalışmaya devam edip yeni bölümün küplerini alıyordu: hepsini durdur
             StopAllCoroutines();
             DestroyLiveRunners();
             m_PlayerSentShipCount = 0;
             m_IsLevelFailed = false;
+            m_LevelEndPending = false;
+            m_ShipsAwaitingDeparture = 0;
             m_DeadlockTimer = 0f;
             m_DeadlockCheckIntervalTimer = 0f;
             m_CachedDeadlockCondition = false;
@@ -275,10 +283,24 @@ namespace PixelGame
             m_IsAutoPlacing = false;
             m_BoardBoundsInitialized = false;
             m_RopeGates.Clear();
-            m_ActiveExtractingShips.Clear(); // önceki bölümden kalan çekim kayıtları yeni bölümün fail kontrolünü kilitlemesin
-            m_ActiveCargoFlightCount = 0;    // yarıda kalan uçuşlar sayacı şişirip kazanma kontrolünü sonsuza dek bekletmesin
+            m_ActiveExtractingShips.Clear();
+            m_ActiveCargoFlightCount = 0;
             s_ReservedCubes.Clear();
             m_GridFrameValid = false;
+
+            ClearDockedShips();
+            ClearShipsOutsideQueue();
+
+            if (m_QueuePool != null)
+            {
+                m_QueuePool.StopAllCoroutines();
+                m_QueuePool.ClearQueue();
+            }
+        }
+
+        private void OnLevelLoaded(PixelLevelData data)
+        {
+            PrepareForLevelReload();
             EnsureBoardBounds(forceRefresh: true);
             EnsureReferences();
             if (data != null)
@@ -291,11 +313,9 @@ namespace PixelGame
                 s_PaletteIndices.Clear();
                 EnsurePaletteInitialized();
             }
-            ClearDockedShips();
-            ClearShipsOutsideQueue();
             if (m_QueuePool != null)
             {
-                m_QueuePool.InitializeQueue();
+                m_QueuePool.InitializeQueue(force: true);
             }
         }
 
@@ -328,7 +348,7 @@ namespace PixelGame
             if (m_RopeSpeed < 0.6f) m_RopeSpeed = 2.0f;
 
             // Eğer m_Shoreline eski koordinatları taşıyorsa, düz ahşap iskele çizgisine otomatik güncelle:
-            if (m_Shoreline == null || m_Shoreline.Count < 2 || m_Shoreline[m_Shoreline.Count / 2].y > -2.0f)
+            if (m_Shoreline == null || m_Shoreline.Count < 2 || m_Shoreline[m_Shoreline.Count / 2].y < -3.5f || m_Shoreline[m_Shoreline.Count / 2].y > -3.0f)
             {
                 m_Shoreline = new List<Vector2>(s_DefaultShoreline);
                 m_ShorelineInset = 0.05f;
@@ -445,9 +465,15 @@ namespace PixelGame
                 if (waiting != null && waiting.Contains(ship)) continue;
                 // Kuyruk havuzunun altındaki (henüz sahneye girmemiş) gemiler de kuyruğa aittir
                 if (m_QueuePool != null && ship.transform.IsChildOf(m_QueuePool.transform)) continue;
-                if (!(ship.IsMoving || ship.IsDeparting || ship.IsDocked || ship.transform.parent == null)) continue;
+                ship.StopAllCoroutines();
+                ship.transform.DOKill(false);
                 ship.gameObject.SetActive(false);
+#if UNITY_EDITOR
+                if (!Application.isPlaying) DestroyImmediate(ship.gameObject);
+                else Destroy(ship.gameObject);
+#else
                 Destroy(ship.gameObject);
+#endif
             }
         }
 
@@ -463,6 +489,8 @@ namespace PixelGame
                     s.ReleaseShip();
                     if (ship != null)
                     {
+                        ship.StopAllCoroutines();
+                        ship.transform.DOKill(false);
                         ship.gameObject.SetActive(false);
 #if UNITY_EDITOR
                         if (!Application.isPlaying) DestroyImmediate(ship.gameObject);
@@ -914,10 +942,8 @@ namespace PixelGame
                         {
                             // Seviyedeki bu renge ait TÜM küpler zaten toplanmış, gemi daha fazla küp alamaz -> Kalkış yap
                             yield return new WaitForSeconds(0.35f);
-                            // Yolda hâlâ küp varsa kalkma: gemi hareket edince yoldaki
-                            // küpler onu harita dışına kadar kovalıyor ve AddCargo
-                            // (IsDeparting yüzünden) onları saymadan düşürüyordu.
-                            while (ship != null && ship.HasPendingCargo) yield return null;
+                            // Yolda hâlâ küp veya dışarıda işçi varsa kalkma
+                            while (ship != null && (ship.HasPendingCargo || ship.ActiveWorkersOut > 0)) yield return null;
                             if (ship != null && !ship.IsDeparting)
                             {
                                 ship.DepartAndFreeSlot();
@@ -957,12 +983,12 @@ namespace PixelGame
                     TriggerWaitingShipsCheck();
                 }
 
-                // Gemi dolduysa kalkış yap — ama önce yoldaki son küpler insin.
+                // Gemi dolduysa kalkış yap — ama önce yoldaki son küpler insin ve tüm işçiler binsin.
                 if (ship != null && !ship.IsDeparting)
                 {
-                    while (ship != null && ship.HasPendingCargo) yield return null;
+                    while (ship != null && (ship.HasPendingCargo || ship.ActiveWorkersOut > 0)) yield return null;
 
-                    if (ship != null && ship.IsFull && !ship.IsDeparting)
+                    if (ship != null && ship.IsFull && ship.ActiveWorkersOut <= 0 && !ship.IsDeparting)
                     {
                         yield return new WaitForSeconds(0.2f);
                         if (ship != null && !ship.IsDeparting)
@@ -2299,10 +2325,10 @@ namespace PixelGame
         private IEnumerator AutoPlaceRemainingShipsRoutine(List<ShipController> shipsToPlace, List<ShipSlot> targetSlots)
         {
             m_IsAutoPlacing = true;
-            Debug.Log($"<color=#00FFAA><b>[ShipDispatcher]</b></color> ⚡ Otomatik Yerleştirme Devrede! Kalan {shipsToPlace.Count} gemi {targetSlots.Count} boş slota yerleştiriliyor ve oyun 2X hıza alınıyor.");
+            Debug.Log($"<color=#00FFAA><b>[ShipDispatcher]</b></color> ⚡ Otomatik Yerleştirme Devrede! Kalan {shipsToPlace.Count} gemi {targetSlots.Count} boş slota yerleştiriliyor.");
 
-            // 2X Hıza Geçiş ve Turbo Bildirimi
-            SetTurboSpeed(true);
+            // Otomatik 2X hıza geçiş kaldırıldı: Sadece kullanıcı 2X butonuna basarsa 2X hız aktif olur.
+            // (Kullanıcı isteği: "diğer durumlar için olan 2xi kaldırmanı istiyorum bu buton aktif olacak sadece")
 
             // Gemileri sırayla, tatlı bir aralıkla (0.10s) boş slotlara yolla
             for (int i = 0; i < shipsToPlace.Count; i++)
@@ -2330,17 +2356,12 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// ⚡ 2X Turbo oyun hızını ve UI bildirimini yönetir.
+        /// ⚡ Eski otomatik 2X fonksiyonu.
+        /// Kullanıcı isteği: Diğer durumlar için olan 2x kaldırıldı. Sadece üst bardaki 2X butonu oyun hızını kontrol eder.
         /// </summary>
         public void SetTurboSpeed(bool active)
         {
-            m_IsTurboActive = active;
-            Time.timeScale = active ? 2.0f : 1.0f;
-
-            if (CasualHudController.Instance != null)
-            {
-                CasualHudController.Instance.SetTurboIndicator(active);
-            }
+            m_IsTurboActive = false;
         }
 
         /// <summary>
@@ -3720,6 +3741,11 @@ namespace PixelGame
             if (sailorVis != null) { sailorVis.Play(SailorRunnerVisual.StateHopDown, 0f); sailorVis.SetRingVisible(false); }
 
             // Phase 1: Hop from ship deck onto shore
+            // Kullanıcı isteği: Sayılar blok girince değil, içinden kişiler/işçiler çıkınca azalsın
+            if (ship != null)
+            {
+                ship.OnWorkerExited();
+            }
             float hopDuration = Mathf.Max(0.18f, m_HopDuration);
             Vector3 camUp = ShipController.MainCamera != null ? ShipController.MainCamera.transform.up : Vector3.up;
             Vector3 hopCtrl = (shipDeckPos + shorePoint) * 0.5f + camUp * m_HopArcHeight;
@@ -3790,7 +3816,11 @@ namespace PixelGame
             if (runner == null || targetCube == null)
             {
                 if (targetCube != null) s_ReservedCubes.Remove(targetCube);
-                if (ship != null) ship.ReleaseCargoReservation();
+                if (ship != null)
+                {
+                    ship.ReleaseCargoReservation();
+                    ship.OnWorkerMissionAborted();
+                }
                 m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - 1);
                 // Hedef küp kayboldu (ör. bölüm yeniden başladı): koşucu sahnede asılı kalmasın
                 if (runner != null) { m_LiveRunners.Remove(runner); Destroy(runner); }
@@ -3836,7 +3866,11 @@ namespace PixelGame
             if (runner == null)
             {
                 if (targetCube != null) s_ReservedCubes.Remove(targetCube);
-                if (ship != null) ship.ReleaseCargoReservation();
+                if (ship != null)
+                {
+                    ship.ReleaseCargoReservation();
+                    ship.OnWorkerMissionAborted();
+                }
                 m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - 1);
                 yield break;
             }
@@ -3861,6 +3895,11 @@ namespace PixelGame
             if (runner == null)
             {
                 if (targetCube != null) s_ReservedCubes.Remove(targetCube);
+                if (ship != null)
+                {
+                    ship.ReleaseCargoReservation();
+                    ship.OnWorkerMissionAborted();
+                }
                 m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - 1);
                 yield break;
             }
@@ -3929,6 +3968,12 @@ namespace PixelGame
 
                 m_LiveRunners.Remove(runner);
                 Destroy(runner);
+            }
+
+            // İşçi güverteden içeri tamamen bindi (yok oldu):
+            if (ship != null)
+            {
+                ship.OnWorkerBoarded();
             }
 
             s_ReservedCubes.Remove(targetCube);

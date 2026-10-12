@@ -980,7 +980,6 @@ namespace PixelGame
             SetMessage(m_FailLevelText, null);
             Action reloadAction = () =>
             {
-                DOTween.KillAll();
                 if (LevelManager.Instance != null)
                 {
                     LevelManager.Instance.LoadLevel(LevelManager.Instance.CurrentLevelIndex);
@@ -991,7 +990,7 @@ namespace PixelGame
                     SceneManager.LoadScene(activeScene.buildIndex);
                 }
             };
-            ShowAndLoad(reloadAction, minDuration > 0f ? minDuration : 0.6f, m_FailLevelText);
+            ShowAndLoad(reloadAction, minDuration > 0f ? minDuration : 0.45f, m_FailLevelText);
         }
 
         /// <summary>
@@ -1014,11 +1013,11 @@ namespace PixelGame
         {
             float duration = fadeDuration >= 0f ? fadeDuration : m_FadeOutDuration;
             m_CanvasGroup.DOKill();
+            m_CanvasGroup.blocksRaycasts = false;
+            m_CanvasGroup.interactable = false;
             m_CanvasGroup.DOFade(0f, duration).SetUpdate(true).SetEase(Ease.InOutSine).OnComplete(() =>
             {
                 m_IsVisible = false;
-                m_CanvasGroup.blocksRaycasts = false;
-                m_CanvasGroup.interactable = false;
                 StopBadgeAndTextAnimations();
                 m_CurrentBaseMessage = m_DefaultLoadingText;
                 m_CurrentSubMessage = null;
@@ -1034,7 +1033,6 @@ namespace PixelGame
             string msg = !string.IsNullOrEmpty(message) ? message : "RESTARTING";
             Action reloadAction = () =>
             {
-                DOTween.KillAll();
                 if (LevelManager.Instance != null)
                 {
                     LevelManager.Instance.LoadLevel(LevelManager.Instance.CurrentLevelIndex);
@@ -1045,7 +1043,7 @@ namespace PixelGame
                     SceneManager.LoadScene(activeScene.buildIndex);
                 }
             };
-            ShowAndLoad(reloadAction, minDuration > 0f ? minDuration : 0.6f, msg);
+            ShowAndLoad(reloadAction, minDuration > 0f ? minDuration : 0.45f, msg);
         }
 
         /// <summary>

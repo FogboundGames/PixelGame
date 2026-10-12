@@ -53,6 +53,12 @@ namespace PixelGame
         [SerializeField] private Sprite m_HapticsOffSprite;
         [Header("🔄 Yeniden Başlat (Retry)")]
         [SerializeField] private UnityEngine.UI.Button m_RetryButton;
+        [Header("⚡ 2X Hız Butonu")]
+        [SerializeField] private UnityEngine.UI.Button m_SpeedButton;
+        [SerializeField] private UnityEngine.UI.Image m_SpeedButtonImage;
+        [SerializeField] private Sprite m_Speed1xSprite;
+        [SerializeField] private Sprite m_Speed2xSprite;
+        private bool m_IsSpeed2x = false;
 
         [Header("🧪 Başlangıç Değerleri")]
         [SerializeField] private int m_StartingLives = 3;
@@ -86,6 +92,11 @@ namespace PixelGame
         public Sprite HapticsOnSprite { get => m_HapticsOnSprite; set => m_HapticsOnSprite = value; }
         public Sprite HapticsOffSprite { get => m_HapticsOffSprite; set => m_HapticsOffSprite = value; }
         public UnityEngine.UI.Button RetryButton { get => m_RetryButton; set => m_RetryButton = value; }
+        public UnityEngine.UI.Button SpeedButton { get => m_SpeedButton; set => m_SpeedButton = value; }
+        public UnityEngine.UI.Image SpeedButtonImage { get => m_SpeedButtonImage; set => m_SpeedButtonImage = value; }
+        public Sprite Speed1xSprite { get => m_Speed1xSprite; set => m_Speed1xSprite = value; }
+        public Sprite Speed2xSprite { get => m_Speed2xSprite; set => m_Speed2xSprite = value; }
+        public bool IsSpeed2x => m_IsSpeed2x;
 
         public GameObject LevelFailPopup { get => m_LevelFailPopup; set => m_LevelFailPopup = value; }
         public GameObject LevelCompletePopup { get => m_LevelCompletePopup; set => m_LevelCompletePopup = value; }
@@ -105,10 +116,12 @@ namespace PixelGame
         {
             Instance = this;
             Time.timeScale = 1.0f;
+            m_IsSpeed2x = false;
             HideCoinPill();
             WireExistingFailPopupButtons();
             WireExistingCompletePopupButtons();
             WireRetryButton();
+            WireSpeedButton();
         }
 
         private void OnDestroy()
@@ -139,9 +152,11 @@ namespace PixelGame
             ApplyAudioState();
             UpdateSoundVisual();
             UpdateHapticsVisual();
+            UpdateSpeedVisual();
             WireExistingFailPopupButtons();
             WireExistingCompletePopupButtons();
             WireRetryButton();
+            WireSpeedButton();
         }
 
         public void WireRetryButton()
@@ -154,9 +169,88 @@ namespace PixelGame
             }
             if (m_RetryButton != null)
             {
+                bool hasPersistent = false;
+                int count = m_RetryButton.onClick.GetPersistentEventCount();
+                for (int i = 0; i < count; i++)
+                {
+                    if (m_RetryButton.onClick.GetPersistentMethodName(i) == nameof(RestartLevel))
+                    {
+                        hasPersistent = true;
+                        break;
+                    }
+                }
                 m_RetryButton.onClick.RemoveListener(RestartLevel);
-                m_RetryButton.onClick.AddListener(RestartLevel);
+                if (!hasPersistent)
+                {
+                    m_RetryButton.onClick.AddListener(RestartLevel);
+                }
             }
+        }
+
+        public void WireSpeedButton()
+        {
+            if (m_Speed1xSprite == null) m_Speed1xSprite = Resources.Load<Sprite>("btn_marine_speed_1x");
+            if (m_Speed2xSprite == null) m_Speed2xSprite = Resources.Load<Sprite>("btn_marine_speed_2x");
+#if UNITY_EDITOR
+            if (m_Speed1xSprite == null) m_Speed1xSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/CasualUI/btn_marine_speed_1x.png");
+            if (m_Speed2xSprite == null) m_Speed2xSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/CasualUI/btn_marine_speed_2x.png");
+#endif
+
+            if (m_SpeedButton == null)
+            {
+                Transform topUI = transform.Find("TopUI");
+                Transform btnTr = topUI != null ? topUI.Find("SpeedButton") : transform.Find("SpeedButton");
+                if (btnTr == null && topUI != null)
+                {
+                    GameObject speedGo = new GameObject("SpeedButton", typeof(RectTransform), typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.Button));
+                    speedGo.transform.SetParent(topUI, false);
+
+                    RectTransform rt = speedGo.GetComponent<RectTransform>();
+                    rt.anchorMin = new Vector2(0f, 1f);
+                    rt.anchorMax = new Vector2(0f, 1f);
+                    rt.pivot = new Vector2(0f, 1f);
+                    rt.anchoredPosition = new Vector2(145f, -80f);
+                    rt.sizeDelta = new Vector2(96f, 96f);
+                    rt.localScale = Vector3.one * 1.1f;
+
+                    var img = speedGo.GetComponent<UnityEngine.UI.Image>();
+                    img.sprite = m_Speed1xSprite;
+                    img.preserveAspect = true;
+
+                    speedGo.AddComponent<CasualUIButtonJuice>();
+
+                    m_SpeedButton = speedGo.GetComponent<UnityEngine.UI.Button>();
+                    m_SpeedButtonImage = img;
+                }
+                else if (btnTr != null)
+                {
+                    m_SpeedButton = btnTr.GetComponent<UnityEngine.UI.Button>();
+                    if (m_SpeedButtonImage == null) m_SpeedButtonImage = btnTr.GetComponent<UnityEngine.UI.Image>();
+                }
+            }
+            if (m_SpeedButtonImage == null && m_SpeedButton != null)
+            {
+                m_SpeedButtonImage = m_SpeedButton.GetComponent<UnityEngine.UI.Image>();
+            }
+            if (m_SpeedButton != null)
+            {
+                bool hasPersistent = false;
+                int count = m_SpeedButton.onClick.GetPersistentEventCount();
+                for (int i = 0; i < count; i++)
+                {
+                    if (m_SpeedButton.onClick.GetPersistentMethodName(i) == nameof(ToggleSpeed2X))
+                    {
+                        hasPersistent = true;
+                        break;
+                    }
+                }
+                m_SpeedButton.onClick.RemoveListener(ToggleSpeed2X);
+                if (!hasPersistent)
+                {
+                    m_SpeedButton.onClick.AddListener(ToggleSpeed2X);
+                }
+            }
+            UpdateSpeedVisual();
         }
 
         public void HideCoinPill()
@@ -211,6 +305,7 @@ namespace PixelGame
         {
             HideLevelFailPopup();
             SetTurboIndicator(false);
+            SetSpeed2X(false);
             if (level != null)
             {
                 LevelManager levelManager = FindFirstObjectByType<LevelManager>();
@@ -646,14 +741,22 @@ namespace PixelGame
         public void RestartLevel()
         {
             // Yükleme ekranı açıkken (fail sonrası otomatik yeniden başlatma ya da önceki retry sürerken) ikinci bir
-            // yeniden başlatma başlatılmaz: ikisinin DOTween.KillAll'ları yükleme ekranını görünmez ama dokunuşu
-            // engeller hâlde bırakıp oyunu kilitliyordu.
+            // yeniden başlatma başlatılmaz
             LandFlowLoadingScreen busy = LandFlowLoadingScreen.Instance;
             if (busy != null && busy.IsBusy) return;
 
             HideLevelFailPopup();
+            HideLevelCompletePopup();
+            m_IsSpeed2x = false;
             Time.timeScale = 1.0f;
+            UpdateSpeedVisual();
             Debug.Log("<color=#FF4444><b>[CasualHUD]</b></color> Seviye yeniden başlatılıyor...");
+
+            // Seviyedeki tüm süren arka plan işlerini (koşucular, hareket eden gemiler) ANINDA durdur
+            if (ShipDispatcher.Instance != null)
+            {
+                ShipDispatcher.Instance.PrepareForLevelReload();
+            }
 
             bool isFailed = (ShipDispatcher.Instance != null && ShipDispatcher.Instance.IsLevelFailed);
 
@@ -671,7 +774,6 @@ namespace PixelGame
             }
             else
             {
-                DOTween.KillAll();
                 if (LevelManager.Instance != null)
                 {
                     LevelManager.Instance.LoadLevel(LevelManager.Instance.CurrentLevelIndex);
@@ -742,6 +844,67 @@ namespace PixelGame
             {
                 if (m_HapticsEnabled && m_HapticsOnSprite != null) m_HapticsButtonImage.sprite = m_HapticsOnSprite;
                 else if (!m_HapticsEnabled && m_HapticsOffSprite != null) m_HapticsButtonImage.sprite = m_HapticsOffSprite;
+            }
+        }
+
+        private int m_LastSpeedToggleFrame = -1;
+        private float m_LastSpeedToggleTime = -1f;
+
+        public void ToggleSpeed2X()
+        {
+            if (Time.frameCount == m_LastSpeedToggleFrame || (Time.unscaledTime - m_LastSpeedToggleTime < 0.2f && m_LastSpeedToggleTime > 0f))
+            {
+                return;
+            }
+            m_LastSpeedToggleFrame = Time.frameCount;
+            m_LastSpeedToggleTime = Time.unscaledTime;
+
+            m_IsSpeed2x = !m_IsSpeed2x;
+            ApplySpeedState();
+            UpdateSpeedVisual();
+            TriggerHaptic();
+            Debug.Log($"<color=#44FF44><b>[CasualHUD]</b></color> ⚡ Oyun Hızı: {(m_IsSpeed2x ? "2X" : "1X")}");
+        }
+
+        public void SetSpeed2X(bool enabled)
+        {
+            m_IsSpeed2x = enabled;
+            ApplySpeedState();
+            UpdateSpeedVisual();
+        }
+
+        public void SetSpeed2XVisual(bool enabled)
+        {
+            m_IsSpeed2x = enabled;
+            UpdateSpeedVisual();
+        }
+
+        private void ApplySpeedState()
+        {
+            Time.timeScale = m_IsSpeed2x ? 2.0f : 1.0f;
+            Time.fixedDeltaTime = 0.02f * Time.timeScale;
+        }
+
+        public void UpdateSpeedVisual()
+        {
+            if (m_Speed1xSprite == null) m_Speed1xSprite = Resources.Load<Sprite>("btn_marine_speed_1x");
+            if (m_Speed2xSprite == null) m_Speed2xSprite = Resources.Load<Sprite>("btn_marine_speed_2x");
+#if UNITY_EDITOR
+            if (m_Speed1xSprite == null) m_Speed1xSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/CasualUI/btn_marine_speed_1x.png");
+            if (m_Speed2xSprite == null) m_Speed2xSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/CasualUI/btn_marine_speed_2x.png");
+#endif
+
+            if (m_SpeedButtonImage == null && m_SpeedButton != null)
+            {
+                m_SpeedButtonImage = m_SpeedButton.GetComponent<UnityEngine.UI.Image>();
+            }
+
+            if (m_SpeedButtonImage != null)
+            {
+                if (m_IsSpeed2x && m_Speed2xSprite != null)
+                    m_SpeedButtonImage.sprite = m_Speed2xSprite;
+                else if (!m_IsSpeed2x && m_Speed1xSprite != null)
+                    m_SpeedButtonImage.sprite = m_Speed1xSprite;
             }
         }
 

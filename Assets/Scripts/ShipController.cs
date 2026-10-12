@@ -390,6 +390,68 @@ namespace PixelGame
         public int Capacity => m_Capacity;
         public int CurrentCargo => m_CurrentCargo;
         public int RemainingCapacity => Mathf.Max(0, m_Capacity - m_CurrentCargo);
+
+        // ---------------- 👷 Dışarıdaki İşçiler (Workers On Mission) ----------------
+        private int m_ActiveWorkersOut = 0;
+        private int m_WorkersExitedCount = 0;
+        public int ActiveWorkersOut => m_ActiveWorkersOut;
+
+        /// <summary>
+        /// Kullanıcı isteği: "sayılar içine blok girince değil de içinden kişiler çıkınca azalsa daha iyi durur"
+        /// Sayı yalnızca gemiden işçiler sahile çıktıkça azalır; bloklar gemiye girdiğinde değil!
+        /// </summary>
+        public int DisplayRemainingCapacity => Mathf.Max(0, m_Capacity - m_WorkersExitedCount);
+
+        /// <summary>
+        /// Gemiden bir işçi sahile zıplayıp göreve çıktığında çağrılır:
+        /// Sayıyı hemen 1 düşürür ve rozete tatlı bir punch efekti verir.
+        /// </summary>
+        public void OnWorkerExited()
+        {
+            m_ActiveWorkersOut++;
+            m_WorkersExitedCount = Mathf.Min(m_Capacity, m_WorkersExitedCount + 1);
+            UpdateBadgeText();
+            PlayBadgePunchJuice();
+        }
+
+        /// <summary>
+        /// Görevini tamamlayan işçi güverteye inip gemiye bindiğinde (ve yok olduğunda) çağrılır:
+        /// Tüm işçiler geri binmişse ve gemi dolduysa gemi kalkışa geçer.
+        /// </summary>
+        public void OnWorkerBoarded()
+        {
+            m_ActiveWorkersOut = Mathf.Max(0, m_ActiveWorkersOut - 1);
+            UpdateBadgeText();
+
+            // Kullanıcı isteği: "tüm işçiler geri binince de ayrılır"
+            if (IsFull && m_ActiveWorkersOut <= 0 && !m_IsDeparting)
+            {
+                OnCargoFilled?.Invoke(this);
+                if (ShipDispatcher.Instance != null) ShipDispatcher.Instance.OnShipFilled(this);
+                DepartAndFreeSlot();
+            }
+        }
+
+        /// <summary>
+        /// İşçi yolda bir sebeple iptal edilirse (hedef küp yok olduysa vb.) sayacı düzeltir.
+        /// </summary>
+        public void OnWorkerMissionAborted()
+        {
+            m_ActiveWorkersOut = Mathf.Max(0, m_ActiveWorkersOut - 1);
+            m_WorkersExitedCount = Mathf.Max(0, m_WorkersExitedCount - 1);
+            UpdateBadgeText();
+        }
+
+        public void PlayBadgePunchJuice()
+        {
+            if (m_BadgeCanvasObj != null && m_BadgeCanvasObj.activeSelf)
+            {
+                m_BadgeCanvasObj.transform.DOKill(true);
+                m_BadgeCanvasObj.transform.DOPunchScale(new Vector3(0.18f, 0.18f, 0.18f), 0.12f, 2, 0.4f)
+                    .OnComplete(UpdateBadgePlacement);
+            }
+        }
+
         public bool IsDocked => m_IsDocked;
         public bool IsFull => m_CurrentCargo >= m_Capacity;
         public bool IsDeparting => m_IsDeparting;
@@ -436,7 +498,7 @@ namespace PixelGame
             get
             {
                 if (!HasActiveLinkedPartner) return true;
-                if (m_LinkedPartner.HasPendingCargo) return false;
+                if (m_LinkedPartner.HasPendingCargo || m_LinkedPartner.ActiveWorkersOut > 0) return false;
                 if (m_LinkedPartner.IsFull) return true;
 
                 if (ShipDispatcher.Instance != null &&
@@ -458,7 +520,7 @@ namespace PixelGame
             get
             {
                 if (!m_IsDocked || m_IsDeparting) return false;
-                if (HasPendingCargo) return false;
+                if (HasPendingCargo || m_ActiveWorkersOut > 0) return false;
 
                 bool isSelfReady = IsFull || (ShipDispatcher.Instance != null && ShipDispatcher.Instance.GetRemainingCountForColor(ShipColor) == 0);
                 if (!isSelfReady) return false;
@@ -1139,6 +1201,7 @@ namespace PixelGame
 
             EnsureDecoupledHierarchy();
             EnsureFakeShadow();
+            m_WorkersExitedCount = m_CurrentCargo;
             UpdateBadgeText();
             ApplyColorToShip(m_ShipColor);
         }
@@ -1282,7 +1345,7 @@ namespace PixelGame
             // Kullanıcı isteği: "textteki sayı dolduğunda text yok olsun"
             // Kapasite dolduğunda veya gemi kalkışta iken rozet ve metin KESİNLİKLE gizlenir.
             // Gizli gemide sayı yerine aynı stilde süzülen bir "?" gösterilir (UpdateBadgeText)
-            if (m_IsDeparting || IsFull || RemainingCapacity <= 0)
+            if (m_IsDeparting || IsFull || DisplayRemainingCapacity <= 0)
             {
                 if (m_BadgeCanvasObj.activeSelf) m_BadgeCanvasObj.SetActive(false);
                 return;
@@ -1364,7 +1427,7 @@ namespace PixelGame
                 m_BadgeConfigured = true;
             }
 
-            if (!m_BadgeCanvasObj.activeSelf && !m_IsDeparting && !IsFull && RemainingCapacity > 0)
+            if (!m_BadgeCanvasObj.activeSelf && !m_IsDeparting && !IsFull && DisplayRemainingCapacity > 0)
             {
                 m_BadgeCanvasObj.SetActive(true);
             }
@@ -1546,6 +1609,8 @@ namespace PixelGame
             m_Capacity = Mathf.Max(1, capacity);
             m_CurrentCargo = 0;
             m_PendingCargo = 0;
+            m_ActiveWorkersOut = 0;
+            m_WorkersExitedCount = 0;
             m_ColorName = string.IsNullOrEmpty(colorName) ? ColorUtility.ToHtmlStringRGB(color) : colorName;
 
             m_IsMoving = false;
@@ -1794,7 +1859,9 @@ namespace PixelGame
             // Referans videodaki gibi küp geldikçe canlı, enerjik yaylanma / squash tepkisi
             PlayCargoReceiveJuice();
 
-            if (IsFull && !m_IsDeparting)
+            // Kullanıcı isteği: "tüm işçiler geri binince de ayrılır"
+            // Dışarıda hâlâ koşan işçi varsa kalkış yapılmaz, OnWorkerBoarded beklenir!
+            if (IsFull && m_ActiveWorkersOut <= 0 && !m_IsDeparting)
             {
                 OnCargoFilled?.Invoke(this);
                 if (ShipDispatcher.Instance != null) ShipDispatcher.Instance.OnShipFilled(this);
@@ -1816,6 +1883,14 @@ namespace PixelGame
         public void DepartAndFreeSlot(bool force = false)
         {
             if (m_IsDeparting) return;
+
+            // Kullanıcı isteği: "tüm işçiler geri binince de ayrılır"
+            // Dışarıda işçi varken (force hariç) asla kalkış yapılmaz!
+            if (!force && m_ActiveWorkersOut > 0)
+            {
+                Debug.Log($"<color=#FFAA00><b>[ShipController]</b></color> ⚓ '{name}' ({ShipColor}) henüz {m_ActiveWorkersOut} işçi dışarıda olduğu için ayrılamaz; tüm işçilerin geri binmesini bekliyor!");
+                return;
+            }
 
             // 2'li bağlı gemi kuralı:
             // Eğer gemi bağlıysa ve force == false ise, partneri de hazır (dolu) olmadan tek başına ASLA ayrılamaz!
@@ -3374,7 +3449,7 @@ namespace PixelGame
 
         private void UpdateBadgeText()
         {
-            int remaining = RemainingCapacity;
+            int remaining = DisplayRemainingCapacity;
 
             // Kullanıcı isteği: "textteki sayı dolduğunda text yok olsun"
             // Kapasite dolduğunda (kalan <= 0 veya IsFull) text HEMEN yok olur!

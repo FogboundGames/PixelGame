@@ -20,12 +20,21 @@ namespace PixelGame.Editor
         private const string RemoveCoinsKey = "PixelGame_CoinRemoved_v1";
         private const string RetryButtonKey = "PixelGame_RetryButtonInstalled_v2";
 
+        private const string MarineHUDKey = "PixelGame_MarineHUD_Applied_v5";
+
+        private static bool s_Applied = false;
+
         static SetupGemiTopHUD()
         {
-            // Otomatik tetikleme kapatıldı: Unity her açıldığında sahneyi habersiz değiştirip kirli (*)
-            // yapıyordu. Gerekirse PixelGame menüsünden elle çalıştırılır.
-            // EditorApplication.delayCall += AutoRemoveCoinsIfNeeded;
-            // EditorApplication.delayCall += AutoSetupRetryButtonIfNeeded;
+            EditorApplication.delayCall += AutoApplyMarineHUDIfNeeded;
+        }
+
+        private static void AutoApplyMarineHUDIfNeeded()
+        {
+            if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;
+            if (s_Applied) return;
+            s_Applied = true;
+            BuildTopHUD();
         }
 
         private static void AutoRemoveCoinsIfNeeded()
@@ -83,7 +92,8 @@ namespace PixelGame.Editor
             retryRt.localScale = Vector3.one * 1.1f;
 
             Image retryImg = retryGo.GetComponent<Image>();
-            Sprite retrySprite = LoadSprite("btn_retry_ref");
+            Sprite retrySprite = LoadSprite("btn_marine_lifebuoy");
+            if (retrySprite == null) retrySprite = LoadSprite("btn_retry_ref");
             if (retrySprite == null) retrySprite = LoadSprite("btn_restart");
             if (retrySprite != null) retryImg.sprite = retrySprite;
             retryImg.preserveAspect = true;
@@ -100,6 +110,49 @@ namespace PixelGame.Editor
                 EditorUtility.SetDirty(ctrl);
             }
 
+            // Hız (Speed 1X / 2X) Butonu
+            Transform existingSpeed = topUIGo.Find("SpeedButton");
+            GameObject speedGo;
+            if (existingSpeed != null)
+            {
+                speedGo = existingSpeed.gameObject;
+            }
+            else
+            {
+                speedGo = new GameObject("SpeedButton", typeof(RectTransform), typeof(Image), typeof(Button));
+                Undo.RegisterCreatedObjectUndo(speedGo, "Create SpeedButton");
+                speedGo.transform.SetParent(topUIGo, false);
+            }
+
+            RectTransform speedRt = speedGo.GetComponent<RectTransform>();
+            speedRt.anchorMin = new Vector2(0f, 1f);
+            speedRt.anchorMax = new Vector2(0f, 1f);
+            speedRt.pivot = new Vector2(0f, 1f);
+            speedRt.anchoredPosition = new Vector2(145f, -80f);
+            speedRt.sizeDelta = new Vector2(96f, 96f);
+            speedRt.localScale = Vector3.one * 1.1f;
+
+            Image speedImg = speedGo.GetComponent<Image>();
+            Sprite speed1xSprite = LoadSprite("btn_marine_speed_1x");
+            Sprite speed2xSprite = LoadSprite("btn_marine_speed_2x");
+            if (speed1xSprite != null) speedImg.sprite = speed1xSprite;
+            speedImg.preserveAspect = true;
+
+            CasualUIButtonJuice speedJuice = speedGo.GetComponent<CasualUIButtonJuice>();
+            if (speedJuice == null) speedJuice = speedGo.AddComponent<CasualUIButtonJuice>();
+
+            Button speedBtn = speedGo.GetComponent<Button>();
+            if (speedBtn != null && ctrl != null)
+            {
+                UnityEditor.Events.UnityEventTools.RemovePersistentListener(speedBtn.onClick, ctrl.ToggleSpeed2X);
+                UnityEditor.Events.UnityEventTools.AddPersistentListener(speedBtn.onClick, ctrl.ToggleSpeed2X);
+                ctrl.SpeedButton = speedBtn;
+                ctrl.SpeedButtonImage = speedImg;
+                ctrl.Speed1xSprite = speed1xSprite;
+                ctrl.Speed2xSprite = speed2xSprite;
+                EditorUtility.SetDirty(ctrl);
+            }
+            EditorUtility.SetDirty(speedGo);
             EditorUtility.SetDirty(retryGo);
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
@@ -225,7 +278,8 @@ namespace PixelGame.Editor
             retryRt.localScale = Vector3.one * 1.1f;
 
             Image retryImg = retryGo.GetComponent<Image>();
-            Sprite retrySprite = LoadSprite("btn_retry_ref");
+            Sprite retrySprite = LoadSprite("btn_marine_lifebuoy");
+            if (retrySprite == null) retrySprite = LoadSprite("btn_retry_ref");
             if (retrySprite == null) retrySprite = LoadSprite("btn_restart");
             if (retrySprite != null) retryImg.sprite = retrySprite;
             retryImg.preserveAspect = true;
@@ -233,7 +287,34 @@ namespace PixelGame.Editor
 
             Button retryBtn = retryGo.GetComponent<Button>();
 
-            // 6. ORTA: Seviye Kapsülü (🐚 LEVEL 5 🐚)
+            // 5b. SOL: Hız (Speed 1X / 2X) Butonu (Retry'ın hemen yanında, simetrik)
+            Transform oldSpeed = topUIGo.transform.Find("SpeedButton");
+            if (oldSpeed != null)
+            {
+                Undo.DestroyObjectImmediate(oldSpeed.gameObject);
+            }
+
+            GameObject speedGo = new GameObject("SpeedButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            speedGo.transform.SetParent(topUIGo.transform, false);
+
+            RectTransform speedRt = speedGo.GetComponent<RectTransform>();
+            speedRt.anchorMin = new Vector2(0f, 1f);
+            speedRt.anchorMax = new Vector2(0f, 1f);
+            speedRt.pivot = new Vector2(0f, 1f);
+            speedRt.anchoredPosition = new Vector2(145f, -80f);
+            speedRt.sizeDelta = new Vector2(96f, 96f);
+            speedRt.localScale = Vector3.one * 1.1f;
+
+            Image speedImg = speedGo.GetComponent<Image>();
+            Sprite speed1xSprite = LoadSprite("btn_marine_speed_1x");
+            Sprite speed2xSprite = LoadSprite("btn_marine_speed_2x");
+            if (speed1xSprite != null) speedImg.sprite = speed1xSprite;
+            speedImg.preserveAspect = true;
+            speedGo.AddComponent<CasualUIButtonJuice>();
+
+            Button speedBtn = speedGo.GetComponent<Button>();
+
+            // 6. ORTA: Seviye Kapsülü (🐚 LEVEL 1 🐚 - Marin Ahşap & Halat)
             GameObject levelCapsuleGo = new GameObject("LevelCapsule", typeof(RectTransform), typeof(Image));
             levelCapsuleGo.transform.SetParent(topUIGo.transform, false);
 
@@ -242,11 +323,12 @@ namespace PixelGame.Editor
             levelCapRt.anchorMax = new Vector2(0.5f, 1f);
             levelCapRt.pivot = new Vector2(0.5f, 1f);
             levelCapRt.anchoredPosition = new Vector2(0f, -80f);
-            levelCapRt.sizeDelta = new Vector2(365f, 98f);
-            levelCapRt.localScale = Vector3.one * 1.1f;
+            levelCapRt.sizeDelta = new Vector2(400f, 145f);
+            levelCapRt.localScale = Vector3.one;
 
             Image levelCapImg = levelCapsuleGo.GetComponent<Image>();
-            Sprite capSprite = LoadSprite("bg_level_ref");
+            Sprite capSprite = LoadSprite("bg_level_marine");
+            if (capSprite == null) capSprite = LoadSprite("bg_level_ref");
             if (capSprite == null) capSprite = LoadSprite("bg_level_capsule");
             if (capSprite != null) levelCapImg.sprite = capSprite;
             levelCapImg.color = Color.white;
@@ -257,22 +339,22 @@ namespace PixelGame.Editor
             levelTextGo.transform.SetParent(levelCapsuleGo.transform, false);
 
             RectTransform ltRt = levelTextGo.GetComponent<RectTransform>();
-            ltRt.anchorMin = Vector2.zero;
-            ltRt.anchorMax = Vector2.one;
+            ltRt.anchorMin = new Vector2(0.12f, 0.05f);
+            ltRt.anchorMax = new Vector2(0.88f, 0.95f);
             ltRt.offsetMin = Vector2.zero;
             ltRt.offsetMax = Vector2.zero;
 
             TextMeshProUGUI levelTmp = levelTextGo.AddComponent<TextMeshProUGUI>();
-            levelTmp.text = ""; // Görselin kendisinde pixel-perfect LEVEL 5 bulunuyor
+            levelTmp.text = "LEVEL 1"; // Dinamik ve canlı seviye metni (ortadaki kabukların arasına oturur)
             if (font != null) levelTmp.font = font;
-            levelTmp.fontSize = 44f;
+            levelTmp.fontSize = 42f;
             levelTmp.fontStyle = FontStyles.Bold;
             levelTmp.alignment = TextAlignmentOptions.Center;
             levelTmp.color = Color.white;
-            levelTmp.outlineWidth = 0.25f;
-            levelTmp.outlineColor = new Color32(24, 60, 120, 255);
+            levelTmp.outlineWidth = 0.28f;
+            levelTmp.outlineColor = new Color32(14, 55, 115, 255); // Derin marin okyanus gölgesi
 
-            // 7. SAĞ: Ses ve Ayarlar Butonları
+            // 7. SAĞ: Ses ve Titreşim Butonları (Mavi 3D Marin Butonlar)
             // 7a. Ses Butonu
             GameObject soundGo = new GameObject("SoundButton", typeof(RectTransform), typeof(Image), typeof(Button));
             soundGo.transform.SetParent(topUIGo.transform, false);
@@ -286,14 +368,16 @@ namespace PixelGame.Editor
             soundRt.localScale = Vector3.one * 1.1f;
 
             Image soundImg = soundGo.GetComponent<Image>();
-            Sprite soundOnSprite = LoadSprite("btn_sound_ref");
+            Sprite soundOnSprite = LoadSprite("btn_marine_sound_on");
+            if (soundOnSprite == null) soundOnSprite = LoadSprite("btn_sound_ref");
             if (soundOnSprite == null) soundOnSprite = LoadSprite("btn_sound");
-            Sprite soundOffSprite = LoadSprite("btn_sound_off");
+            Sprite soundOffSprite = LoadSprite("btn_marine_sound_off");
+            if (soundOffSprite == null) soundOffSprite = LoadSprite("btn_sound_off");
             if (soundOnSprite != null) soundImg.sprite = soundOnSprite;
             soundImg.preserveAspect = true;
             soundGo.AddComponent<CasualUIButtonJuice>();
 
-            // 7b. Titreşim (Haptics) Butonu (Settings yerine)
+            // 7b. Titreşim (Haptics) Butonu (3D Mavi Telefon Titreşim İkonu)
             GameObject hapticsGo = new GameObject("HapticsButton", typeof(RectTransform), typeof(Image), typeof(Button));
             hapticsGo.transform.SetParent(topUIGo.transform, false);
 
@@ -306,9 +390,11 @@ namespace PixelGame.Editor
             hapRt.localScale = Vector3.one * 1.1f;
 
             Image hapImg = hapticsGo.GetComponent<Image>();
-            Sprite hapticOnSprite = LoadSprite("btn_haptic_ref");
+            Sprite hapticOnSprite = LoadSprite("btn_marine_haptic_on");
+            if (hapticOnSprite == null) hapticOnSprite = LoadSprite("btn_haptic_ref");
             if (hapticOnSprite == null) hapticOnSprite = LoadSprite("btn_haptic");
-            Sprite hapticOffSprite = LoadSprite("btn_haptic_off_ref");
+            Sprite hapticOffSprite = LoadSprite("btn_marine_haptic_off");
+            if (hapticOffSprite == null) hapticOffSprite = LoadSprite("btn_haptic_off_ref");
             if (hapticOffSprite == null) hapticOffSprite = LoadSprite("btn_haptic_off");
             if (hapticOnSprite != null) hapImg.sprite = hapticOnSprite;
             hapImg.preserveAspect = true;
@@ -330,6 +416,17 @@ namespace PixelGame.Editor
             {
                 UnityEditor.Events.UnityEventTools.AddPersistentListener(retryBtn.onClick, ctrl.RestartLevel);
                 ctrl.RetryButton = retryBtn;
+            }
+
+            ctrl.SpeedButton = speedBtn;
+            ctrl.SpeedButtonImage = speedImg;
+            ctrl.Speed1xSprite = speed1xSprite;
+            ctrl.Speed2xSprite = speed2xSprite;
+
+            if (speedBtn != null && ctrl != null)
+            {
+                UnityEditor.Events.UnityEventTools.RemovePersistentListener(speedBtn.onClick, ctrl.ToggleSpeed2X);
+                UnityEditor.Events.UnityEventTools.AddPersistentListener(speedBtn.onClick, ctrl.ToggleSpeed2X);
             }
 
             Button soundBtn = soundGo.GetComponent<Button>();
