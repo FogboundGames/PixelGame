@@ -33,6 +33,10 @@ namespace PixelGame
         [Tooltip("MoveSpeed parametresinin alt/üst sınırı.")]
         [SerializeField] private Vector2 m_MoveSpeedRange = new Vector2(0.6f, 3.5f);
 
+        [Header("📐 Kamera Açısı Eğim Düzeltmesi (Tilt)")]
+        [Tooltip("Karakterin tepeden bakıldığında sadece şapka gibi görünmesini engelleyen, yüzünü, gözlerini ve göğsünü kameraya gösteren eğim açısı (derece).")]
+        [SerializeField, Range(0f, 40f)] private float m_TiltTowardsCamera = 22f;
+
         // Animator parametre adları (Sailor_Runner.controller ile aynı olmalı)
         public const string ParamHopDown = "HopDown";
         public const string ParamPickup = "Pickup";
@@ -267,6 +271,11 @@ namespace PixelGame
             if (m_ModelPivot == null) return;
             // Model: yukarı +Y, yüz +Z. Dünyada yukarı kameraya doğru (-Z), yüz yürüme yönünde (XY düzlemi).
             Quaternion target = Quaternion.LookRotation(m_Facing, Vector3.back);
+            if (m_TiltTowardsCamera > 0.01f)
+            {
+                // Modeli hafifçe geriye/kameraya doğru yatırarak başın arkaya kaymasını ve yüzün/göğsün görünmesini sağla
+                target = target * Quaternion.Euler(-m_TiltTowardsCamera, 0f, 0f);
+            }
             m_ModelPivot.rotation = t >= 1f ? target : Quaternion.Slerp(m_ModelPivot.rotation, target, t);
         }
 

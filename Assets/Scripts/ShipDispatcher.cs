@@ -140,7 +140,7 @@ namespace PixelGame
         private const string TabletopRunnerPrefabPath = "Assets/Prefabs/MainCube_Running_Tabletop.prefab";
 
         [Tooltip("Koşucunun panodaki bir küpe göre boyutu (1 = küple aynı).")]
-        [SerializeField, Min(0.1f)] private float m_RunnerSizeVsCube = 1.3f;
+        [SerializeField, Min(0.1f)] private float m_RunnerSizeVsCube = 1.45f;
 
         [Tooltip("Sırttaki yük ile koşucunun üstü arasındaki boşluk (küp boyunun oranı).")]
         [SerializeField] private float m_CarriedCargoGap = 0.02f;

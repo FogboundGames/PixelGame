@@ -90,6 +90,9 @@ namespace PixelGame
         [SerializeField] [Range(0f, 0.5f)] private float m_ShortArtLift = 0f;
 
         [Header("🔲 Izgara & Küp Yerleşimi")]
+        [Tooltip("Küp boyutunu sabitlemek için baz alınan ızgara çözünürlüğü (örn. 28). Seviye 10x10 da olsa 32x32 de olsa küpler daima bu baz çözünürlüğe göre aynı boyutta kalır!")]
+        [SerializeField] private int m_FixedBaseGridDimension = 28;
+
         [Tooltip("Küpler arasındaki DİKEY (satırlar/önler, Y ekseni) fiziksel boşluk oranı (0 = bitişik, 0.1 = %10 boşluk, negatif = üst üste biner)")]
         [Range(-0.3f, 1.0f)]
         [SerializeField] private float m_CubeSpacing = 0.06f;
@@ -357,9 +360,7 @@ namespace PixelGame
                 #endif
             }
 
-            #if UNITY_EDITOR
-            EnsureWorldFramePreview(forceCreate: false);
-            #endif
+            EnsureWorldFramePreview(forceCreate: true);
         }
 
         private void Update()
@@ -760,6 +761,13 @@ namespace PixelGame
             if (!CalculateTargetWorldBounds(cam, out Vector3 worldCenter, out float worldWidth, out float worldHeight))
                 return;
 
+            // Podyumun dış boyutu = boardSquareSize. 
+            // Podyum dokusunun iç sınır oluğu/çizgisi tam %62 oranındadır (635px / 1024px).
+            // Küpler bu iç sınır çizgisinin tam içine yerleşir ve iç çizgiden asla dışarı taşmaz.
+            float innerCanvasSize = Mathf.Min(worldWidth, worldHeight) * 0.62f;
+            worldWidth = innerCanvasSize;
+            worldHeight = innerCanvasSize;
+
             Texture2D activeTex = GetActiveTexture();
             GetEffectiveGridSize(activeTex, out int cols, out int rows);
             if (cols <= 0 || rows <= 0) { cols = 24; rows = 24; }
@@ -792,6 +800,18 @@ namespace PixelGame
             float spacingY = Mathf.Max(0f, m_CubeSpacing) + m_ExtraRowSpacing;
             float spacingX = Mathf.Max(0f, m_CubeSpacingX);
 
+            // KÜP BOYUTUNU SABİTLEME:
+            // Seviyenin çözünürlüğü ne olursa olsun (10x10, 24x24, 32x32), küp boyutu
+            // podyumun baz ızgara kapasitesine (m_FixedBaseGridDimension, örn. 24) göre sabitlenir.
+            // Böylece 10x10 çizimlerde küpler devleşmez, denizcilerle küpler arasındaki oran daima tutarlı kalır!
+            int baseDim = Mathf.Max(8, m_FixedBaseGridDimension);
+            float stepFactorX = 1f + spacingX;
+            float stepFactorY = 1f + spacingY;
+            cellSize = Mathf.Min(worldWidth / (baseDim * stepFactorX), worldHeight / (baseDim * stepFactorY));
+
+            stepX = cellSize * stepFactorX;
+            stepY = cellSize * stepFactorY;
+
             if (m_SkipTransparent && maxX >= minX && maxY >= minY)
             {
                 int visW = maxX - minX + 1;
@@ -799,16 +819,7 @@ namespace PixelGame
                 float visCenterX = (minX + maxX) * 0.5f;
                 float visCenterY = (minY + maxY) * 0.5f;
 
-                float stepFactorX = 1f + spacingX;
-                float stepFactorY = 1f + spacingY;
-                float visCellSizeX = worldWidth / (visW * stepFactorX);
-                float visCellSizeY = worldHeight / (visH * stepFactorY);
-                cellSize = Mathf.Min(visCellSizeX, visCellSizeY);
-
-                stepX = cellSize * stepFactorX;
-                stepY = cellSize * stepFactorY;
                 float totalHeight = visH * stepY;
-
                 float slack = Mathf.Max(0f, worldHeight - totalHeight);
                 float effectiveCenterY = worldCenter.y + slack * m_ShortArtLift;
 
@@ -820,14 +831,6 @@ namespace PixelGame
             }
             else
             {
-                float stepFactorX = 1f + spacingX;
-                float stepFactorY = 1f + spacingY;
-                float cellSizeX = worldWidth / (cols * stepFactorX);
-                float cellSizeY = worldHeight / (rows * stepFactorY);
-                cellSize = Mathf.Min(cellSizeX, cellSizeY);
-
-                stepX = cellSize * stepFactorX;
-                stepY = cellSize * stepFactorY;
                 float totalWidth = (cols - 1) * stepX;
                 float totalHeight = (rows - 1) * stepY;
 
@@ -860,6 +863,25 @@ namespace PixelGame
                     parentScale.y > 0.001f ? normScale.y / parentScale.y : normScale.y,
                     parentScale.z > 0.001f ? normScale.z / parentScale.z : normScale.z
                 );
+            }
+
+            // KÜPLERİ PODYUMUN TAM GEOMETRİK MERKEZİNE OTURTMA (Kusursuz Ortalama):
+            // Çizim ne olursa olsun, aktif küplerin gerçek dünya sınırlarını ölç ve podyum merkezine (worldCenter) milimetrik eşitle.
+            Bounds actualBounds = default;
+            bool foundCube = false;
+            for (int i = 0; i < cubes.Length; i++)
+            {
+                if (cubes[i] == null || !cubes[i].gameObject.activeSelf) continue;
+                if (!foundCube) { actualBounds = new Bounds(cubes[i].transform.position, Vector3.zero); foundCube = true; }
+                else actualBounds.Encapsulate(cubes[i].transform.position);
+            }
+            if (foundCube)
+            {
+                Vector3 shift = new Vector3(worldCenter.x - actualBounds.center.x, worldCenter.y - actualBounds.center.y, 0f);
+                for (int i = 0; i < cubes.Length; i++)
+                {
+                    if (cubes[i] != null) cubes[i].transform.position += shift;
+                }
             }
         }
 
@@ -994,6 +1016,13 @@ namespace PixelGame
                 #endif
             }
 
+            // Podyumun dış boyutu = boardSquareSize.
+            // Podyum dokusunun iç sınır oluğu/çizgisi tam %62 oranındadır (635px / 1024px).
+            // Küpler bu iç sınır çizgisinin tam içine yerleşir ve iç çizgiden asla dışarı taşmaz.
+            float innerCanvasSize = Mathf.Min(worldWidth, worldHeight) * 0.62f;
+            worldWidth = innerCanvasSize;
+            worldHeight = innerCanvasSize;
+
             // 2. Izgara boyutlarını belirle (1:1 piksel koruması)
             GetEffectiveGridSize(activeTex, out int cols, out int rows);
 
@@ -1034,6 +1063,18 @@ namespace PixelGame
             float spacingY = Mathf.Max(0f, m_CubeSpacing) + m_ExtraRowSpacing;
             float spacingX = Mathf.Max(0f, m_CubeSpacingX);
 
+            // KÜP BOYUTUNU SABİTLEME:
+            // Seviyenin çözünürlüğü ne olursa olsun (10x10, 24x24, 32x32), küp boyutu
+            // podyumun baz ızgara kapasitesine (m_FixedBaseGridDimension, örn. 24) göre sabitlenir.
+            // Böylece 10x10 çizimlerde küpler devleşmez, denizcilerle küpler arasındaki oran daima tutarlı kalır!
+            int baseDim = Mathf.Max(8, m_FixedBaseGridDimension);
+            float stepFactorX = 1f + spacingX;
+            float stepFactorY = 1f + spacingY;
+            cellSize = Mathf.Min(worldWidth / (baseDim * stepFactorX), worldHeight / (baseDim * stepFactorY));
+
+            stepX = cellSize * stepFactorX;
+            stepY = cellSize * stepFactorY;
+
             // Eğer şeffaf arkaplanlı izole bir figür varsa (örn. Kalp), sadece figürün dolu sınırlarını çerçeveye yay ve tam merkeze oturt
             if (m_SkipTransparent && maxX >= minX && maxY >= minY)
             {
@@ -1042,14 +1083,6 @@ namespace PixelGame
                 float visCenterX = (minX + maxX) * 0.5f;
                 float visCenterY = (minY + maxY) * 0.5f;
 
-                float stepFactorX = 1f + spacingX;
-                float stepFactorY = 1f + spacingY;
-                float visCellSizeX = worldWidth / (visW * stepFactorX);
-                float visCellSizeY = worldHeight / (visH * stepFactorY);
-                cellSize = Mathf.Min(visCellSizeX, visCellSizeY);
-
-                stepX = cellSize * stepFactorX;
-                stepY = cellSize * stepFactorY;
                 totalWidth = visW * stepX;
                 totalHeight = visH * stepY;
 
@@ -1066,14 +1099,6 @@ namespace PixelGame
             else
             {
                 // Tam dolu kare veya opak görseller için standart matris yerleşimi
-                float stepFactorX = 1f + spacingX;
-                float stepFactorY = 1f + spacingY;
-                float cellSizeX = worldWidth / (cols * stepFactorX);
-                float cellSizeY = worldHeight / (rows * stepFactorY);
-                cellSize = Mathf.Min(cellSizeX, cellSizeY);
-
-                stepX = cellSize * stepFactorX;
-                stepY = cellSize * stepFactorY;
                 totalWidth = cols * stepX;
                 totalHeight = rows * stepY;
 
@@ -1167,6 +1192,33 @@ namespace PixelGame
                     }
 
                     createdCount++;
+                }
+            }
+
+            // KÜPLERİ PODYUMUN TAM GEOMETRİK MERKEZİNE OTURTMA (Kusursuz Ortalama):
+            // Çizim ne olursa olsun, aktif küplerin gerçek dünya sınırlarını ölç ve podyum merkezine (worldCenter) milimetrik eşitle.
+            if (m_CubesContainer != null && m_CubesContainer.childCount > 0)
+            {
+                Bounds actualBounds = default;
+                bool foundCube = false;
+                for (int i = 0; i < m_CubesContainer.childCount; i++)
+                {
+                    Transform t = m_CubesContainer.GetChild(i);
+                    if (t == null || !t.gameObject.activeSelf || t.name.StartsWith("[") || t.name.StartsWith("Board")) continue;
+                    if (!foundCube) { actualBounds = new Bounds(t.position, Vector3.zero); foundCube = true; }
+                    else actualBounds.Encapsulate(t.position);
+                }
+                if (foundCube)
+                {
+                    Vector3 shift = new Vector3(worldCenter.x - actualBounds.center.x, worldCenter.y - actualBounds.center.y, 0f);
+                    for (int i = 0; i < m_CubesContainer.childCount; i++)
+                    {
+                        Transform t = m_CubesContainer.GetChild(i);
+                        if (t != null && !t.name.StartsWith("[") && !t.name.StartsWith("Board"))
+                        {
+                            t.position += shift;
+                        }
+                    }
                 }
             }
 
@@ -2611,6 +2663,10 @@ namespace PixelGame
             if (!CalculateTargetWorldBounds(cam, out Vector3 worldCenter, out float worldWidth, out float worldHeight))
                 return;
 
+            // Podyum tahtası (Board Podium), sahilde sabit bir sehpa/tepsi gibi daima FixedSand boyut ve konumunda sabit kalır.
+            // Seviyeler (karpuz, çiçek vb.) bu sabit podyumun içine sığacak şekilde kendilerini ölçekler.
+            float boardSquareSize = Mathf.Min(worldWidth, worldHeight);
+
             float fullW = worldWidth / Mathf.Max(0.01f, 1f - m_InnerPadding * 2f);
             float fullH = worldHeight / Mathf.Max(0.01f, 1f - m_InnerPadding * 2f);
 
@@ -2631,18 +2687,24 @@ namespace PixelGame
             }
 
             m_FramePreviewTransform.gameObject.SetActive(true);
-            m_FramePreviewTransform.position = new Vector3(worldCenter.x, worldCenter.y, m_TargetZ + 0.08f);
+            // Z derinliği: Küplerin (z = 0..0.5) ve koşan denizcilerin (z ≈ 0.36) TAMAMEN arkasında kalması için z = m_TargetZ + 0.60f
+            m_FramePreviewTransform.position = new Vector3(worldCenter.x, worldCenter.y, m_TargetZ + 0.60f);
             m_FramePreviewTransform.rotation = Quaternion.identity;
 
-            // 1. Mavi Çerçeve Pervazı (Frame Sprite)
+            // 1. Podyum / Çerçeve Görseli (Board Podium Sprite)
             SpriteRenderer sr = m_FramePreviewTransform.GetComponent<SpriteRenderer>();
             if (sr == null) sr = m_FramePreviewTransform.gameObject.AddComponent<SpriteRenderer>();
 
             Sprite frameSprite = null;
             #if UNITY_EDITOR
-            frameSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/Frame.png") 
+            frameSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/BoardPodium_Reference.png")
+                       ?? UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/Frame.png") 
                        ?? UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Frame.png");
             #endif
+            if (frameSprite == null)
+            {
+                frameSprite = Resources.Load<Sprite>("BoardPodium_Reference");
+            }
             if (frameSprite == null && m_TargetFrameRect != null)
             {
                 UnityEngine.UI.Image img = m_TargetFrameRect.GetComponent<UnityEngine.UI.Image>();
@@ -2655,53 +2717,20 @@ namespace PixelGame
                 sr.drawMode = SpriteDrawMode.Simple;
                 float ppx = frameSprite.rect.width / frameSprite.pixelsPerUnit;
                 float ppy = frameSprite.rect.height / frameSprite.pixelsPerUnit;
-                m_FramePreviewTransform.localScale = new Vector3(fullW / Mathf.Max(0.01f, ppx), fullH / Mathf.Max(0.01f, ppy), 1f);
+                // BoardPodium_Reference sprite'ı kare bir podyumdur (1024x1024, iç tuval 738x738).
+                // fixedSandWidth / Height kare podyumun dış boyutunu belirler.
+                float targetW = boardSquareSize;
+                float targetH = boardSquareSize;
+                m_FramePreviewTransform.localScale = new Vector3(targetW / Mathf.Max(0.01f, ppx), targetH / Mathf.Max(0.01f, ppy), 1f);
                 sr.color = Color.white;
-                sr.sortingOrder = -10; // Küplerin arkasında kalır
+                sr.sortingOrder = -50; // Küplerin ve denizcilerin tamamen arkasında çizilir
             }
 
-            // 2. Çerçevenin İçindeki Beyaz Tuval / Pano Zemini (Scene Board Canvas)
+            // 2. BoardPodium_Reference zaten kendi iç zeminine ve gölgesine sahip olduğu için küpleri örten opak [BoardBackground] kapatılır
             Transform boardChild = m_FramePreviewTransform.Find("[BoardBackground]");
-            if (m_ShowSceneBoardBackground)
+            if (boardChild != null)
             {
-                if (boardChild == null)
-                {
-                    if (!forceCreate) return; // Kullanıcı pano arka planını sildiyse hortlatma!
-
-                    GameObject bgObj = new GameObject("[BoardBackground]");
-                    bgObj.transform.SetParent(m_FramePreviewTransform, false);
-                    boardChild = bgObj.transform;
-                }
-
-                boardChild.gameObject.SetActive(true);
-                boardChild.localPosition = new Vector3(0f, 0f, 0.02f);
-                boardChild.localRotation = Quaternion.identity;
-
-                MeshFilter mf = boardChild.GetComponent<MeshFilter>();
-                if (mf == null) mf = boardChild.gameObject.AddComponent<MeshFilter>();
-                mf.sharedMesh = GetOrCreateQuadMesh();
-
-                MeshRenderer mr = boardChild.GetComponent<MeshRenderer>();
-                if (mr == null) mr = boardChild.gameObject.AddComponent<MeshRenderer>();
-
-                Shader boardShader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Sprites/Default");
-                if (mr.sharedMaterial == null || mr.sharedMaterial.shader != boardShader)
-                {
-                    mr.sharedMaterial = new Material(boardShader);
-                    mr.sharedMaterial.name = "Scene_BoardBackground_Mat";
-                }
-                mr.sharedMaterial.color = new Color(0.96f, 0.97f, 0.98f, 0.98f); // Temiz tuval rengi
-                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                mr.receiveShadows = false;
-
-                // Parent'ın ölçeğini nötralize ederek iç oynanabilir alana tam oturmasını sağla
-                float ppxInv = 1f / Mathf.Max(0.001f, m_FramePreviewTransform.localScale.x);
-                float ppyInv = 1f / Mathf.Max(0.001f, m_FramePreviewTransform.localScale.y);
-                boardChild.localScale = new Vector3(worldWidth * 1.02f * ppxInv, worldHeight * 1.02f * ppyInv, 1f);
-            }
-            else
-            {
-                if (boardChild != null) boardChild.gameObject.SetActive(false);
+                boardChild.gameObject.SetActive(false);
             }
         }
 
