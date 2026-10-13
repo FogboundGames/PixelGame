@@ -105,6 +105,8 @@ namespace PixelGame
         [Tooltip("Kıçın slot arka kenarından içeri payı (slot boyunun oranı). Kesikli çerçeve kenardan ~%3 içeride.")]
         [Range(0f, 0.3f)]
         [SerializeField] private float m_SternInsetRatio = 0.05f;
+        [Tooltip("Yanaşınca slot içinde yana kayma (slot yerel X; negatif = sola).")]
+        [SerializeField] private float m_DockSideOffset = 0f;
 
         public const float DefaultDockForwardOffset = 0.28f;
         public const float DefaultDockHeightOffset = 0.08f;
@@ -2256,7 +2258,7 @@ namespace PixelGame
         /// </summary>
         private Vector3 ComputeDockLocalPosition(ShipSlot slot)
         {
-            Vector3 fallback = new Vector3(0f, m_DockHeightOffset, m_DockForwardOffset);
+            Vector3 fallback = new Vector3(m_DockSideOffset, m_DockHeightOffset, m_DockForwardOffset);
             if (!m_AlignSternToSlotBack || slot == null) return fallback;
 
             Transform berth = slot.transform.Find("[Slot_Berth]");
@@ -2274,7 +2276,7 @@ namespace PixelGame
 
             Vector3 rootWorld = backWorld + slotForward * (rootToSternWorld + berthWorldLength * m_SternInsetRatio);
             Vector3 local = slotTr.InverseTransformPoint(rootWorld);
-            return new Vector3(0f, m_DockHeightOffset, local.z);
+            return new Vector3(m_DockSideOffset, m_DockHeightOffset, local.z);
         }
 
         /// <summary>Gövde görsellerinin gemi kök uzayındaki en arka (kıç) z değeri.</summary>

@@ -225,6 +225,8 @@ namespace PixelGame
         [SerializeField] private bool m_EnableCurvedPier = false;
         [SerializeField] private Texture m_Background3Slots;
         [SerializeField] private Texture m_Background4Slots;
+        [Tooltip("Beş bölmenin de açık (taralı olmayan) çizildiği arka plan. Kapalı bölmeleri slot sayısına göre kod taralı görselle kapatır.")]
+        [SerializeField] private Texture m_BackgroundAllBaysOpen;
         [SerializeField] private Material m_PierMaterial4Slots;
         [SerializeField] private Material m_PierMaterial5Slots;
         [SerializeField] private Material m_PierMaterial3Slots;
@@ -517,7 +519,29 @@ namespace PixelGame
         }
 
         public int OpenSlotCount => m_SlotCount;
-        public int TotalBaysCount => (m_SlotCount % 2 != 0) ? 5 : 6;
+        public int TotalBaysCount => BayCountFor(m_SlotCount);
+
+        /// <summary>Arka plan resminde çizili bölme sayısı (her zaman 5); 5'ten fazla slotta slot sayısı kadar.</summary>
+        public static int BayCountFor(int slotCount) => Mathf.Max(5, slotCount);
+
+        /// <summary>
+        /// Açık slotların hangi bölmelere (soldan 0..4) oturacağı. Arka plandaki 5 bölmeye göre:
+        /// 1: X X 1 X X · 2: X 1 X 2 X · 3: X 1 2 3 X · 4: 1 2 X 3 4 · 5: hepsi.
+        /// </summary>
+        public static int[] OpenBaysFor(int slotCount)
+        {
+            switch (slotCount)
+            {
+                case 1: return new[] { 2 };
+                case 2: return new[] { 1, 3 };
+                case 3: return new[] { 1, 2, 3 };
+                case 4: return new[] { 0, 1, 3, 4 };
+            }
+            int n = Mathf.Max(0, slotCount);
+            var all = new int[n];
+            for (int i = 0; i < n; i++) all[i] = i;
+            return all;
+        }
         public int ClosedSlotCount => Mathf.Max(0, TotalBaysCount - OpenSlotCount);
         public bool MatchBackgroundBays
         {
@@ -1204,14 +1228,17 @@ namespace PixelGame
                 }
                 spacing = rawSpacing * fit;
             }
-            float startX = -(count - 1) * spacing * 0.5f;
+            // Slotlar arka plandaki bölmelere oturur (ortadaki bölme yerel x=0); sıra OpenBaysFor'da
+            int[] openBays = OpenBaysFor(count);
+            int bayCount = BayCountFor(count);
+            float bayCenter = (bayCount - 1) * 0.5f;
 
             for (int i = 0; i < count; i++)
             {
                 var slot = activeSlots[i];
                 Transform tr = slot.transform;
-                float posX = startX + i * spacing;
-                float t = count > 1 ? (i - (count - 1) * 0.5f) : 0f;
+                float t = openBays[i] - bayCenter;
+                float posX = t * spacing;
                 float posY = arcCurveY * (t * t) + m_ArcAsymmetry * t;
                 float angle = slotAngle + m_ArcAngleFan * t;
 
@@ -1339,11 +1366,11 @@ namespace PixelGame
             // -------------------------------------------------------------
             // KAPALI / KİLİTLİ SLOT BÖLMELERİ (LOCKED BAY MARKERS WITH LOCK ICON)
             // -------------------------------------------------------------
-            // Rıhtım iskelesindeki toplam bölme sayısı (tekil sayılarda 5 koy, çiftlerde 6 koy).
+            // Rıhtım iskelesindeki toplam bölme sayısı (arka planda çizili 5 bölme).
             // Aktif slotların dışındaki bölmelere oyuncuya kilitli olduğunu net gösteren
             // su üstü yanaşma slotu çerçevesi ve altın asma kilit (🔒) yerleştirilir.
-            int totalBays = (count % 2 != 0) ? 5 : 6;
-            if (count > totalBays) totalBays = count;
+            int totalBays = BayCountFor(count);
+            var openBaySet = new HashSet<int>(OpenBaysFor(count));
 
             // Kapalı slotların görseli açık slotunkiyle aynı boy ve ofsette dursun
             float closedBerthLength = m_SlotBerthLength * (m_UseInnerBerthVisual ? m_OpenBerthLengthScale : 1f);
@@ -1351,11 +1378,11 @@ namespace PixelGame
             Transform refBerth = refSlot.Find("[Slot_Berth]");
             Vector3 openBerthOffsetWorld = refBerth != null ? refBerth.position - refSlot.position : Vector3.zero;
 
-            int startOpenBay = (totalBays - count) / 2;
-            int endOpenBay = startOpenBay + count - 1;
-
             var existingBarriers = new List<MarinaLockedSlotBarrier>(GetComponentsInChildren<MarinaLockedSlotBarrier>(true));
-            if (m_HideSlotIndicators)
+            // Arka plan bütün bölmeleri açık çizdiğinde kapalı bölmeleri taralı görsel kapatır (göstergeler gizli olsa bile)
+            EnsureBackgroundTexturesInitialized();
+            bool closedOverlayNeeded = m_BackgroundAllBaysOpen != null && m_UseClosedSlotVisual && m_SlotBerthClosedMaterial != null;
+            if (m_HideSlotIndicators && !closedOverlayNeeded)
             {
                 foreach (var eb in existingBarriers)
                 {
@@ -1371,10 +1398,10 @@ namespace PixelGame
             for (int b = 0; b < totalBays; b++)
             {
                 // Açık slot bölmeleri aktif gemi slotlarıdır, bariyer konulmaz
-                if (b >= startOpenBay && b <= endOpenBay) continue;
+                if (openBaySet.Contains(b)) continue;
 
                 // Kapalı bölmenin konumu ve açısı
-                float bt = (totalBays % 2 != 0) ? (b - (totalBays / 2)) : (b - (totalBays - 1) * 0.5f);
+                float bt = b - (totalBays - 1) * 0.5f;
                 float bayPosX = bt * spacing;
                 float bayPosY = arcCurveY * (bt * bt) + m_ArcAsymmetry * bt;
                 float bayAngle = slotAngle + m_ArcAngleFan * bt;
@@ -1584,7 +1611,8 @@ namespace PixelGame
                 UnityEngine.UI.RawImage rawImg = bgObj.GetComponent<UnityEngine.UI.RawImage>();
                 if (rawImg != null)
                 {
-                    Texture targetTex = (count % 2 != 0) ? m_Background3Slots : m_Background4Slots;
+                    // Bölmeler artık her slot sayısında aynı 5 bölmeye oturuyor: tek arka plan
+                    Texture targetTex = m_BackgroundAllBaysOpen != null ? m_BackgroundAllBaysOpen : m_Background3Slots;
                     if (targetTex != null && rawImg.texture != targetTex)
                     {
 #if UNITY_EDITOR
@@ -1609,6 +1637,10 @@ namespace PixelGame
             if (m_Background4Slots == null)
             {
                 m_Background4Slots = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Kenney/BeachBackground_4Slots.png");
+            }
+            if (m_BackgroundAllBaysOpen == null)
+            {
+                m_BackgroundAllBaysOpen = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Kenney/BeachBackground_Marina5Open.png");
             }
 #endif
         }

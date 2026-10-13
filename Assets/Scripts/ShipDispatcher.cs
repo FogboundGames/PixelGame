@@ -26,13 +26,13 @@ namespace PixelGame
         /// <summary>Sahildeki açık (yanaşılabilir) aktif slot sayısı.</summary>
         public int OpenSlotCount => m_Slots != null ? m_Slots.Count : 0;
 
-        /// <summary>Rıhtım iskelesindeki toplam bölme sayısı (tekillerde 5, çiftlerde 6).</summary>
+        /// <summary>Rıhtım iskelesindeki toplam bölme sayısı (arka planda çizili 5 bölme).</summary>
         public int TotalBaysCount
         {
             get
             {
                 var marina = Object.FindFirstObjectByType<MarinaSlotLayout>();
-                return marina != null ? marina.TotalBaysCount : (OpenSlotCount % 2 != 0 ? 5 : 6);
+                return marina != null ? marina.TotalBaysCount : MarinaSlotLayout.BayCountFor(OpenSlotCount);
             }
         }
 
@@ -107,6 +107,7 @@ namespace PixelGame
                 }
             }
             m_LiveRunners.Clear();
+            m_RunnerAgents.Clear();
         }
         [Tooltip("Denizcinin önünde taşıdığı küpün boyu (model birimi; 1 = panodaki küp).")]
         [SerializeField, Range(0.2f, 1f)] private float m_SailorCargoSize = 0.6f;
@@ -151,6 +152,162 @@ namespace PixelGame
         [Tooltip("Koşucuların yürüme hızı (dünya birimi/sn). Eskiden 3.2'ye sabitti.")]
         [SerializeField, Min(0.5f)] private float m_RunnerSpeed = 2.2f;
         private int m_RunnerSerial;
+
+        [Header("🏃 Denizci Hareket Hissi")]
+        [Tooltip("Denizcinin duruştan tam hıza çıkma süresi (sn). 0 = anında tam hız.")]
+        [SerializeField, Range(0f, 1f)] private float m_RunnerAccelTime = 0.2f;
+        [Tooltip("Küpe varmadan kaç küp mesafeden itibaren yavaşlamaya başlasın.")]
+        [SerializeField, Range(0f, 3f)] private float m_RunnerArriveSlowCubes = 1.0f;
+        [Tooltip("Küpün önüne varırken düştüğü en düşük hız (tam hıza oran).")]
+        [SerializeField, Range(0.1f, 1f)] private float m_RunnerArriveMinSpeed = 0.35f;
+        [Tooltip("Her denizciye verilen rastgele hız farkı (±oran). Hepsi aynı ritimde yürümesin.")]
+        [SerializeField, Range(0f, 0.3f)] private float m_RunnerSpeedJitter = 0.08f;
+        [Tooltip("Denizci kıyıya ve güverteye konarken yaptığı ezilme miktarı (0 = yok).")]
+        [SerializeField, Range(0f, 0.4f)] private float m_RunnerLandingSquash = 0.16f;
+        [Tooltip("Yük binince geminin suya batma derinliği: tek yükte en az, art arda yüklerde en çok.")]
+        [SerializeField] private Vector2 m_ShipBoardDipRange = new Vector2(0.08f, 0.2f);
+        [Tooltip("Gemi dolduğu yükte batma derinliği.")]
+        [SerializeField, Range(0f, 0.5f)] private float m_ShipFullDip = 0.26f;
+        private readonly Dictionary<ShipController, (float time, int streak)> m_BoardStreaks = new Dictionary<ShipController, (float, int)>();
+
+        [Header("↔️ Denizciler Arası Mesafe (Hafif İtme)")]
+        [Tooltip("Bu mesafeden (küp cinsinden) daha yakın denizciler birbirini yana iter. 0 = kapalı.")]
+        [SerializeField, Range(0f, 2f)] private float m_RunnerSeparationRadiusCubes = 0.9f;
+        [Tooltip("Resmin dışında yana en fazla açılma (küp cinsinden).")]
+        [SerializeField, Range(0f, 1.5f)] private float m_RunnerSeparationMaxCubes = 0.6f;
+        [Tooltip("Resmin içindeki dar boşluklarda yana en fazla açılma (küp cinsinden); küplerin içine itilmesinler.")]
+        [SerializeField, Range(0f, 1f)] private float m_RunnerSeparationInsideCubes = 0.2f;
+        [Tooltip("Yana açılmanın ne kadar çabuk olduğu (büyüdükçe daha sert).")]
+        [SerializeField, Range(1f, 30f)] private float m_RunnerSeparationResponse = 8f;
+        [Tooltip("Aynı yöne yürürken öndekiyle korunan takip mesafesi (küp cinsinden). Yaklaşınca arkadaki yavaşlar. 0 = kapalı.")]
+        [SerializeField, Range(0f, 2f)] private float m_RunnerFollowGapCubes = 1.4f;
+        [Tooltip("Bu mesafenin (küp cinsinden) altında arkadaki tamamen durur.")]
+        [SerializeField, Range(0f, 1f)] private float m_RunnerFollowStopCubes = 0.8f;
+
+        /// <summary>Yolda yürüyen bir denizcinin itme durumu (yolun yanına ne kadar kaydığı).</summary>
+        private class RunnerAgent
+        {
+            public Transform T;
+            public int Id;
+            public float Offset;
+            public Vector2 Perp = Vector2.right;
+            public Vector2 Dir = Vector2.up;
+            public bool Active;
+            public bool Moving;
+        }
+
+        /// <summary>
+        /// Takip: aynı yöne yürürken hemen önünde (aynı şeritte) yürüyen biri varsa yavaşla; öndekinin içine girme.
+        /// Karşıdan gelenler ve duranlar burada sayılmaz (onlar için yana açılma var).
+        /// </summary>
+        private float RunnerFollowFactor(RunnerAgent me, float pitch)
+        {
+            if (me == null || me.T == null || m_RunnerFollowGapCubes <= 0.001f) return 1f;
+            float gap = pitch * m_RunnerFollowGapCubes;
+            float stop = Mathf.Min(gap * 0.95f, pitch * m_RunnerFollowStopCubes);
+            Vector2 myPos = new Vector2(me.T.position.x, me.T.position.y);
+            float factor = 1f;
+            for (int i = 0; i < m_RunnerAgents.Count; i++)
+            {
+                RunnerAgent a = m_RunnerAgents[i];
+                if (a == null || a == me || a.T == null || !a.Active || !a.Moving) continue;
+                if (Vector2.Dot(me.Dir, a.Dir) < 0.5f) continue;          // aynı yöne gitmiyor
+                Vector2 rel = new Vector2(a.T.position.x, a.T.position.y) - myPos;
+                float ahead = Vector2.Dot(rel, me.Dir);
+                if (ahead <= 0f || ahead >= gap) continue;                  // önde değil ya da yeterince uzak
+                if (Mathf.Abs(Vector2.Dot(rel, me.Perp)) > pitch * 0.6f) continue; // aynı şeritte değil
+                // Açılı birleşen yollarda ikisi de diğerini önde sanabilir: yalnızca biri (büyük Id) yol verir
+                if (Vector2.Dot(-rel, a.Dir) > 0f && me.Id < a.Id) continue;
+                factor = Mathf.Min(factor, Mathf.Clamp01((ahead - stop) / Mathf.Max(1e-4f, gap - stop)));
+            }
+            // Hiç kimse tamamen durmasın (kilitlenme olmasın), en az ağır ağır ilerlesin
+            return Mathf.Max(factor, 0.08f);
+        }
+        private readonly List<RunnerAgent> m_RunnerAgents = new List<RunnerAgent>();
+
+        /// <summary>
+        /// Yol noktasını, yakındaki diğer denizcilerden yana (yola dik) iterek kaydırır. Yalnızca yana itilir:
+        /// kimse yavaşlamaz, varış sırası değişmez. <paramref name="fade"/> küpe yakın / kıyıda 0'a iner.
+        /// </summary>
+        private Vector3 ApplyRunnerSeparation(RunnerAgent me, Vector3 basePos, Vector3 tangent, float fade, float pitch, float dt)
+        {
+            if (me == null || m_RunnerSeparationRadiusCubes <= 0.001f) return basePos;
+            Vector2 perp = new Vector2(-tangent.y, tangent.x);
+            if (perp.sqrMagnitude < 1e-6f) perp = me.Perp; else perp.Normalize();
+            me.Perp = perp;
+            me.Dir = new Vector2(perp.y, -perp.x);
+
+            float radius = pitch * m_RunnerSeparationRadiusCubes;
+            Vector2 myPos = new Vector2(basePos.x, basePos.y) + perp * me.Offset;
+            float push = 0f;
+            for (int i = m_RunnerAgents.Count - 1; i >= 0; i--)
+            {
+                RunnerAgent a = m_RunnerAgents[i];
+                if (a == null || a.T == null) { m_RunnerAgents.RemoveAt(i); continue; }
+                if (a == me || !a.Active) continue;
+                // Aynı yöne yürüyenler yana itilmez (onları takip mesafesi ayırır); karşıdan gelen ya da duran itilir
+                if (a.Moving && m_RunnerFollowGapCubes > 0.001f && Vector2.Dot(me.Dir, a.Dir) >= 0.5f) continue;
+                Vector2 d = myPos - new Vector2(a.T.position.x, a.T.position.y);
+                float dist = d.magnitude;
+                if (dist >= radius) continue;
+                float side = Vector2.Dot(d, perp);
+                float sgn;
+                if (Mathf.Abs(side) > radius * 0.05f) sgn = Mathf.Sign(side);
+                else
+                {
+                    // Tam hizadalar: ortak bir yön seç (küçük Id'nin yan yönü), biri bir yana diğeri öbür yana
+                    Vector2 shared = me.Id < a.Id ? perp : a.Perp;
+                    Vector2 worldDir = me.Id < a.Id ? shared : -shared;
+                    sgn = Vector2.Dot(worldDir, perp) >= 0f ? 1f : -1f;
+                }
+                push += sgn * (1f - dist / radius);
+            }
+
+            bool inside = basePos.x > m_BoardMinX - pitch * 0.5f && basePos.x < m_BoardMaxX + pitch * 0.5f &&
+                          basePos.y > m_BoardBottomY - pitch * 0.5f && basePos.y < m_BoardTopY + pitch * 0.5f;
+            float limit = pitch * (inside ? m_RunnerSeparationInsideCubes : m_RunnerSeparationMaxCubes);
+            float target = Mathf.Clamp(push * pitch * m_RunnerSeparationMaxCubes, -limit, limit) * Mathf.Clamp01(fade);
+            me.Offset = Mathf.Lerp(me.Offset, target, 1f - Mathf.Exp(-m_RunnerSeparationResponse * dt));
+            return basePos + new Vector3(perp.x, perp.y, 0f) * me.Offset;
+        }
+
+        /// <summary>Hızlanma (yola çıkış) ve varışta yavaşlama çarpanı.</summary>
+        private float RunnerSpeedFactor(float elapsed, float remaining, float slowDist, float minFactor)
+        {
+            float accel = m_RunnerAccelTime > 0.001f ? Mathf.SmoothStep(0.25f, 1f, Mathf.Clamp01(elapsed / m_RunnerAccelTime)) : 1f;
+            float arrive = slowDist > 0.001f ? Mathf.Lerp(minFactor, 1f, Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(remaining / slowDist))) : 1f;
+            return Mathf.Min(accel, arrive);
+        }
+
+        /// <summary>Konma anında kısa ezilme: boy (kameraya doğru, -Z) kısalır, en genişler, sonra yaylanıp geri döner.</summary>
+        private IEnumerator RunnerLandingSquashRoutine(Transform t, float amount, float duration)
+        {
+            if (t == null || amount <= 0.001f) yield break;
+            Vector3 baseScale = t.localScale;
+            float e = 0f;
+            while (e < duration && t != null)
+            {
+                e += Time.deltaTime;
+                float u = Mathf.Clamp01(e / duration);
+                // 0→1→0 çan eğrisi, sonunda hafif ters yaylanma
+                float k = Mathf.Sin(u * Mathf.PI) * (1f - u * 0.35f) - Mathf.Sin(u * Mathf.PI * 2f) * 0.12f * u;
+                float a = amount * k;
+                t.localScale = new Vector3(baseScale.x * (1f + a * 0.5f), baseScale.y * (1f + a * 0.5f), baseScale.z * (1f - a));
+                yield return null;
+            }
+            if (t != null) t.localScale = baseScale;
+        }
+
+        /// <summary>Art arda binen yük sayısına göre (0.5 sn pencere) gemi batma derinliği.</summary>
+        private float NextShipBoardDip(ShipController ship)
+        {
+            if (ship == null) return m_ShipBoardDipRange.x;
+            if (ship.IsFull) { m_BoardStreaks.Remove(ship); return m_ShipFullDip; }
+            int streak = 1;
+            if (m_BoardStreaks.TryGetValue(ship, out var prev) && Time.time - prev.time < 0.5f) streak = prev.streak + 1;
+            m_BoardStreaks[ship] = (Time.time, streak);
+            return Mathf.Lerp(m_ShipBoardDipRange.x, m_ShipBoardDipRange.y, Mathf.Clamp01((streak - 1) / 5f));
+        }
 
         [Tooltip("Kargo konteynerini taşırken koşucunun kafasındaki yerel ofset.")]
         [SerializeField] private Vector3 m_CarriedCargoOffset = new Vector3(0f, 0.45f, 0f);
@@ -3798,7 +3955,11 @@ namespace PixelGame
             if (runner == null) yield break;
             runner.transform.position = shorePoint;
             if (waddle != null) waddle.IsAirborne = false;
-            if (sailorVis != null) sailorVis.SetRingVisible(true);
+            if (sailorVis != null)
+            {
+                sailorVis.SetRingVisible(true);
+                StartCoroutine(RunnerLandingSquashRoutine(runner.transform, m_RunnerLandingSquash, 0.22f));
+            }
 
             if (HypercasualFeedbackManager.Instance != null)
             {
@@ -3812,8 +3973,14 @@ namespace PixelGame
             ShoreLanePath forwardPath = ShoreLanePath.BuildFilleted(forwardWaypoints, runnerCornerRadius, 8);
 
             float dist = 0f;
-            float cruiseSpeed = m_RunnerSpeed;
+            // Her denizci hafif farklı hızda: hepsi aynı ritimde yürümesin
+            float cruiseSpeed = m_RunnerSpeed * (1f + UnityEngine.Random.Range(-m_RunnerSpeedJitter, m_RunnerSpeedJitter));
             float pathLen = forwardPath.Length;
+            float runPitch = m_GridFrameValid ? Mathf.Max(0.05f, m_GridFrame.Pitch) : 0.3f;
+            float runElapsed = 0f;
+            EnsureBoardBounds();
+            var agent = new RunnerAgent { T = runner.transform, Id = runner.GetInstanceID(), Active = true };
+            m_RunnerAgents.Add(agent);
 
             motion.BeginRopeMotion(s, indexInQueue, cruiseSpeed, 0f, forwardPath.TangentAtDistance(0f));
             if (sailorVis != null) sailorVis.Play(SailorRunnerVisual.StateRunEmpty);
@@ -3823,9 +3990,17 @@ namespace PixelGame
                 float dt = Time.deltaTime;
                 if (dt <= 0f) { yield return null; continue; }
 
-                dist += cruiseSpeed * dt;
+                runElapsed += dt;
+                agent.Moving = true;
+                // Yola çıkarken hızlan, küpün önüne varırken yavaşla (son yerleşme kısa ve kontrollü);
+                // aynı yöne giden birinin hemen arkasındaysa onun içine girmemek için yavaşla
+                dist += cruiseSpeed * RunnerSpeedFactor(runElapsed, pathLen - dist, runPitch * m_RunnerArriveSlowCubes, m_RunnerArriveMinSpeed)
+                        * RunnerFollowFactor(agent, runPitch) * dt;
                 float clampedDist = Mathf.Min(dist, pathLen);
                 Vector3 p = forwardPath.PointAtDistance(clampedDist);
+                // Yakındaki denizcilerden yana açıl; kıyıdan çıkarken ve küpe varırken itme kapanır
+                float sepFade = Mathf.Clamp01(clampedDist / (0.25f * runPitch)) * Mathf.Clamp01((pathLen - clampedDist - 0.3f * runPitch) / (1.2f * runPitch));
+                p = ApplyRunnerSeparation(agent, p, forwardPath.TangentAtDistance(clampedDist), sepFade, runPitch, dt);
                 motion.ApplyRopeFrame(p, 0f, Vector3.zero, camUp, dt);
 
                 yield return null;
@@ -3846,6 +4021,7 @@ namespace PixelGame
             }
 
             // Phase 3: Pick up cargo container
+            agent.Moving = false;   // küpü alırken duruyor: arkadakiler beklemesin, yanından geçsin
             // Orta bölgedeki / dikey sütun küplerinde denizci küpün önünde tam dik dursun ve yerinde hafif dönme/titreme yapmasın
             EnsureBoardBounds();
             float boardCenterX = (m_BoardMinX + m_BoardMaxX) * 0.5f;
@@ -3915,6 +4091,7 @@ namespace PixelGame
 
             dist = 0f;
             pathLen = returnPath.Length;
+            runElapsed = 0f;
             motion.BeginRopeMotion(s, indexInQueue, cruiseSpeed, 0f, returnPath.TangentAtDistance(0f));
 
             while (dist < pathLen && runner != null)
@@ -3922,9 +4099,15 @@ namespace PixelGame
                 float dt = Time.deltaTime;
                 if (dt <= 0f) { yield return null; continue; }
 
-                dist += cruiseSpeed * dt;
+                runElapsed += dt;
+                agent.Moving = true;
+                // Yükle hızlan; kıyıda zıplamadan önce hafif yavaşla (tamamen durmadan); öndekinin içine girme
+                dist += cruiseSpeed * RunnerSpeedFactor(runElapsed, pathLen - dist, runPitch * m_RunnerArriveSlowCubes * 0.6f, 0.65f)
+                        * RunnerFollowFactor(agent, runPitch) * dt;
                 float clampedDist = Mathf.Min(dist, pathLen);
                 Vector3 p = returnPath.PointAtDistance(clampedDist);
+                float sepFade = Mathf.Clamp01(clampedDist / (1.2f * runPitch)) * Mathf.Clamp01((pathLen - clampedDist) / (0.25f * runPitch));
+                p = ApplyRunnerSeparation(agent, p, returnPath.TangentAtDistance(clampedDist), sepFade, runPitch, dt);
                 motion.ApplyRopeFrame(p, 0f, Vector3.zero, camUp, dt);
 
                 yield return null;
@@ -3943,6 +4126,8 @@ namespace PixelGame
             }
 
             // Phase 5: Hop from shore onto ship deck
+            agent.Active = false;
+            m_RunnerAgents.Remove(agent);
             Vector3 shoreEnd = runner.transform.position;
             float returnHopDuration = Mathf.Max(0.2f, m_HopDuration);
             if (sailorVis != null) { sailorVis.Play(SailorRunnerVisual.StateHopBoard, 0.05f); sailorVis.SetRingVisible(false); }
@@ -3981,7 +4166,9 @@ namespace PixelGame
             if (ship != null)
             {
                 ship.AddCargo(1);
-                ship.TriggerWaterDipImpact(0.12f, 0.35f);
+                // Tek yükte hafif, art arda yüklerde ve gemi dolunca daha güçlü batma
+                float dip = NextShipBoardDip(ship);
+                ship.TriggerWaterDipImpact(dip, Mathf.Lerp(0.32f, 0.5f, Mathf.InverseLerp(m_ShipBoardDipRange.x, m_ShipFullDip, dip)));
                 ShipController.SpawnWaterRipple(ship.transform.position + new Vector3(0f, -0.05f, 0.05f), 0.28f, 0.95f, 0.45f);
                 HypercasualWaterController.TriggerWaterRipple(ship.transform.position, 0.70f, 0.25f);
 
@@ -3992,6 +4179,12 @@ namespace PixelGame
                     ship.IsFull);
             }
 
+            if (runner != null)
+            {
+                // Güverteye konarken kısa ezilme, sonra içeri iner
+                if (sailorVis != null && m_RunnerLandingSquash > 0.001f)
+                    yield return RunnerLandingSquashRoutine(runner.transform, m_RunnerLandingSquash, 0.12f);
+            }
             if (runner != null)
             {
                 float sinkT = 0f;

@@ -15,6 +15,7 @@ Shader "PixelGame/HypercasualWaterBackground"
         _WaterDeepTint ("Water Deep Ocean Color Tint", Color) = (0.04, 0.40, 0.78, 1.0)
         _CausticSoften ("Caustic Highlight Soften (0=texture as is)", Range(0.0, 1.5)) = 0.0
         _CausticMaxV ("Caustic Soften Top V (slot lines above stay)", Range(0.0, 1.0)) = 0.265
+        _StillWaterAboveV ("Still Water Above V (slot şeridi dalgalanmaz, 0 = kapalı)", Range(0.0, 1.0)) = 0.0
 
         [Header(Sand Beach Settings)]
         _SandBrightness ("Sand Brightness", Range(0.8, 1.8)) = 1.0
@@ -111,6 +112,7 @@ Shader "PixelGame/HypercasualWaterBackground"
                 float4 _WaterDeepTint;
                 float _CausticSoften;
                 float _CausticMaxV;
+                float _StillWaterAboveV;
 
                 float _SandBrightness;
                 float _SandLighten;
@@ -208,7 +210,9 @@ Shader "PixelGame/HypercasualWaterBackground"
                 CalculateRipple(_Ripple3, baseUV, rippleUVOffset, rippleGlow);
 
                 // Yalnızca SU bölgesini dalgalandır! Kum alanını (%100) sabit ve net tut!
-                float2 finalUV = baseUV + (waveOffset + rippleUVOffset) * waterMask;
+                // Slot kesikli çizgileri resme çizili: bu V'nin üstündeki su (slot şeridi) dalgalanmaz, çizgiler sabit kalır
+                float stillMask = _StillWaterAboveV > 0.001 ? smoothstep(_StillWaterAboveV - 0.025, _StillWaterAboveV, baseUV.y) : 0.0;
+                float2 finalUV = baseUV + (waveOffset + rippleUVOffset) * waterMask * (1.0 - stillMask);
 
                 half4 texCol = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, finalUV);
 
