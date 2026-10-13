@@ -13,6 +13,8 @@ namespace PixelGame.Editor
 
         static SetupUserRequestedLayout()
         {
+            // Otomatik çalıştırma kapalı: sahnede elle yapılan düzenlemeleri geri yazıyordu. Menüden elle çalıştırılabilir.
+#if PIXELGAME_AUTO_SCENE_SETUP
             EditorApplication.delayCall += () =>
             {
                 if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;
@@ -23,6 +25,7 @@ namespace PixelGame.Editor
                     ApplyLayoutAndFixSlots();
                 }
             };
+#endif
         }
 
         [MenuItem("PixelGame/⚓ Fix Pier Dock Slots & Align Frame (User Request)")]

@@ -226,7 +226,7 @@ namespace PixelGame
 
             if (m_ShadowObject != null)
             {
-                m_ShadowObject.SetActive(true);
+                m_ShadowObject.SetActive(!m_IsPopped || m_IsLeaving);
             }
 
             if (m_ShadowBottomObject == null)
@@ -592,7 +592,15 @@ namespace PixelGame
         /// Küpün altına yumuşak sahte gölge yerleştirir (Back Quad).
         /// Küp parçalanmamış haldeyken hafif gölgeli durur, küp patlatıldığında ise arkada hiçbir iz kalmaz.
         /// </summary>
-        public void EnsureShadow(Material shadowMaterial, Vector2 offset, float scaleMultiplier, Color shadowColor)
+        /// <summary>Küp gövdesinin (kendi renderer'ı) gerçek zamanlı ışık gölgesi düşürüp düşürmeyeceği.</summary>
+        public void SetBodyCastsRealtimeShadow(bool cast)
+        {
+            Renderer body = GetComponent<Renderer>();
+            if (body == null) return;
+            body.shadowCastingMode = cast ? UnityEngine.Rendering.ShadowCastingMode.On : UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+        public void EnsureShadow(Material shadowMaterial, Vector2 offset, float scaleMultiplier, Color shadowColor, float heightScale = 1f)
         {
             // 1. Arka Duvar / Pano Gölgesi (Back Quad)
             Transform shadowTrans = transform.Find("CubeShadow");
@@ -619,10 +627,15 @@ namespace PixelGame
                 yPos = mf.sharedMesh.bounds.min.y - 0.08f;
             }
             float mul = scaleMultiplier > 0.001f ? scaleMultiplier : 1f;
+            // Boy uzatma: üst kenar (küpün altına giren kısım) yerinde kalsın, gölge yalnızca aşağı uzasın
+            float h = heightScale > 0.001f ? heightScale : 1f;
+            yPos -= 0.85f * mul * (h - 1f) * 0.5f;
             m_ShadowObject.transform.localPosition = new Vector3(offset.x, yPos, 0.52f);
             m_ShadowObject.transform.localRotation = Quaternion.identity;
-            m_ShadowObject.transform.localScale = new Vector3(1.45f * mul, 0.85f * mul, 1f);
-            m_ShadowObject.SetActive(true);
+            m_ShadowObject.transform.localScale = new Vector3(1.45f * mul, 0.85f * mul * h, 1f);
+            // Alınmış küpün gölgesi geri açılmasın; yürüyerek ayrılan küp gölgesini taşır. Toplu yeniden uygulama
+            // tüm gölgeleri açıp alınan küplerin yerinde gri gölge bırakıyordu.
+            m_ShadowObject.SetActive(!m_IsPopped || m_IsLeaving);
 
             MeshRenderer mr = m_ShadowObject.GetComponent<MeshRenderer>();
             if (mr != null)
@@ -645,6 +658,9 @@ namespace PixelGame
                     mr.SetPropertyBlock(spb);
                 }
             }
+
+            // Sahte gölge varken küp gövdesi gerçek ışık gölgesi düşürmesin: ikisi üst üste binip küpü havada gösteriyordu
+            SetBodyCastsRealtimeShadow(false);
 
             // 2. Varsa eski CubeShadow_Bottom objesini temizle (Küp patlayınca komşunun boşluğa taşmasını önler)
             Transform bottomTrans = transform.Find("CubeShadow_Bottom");

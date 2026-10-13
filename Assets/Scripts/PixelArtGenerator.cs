@@ -117,6 +117,11 @@ namespace PixelGame
         [SerializeField] private bool m_OverrideLevelCubeTilt = false;
         [SerializeField] private float m_CubeTiltOverride = 0f;
 
+        [Tooltip("Kamera tahtaya eğik baktığı için satırlar ekranda basık görünür. Bu değer bölüm dosyasındaki dikey boşluğa " +
+                 "eklenir (bölüm dosyasına yazılmaz); küpler eğimle birlikte ekranda kare görünsün.")]
+        [Range(0f, 0.5f)]
+        [SerializeField] private float m_ExtraRowSpacing = 0f;
+
         [Tooltip("Her satır (GridY arttıkça) küpün konumuna eklenen serbest X/Y/Z kademesi. Örn. Z=0.12 verirsen her üst satır bir öncekinden 0.12 birim daha ileri/geri kayar; X veya Y'ye değer verirsen satırlar yana/yukarı da kayabilir. Sahnede canlı görmek için 'Preserve Scene Edits' kapalı olmalı.")]
         [SerializeField] private Vector3 m_CubeRowStepOffset = Vector3.zero;
 
@@ -136,6 +141,8 @@ namespace PixelGame
         [SerializeField] private Material m_CubeShadowMaterial;
         [SerializeField] private Vector2 m_ShadowOffset = new Vector2(0f, -0.58f); // Küpün alt yüzeyine oturan sahte gölge (55-60% sarkma)
         [SerializeField] private float m_ShadowScale = 1.0f; // Referans boyut oranı
+        [Tooltip("Gölgenin boyu (genişlik aynı kalır). Üst kenar küpün altında sabit kalır, gölge yalnızca aşağı uzar.")]
+        [SerializeField] [Range(0.5f, 2.5f)] private float m_ShadowHeightScale = 1.0f;
         [SerializeField] private Color m_ShadowColor = new Color(0.04f, 0.06f, 0.14f, 0.68f); // Doğal, tok ve estetik sahte gölge tonu
 
         [Header("🌑 Şekil Çevresi Kontur Gölgesi (Figure Contour Shadow)")]
@@ -780,7 +787,7 @@ namespace PixelGame
             float stepX;
             float stepY;
 
-            float spacingY = Mathf.Max(0f, m_CubeSpacing);
+            float spacingY = Mathf.Max(0f, m_CubeSpacing) + m_ExtraRowSpacing;
             float spacingX = Mathf.Max(0f, m_CubeSpacingX);
 
             if (m_SkipTransparent && maxX >= minX && maxY >= minY)
@@ -1022,7 +1029,7 @@ namespace PixelGame
             float stepX;
             float stepY;
 
-            float spacingY = Mathf.Max(0f, m_CubeSpacing);
+            float spacingY = Mathf.Max(0f, m_CubeSpacing) + m_ExtraRowSpacing;
             float spacingX = Mathf.Max(0f, m_CubeSpacingX);
 
             // Eğer şeffaf arkaplanlı izole bir figür varsa (örn. Kalp), sadece figürün dolu sınırlarını çerçeveye yay ve tam merkeze oturt
@@ -1154,7 +1161,7 @@ namespace PixelGame
                     // Küp altına sahte gölge (Fake Shadow) ekle
                     if (useFakeShadows && shadowMat != null)
                     {
-                        pixelCube.EnsureShadow(shadowMat, m_ShadowOffset, m_ShadowScale, m_ShadowColor);
+                        pixelCube.EnsureShadow(shadowMat, m_ShadowOffset, m_ShadowScale, m_ShadowColor, m_ShadowHeightScale);
                     }
 
                     createdCount++;
@@ -1247,10 +1254,11 @@ namespace PixelGame
 
                 if (useFakeShadows && shadowMat != null)
                 {
-                    cube.EnsureShadow(shadowMat, m_ShadowOffset, m_ShadowScale, m_ShadowColor);
+                    cube.EnsureShadow(shadowMat, m_ShadowOffset, m_ShadowScale, m_ShadowColor, m_ShadowHeightScale);
                 }
                 else
                 {
+                    cube.SetBodyCastsRealtimeShadow(true);
                     if (cube.ShadowObject != null)
                     {
                         #if UNITY_EDITOR
@@ -1351,7 +1359,7 @@ namespace PixelGame
             }
 
             float cellSize, stepX, stepY;
-            float spacingY = Mathf.Max(0f, m_CubeSpacing);
+            float spacingY = Mathf.Max(0f, m_CubeSpacing) + m_ExtraRowSpacing;
             float spacingX = Mathf.Max(0f, m_CubeSpacingX);
             float stepFactorX = 1f + spacingX;
             float stepFactorY = 1f + spacingY;

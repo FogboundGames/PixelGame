@@ -362,6 +362,25 @@ namespace PixelGame
         [SerializeField] private Material m_ChimneyRimMaterial;
         [SerializeField] private Material m_ChimneySmokeMaterial;
 
+        [Header("🌊 Gemi Dibi Dalga Halkaları")]
+        [Tooltip("Bekleyen ve yanaşmış geminin dibinde suya yayılan ince, eş merkezli halkalar (referans görseldeki gibi).")]
+        [SerializeField] private bool m_EnableHullRings = true;
+        [SerializeField, Range(1, 4)] private int m_HullRingCount = 2;
+        [Tooltip("Halkanın gövde izdüşümüne göre başlangıç büyüklüğü (1 = gövdenin tam kenarı).")]
+        [SerializeField, Range(0.8f, 1.6f)] private float m_HullRingStartScale = 0.95f;
+        [Tooltip("Halkanın bir döngüde ne kadar genişlediği (başlangıç büyüklüğüne oran).")]
+        [SerializeField, Range(0f, 1f)] private float m_HullRingGrow = 0.25f;
+        [Tooltip("Bir halkanın genişleyip kaybolma süresi (sn).")]
+        [SerializeField, Range(0.5f, 6f)] private float m_HullRingCycle = 2.6f;
+        [SerializeField] private Color m_HullRingColor = new Color(0.85f, 0.96f, 1f, 0.32f);
+
+        private Transform[] m_HullRings;
+        private Vector2 m_HullRingHalfSize;
+        private float m_HullRingPhase;
+        private static Material s_HullRingMaterial;
+        private static MaterialPropertyBlock s_HullRingBlock;
+        private static readonly int HullRingColorProp = Shader.PropertyToID("_BaseColor");
+
         // Dahili referanslar
         private MeshRenderer[] m_Renderers;
         private MaterialPropertyBlock m_PropBlock;
@@ -640,6 +659,7 @@ namespace PixelGame
             {
                 if (mr == null) continue;
                 if (mr.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                if (mr.name.IndexOf("HullRing", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
                 if (m_FakeShadowObj != null && (mr.gameObject == m_FakeShadowObj || mr.transform.IsChildOf(m_FakeShadowObj.transform))) continue;
                 if (m_CargoDeckRoot != null && mr.transform.IsChildOf(m_CargoDeckRoot)) continue;
                 if (m_ChimneyTransform != null && (mr.gameObject == m_ChimneyTransform.gameObject || mr.transform.IsChildOf(m_ChimneyTransform))) continue;
@@ -1015,7 +1035,9 @@ namespace PixelGame
         public void EnsureSilhouetteShadow()
         {
             Transform existing = transform.Find(SilhouetteShadowName);
-            if (!m_EnableSilhouetteShadow || m_IsDocked)
+            // Yanaşırken, slottayken ve kalkarken de gölge kalsın (gemi slota yola çıktığı anda "yanaşmış" sayılıyordu,
+            // gölge tüm bu süre boyunca kayboluyordu)
+            if (!m_EnableSilhouetteShadow)
             {
                 if (existing != null) existing.gameObject.SetActive(false);
                 return;
@@ -1280,6 +1302,99 @@ namespace PixelGame
         {
             UpdateMysteryReveal();
             UpdateBadgePlacement();
+            UpdateHullRings();
+        }
+
+        /// <summary>
+        /// Geminin dibindeki dalga halkaları: gövdenin su hattındaki izdüşümünden biraz büyük elipsler,
+        /// sırayla yavaşça genişleyip kaybolur. Gemi hareket ederken / kalkarken gizlenir.
+        /// </summary>
+        private void UpdateHullRings()
+        {
+            if (!Application.isPlaying) return;
+            bool show = m_EnableHullRings && !m_IsMoving && !m_IsDeparting && !m_IsDragging && !m_IsPickedUp;
+            if (!show)
+            {
+                if (m_HullRings != null)
+                    foreach (var r in m_HullRings) if (r != null && r.gameObject.activeSelf) r.gameObject.SetActive(false);
+                return;
+            }
+            if (!EnsureHullRings()) return;
+
+            if (s_HullRingBlock == null) s_HullRingBlock = new MaterialPropertyBlock();
+            float cycle = Mathf.Max(0.1f, m_HullRingCycle);
+            for (int i = 0; i < m_HullRings.Length; i++)
+            {
+                Transform ring = m_HullRings[i];
+                if (ring == null) continue;
+                if (!ring.gameObject.activeSelf) ring.gameObject.SetActive(true);
+                float t = Mathf.Repeat(Time.time / cycle + m_HullRingPhase + (float)i / m_HullRings.Length, 1f);
+                float k = m_HullRingStartScale * (1f + m_HullRingGrow * t);
+                // Halka maskesi quad'ın yarı boyunun 0.92'sinde: gövde kenarına oturması için ölçek buna göre
+                ring.localScale = new Vector3(m_HullRingHalfSize.x * 2f * k / 0.92f, m_HullRingHalfSize.y * 2f * k / 0.92f, 1f);
+                Color c = m_HullRingColor;
+                c.a *= Mathf.Sin(t * Mathf.PI) * (1f - t * 0.5f);
+                s_HullRingBlock.SetColor(HullRingColorProp, c);
+                ring.GetComponent<MeshRenderer>().SetPropertyBlock(s_HullRingBlock);
+            }
+        }
+
+        private bool EnsureHullRings()
+        {
+            if (m_HullRings != null && m_HullRings.Length == m_HullRingCount && m_HullRings[0] != null) return true;
+            if (m_HullRings != null)
+                foreach (var r in m_HullRings) if (r != null) Destroy(r.gameObject);
+
+            if (s_HullRingMaterial == null)
+            {
+                Shader sh = Shader.Find("PixelGame/WaterRippleRing");
+                if (sh == null) return false;
+                s_HullRingMaterial = new Material(sh) { name = "HullRing_Mat" };
+                s_HullRingMaterial.SetFloat("_InnerRadius", 0.875f);
+                s_HullRingMaterial.SetFloat("_OuterRadius", 0.92f);
+                s_HullRingMaterial.SetFloat("_EdgeSmoothness", 0.025f);
+            }
+
+            // Gövdenin gemi kök uzayındaki su hattı izdüşümü (x: en, z: boy)
+            float hx = 0f, hz = 0f;
+            Transform src = m_VisualRoot != null ? m_VisualRoot : transform;
+            foreach (MeshRenderer r in src.GetComponentsInChildren<MeshRenderer>(false))
+            {
+                string n = r.gameObject.name;
+                if (n.Contains("Shadow") || n.Contains("Smoke") || n.Contains("Canvas") || n.Contains("HullRing")) continue;
+                MeshFilter mf = r.GetComponent<MeshFilter>();
+                if (mf == null || mf.sharedMesh == null) continue;
+                Bounds b = mf.sharedMesh.bounds;
+                for (int c = 0; c < 8; c++)
+                {
+                    Vector3 corner = b.center + Vector3.Scale(b.extents,
+                        new Vector3((c & 1) == 0 ? -1f : 1f, (c & 2) == 0 ? -1f : 1f, (c & 4) == 0 ? -1f : 1f));
+                    Vector3 lp = transform.InverseTransformPoint(r.transform.TransformPoint(corner));
+                    hx = Mathf.Max(hx, Mathf.Abs(lp.x));
+                    hz = Mathf.Max(hz, Mathf.Abs(lp.z));
+                }
+            }
+            if (hx <= 0f || hz <= 0f) return false;
+            m_HullRingHalfSize = new Vector2(hx, hz);
+            m_HullRingPhase = UnityEngine.Random.value;
+
+            int count = Mathf.Max(1, m_HullRingCount);
+            m_HullRings = new Transform[count];
+            for (int i = 0; i < count; i++)
+            {
+                GameObject go = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                go.name = "[HullRing]";
+                Destroy(go.GetComponent<Collider>());
+                go.transform.SetParent(transform, false);
+                go.transform.localPosition = new Vector3(0f, 0.02f, 0f);
+                go.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                MeshRenderer mr = go.GetComponent<MeshRenderer>();
+                mr.sharedMaterial = s_HullRingMaterial;
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                mr.receiveShadows = false;
+                m_HullRings[i] = go.transform;
+            }
+            return true;
         }
 
         /// <summary>
@@ -1830,6 +1945,7 @@ namespace PixelGame
                 if (mr == null) continue;
                 // Gölge quad'ını asla gövde materyaliyle boyama
                 if (mr.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                if (mr.name.IndexOf("HullRing", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
                 if (m_FakeShadowObj != null && (mr.gameObject == m_FakeShadowObj || mr.transform.IsChildOf(m_FakeShadowObj.transform))) continue;
                 // Dinamik varil renderers'ını ana gövde boyamasından ayrı tut
                 if (m_CargoDeckRoot != null && mr.transform.IsChildOf(m_CargoDeckRoot)) continue;
@@ -2057,7 +2173,7 @@ namespace PixelGame
             // FAZ 2: SOLA DÖNÜŞ VE HIZLANARAK AYRILIŞ (Açık suda sola dümen kırıp hızlanma)
             // =========================================================================
             // Su yüzeyi düzleminde sola bakan hedef rotasyon (Lokal Y ekseninde -90° dönüş):
-            Quaternion leftTargetRot = Quaternion.Euler(-68f, 0f, 0f) * Quaternion.Euler(0f, -90f, 0f);
+            Quaternion leftTargetRot = WaterPlaneRotation * Quaternion.Euler(0f, -90f, 0f);
 
             // Ekranın sol kenarından tamamen çıkacak hedef koordinat (X = -8.8f):
             Vector3 departTarget = new Vector3(-8.8f, reversePos.y, reversePos.z);
@@ -2170,7 +2286,7 @@ namespace PixelGame
                 if (r is ParticleSystemRenderer || r is TrailRenderer || r is LineRenderer) continue;
                 if (r.GetComponent<TMPro.TMP_Text>() != null) continue;
                 string n = r.gameObject.name;
-                if (n.Contains("Shadow") || n.Contains("Smoke") || n.Contains("Canvas")) continue;
+                if (n.Contains("Shadow") || n.Contains("Smoke") || n.Contains("Canvas") || n.Contains("HullRing")) continue;
 
                 Bounds b;
                 if (r is SkinnedMeshRenderer smr) b = smr.localBounds;
@@ -2515,6 +2631,13 @@ namespace PixelGame
         /// <summary>
         /// Su üzerinde genişleyip sönen beyaz köpük dalgası (Water Ripple Ring) oluşturur.
         /// </summary>
+        /// <summary>
+        /// Su yüzeyinin dünya rotasyonu: gemiler bu düzlemde durur. Kuyruk havuzunun rotasyonundan okunur
+        /// (kamera açısı değişince gemi tarafı da birlikte döndürülür); havuz yoksa eski sabit açı.
+        /// </summary>
+        public static Quaternion WaterPlaneRotation =>
+            ShipQueuePool.Instance != null ? ShipQueuePool.Instance.transform.rotation : Quaternion.Euler(-68f, 0f, 0f);
+
         public static void SpawnWaterRipple(Vector3 worldPos, float startScale = 0.2f, float maxScale = 0.75f, float duration = 0.45f)
         {
             // Arka plandaki su dokusunun canlı dalgalanmasını da tetikle
@@ -2523,7 +2646,7 @@ namespace PixelGame
             GameObject ripple = GameObject.CreatePrimitive(PrimitiveType.Quad);
             ripple.name = "WaterRipple_FX";
             ripple.transform.position = new Vector3(worldPos.x, worldPos.y, worldPos.z + 0.02f);
-            ripple.transform.rotation = Quaternion.Euler(-68f, 0f, 0f);
+            ripple.transform.rotation = WaterPlaneRotation;
             ripple.transform.localScale = Vector3.one * startScale;
 
             Collider col = ripple.GetComponent<Collider>();

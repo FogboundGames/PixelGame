@@ -26,7 +26,10 @@ namespace PixelGame.Editor
 
         static SetupGemiTopHUD()
         {
+            // Otomatik çalıştırma kapalı: her derlemede üst barı yeniden kurup sahnedeki düzenlemeleri siliyordu.
+#if PIXELGAME_AUTO_SCENE_SETUP
             EditorApplication.delayCall += AutoApplyMarineHUDIfNeeded;
+#endif
         }
 
         private static void AutoApplyMarineHUDIfNeeded()

@@ -36,6 +36,8 @@ namespace PixelGame
         [SerializeField] [Range(0.0f, 1.0f)] private float m_WaterDarkness = 0.15f;
         [SerializeField] [Range(0.3f, 1.2f)] private float m_WaterBrightness = 1.00f;
         [SerializeField] private Color m_WaterDeepTint = new Color(0.04f, 0.40f, 0.78f, 1.0f);
+        [Tooltip("Arka plan resmine gömülü beyaz ışık harelerini (caustic) yumuşatır; suyun kendi rengine dokunmaz. 0 = resim olduğu gibi.")]
+        [SerializeField] [Range(0.0f, 1.5f)] private float m_CausticSoften = 0.0f;
 
         private Material m_WaterMaterial;
         private static readonly int WaterMinVProp = Shader.PropertyToID("_WaterMinV");
@@ -48,6 +50,7 @@ namespace PixelGame
         private static readonly int WaterDarknessProp = Shader.PropertyToID("_WaterDarkness");
         private static readonly int WaterBrightnessProp = Shader.PropertyToID("_WaterBrightness");
         private static readonly int WaterDeepTintProp = Shader.PropertyToID("_WaterDeepTint");
+        private static readonly int CausticSoftenProp = Shader.PropertyToID("_CausticSoften");
 
         private static readonly int[] RippleProps = new int[]
         {
@@ -192,6 +195,7 @@ namespace PixelGame
             m_WaterMaterial.SetFloat(WaterDarknessProp, m_WaterDarkness);
             m_WaterMaterial.SetFloat(WaterBrightnessProp, m_WaterBrightness);
             m_WaterMaterial.SetColor(WaterDeepTintProp, m_WaterDeepTint);
+            m_WaterMaterial.SetFloat(CausticSoftenProp, m_CausticSoften);
         }
 
         /// <summary>

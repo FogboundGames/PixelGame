@@ -13,6 +13,8 @@ Shader "PixelGame/HypercasualWaterBackground"
         _WaterDarkness ("Water Darkness / Deep Tint Blend", Range(0.0, 1.0)) = 0.15
         _WaterBrightness ("Water Brightness Multiplier", Range(0.3, 1.5)) = 1.0
         _WaterDeepTint ("Water Deep Ocean Color Tint", Color) = (0.04, 0.40, 0.78, 1.0)
+        _CausticSoften ("Caustic Highlight Soften (0=texture as is)", Range(0.0, 1.5)) = 0.0
+        _CausticMaxV ("Caustic Soften Top V (slot lines above stay)", Range(0.0, 1.0)) = 0.265
 
         [Header(Sand Beach Settings)]
         _SandBrightness ("Sand Brightness", Range(0.8, 1.8)) = 1.0
@@ -107,6 +109,8 @@ Shader "PixelGame/HypercasualWaterBackground"
                 float _WaterDarkness;
                 float _WaterBrightness;
                 float4 _WaterDeepTint;
+                float _CausticSoften;
+                float _CausticMaxV;
 
                 float _SandBrightness;
                 float _SandLighten;
@@ -225,6 +229,16 @@ Shader "PixelGame/HypercasualWaterBackground"
                     // Canlı ve zengin derin okyanus rengi ile zenginleştir (soluklaşmadan derinleşsin)
                     half3 deepOcean = lerp(darkened, darkened * _WaterDeepTint.rgb * 1.85, _WaterDarkness);
                     texCol.rgb = lerp(texCol.rgb, deepOcean, waterMask);
+
+                    // Resme gömülü beyaz ışık hareleri (caustic) çok parlak: su zemininde kırmızı kanal ~0,
+                    // harelerde yükselir. Kırmızı kadarını (mavi ağırlıklı az) düşürerek yalnızca hareleri yumuşat.
+                    if (_CausticSoften > 0.001)
+                    {
+                        half caustic = texCol.r;
+                        // Slot kesikli çizgilerinin olduğu şerit (resimde V ~0.27-0.33) korunur: yalnızca altındaki açık su
+                        half belowSlots = 1.0 - smoothstep(_CausticMaxV - 0.025, _CausticMaxV, baseUV.y);
+                        texCol.rgb = max(0, texCol.rgb - caustic * belowSlots * _CausticSoften * waterMask * half3(1.0, 0.85, 0.35));
+                    }
                 }
 
                 // 5. İnteraktif Dalga Köpüğü & Parıltı

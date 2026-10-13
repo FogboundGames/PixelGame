@@ -69,7 +69,7 @@ namespace PixelGame
         [Tooltip("Sahil sonundan gemiye doğru zıplama yayının yüksekliği (parabolik zıplama tepe noktası).")]
         [SerializeField] private float m_HopArcHeight = 0.48f;
         [Tooltip("Kıyı noktasının dünya Y'si (ship == null durumunda yedek).")]
-        [SerializeField] private float m_ShoreY = -3.25f;
+        [SerializeField] private float m_ShoreY = -1.97f;
         [Tooltip("Kıyı noktasının dünya Z'si (ship == null durumunda yedek).")]
         [SerializeField] private float m_ShoreZ = 0.07f;
         [Tooltip("Kumun suya değdiği kıyı çizgisi (dünya X,Y). Küpler bu çizgide, geminin en yakın noktasına kadar yürür ve oradan gemiye zıplar. Boşsa geminin hemen önü kullanılır.")]
@@ -77,11 +77,11 @@ namespace PixelGame
         [Tooltip("Kıyı noktasının kum tarafına (geminin tersine) ne kadar içeride olacağı (dünya birimi).")]
         [SerializeField] private float m_ShorelineInset = 0.05f;
 
-        // Yeni düz ahşap iskele kıyı şeridi (World Y = -3.25f)
+        // Düz ahşap iskele kıyı şeridi (World Y = -1.97f; kamera 20° eğime alınınca iskelenin ekrandaki yeri sabit kalsın diye -3.25'ten taşındı)
         private static readonly Vector2[] s_DefaultShoreline = new Vector2[]
         {
-            new Vector2(-6.0f, -3.25f),
-            new Vector2( 6.0f, -3.25f)
+            new Vector2(-6.0f, -1.97f),
+            new Vector2( 6.0f, -1.97f)
         };
         [Tooltip("Boşsa panodaki küpün kendisi yürür. Bir prefab atanırsa (ör. Mixamo koşucusu MainCube_Running) küp yerinde gizlenir, yerine bu prefab küpün renginde yürür.")]
         [SerializeField] private GameObject m_CargoStandInPrefab;
@@ -365,7 +365,8 @@ namespace PixelGame
             if (m_RopeSpeed < 0.6f) m_RopeSpeed = 2.0f;
 
             // Eğer m_Shoreline eski koordinatları taşıyorsa, düz ahşap iskele çizgisine otomatik güncelle:
-            if (m_Shoreline == null || m_Shoreline.Count < 2 || m_Shoreline[m_Shoreline.Count / 2].y < -3.5f || m_Shoreline[m_Shoreline.Count / 2].y > -3.0f)
+            float defaultShoreY = s_DefaultShoreline[0].y;
+            if (m_Shoreline == null || m_Shoreline.Count < 2 || Mathf.Abs(m_Shoreline[m_Shoreline.Count / 2].y - defaultShoreY) > 0.25f)
             {
                 m_Shoreline = new List<Vector2>(s_DefaultShoreline);
                 m_ShorelineInset = 0.05f;
@@ -1926,7 +1927,7 @@ namespace PixelGame
             if (ship != null)
             {
                 Vector3 shipPos = ship.transform.position;
-                IList<Vector2> shoreline = (m_Shoreline != null && m_Shoreline.Count >= 2 && m_Shoreline[m_Shoreline.Count / 2].y < -2.0f)
+                IList<Vector2> shoreline = (m_Shoreline != null && m_Shoreline.Count >= 2 && Mathf.Abs(m_Shoreline[m_Shoreline.Count / 2].y - s_DefaultShoreline[0].y) <= 0.25f)
                     ? (IList<Vector2>)m_Shoreline
                     : s_DefaultShoreline;
 

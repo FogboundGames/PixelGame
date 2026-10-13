@@ -13,11 +13,15 @@ namespace PixelGame.Editor
 
         static CaptureGameViewScreenshot()
         {
+            // Otomatik çalıştırma kapalı: her derlemede sahneyi yeniden kurup (kuyruk -28°, örnek gemiler, üst bar)
+            // kaydediyor ve sahnede elle yapılan düzenlemeleri siliyordu. Menüden elle çalıştırılabilir.
+#if PIXELGAME_AUTO_SCENE_SETUP
             EditorApplication.delayCall += () =>
             {
                 if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;
                 CaptureGemiScene();
             };
+#endif
         }
 
         private static bool s_IsCapturing = false;

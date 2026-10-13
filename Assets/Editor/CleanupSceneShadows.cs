@@ -16,7 +16,11 @@ namespace PixelGame.Editor
 
         static CleanupSceneShadows()
         {
+            // Otomatik çalıştırma kapalı: her derlemede küp altı sahte gölgeyi kapatıp sahneyi kaydediyordu
+            // (küplerin zemine oturma gölgesi bu ayara bağlı). Gerekirse menüden elle çalıştırılır.
+#if PIXELGAME_AUTO_SCENE_SETUP
             EditorApplication.delayCall += RunPurge;
+#endif
         }
 
         [MenuItem("Tools/PixelGame/🧹 Pano ve Obje Arkasındaki Gölgeleri Tamamen Temizle", priority = 20)]
