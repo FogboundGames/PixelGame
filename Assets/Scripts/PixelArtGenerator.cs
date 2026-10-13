@@ -86,6 +86,8 @@ namespace PixelGame
 
         [Tooltip("Piksel sanatının sahile taşmadan tam oturacağı maksimum dünya yüksekliği.")]
         [SerializeField] private float m_FixedSandHeight = 7.50f;
+        [Tooltip("Kum alanını dikeyde doldurmayan (geniş/basık) resimlerin, kalan boşluğun ne kadarı kadar yukarı kaydırılacağı. 0 = her resim alanın tam ortasında.")]
+        [SerializeField] [Range(0f, 0.5f)] private float m_ShortArtLift = 0f;
 
         [Header("🔲 Izgara & Küp Yerleşimi")]
         [Tooltip("Küpler arasındaki DİKEY (satırlar/önler, Y ekseni) fiziksel boşluk oranı (0 = bitişik, 0.1 = %10 boşluk, negatif = üst üste biner)")]
@@ -808,7 +810,7 @@ namespace PixelGame
                 float totalHeight = visH * stepY;
 
                 float slack = Mathf.Max(0f, worldHeight - totalHeight);
-                float effectiveCenterY = worldCenter.y + slack * 0.35f;
+                float effectiveCenterY = worldCenter.y + slack * m_ShortArtLift;
 
                 startPos = new Vector3(
                     worldCenter.x - visCenterX * stepX,
@@ -830,7 +832,7 @@ namespace PixelGame
                 float totalHeight = (rows - 1) * stepY;
 
                 float slack = Mathf.Max(0f, worldHeight - (rows * stepY));
-                float effectiveCenterY = worldCenter.y + slack * 0.35f;
+                float effectiveCenterY = worldCenter.y + slack * m_ShortArtLift;
 
                 startPos = new Vector3(
                     worldCenter.x - totalWidth * 0.5f,
@@ -1052,7 +1054,7 @@ namespace PixelGame
                 totalHeight = visH * stepY;
 
                 float slack = Mathf.Max(0f, worldHeight - totalHeight);
-                float effectiveCenterY = worldCenter.y + slack * 0.35f;
+                float effectiveCenterY = worldCenter.y + slack * m_ShortArtLift;
 
                 // Figürün geometrik merkezini hedef kum alanına (effectiveCenterY) oturt
                 startPos = new Vector3(
@@ -1076,7 +1078,7 @@ namespace PixelGame
                 totalHeight = rows * stepY;
 
                 float slack = Mathf.Max(0f, worldHeight - totalHeight);
-                float effectiveCenterY = worldCenter.y + slack * 0.35f;
+                float effectiveCenterY = worldCenter.y + slack * m_ShortArtLift;
 
                 startPos = new Vector3(
                     worldCenter.x - totalWidth * 0.5f + stepX * 0.5f,
@@ -1380,7 +1382,7 @@ namespace PixelGame
                 totalHeight = visH * stepY;
 
                 slack = Mathf.Max(0f, worldHeight - totalHeight);
-                effectiveCenterY = worldCenter.y + slack * 0.35f;
+                effectiveCenterY = worldCenter.y + slack * m_ShortArtLift;
             }
             else
             {
@@ -1394,7 +1396,7 @@ namespace PixelGame
                 totalHeight = rows * stepY;
 
                 slack = Mathf.Max(0f, worldHeight - totalHeight);
-                effectiveCenterY = worldCenter.y + slack * 0.35f;
+                effectiveCenterY = worldCenter.y + slack * m_ShortArtLift;
             }
 
             visualCenter = new Vector3(worldCenter.x, effectiveCenterY, worldCenter.z);

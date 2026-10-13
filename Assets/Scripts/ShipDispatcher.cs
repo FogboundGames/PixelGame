@@ -117,6 +117,12 @@ namespace PixelGame
         [SerializeField, Min(0.05f)] private float m_SailorLaunchInterval = 0.35f;
         [Tooltip("Koşucuların yürüdüğü çerçevenin, bölüm başındaki resmin dış küp merkezlerinden uzaklığı (küp cinsinden).")]
         [SerializeField, Min(0.5f)] private float m_RunnerFrameMarginCubes = 1.2f;
+        [Tooltip("Açıksa denizci çerçevesi sahnedeki OtCerceve ile genişletilir (eski davranış). Kapalıyken her levelde resmin kendi sınırları + pay kullanılır.")]
+        [SerializeField] private bool m_RunnerFrameUseOtCerceve = false;
+        [Tooltip("Görünen kumsalın üst kenarı (ekranın altından oran, 0..1). Çerçeve bunun üstüne, limana taşmaz.")]
+        [SerializeField, Range(0.5f, 1f)] private float m_RunnerSandTopViewport = 0.78f;
+        [Tooltip("Çerçevenin ekranın sol/sağ kenarından en az uzaklığı (ekran genişliğine oran).")]
+        [SerializeField, Range(0f, 0.2f)] private float m_RunnerSandSideViewport = 0.04f;
         [Tooltip("Denizcinin küpü alırken küp merkezinden ne kadar önde durduğu (küp cinsinden).")]
         [SerializeField, Range(0f, 1.5f)] private float m_PickupStandoffCubes = 0.75f;
         [Tooltip("Resmin içindeki (çerçeve dışındaki) her adımın çerçevede yürümeye göre maliyet çarpanı. 1: en kısa yol, " +
@@ -3323,6 +3329,32 @@ namespace PixelGame
         /// OtCerceve (UI) dikdörtgeninin kamera üzerinden kumsal düzlemine izdüşümü. Obje kapalı olsa da çalışır;
         /// görsel gösterilmez, sadece koşucuların yürüdüğü çerçeve olarak kullanılır.
         /// </summary>
+        private void ClampRunnerFrameToSand(float groundZ, float pitch, ref float fL, ref float fR, ref float fB, ref float fT)
+        {
+            Camera cam = Camera.main;
+            if (cam == null) return;
+            Plane ground = new Plane(Vector3.back, new Vector3(0f, 0f, groundZ));
+            bool Hit(Vector2 vp, out Vector3 w)
+            {
+                Ray ray = cam.ViewportPointToRay(new Vector3(vp.x, vp.y, 0f));
+                w = Vector3.zero;
+                if (!ground.Raycast(ray, out float d)) return false;
+                w = ray.GetPoint(d);
+                return true;
+            }
+            float minGap = pitch * 0.6f;
+            if (Hit(new Vector2(0.5f, m_RunnerSandTopViewport), out Vector3 top))
+                fT = Mathf.Max(Mathf.Min(fT, top.y), m_BoardTopY + minGap);
+            if (Hit(new Vector2(m_RunnerSandSideViewport, 0.5f), out Vector3 left))
+                fL = Mathf.Min(Mathf.Max(fL, left.x), m_BoardMinX - minGap);
+            if (Hit(new Vector2(1f - m_RunnerSandSideViewport, 0.5f), out Vector3 right))
+                fR = Mathf.Max(Mathf.Min(fR, right.x), m_BoardMaxX + minGap);
+            // Alt: kıyı çizgisinin (iskele) üstünde kal
+            IList<Vector2> shoreline = (m_Shoreline != null && m_Shoreline.Count >= 2) ? (IList<Vector2>)m_Shoreline : s_DefaultShoreline;
+            float shoreY = shoreline[shoreline.Count / 2].y;
+            fB = Mathf.Min(Mathf.Max(fB, shoreY + pitch * 0.5f), m_BoardBottomY - minGap);
+        }
+
         private bool TryGetOtCerceveGroundRect(float groundZ, out float left, out float right, out float bottom, out float top)
         {
             left = right = bottom = top = 0f;
@@ -3435,10 +3467,12 @@ namespace PixelGame
             float pitch = Mathf.Max(0.05f, m_GridFrame.Pitch);
             float margin = pitch * m_RunnerFrameMarginCubes;
             float fL = m_BoardMinX - margin, fR = m_BoardMaxX + margin, fB = m_BoardBottomY - margin, fT = m_BoardTopY + margin;
-            if (TryGetOtCerceveGroundRect(groundZ, out float oL, out float oR, out float oB, out float oT))
+            if (m_RunnerFrameUseOtCerceve && TryGetOtCerceveGroundRect(groundZ, out float oL, out float oR, out float oB, out float oT))
             {
                 fL = Mathf.Min(oL, fL); fR = Mathf.Max(oR, fR); fB = Mathf.Min(oB, fB); fT = Mathf.Max(oT, fT);
             }
+            // Görünen kumsalın dışına (limana, ekran kenarına, iskeleye) taşma; ama küplere de yarım küpten fazla yaklaşma
+            ClampRunnerFrameToSand(groundZ, pitch, ref fL, ref fR, ref fB, ref fT);
 
             Vector3 ToGround((int, int) c)
             {
