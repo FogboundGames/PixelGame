@@ -236,7 +236,8 @@ namespace PixelGame
                 // (konum/rotasyonu MarinaBuoyBobbing her kare yazdığı için ölçek kullanılır)
                 m_BerthTransform.DOKill(true);
                 Vector3 s = m_BerthTransform.localScale;
-                m_ShakeTween = m_BerthTransform.DOPunchScale(new Vector3(s.x * 0.12f, 0f, s.z * 0.06f), 0.32f, 10, 0.8f)
+                Vector3 punch = s.y > 0.01f ? new Vector3(s.x * 0.08f, s.y * 0.08f, 0f) : new Vector3(s.x * 0.12f, 0f, s.z * 0.06f);
+                m_ShakeTween = m_BerthTransform.DOPunchScale(punch, 0.32f, 10, 0.8f)
                     .OnComplete(() => m_ShakeTween = null);
             }
 

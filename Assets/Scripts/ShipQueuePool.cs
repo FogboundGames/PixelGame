@@ -72,7 +72,7 @@ namespace PixelGame
 
         [Tooltip("Tüm gemi havuzunun dikey konumu (Yüksekliği).")]
         [Range(-10f, 0f)]
-        [SerializeField] private float m_OffsetY = -7.40f;
+        [SerializeField] private float m_OffsetY = -6.00f;
 
         [Header("🎛️ Sütun Sayısına Göre Özel Profiller (Presets)")]
         [Tooltip("Açık olduğunda sütun sayısına (2, 3, 4, 5, 6) göre aşağıdaki profil ayarları otomatik uygulanır.")]
@@ -80,9 +80,9 @@ namespace PixelGame
 
         [SerializeField] private List<ColumnLayoutPreset> m_ColumnPresets = new List<ColumnLayoutPreset>()
         {
-            new ColumnLayoutPreset(1, 0.50f, 1.55f, 2.60f, -6.88f),
-            new ColumnLayoutPreset(2, 0.472f, 1.55f, 2.60f, -6.88f),
-            new ColumnLayoutPreset(3, 0.380f, 1.48f, 2.30f, -6.80f),
+            new ColumnLayoutPreset(1, 0.50f, 1.55f, 2.60f, -6.00f),
+            new ColumnLayoutPreset(2, 0.472f, 1.55f, 2.60f, -6.00f),
+            new ColumnLayoutPreset(3, 0.380f, 1.48f, 2.30f, -6.00f),
             new ColumnLayoutPreset(4, 0.330f, 1.08f, 2.20f, -6.88f),
             new ColumnLayoutPreset(5, 0.295f, 0.82f, 2.48f, -8.15f),
             new ColumnLayoutPreset(6, 0.278f, 0.68f, 2.20f, -6.88f)

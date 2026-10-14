@@ -461,6 +461,10 @@ namespace PixelGame
             m_CachedDeadlockCondition = false;
             SetTurboSpeed(false);
             m_IsAutoPlacing = false;
+            if (CasualHudController.Instance != null)
+            {
+                CasualHudController.Instance.SetEndgameSpeedActive(false);
+            }
             m_BoardBoundsInitialized = false;
             m_RopeGates.Clear();
             m_ActiveExtractingShips.Clear();
@@ -2508,8 +2512,12 @@ namespace PixelGame
             m_IsAutoPlacing = true;
             Debug.Log($"<color=#00FFAA><b>[ShipDispatcher]</b></color> ⚡ Otomatik Yerleştirme Devrede! Kalan {shipsToPlace.Count} gemi {targetSlots.Count} boş slota yerleştiriliyor.");
 
-            // Otomatik 2X hıza geçiş kaldırıldı: Sadece kullanıcı 2X butonuna basarsa 2X hız aktif olur.
-            // (Kullanıcı isteği: "diğer durumlar için olan 2xi kaldırmanı istiyorum bu buton aktif olacak sadece")
+            // ⚡ Kullanıcı Kuralı: 2X butonu açıkken oyun sonunda sıradaki tüm gemiler için yerleşecek yer varsa 4X hız,
+            // 2X butonu kapalıysa 2X hızında hemen yerleşsin
+            if (CasualHudController.Instance != null)
+            {
+                CasualHudController.Instance.SetEndgameSpeedActive(true);
+            }
 
             // Gemileri sırayla, tatlı bir aralıkla (0.10s) boş slotlara yolla
             for (int i = 0; i < shipsToPlace.Count; i++)
@@ -2781,6 +2789,10 @@ namespace PixelGame
             if (unpoppedCount == 0 && m_ActiveCargoFlightCount <= 0)
             {
                 Debug.Log("<color=#00FFAA><b>[ShipDispatcher]</b></color> 🎉 Tüm piksel resmi tamamlandı! Son gemilerin sahneyi terk etmesi bekleniyor...");
+                if (CasualHudController.Instance != null)
+                {
+                    CasualHudController.Instance.SetEndgameSpeedActive(true);
+                }
                 BeginLevelEndSequence();
             }
             else
@@ -3178,6 +3190,10 @@ namespace PixelGame
         {
             SetTurboSpeed(false);
             m_IsAutoPlacing = false;
+            if (CasualHudController.Instance != null)
+            {
+                CasualHudController.Instance.SetEndgameSpeedActive(false);
+            }
             Debug.Log("<color=#00FFAA><b>[ShipDispatcher]</b></color> 🚢 Son gemi de sahneyi terk etti — seviye tamamlandı.");
 
             if (CasualHudController.Instance != null)

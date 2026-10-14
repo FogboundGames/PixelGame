@@ -21,6 +21,9 @@ namespace PixelGame.Editor
             // Özel Başlık
             DrawCustomHeader();
 
+            // 🎨 Çerçeve & Pano Renkleri Düzenleyici Butonu
+            DrawFrameColorToolButton();
+
             // Bölüm Seçici (Hızlı Geçiş)
             DrawLevelSelector();
 
@@ -55,6 +58,18 @@ namespace PixelGame.Editor
                 }
                 SceneView.RepaintAll();
             }
+        }
+
+        private void DrawFrameColorToolButton()
+        {
+            EditorGUILayout.Space(4);
+            GUI.backgroundColor = new Color(0.25f, 0.70f, 1f);
+            if (GUILayout.Button("🎨 Çerçeve ve Pano Renklerini Düzenle (Frame Color Tool)", GUILayout.Height(32)))
+            {
+                BoardFrameColorEditorWindow.Open();
+            }
+            GUI.backgroundColor = Color.white;
+            EditorGUILayout.Space(4);
         }
 
         /// <summary>
@@ -335,6 +350,16 @@ namespace PixelGame.Editor
                 SceneView.RepaintAll();
                 EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             }
+
+            EditorGUILayout.Space(4);
+
+            // 2e. Çerçeve & Tuval Renklerini Dokulara Kaydet
+            GUI.backgroundColor = new Color(0.95f, 0.70f, 0.25f);
+            if (GUILayout.Button("💾 Çerçeve & Tuval Renklerini Dokulara Kaydet (Bake to Textures)", GUILayout.Height(34)))
+            {
+                m_Target.BakeBoardColorsToTextures();
+            }
+            GUI.backgroundColor = Color.white;
 
             EditorGUILayout.Space(4);
 

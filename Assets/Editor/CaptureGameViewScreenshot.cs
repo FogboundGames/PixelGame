@@ -11,17 +11,19 @@ namespace PixelGame.Editor
 
         private static bool s_Captured = false;
 
+        private const string TriggerKey = "PixelGame_Capture_Restore_Check_v3";
+
         static CaptureGameViewScreenshot()
         {
-            // Otomatik çalıştırma kapalı: her derlemede sahneyi yeniden kurup (kuyruk -28°, örnek gemiler, üst bar)
-            // kaydediyor ve sahnede elle yapılan düzenlemeleri siliyordu. Menüden elle çalıştırılabilir.
-#if PIXELGAME_AUTO_SCENE_SETUP
             EditorApplication.delayCall += () =>
             {
                 if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;
-                CaptureGemiScene();
+                if (!SessionState.GetBool(TriggerKey, false))
+                {
+                    SessionState.SetBool(TriggerKey, true);
+                    CaptureGemiScene();
+                }
             };
-#endif
         }
 
         private static bool s_IsCapturing = false;
@@ -47,23 +49,16 @@ namespace PixelGame.Editor
                 AssetDatabase.ImportAsset("Assets/Kenney/BeachBackground_3Slots.png", ImportAssetOptions.ForceUpdate);
                 AssetDatabase.ImportAsset("Assets/Kenney/BeachBackground_4Slots.png", ImportAssetOptions.ForceUpdate);
                 AssetDatabase.ImportAsset("Assets/Kenney/BeachBackground_Clean.png", ImportAssetOptions.ForceUpdate);
-                AssetDatabase.ImportAsset("Assets/UI/CasualUI/btn_marine_retry.png", ImportAssetOptions.ForceUpdate);
-                AssetDatabase.ImportAsset("Assets/UI/CasualUI/btn_marine_settings.png", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/UI/CasualUI/btn_marine_lifebuoy.png", ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset("Assets/UI/CasualUI/btn_marine_haptic_on.png", ImportAssetOptions.ForceUpdate);
                 AssetDatabase.ImportAsset("Assets/UI/CasualUI/btn_marine_speed_1x.png", ImportAssetOptions.ForceUpdate);
                 AssetDatabase.ImportAsset("Assets/UI/CasualUI/btn_marine_speed_2x.png", ImportAssetOptions.ForceUpdate);
-                AssetDatabase.ImportAsset("Assets/UI/CasualUI/bg_level_capsule.png", ImportAssetOptions.ForceUpdate);
                 AssetDatabase.ImportAsset("Assets/UI/CasualUI/bg_level_marine.png", ImportAssetOptions.ForceUpdate);
                 AssetDatabase.ImportAsset("Assets/Textures/Marina/slot_berth_inner.png", ImportAssetOptions.ForceUpdate);
                 AssetDatabase.ImportAsset("Assets/Textures/Marina/slot_berth_docked.png", ImportAssetOptions.ForceUpdate);
                 AssetDatabase.ImportAsset("Assets/Textures/Marina/slot_berth_closed.png", ImportAssetOptions.ForceUpdate);
                 AssetDatabase.ImportAsset("Assets/Materials/Marina/Slot_Berth_Docked_Mat.mat", ImportAssetOptions.ForceUpdate);
                 PixelCube.ClearMysteryMaterialCache();
-
-                MarinaSlotLayout marina = Object.FindFirstObjectByType<MarinaSlotLayout>();
-                if (marina != null)
-                {
-                    marina.ApplyLayout();
-                }
 
                 PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
                 if (gen != null)
@@ -85,19 +80,37 @@ namespace PixelGame.Editor
                     ShipQueuePool shipPool = Object.FindFirstObjectByType<ShipQueuePool>();
                     if (shipPool != null)
                     {
-                        shipPool.transform.position = new Vector3(0f, -6.95f, 0f);
-                        shipPool.transform.rotation = Quaternion.Euler(-28f, 0f, 0f);
+                        shipPool.transform.position = new Vector3(0f, -6.00f, 0f);
+                        shipPool.transform.rotation = Quaternion.Euler(-42f, 0f, 0f);
                         shipPool.transform.localScale = Vector3.one * 1.35f;
 
                         var qSo = new SerializedObject(shipPool);
                         qSo.FindProperty("m_Columns").intValue = 3;
                         qSo.FindProperty("m_Rows").intValue = 1;
-                        qSo.FindProperty("m_SpacingX").floatValue = 1.62f;
-                        qSo.FindProperty("m_SpacingY").floatValue = 1.25f;
-                        qSo.FindProperty("m_ShipScale").floatValue = 0.23f;
+                        qSo.FindProperty("m_SpacingX").floatValue = 1.48f;
+                        qSo.FindProperty("m_SpacingY").floatValue = 2.30f;
+                        qSo.FindProperty("m_ShipScale").floatValue = 0.38f;
+                        qSo.FindProperty("m_OffsetY").floatValue = -6.00f;
+
+                        var presetsProp = qSo.FindProperty("m_ColumnPresets");
+                        if (presetsProp != null)
+                        {
+                            for (int p = 0; p < presetsProp.arraySize; p++)
+                            {
+                                var elem = presetsProp.GetArrayElementAtIndex(p);
+                                if (elem.FindPropertyRelative("columns").intValue == 3)
+                                {
+                                    elem.FindPropertyRelative("offsetY").floatValue = -6.00f;
+                                    elem.FindPropertyRelative("shipScale").floatValue = 0.38f;
+                                    elem.FindPropertyRelative("spacingX").floatValue = 1.48f;
+                                    elem.FindPropertyRelative("spacingY").floatValue = 2.30f;
+                                }
+                            }
+                        }
                         qSo.ApplyModifiedPropertiesWithoutUndo();
 
                         shipPool.RebuildSpots(3, 1);
+                        shipPool.transform.position = new Vector3(0f, -6.00f, 0f);
                         shipPool.ClearQueue();
 
                         Color whiteColor = new Color(0.96f, 0.94f, 0.89f, 1f);
@@ -107,6 +120,12 @@ namespace PixelGame.Editor
                         shipPool.SpawnShipAtSpot(0, whiteColor, 30);
                         shipPool.SpawnShipAtSpot(1, brownColor, 7);
                         shipPool.SpawnShipAtSpot(2, redColor, 11);
+                    }
+
+                    MarinaSlotLayout marina = Object.FindFirstObjectByType<MarinaSlotLayout>();
+                    if (marina != null)
+                    {
+                        marina.SyncWithLevel();
                     }
 
                     ShipController[] ships = Object.FindObjectsByType<ShipController>(FindObjectsSortMode.None);

@@ -53,6 +53,20 @@ namespace PixelGame
         [Tooltip("Dinamik metinler için font (Lilita One / Titan One SDF)")]
         [SerializeField] private TMP_FontAsset m_Font;
 
+        [Header("🌟 3D Başlık Rozetleri & Kapsül İlerleme Çubuğu")]
+        [Tooltip("Kapsül progress bar arka plan yuvası")]
+        [SerializeField] private Sprite m_ProgressBarBgSprite;
+        [Tooltip("Kapsül progress bar sarı çizgili dolgu görseli")]
+        [SerializeField] private Sprite m_ProgressBarFillSprite;
+        [Tooltip("'Loading...' 3D başlık görseli")]
+        [SerializeField] private Sprite m_BannerLoadingSprite;
+        [Tooltip("'Restarting...' 3D başlık görseli")]
+        [SerializeField] private Sprite m_BannerRestartingSprite;
+        [Tooltip("'Level Completed...' 3D başlık görseli")]
+        [SerializeField] private Sprite m_BannerLevelCompletedSprite;
+        [Tooltip("'Level Failed...' 3D başlık görseli")]
+        [SerializeField] private Sprite m_BannerLevelFailedSprite;
+
         [Header("🕰️ Klasik Stil (Level Geçişleri - Ezgi Öncesi Tarif)")]
         [Tooltip("Solid arka plan rengi (derin okyanus mavisi #1773D1)")]
         [SerializeField] private Color m_ClassicBackgroundColor = new Color(0.09f, 0.45f, 0.82f, 1f);
@@ -83,16 +97,19 @@ namespace PixelGame
         private GameObject m_ClassicRoot; // Klasik ağaç (yalnız level geçişlerinde görünür)
         private Image m_ClassicLogoImage;
         private TextMeshProUGUI m_ClassicText;
-        private Image m_ClassicBadgeImage; // "LOADING" için açılış ekranındaki 3D rozetin aynısı
+        private Image m_ClassicBadgeImage; // 3D başlık rozeti (Level Completed, Restarting, Loading, Fail)
         private TextMeshProUGUI m_ClassicSubText;
         private RectTransform m_ClassicBarFill;
+        private RectTransform m_ClassicBarMask;
         private RectTransform m_ClassicBarBg;
         private Tween m_ClassicLogoPulseTween;
+        private Tween m_ClassicBadgePulseTween;
         private Image m_FullscreenSplashImage;
-        private Image m_LoadingBadgeImage;
+        private Image m_LoadingBadgeImage; // Açılış ekranı 3D başlık rozeti
         private TextMeshProUGUI m_LoadingText;
         private TextMeshProUGUI m_SubText;
         private RectTransform m_ProgressBarFill;
+        private RectTransform m_ProgressBarMask;
         private RectTransform m_ProgressBarBg;
 
         // Fogbound Intro Bileşenleri
@@ -233,6 +250,60 @@ namespace PixelGame
                     m_Font = GameThemeSettings.MainFont;
                 }
             }
+
+            if (m_ProgressBarBgSprite == null)
+            {
+                m_ProgressBarBgSprite = Resources.Load<Sprite>("ProgressBar_Capsule_BG");
+#if UNITY_EDITOR
+                if (m_ProgressBarBgSprite == null)
+                    m_ProgressBarBgSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/ProgressBar_Capsule_BG.png");
+#endif
+            }
+
+            if (m_ProgressBarFillSprite == null)
+            {
+                m_ProgressBarFillSprite = Resources.Load<Sprite>("ProgressBar_Capsule_Fill");
+#if UNITY_EDITOR
+                if (m_ProgressBarFillSprite == null)
+                    m_ProgressBarFillSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/ProgressBar_Capsule_Fill.png");
+#endif
+            }
+
+            if (m_BannerLoadingSprite == null)
+            {
+                m_BannerLoadingSprite = Resources.Load<Sprite>("Text_Banner_Loading");
+#if UNITY_EDITOR
+                if (m_BannerLoadingSprite == null)
+                    m_BannerLoadingSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/Text_Banner_Loading.png");
+#endif
+            }
+
+            if (m_BannerRestartingSprite == null)
+            {
+                m_BannerRestartingSprite = Resources.Load<Sprite>("Text_Banner_Restarting");
+#if UNITY_EDITOR
+                if (m_BannerRestartingSprite == null)
+                    m_BannerRestartingSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/Text_Banner_Restarting.png");
+#endif
+            }
+
+            if (m_BannerLevelCompletedSprite == null)
+            {
+                m_BannerLevelCompletedSprite = Resources.Load<Sprite>("Text_Banner_LevelCompleted");
+#if UNITY_EDITOR
+                if (m_BannerLevelCompletedSprite == null)
+                    m_BannerLevelCompletedSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/Text_Banner_LevelCompleted.png");
+#endif
+            }
+
+            if (m_BannerLevelFailedSprite == null)
+            {
+                m_BannerLevelFailedSprite = Resources.Load<Sprite>("Text_Banner_LevelFailed");
+#if UNITY_EDITOR
+                if (m_BannerLevelFailedSprite == null)
+                    m_BannerLevelFailedSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/Text_Banner_LevelFailed.png");
+#endif
+            }
         }
 
         /// <summary>
@@ -359,23 +430,23 @@ namespace PixelGame
             bottomRect.anchoredPosition = new Vector2(0f, 130f);
             bottomRect.sizeDelta = new Vector2(900f, 320f);
 
-            // 3. 3D "LOADING..." Rozeti (Land Flow Başlık Stiliyle Birebir Eşleşen 3D Bubble Font)
+            // 3. 3D Başlık Rozeti (Yeni 3D Loading..., Level Completed..., Restarting..., Level Failed...)
             GameObject badgeObj = new GameObject("LoadingBadge_3D");
             badgeObj.transform.SetParent(bottomUI.transform, false);
             RectTransform badgeRect = badgeObj.AddComponent<RectTransform>();
             badgeRect.anchorMin = new Vector2(0.5f, 0.5f);
             badgeRect.anchorMax = new Vector2(0.5f, 0.5f);
             badgeRect.pivot = new Vector2(0.5f, 0.5f);
-            badgeRect.sizeDelta = new Vector2(460f, 96f);
-            badgeRect.anchoredPosition = new Vector2(0f, 65f);
+            badgeRect.sizeDelta = new Vector2(440f, 110f);
+            badgeRect.anchoredPosition = new Vector2(0f, 115f);
 
             m_LoadingBadgeImage = badgeObj.AddComponent<Image>();
-            m_LoadingBadgeImage.sprite = m_LoadingBadgeSprite;
+            m_LoadingBadgeImage.sprite = m_BannerLoadingSprite;
             m_LoadingBadgeImage.preserveAspect = true;
             m_LoadingBadgeImage.raycastTarget = false;
+            badgeObj.SetActive(true);
 
-            // 4. Dinamik Alternatif Metin (Örn: "FAIL LEVEL", "LEVEL COMPLETED")
-            // Varsayılanda gizlidir, özel bir mesaj verildiğinde 3D rozet yerine bu yazı gösterilir
+            // 4. Dinamik Alternatif Metin (Yalnız font yedeği olarak tutulur)
             GameObject textObj = new GameObject("LoadingText_Dynamic");
             textObj.transform.SetParent(bottomUI.transform, false);
             RectTransform textRect = textObj.AddComponent<RectTransform>();
@@ -383,7 +454,7 @@ namespace PixelGame
             textRect.anchorMax = new Vector2(0.5f, 0.5f);
             textRect.pivot = new Vector2(0.5f, 0.5f);
             textRect.sizeDelta = new Vector2(800f, 90f);
-            textRect.anchoredPosition = new Vector2(0f, 65f);
+            textRect.anchoredPosition = new Vector2(0f, 115f);
 
             m_LoadingText = textObj.AddComponent<TextMeshProUGUI>();
             if (m_Font != null) m_LoadingText.font = m_Font;
@@ -395,23 +466,10 @@ namespace PixelGame
             m_LoadingText.fontStyle = FontStyles.Bold;
             m_LoadingText.alignment = TextAlignmentOptions.Center;
             m_LoadingText.color = Color.white;
-            m_LoadingText.enableVertexGradient = true;
-            m_LoadingText.colorGradient = new VertexGradient(
-                new Color(1f, 0.95f, 0.15f, 1f), // Parlak sarı tepe
-                new Color(1f, 0.95f, 0.15f, 1f),
-                new Color(1f, 0.52f, 0.00f, 1f), // Sıcak turuncu alt
-                new Color(1f, 0.52f, 0.00f, 1f)
-            );
             m_LoadingText.raycastTarget = false;
+            textObj.SetActive(false); // 3D Rozet aktif olduğundan metin gizli
 
-            // Koyu lacivert kontur (Land Flow stili)
-            var textOutline = textObj.AddComponent<Outline>();
-            textOutline.effectColor = new Color(0.03f, 0.16f, 0.42f, 0.95f);
-            textOutline.effectDistance = new Vector2(3f, -3f);
-
-            textObj.SetActive(false); // Varsayılanda 3D rozet gösterilir
-
-            // 5. Alt Başlık / Ödül Metni (SubText - Örn: "+20 COINS" veya "PICTURE COMPLETED!")
+            // 5. Alt Başlık / Ödül Metni (SubText)
             GameObject subTextObj = new GameObject("SubText");
             subTextObj.transform.SetParent(bottomUI.transform, false);
             RectTransform subRect = subTextObj.AddComponent<RectTransform>();
@@ -419,7 +477,7 @@ namespace PixelGame
             subRect.anchorMax = new Vector2(0.5f, 0.5f);
             subRect.pivot = new Vector2(0.5f, 0.5f);
             subRect.sizeDelta = new Vector2(650f, 45f);
-            subRect.anchoredPosition = new Vector2(0f, 15f);
+            subRect.anchoredPosition = new Vector2(0f, 180f);
 
             m_SubText = subTextObj.AddComponent<TextMeshProUGUI>();
             if (m_Font != null) m_SubText.font = m_Font;
@@ -427,52 +485,51 @@ namespace PixelGame
             m_SubText.fontStyle = FontStyles.Bold;
             m_SubText.alignment = TextAlignmentOptions.Center;
             m_SubText.color = new Color(1f, 0.92f, 0.35f, 1f);
-            m_SubText.enableVertexGradient = true;
-            m_SubText.colorGradient = new VertexGradient(
-                new Color(1f, 1.0f, 0.65f, 1f),
-                new Color(1f, 1.0f, 0.65f, 1f),
-                new Color(1f, 0.72f, 0.12f, 1f),
-                new Color(1f, 0.72f, 0.12f, 1f)
-            );
             m_SubText.raycastTarget = false;
-
-            var subOutline = subTextObj.AddComponent<Outline>();
-            subOutline.effectColor = new Color(0.02f, 0.12f, 0.30f, 0.90f);
-            subOutline.effectDistance = new Vector2(2f, -2f);
             subTextObj.SetActive(false);
 
-            // 6. Şık İlerleme Çubuğu (Progress Bar)
+            // 6. Şık Kapsül İlerleme Çubuğu (Capsule Progress Bar)
             GameObject barBg = new GameObject("ProgressBar_BG");
             barBg.transform.SetParent(bottomUI.transform, false);
             m_ProgressBarBg = barBg.AddComponent<RectTransform>();
-            m_ProgressBarBg.anchorMin = new Vector2(0.5f, 0.5f);
-            m_ProgressBarBg.anchorMax = new Vector2(0.5f, 0.5f);
+            m_ProgressBarBg.anchorMin = new Vector2(0.5f, 0f);
+            m_ProgressBarBg.anchorMax = new Vector2(0.5f, 0f);
             m_ProgressBarBg.pivot = new Vector2(0.5f, 0.5f);
-            m_ProgressBarBg.sizeDelta = new Vector2(460f, 22f);
-            m_ProgressBarBg.anchoredPosition = new Vector2(0f, -30f);
+            m_ProgressBarBg.sizeDelta = new Vector2(580f, 86f);
+            m_ProgressBarBg.anchoredPosition = new Vector2(0f, 35f);
 
             Image bgBarImg = barBg.AddComponent<Image>();
-            bgBarImg.color = new Color(0.03f, 0.16f, 0.42f, 0.92f); // Koyu okyanus laciverti
+            bgBarImg.sprite = m_ProgressBarBgSprite;
+            bgBarImg.type = Image.Type.Simple;
+            bgBarImg.color = Color.white;
             bgBarImg.raycastTarget = false;
 
-            var barBorder = barBg.AddComponent<Outline>();
-            barBorder.effectColor = new Color(0.45f, 0.85f, 1.0f, 0.85f); // Açık camgöbeği ışıltı konturu
-            barBorder.effectDistance = new Vector2(2f, -2f);
+            // Maske kapsayıcısı (Progress'e göre genişler)
+            GameObject maskObj = new GameObject("ProgressBar_FillMask");
+            maskObj.transform.SetParent(barBg.transform, false);
+            m_ProgressBarMask = maskObj.AddComponent<RectTransform>();
+            m_ProgressBarMask.anchorMin = new Vector2(0f, 0.5f);
+            m_ProgressBarMask.anchorMax = new Vector2(0f, 0.5f);
+            m_ProgressBarMask.pivot = new Vector2(0f, 0.5f);
+            m_ProgressBarMask.anchoredPosition = Vector2.zero;
+            m_ProgressBarMask.sizeDelta = new Vector2(0f, 86f);
 
-            Mask barMask = barBg.AddComponent<Mask>();
-            barMask.showMaskGraphic = true;
+            RectMask2D barMask = maskObj.AddComponent<RectMask2D>();
 
+            // İç dolgu (Sarı çizgili parlak kapsül bar)
             GameObject barFill = new GameObject("ProgressBar_Fill");
-            barFill.transform.SetParent(barBg.transform, false);
+            barFill.transform.SetParent(maskObj.transform, false);
             m_ProgressBarFill = barFill.AddComponent<RectTransform>();
-            m_ProgressBarFill.anchorMin = new Vector2(0f, 0f);
-            m_ProgressBarFill.anchorMax = new Vector2(0f, 1f);
+            m_ProgressBarFill.anchorMin = new Vector2(0f, 0.5f);
+            m_ProgressBarFill.anchorMax = new Vector2(0f, 0.5f);
             m_ProgressBarFill.pivot = new Vector2(0f, 0.5f);
-            m_ProgressBarFill.sizeDelta = new Vector2(0f, 0f);
             m_ProgressBarFill.anchoredPosition = Vector2.zero;
+            m_ProgressBarFill.sizeDelta = new Vector2(580f, 86f); // Sabit tam boy, maske tarafından kırpılır
 
             Image fillImg = barFill.AddComponent<Image>();
-            fillImg.color = new Color(1f, 0.82f, 0.15f, 1f); // Canlı altın sarısı ('LAND' rengiyle uyumlu)
+            fillImg.sprite = m_ProgressBarFillSprite;
+            fillImg.type = Image.Type.Simple;
+            fillImg.color = Color.white;
             fillImg.raycastTarget = false;
 
             // =========================================================================
@@ -584,67 +641,51 @@ namespace PixelGame
                 if (m_Font == null) m_Font = GameThemeSettings.MainFont;
             }
 
+            // 4. 3D Başlık Rozeti (Level Completed..., Restarting..., Level Failed..., Loading...)
+            GameObject badgeObj = new GameObject("Classic_Badge_3D");
+            badgeObj.transform.SetParent(centerContainer.transform, false);
+            RectTransform badgeRect = badgeObj.AddComponent<RectTransform>();
+            badgeRect.anchorMin = new Vector2(0.5f, 0.36f);
+            badgeRect.anchorMax = new Vector2(0.5f, 0.36f);
+            badgeRect.pivot = new Vector2(0.5f, 0.5f);
+            badgeRect.sizeDelta = new Vector2(480f, 115f);
+            badgeRect.anchoredPosition = new Vector2(0f, -40f);
+
+            m_ClassicBadgeImage = badgeObj.AddComponent<Image>();
+            m_ClassicBadgeImage.sprite = m_BannerLevelCompletedSprite ?? m_BannerLoadingSprite;
+            m_ClassicBadgeImage.preserveAspect = true;
+            m_ClassicBadgeImage.raycastTarget = false;
+            badgeObj.SetActive(true);
+
+            // Yedek Text (gizli tutulur)
             GameObject textObj = new GameObject("LoadingText");
             textObj.transform.SetParent(centerContainer.transform, false);
             RectTransform textRect = textObj.AddComponent<RectTransform>();
-            textRect.anchorMin = new Vector2(0.5f, 0.32f);
-            textRect.anchorMax = new Vector2(0.5f, 0.32f);
+            textRect.anchorMin = badgeRect.anchorMin;
+            textRect.anchorMax = badgeRect.anchorMax;
             textRect.pivot = new Vector2(0.5f, 0.5f);
             textRect.sizeDelta = new Vector2(820f, 110f);
-            textRect.anchoredPosition = new Vector2(0f, -30f);
+            textRect.anchoredPosition = badgeRect.anchoredPosition;
 
             m_ClassicText = textObj.AddComponent<TextMeshProUGUI>();
             if (m_Font != null) m_ClassicText.font = m_Font;
             m_ClassicText.text = "LOADING...";
-            // Açılış ekranındaki "LOADING" rozetinin stili: sarı → turuncu, kalın lacivert kontur ve 3D gölge
-            m_ClassicText.fontSize = 62;
-            m_ClassicText.enableAutoSizing = true;
-            m_ClassicText.fontSizeMin = 40;
-            m_ClassicText.fontSizeMax = 62;
+            m_ClassicText.fontSize = 54;
             m_ClassicText.fontStyle = FontStyles.Bold;
             m_ClassicText.alignment = TextAlignmentOptions.Center;
             m_ClassicText.color = Color.white;
-            m_ClassicText.enableVertexGradient = true;
-            m_ClassicText.colorGradient = new VertexGradient(
-                new Color(1f, 0.95f, 0.15f, 1f), // Parlak sarı tepe
-                new Color(1f, 0.95f, 0.15f, 1f),
-                new Color(1f, 0.52f, 0.00f, 1f), // Sıcak turuncu alt
-                new Color(1f, 0.52f, 0.00f, 1f)
-            );
             m_ClassicText.raycastTarget = false;
-
-            // Rozetteki gibi kalın lacivert kontur + alta düşen 3D gölge
-            var outline = textObj.AddComponent<Outline>();
-            outline.effectColor = new Color(0.03f, 0.16f, 0.42f, 1f);
-            outline.effectDistance = new Vector2(4f, -4f);
-            var depth = textObj.AddComponent<Shadow>();
-            depth.effectColor = new Color(0.02f, 0.10f, 0.30f, 1f);
-            depth.effectDistance = new Vector2(0f, -7f);
-
-            // "LOADING" mesajında açılış ekranındaki 3D rozet gösterilir (yazıyla aynı yerde)
-            GameObject badgeObj = new GameObject("LoadingBadge_3D");
-            badgeObj.transform.SetParent(centerContainer.transform, false);
-            RectTransform badgeRect = badgeObj.AddComponent<RectTransform>();
-            badgeRect.anchorMin = textRect.anchorMin;
-            badgeRect.anchorMax = textRect.anchorMax;
-            badgeRect.pivot = new Vector2(0.5f, 0.5f);
-            badgeRect.sizeDelta = new Vector2(460f, 96f);
-            badgeRect.anchoredPosition = textRect.anchoredPosition;
-            m_ClassicBadgeImage = badgeObj.AddComponent<Image>();
-            m_ClassicBadgeImage.sprite = m_LoadingBadgeSprite;
-            m_ClassicBadgeImage.preserveAspect = true;
-            m_ClassicBadgeImage.raycastTarget = false;
-            badgeObj.SetActive(false);
+            textObj.SetActive(false);
 
             // 5. Alt Başlık / Ödül Metni
             GameObject subTextObj = new GameObject("SubText");
             subTextObj.transform.SetParent(centerContainer.transform, false);
             RectTransform subRect = subTextObj.AddComponent<RectTransform>();
-            subRect.anchorMin = new Vector2(0.5f, 0.28f);
-            subRect.anchorMax = new Vector2(0.5f, 0.28f);
+            subRect.anchorMin = new Vector2(0.5f, 0.30f);
+            subRect.anchorMax = new Vector2(0.5f, 0.30f);
             subRect.pivot = new Vector2(0.5f, 0.5f);
             subRect.sizeDelta = new Vector2(650f, 50f);
-            subRect.anchoredPosition = new Vector2(0f, -80f);
+            subRect.anchoredPosition = new Vector2(0f, -95f);
 
             m_ClassicSubText = subTextObj.AddComponent<TextMeshProUGUI>();
             if (m_Font != null) m_ClassicSubText.font = m_Font;
@@ -652,53 +693,51 @@ namespace PixelGame
             m_ClassicSubText.fontStyle = FontStyles.Bold;
             m_ClassicSubText.alignment = TextAlignmentOptions.Center;
             m_ClassicSubText.color = new Color(1f, 0.88f, 0.25f, 1f);
-            m_ClassicSubText.enableVertexGradient = true;
-            m_ClassicSubText.colorGradient = new VertexGradient(
-                new Color(1f, 0.95f, 0.55f, 1f),
-                new Color(1f, 0.95f, 0.55f, 1f),
-                new Color(1f, 0.72f, 0.12f, 1f),
-                new Color(1f, 0.72f, 0.12f, 1f)
-            );
             m_ClassicSubText.raycastTarget = false;
-
-            var subOutline = subTextObj.AddComponent<Outline>();
-            subOutline.effectColor = new Color(0.02f, 0.12f, 0.28f, 0.90f);
-            subOutline.effectDistance = new Vector2(2f, -2f);
             subTextObj.SetActive(false);
 
-            // 6. Şık İlerleme Çubuğu (Progress Bar)
+            // 6. Şık Kapsül İlerleme Çubuğu (Capsule Progress Bar)
             GameObject barBg = new GameObject("ProgressBar_BG");
             barBg.transform.SetParent(centerContainer.transform, false);
             m_ClassicBarBg = barBg.AddComponent<RectTransform>();
-            m_ClassicBarBg.anchorMin = new Vector2(0.5f, 0.22f);
-            m_ClassicBarBg.anchorMax = new Vector2(0.5f, 0.22f);
+            m_ClassicBarBg.anchorMin = new Vector2(0.5f, 0.20f);
+            m_ClassicBarBg.anchorMax = new Vector2(0.5f, 0.20f);
             m_ClassicBarBg.pivot = new Vector2(0.5f, 0.5f);
-            // Açılış ekranındaki barla aynı ölçü ve renkler
-            m_ClassicBarBg.sizeDelta = new Vector2(460f, 22f);
-            m_ClassicBarBg.anchoredPosition = new Vector2(0f, -135f);
+            m_ClassicBarBg.sizeDelta = new Vector2(540f, 80f);
+            m_ClassicBarBg.anchoredPosition = new Vector2(0f, -155f);
 
             Image bgBarImg = barBg.AddComponent<Image>();
-            bgBarImg.color = new Color(0.03f, 0.16f, 0.42f, 0.92f); // Koyu okyanus laciverti
+            bgBarImg.sprite = m_ProgressBarBgSprite;
+            bgBarImg.type = Image.Type.Simple;
+            bgBarImg.color = Color.white;
             bgBarImg.raycastTarget = false;
 
-            var barBorder = barBg.AddComponent<Outline>();
-            barBorder.effectColor = new Color(0.45f, 0.85f, 1.0f, 0.85f); // Açık camgöbeği ışıltı konturu
-            barBorder.effectDistance = new Vector2(2f, -2f);
+            // Maske kapsayıcısı
+            GameObject maskObj = new GameObject("ProgressBar_FillMask");
+            maskObj.transform.SetParent(barBg.transform, false);
+            m_ClassicBarMask = maskObj.AddComponent<RectTransform>();
+            m_ClassicBarMask.anchorMin = new Vector2(0f, 0.5f);
+            m_ClassicBarMask.anchorMax = new Vector2(0f, 0.5f);
+            m_ClassicBarMask.pivot = new Vector2(0f, 0.5f);
+            m_ClassicBarMask.anchoredPosition = Vector2.zero;
+            m_ClassicBarMask.sizeDelta = new Vector2(0f, 80f);
 
-            Mask barMask = barBg.AddComponent<Mask>();
-            barMask.showMaskGraphic = true;
+            RectMask2D barMask = maskObj.AddComponent<RectMask2D>();
 
+            // İç dolgu (Sarı çizgili parlak kapsül bar)
             GameObject barFill = new GameObject("ProgressBar_Fill");
-            barFill.transform.SetParent(barBg.transform, false);
+            barFill.transform.SetParent(maskObj.transform, false);
             m_ClassicBarFill = barFill.AddComponent<RectTransform>();
-            m_ClassicBarFill.anchorMin = new Vector2(0f, 0f);
-            m_ClassicBarFill.anchorMax = new Vector2(0f, 1f);
+            m_ClassicBarFill.anchorMin = new Vector2(0f, 0.5f);
+            m_ClassicBarFill.anchorMax = new Vector2(0f, 0.5f);
             m_ClassicBarFill.pivot = new Vector2(0f, 0.5f);
-            m_ClassicBarFill.sizeDelta = new Vector2(0f, 0f);
             m_ClassicBarFill.anchoredPosition = Vector2.zero;
+            m_ClassicBarFill.sizeDelta = new Vector2(540f, 80f);
 
             Image fillImg = barFill.AddComponent<Image>();
-            fillImg.color = new Color(1f, 0.82f, 0.15f, 1f); // Canlı altın sarısı (açılış barıyla aynı)
+            fillImg.sprite = m_ProgressBarFillSprite;
+            fillImg.type = Image.Type.Simple;
+            fillImg.color = Color.white;
             fillImg.raycastTarget = false;
 
             m_ClassicRoot.SetActive(false);
@@ -717,7 +756,6 @@ namespace PixelGame
 
         private void StartBadgeAndTextAnimations()
         {
-            // Klasik modda: ortalanmış logo nefes alır, klasik yazı noktacıklanır
             if (IsClassicActive())
             {
                 if (m_ClassicLogoImage != null)
@@ -732,38 +770,26 @@ namespace PixelGame
                 }
                 if (m_ClassicBadgeImage != null && m_ClassicBadgeImage.gameObject.activeSelf)
                 {
-                    m_BadgePulseTween?.Kill();
+                    m_ClassicBadgePulseTween?.Kill();
                     m_ClassicBadgeImage.transform.localScale = Vector3.one;
-                    m_BadgePulseTween = m_ClassicBadgeImage.transform
-                        .DOScale(Vector3.one * 1.05f, 0.85f)
+                    m_ClassicBadgePulseTween = m_ClassicBadgeImage.transform
+                        .DOScale(Vector3.one * 1.045f, 0.8f)
                         .SetLoops(-1, LoopType.Yoyo)
                         .SetEase(Ease.InOutSine)
                         .SetUpdate(true);
                 }
-                if (m_ClassicText != null)
-                {
-                    if (m_TextDotRoutine != null) StopCoroutine(m_TextDotRoutine);
-                    m_TextDotRoutine = StartCoroutine(AnimateLoadingDots());
-                }
                 return;
             }
-            // 3D "LOADING..." rozeti için tatlı, canlı nefes alma animasyonu
+
             if (m_LoadingBadgeImage != null && m_LoadingBadgeImage.gameObject.activeSelf)
             {
                 m_BadgePulseTween?.Kill();
                 m_LoadingBadgeImage.transform.localScale = Vector3.one;
                 m_BadgePulseTween = m_LoadingBadgeImage.transform
-                    .DOScale(Vector3.one * 1.05f, 0.85f)
+                    .DOScale(Vector3.one * 1.045f, 0.8f)
                     .SetLoops(-1, LoopType.Yoyo)
                     .SetEase(Ease.InOutSine)
                     .SetUpdate(true);
-            }
-
-            // Metin noktacık animasyonu (dinamik metin aktifse)
-            if (m_LoadingText != null && m_LoadingText.gameObject.activeSelf)
-            {
-                if (m_TextDotRoutine != null) StopCoroutine(m_TextDotRoutine);
-                m_TextDotRoutine = StartCoroutine(AnimateLoadingDots());
             }
         }
 
@@ -771,6 +797,7 @@ namespace PixelGame
         {
             m_ProgressBarTween?.Kill();
             m_BadgePulseTween?.Kill();
+            m_ClassicBadgePulseTween?.Kill();
             m_SubTextPulseTween?.Kill();
             m_ClassicLogoPulseTween?.Kill();
 
@@ -782,7 +809,6 @@ namespace PixelGame
             {
                 m_ClassicBadgeImage.transform.localScale = Vector3.one;
             }
-
             if (m_LoadingBadgeImage != null)
             {
                 m_LoadingBadgeImage.transform.localScale = Vector3.one;
@@ -792,6 +818,11 @@ namespace PixelGame
                 m_SubText.transform.localScale = Vector3.one;
                 m_SubText.gameObject.SetActive(false);
             }
+            if (m_ClassicSubText != null)
+            {
+                m_ClassicSubText.transform.localScale = Vector3.one;
+                m_ClassicSubText.gameObject.SetActive(false);
+            }
             if (m_TextDotRoutine != null)
             {
                 StopCoroutine(m_TextDotRoutine);
@@ -800,9 +831,9 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Yükleme ekranında gösterilecek ana metni ve isteğe bağlı alt metni (ödül/açıklama) ayarlar.
-        /// Standart "LOADING" ise şık 3D rozeti gösterir; "FAIL LEVEL" veya "LEVEL COMPLETED" gibi
-        /// özel durumlarda ise stillendirilmiş TextMeshPro metnini açar.
+        /// Yükleme ekranında gösterilecek ana metni ve isteğe bağlı alt metni ayarlar.
+        /// Mesaja göre 4 farklı 3D başlık rozetini ("Loading...", "Level Completed...", "Restarting...", "Level Failed...")
+        /// dinamik olarak seçer ve şık animasyonla gösterir.
         /// </summary>
         public void SetMessage(string message, string subMessage = null)
         {
@@ -810,32 +841,51 @@ namespace PixelGame
             m_CurrentBaseMessage = message.TrimEnd('.');
             m_CurrentSubMessage = subMessage;
 
-            bool isDefaultLoading = string.Equals(m_CurrentBaseMessage, "LOADING", StringComparison.OrdinalIgnoreCase);
+            string lower = m_CurrentBaseMessage.ToLowerInvariant();
+            Sprite activeBanner = m_BannerLoadingSprite;
+            if (lower.Contains("fail"))
+            {
+                activeBanner = m_BannerLevelFailedSprite ?? m_BannerLoadingSprite;
+            }
+            else if (lower.Contains("complet") || lower.Contains("win") || lower.Contains("success") || lower.Contains("next"))
+            {
+                activeBanner = m_BannerLevelCompletedSprite ?? m_BannerLoadingSprite;
+            }
+            else if (lower.Contains("restart"))
+            {
+                activeBanner = m_BannerRestartingSprite ?? m_BannerLoadingSprite;
+            }
+            else
+            {
+                activeBanner = m_BannerLoadingSprite;
+            }
 
             if (m_LoadingBadgeImage != null)
             {
-                m_LoadingBadgeImage.gameObject.SetActive(isDefaultLoading);
-            }
-
-            if (m_LoadingText != null)
-            {
-                m_LoadingText.gameObject.SetActive(!isDefaultLoading);
-                if (!isDefaultLoading)
+                m_LoadingBadgeImage.gameObject.SetActive(true);
+                if (activeBanner != null)
                 {
-                    m_LoadingText.text = m_CurrentBaseMessage;
+                    m_LoadingBadgeImage.sprite = activeBanner;
+                    float h = 105f;
+                    float w = activeBanner.rect.height > 0 ? h * (activeBanner.rect.width / activeBanner.rect.height) : 440f;
+                    m_LoadingBadgeImage.rectTransform.sizeDelta = new Vector2(w, h);
                 }
             }
 
-            // Klasik ağaç: açılış ekranı gibi "LOADING" için 3D rozet, diğer mesajlarda yazı
             if (m_ClassicBadgeImage != null)
             {
-                m_ClassicBadgeImage.gameObject.SetActive(isDefaultLoading);
+                m_ClassicBadgeImage.gameObject.SetActive(true);
+                if (activeBanner != null)
+                {
+                    m_ClassicBadgeImage.sprite = activeBanner;
+                    float h = 110f;
+                    float w = activeBanner.rect.height > 0 ? h * (activeBanner.rect.width / activeBanner.rect.height) : 480f;
+                    m_ClassicBadgeImage.rectTransform.sizeDelta = new Vector2(w, h);
+                }
             }
-            if (m_ClassicText != null)
-            {
-                m_ClassicText.gameObject.SetActive(!isDefaultLoading);
-                m_ClassicText.text = m_CurrentBaseMessage + "...";
-            }
+
+            if (m_ClassicText != null) m_ClassicText.gameObject.SetActive(false);
+            if (m_LoadingText != null) m_LoadingText.gameObject.SetActive(false);
 
             if (m_SubText != null)
             {
@@ -857,10 +907,17 @@ namespace PixelGame
                 }
             }
 
-            // Klasik stil: alt yazı (coin/ödül metni) gösterilmez
             if (m_ClassicSubText != null)
             {
-                m_ClassicSubText.gameObject.SetActive(false);
+                if (!string.IsNullOrEmpty(subMessage))
+                {
+                    m_ClassicSubText.text = subMessage;
+                    m_ClassicSubText.gameObject.SetActive(true);
+                }
+                else
+                {
+                    m_ClassicSubText.gameObject.SetActive(false);
+                }
             }
         }
 
@@ -912,14 +969,26 @@ namespace PixelGame
 
         private void ApplyProgressBarWidth(float progress)
         {
-            if (m_ProgressBarFill != null && m_ProgressBarBg != null)
+            float p = Mathf.Clamp01(progress);
+            if (m_ProgressBarMask != null && m_ProgressBarBg != null)
             {
-                float targetWidth = m_ProgressBarBg.sizeDelta.x * Mathf.Clamp01(progress);
+                float targetWidth = m_ProgressBarBg.sizeDelta.x * p;
+                m_ProgressBarMask.sizeDelta = new Vector2(targetWidth, m_ProgressBarBg.sizeDelta.y);
+            }
+            else if (m_ProgressBarFill != null && m_ProgressBarBg != null)
+            {
+                float targetWidth = m_ProgressBarBg.sizeDelta.x * p;
                 m_ProgressBarFill.sizeDelta = new Vector2(targetWidth, 0f);
             }
-            if (m_ClassicBarFill != null && m_ClassicBarBg != null)
+
+            if (m_ClassicBarMask != null && m_ClassicBarBg != null)
             {
-                float targetWidth = m_ClassicBarBg.sizeDelta.x * Mathf.Clamp01(progress);
+                float targetWidth = m_ClassicBarBg.sizeDelta.x * p;
+                m_ClassicBarMask.sizeDelta = new Vector2(targetWidth, m_ClassicBarBg.sizeDelta.y);
+            }
+            else if (m_ClassicBarFill != null && m_ClassicBarBg != null)
+            {
+                float targetWidth = m_ClassicBarBg.sizeDelta.x * p;
                 m_ClassicBarFill.sizeDelta = new Vector2(targetWidth, 0f);
             }
         }

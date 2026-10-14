@@ -53,12 +53,24 @@ namespace PixelGame
         [SerializeField] private Sprite m_HapticsOffSprite;
         [Header("🔄 Yeniden Başlat (Retry)")]
         [SerializeField] private UnityEngine.UI.Button m_RetryButton;
-        [Header("⚡ 2X Hız Butonu")]
+        [Header("⚡ 2X Hız & Süre Sistemi")]
         [SerializeField] private UnityEngine.UI.Button m_SpeedButton;
         [SerializeField] private UnityEngine.UI.Image m_SpeedButtonImage;
         [SerializeField] private Sprite m_Speed1xSprite;
         [SerializeField] private Sprite m_Speed2xSprite;
+        [Tooltip("2X butonunun kullanma süresi (dakika). Varsayılan: 15")]
+        [SerializeField] private float m_Speed2xDurationMinutes = 15f;
+        [Tooltip("2X süre sınırı aktif mi?")]
+        [SerializeField] private bool m_Speed2xTimerEnabled = true;
+        [SerializeField] private GameObject m_SpeedTimerBadge;
+        [SerializeField] private TextMeshProUGUI m_SpeedTimerText;
         private bool m_IsSpeed2x = false;
+        private bool m_IsEndgameSpeedActive = false;
+        private float m_Speed2xRemainingSeconds = 900f;
+        private float m_TimerSaveCooldown = 0f;
+
+        private const string Speed2xRemainingPrefKey = "PixelGame_Speed2xRemainingSeconds";
+        private const string Speed2xInitializedPrefKey = "PixelGame_Speed2xInitialized";
 
         [Header("🧪 Başlangıç Değerleri")]
         [SerializeField] private int m_StartingLives = 3;
@@ -97,6 +109,9 @@ namespace PixelGame
         public Sprite Speed1xSprite { get => m_Speed1xSprite; set => m_Speed1xSprite = value; }
         public Sprite Speed2xSprite { get => m_Speed2xSprite; set => m_Speed2xSprite = value; }
         public bool IsSpeed2x => m_IsSpeed2x;
+        public bool IsEndgameSpeedActive => m_IsEndgameSpeedActive;
+        public float Speed2xRemainingSeconds => m_Speed2xRemainingSeconds;
+        public float Speed2xDurationMinutes => m_Speed2xDurationMinutes;
 
         public GameObject LevelFailPopup { get => m_LevelFailPopup; set => m_LevelFailPopup = value; }
         public GameObject LevelCompletePopup { get => m_LevelCompletePopup; set => m_LevelCompletePopup = value; }
@@ -115,13 +130,15 @@ namespace PixelGame
         private void Awake()
         {
             Instance = this;
-            Time.timeScale = 1.0f;
             m_IsSpeed2x = false;
+            m_IsEndgameSpeedActive = false;
+            Time.timeScale = 1.0f;
             HideCoinPill();
             WireExistingFailPopupButtons();
             WireExistingCompletePopupButtons();
             WireRetryButton();
             WireSpeedButton();
+            InitializeSpeedTimer();
         }
 
         private void OnDestroy()
@@ -139,6 +156,7 @@ namespace PixelGame
         private void OnDisable()
         {
             PixelArtGenerator.LevelLoaded -= HandleLevelLoaded;
+            SaveSpeedTimer();
         }
 
         private void Start()
@@ -152,11 +170,42 @@ namespace PixelGame
             ApplyAudioState();
             UpdateSoundVisual();
             UpdateHapticsVisual();
-            UpdateSpeedVisual();
+            InitializeSpeedTimer();
             WireExistingFailPopupButtons();
             WireExistingCompletePopupButtons();
             WireRetryButton();
             WireSpeedButton();
+            ApplySpeedState();
+            UpdateSpeedVisual();
+        }
+
+        private void Update()
+        {
+            if (m_Speed2xTimerEnabled && m_IsSpeed2x)
+            {
+                if (m_Speed2xRemainingSeconds > 0f)
+                {
+                    m_Speed2xRemainingSeconds -= Time.unscaledDeltaTime;
+                    if (m_Speed2xRemainingSeconds <= 0f)
+                    {
+                        m_Speed2xRemainingSeconds = 0f;
+                        m_IsSpeed2x = false;
+                        ApplySpeedState();
+                        UpdateSpeedVisual();
+                        SaveSpeedTimer();
+                        Debug.Log("<color=#FFAA00><b>[CasualHUD]</b></color> ⏳ 2X butonunun 15 dakikalık süresi doldu! Hız normale döndürüldü.");
+                    }
+
+                    m_TimerSaveCooldown += Time.unscaledDeltaTime;
+                    if (m_TimerSaveCooldown >= 5.0f)
+                    {
+                        m_TimerSaveCooldown = 0f;
+                        SaveSpeedTimer();
+                    }
+                }
+            }
+
+            UpdateSpeedTimerVisual();
         }
 
         public void WireRetryButton()
@@ -305,7 +354,14 @@ namespace PixelGame
         {
             HideLevelFailPopup();
             SetTurboIndicator(false);
-            SetSpeed2X(false);
+            SetEndgameSpeedActive(false);
+
+            if (m_Speed2xTimerEnabled && m_Speed2xRemainingSeconds <= 0f)
+            {
+                m_IsSpeed2x = false;
+            }
+            ApplySpeedState();
+            UpdateSpeedVisual();
             if (level != null)
             {
                 LevelManager levelManager = FindFirstObjectByType<LevelManager>();
@@ -747,8 +803,12 @@ namespace PixelGame
 
             HideLevelFailPopup();
             HideLevelCompletePopup();
-            m_IsSpeed2x = false;
-            Time.timeScale = 1.0f;
+            SetEndgameSpeedActive(false);
+            if (m_Speed2xTimerEnabled && m_Speed2xRemainingSeconds <= 0f)
+            {
+                m_IsSpeed2x = false;
+            }
+            ApplySpeedState();
             UpdateSpeedVisual();
             Debug.Log("<color=#FF4444><b>[CasualHUD]</b></color> Seviye yeniden başlatılıyor...");
 
@@ -850,6 +910,24 @@ namespace PixelGame
         private int m_LastSpeedToggleFrame = -1;
         private float m_LastSpeedToggleTime = -1f;
 
+        public void InitializeSpeedTimer()
+        {
+            if (PlayerPrefs.GetInt(Speed2xInitializedPrefKey, 0) == 1)
+            {
+                m_Speed2xRemainingSeconds = PlayerPrefs.GetFloat(Speed2xRemainingPrefKey, m_Speed2xDurationMinutes * 60f);
+            }
+            else
+            {
+                m_Speed2xRemainingSeconds = m_Speed2xDurationMinutes * 60f;
+                PlayerPrefs.SetInt(Speed2xInitializedPrefKey, 1);
+                PlayerPrefs.SetFloat(Speed2xRemainingPrefKey, m_Speed2xRemainingSeconds);
+                PlayerPrefs.Save();
+            }
+
+            EnsureSpeedTimerBadge();
+            UpdateSpeedTimerVisual();
+        }
+
         public void ToggleSpeed2X()
         {
             if (Time.frameCount == m_LastSpeedToggleFrame || (Time.unscaledTime - m_LastSpeedToggleTime < 0.2f && m_LastSpeedToggleTime > 0f))
@@ -859,15 +937,32 @@ namespace PixelGame
             m_LastSpeedToggleFrame = Time.frameCount;
             m_LastSpeedToggleTime = Time.unscaledTime;
 
+            if (!m_IsSpeed2x && m_Speed2xTimerEnabled && m_Speed2xRemainingSeconds <= 0f)
+            {
+                Debug.Log("<color=#FFAA00><b>[CasualHUD]</b></color> ⚠️ 2X kullanma süresi bitmiş! (15 dakika doldu)");
+                if (m_SpeedButton != null)
+                {
+                    m_SpeedButton.transform.DOComplete();
+                    m_SpeedButton.transform.DOShakePosition(0.3f, new Vector3(8f, 0f, 0f), 10, 90f, false, true).SetUpdate(true);
+                }
+                TriggerHaptic();
+                return;
+            }
+
             m_IsSpeed2x = !m_IsSpeed2x;
             ApplySpeedState();
             UpdateSpeedVisual();
+            SaveSpeedTimer();
             TriggerHaptic();
-            Debug.Log($"<color=#44FF44><b>[CasualHUD]</b></color> ⚡ Oyun Hızı: {(m_IsSpeed2x ? "2X" : "1X")}");
+            Debug.Log($"<color=#44FF44><b>[CasualHUD]</b></color> ⚡ Oyun Hızı: {(m_IsSpeed2x ? "2X" : "1X")} | Kalan 2X Süresi: {Mathf.CeilToInt(m_Speed2xRemainingSeconds)}s");
         }
 
         public void SetSpeed2X(bool enabled)
         {
+            if (enabled && m_Speed2xTimerEnabled && m_Speed2xRemainingSeconds <= 0f)
+            {
+                enabled = false;
+            }
             m_IsSpeed2x = enabled;
             ApplySpeedState();
             UpdateSpeedVisual();
@@ -879,10 +974,34 @@ namespace PixelGame
             UpdateSpeedVisual();
         }
 
-        private void ApplySpeedState()
+        public void SetEndgameSpeedActive(bool active)
         {
-            Time.timeScale = m_IsSpeed2x ? 2.0f : 1.0f;
+            if (m_IsEndgameSpeedActive == active) return;
+            m_IsEndgameSpeedActive = active;
+            ApplySpeedState();
+            Debug.Log($"<color=#00FFAA><b>[CasualHUD]</b></color> 🎯 Oyun Sonu Hızlanması: {(active ? "AKTİF" : "KAPALI")} -> Hız: {(m_IsEndgameSpeedActive ? (m_IsSpeed2x ? "4X" : "2X") : (m_IsSpeed2x ? "2X" : "1X"))}");
+        }
+
+        public void ApplySpeedState()
+        {
+            float targetScale;
+            if (m_IsEndgameSpeedActive)
+            {
+                // Oyun sonunda sıradaki bütün gemiler için yerleşecek yer varsa:
+                // 2X butonu açıkken -> 4X hız
+                // 2X butonu kapalıysa -> 2X hızında hemen yerleşsin
+                targetScale = m_IsSpeed2x ? 4.0f : 2.0f;
+            }
+            else
+            {
+                // Normal oynanış:
+                // 2X açıkken 2x, kapalıyken 1x
+                targetScale = m_IsSpeed2x ? 2.0f : 1.0f;
+            }
+
+            Time.timeScale = targetScale;
             Time.fixedDeltaTime = 0.02f * Time.timeScale;
+            Debug.Log($"<color=#44FF44><b>[SpeedControl]</b></color> ⚡ Time.timeScale = {targetScale}f (Endgame: {m_IsEndgameSpeedActive}, Buton2x: {m_IsSpeed2x})");
         }
 
         public void UpdateSpeedVisual()
@@ -902,10 +1021,131 @@ namespace PixelGame
             if (m_SpeedButtonImage != null)
             {
                 if (m_IsSpeed2x && m_Speed2xSprite != null)
+                {
                     m_SpeedButtonImage.sprite = m_Speed2xSprite;
+                    m_SpeedButtonImage.color = Color.white;
+                }
                 else if (!m_IsSpeed2x && m_Speed1xSprite != null)
+                {
                     m_SpeedButtonImage.sprite = m_Speed1xSprite;
+                    if (m_Speed2xTimerEnabled && m_Speed2xRemainingSeconds <= 0f)
+                    {
+                        m_SpeedButtonImage.color = new Color(0.7f, 0.7f, 0.7f, 0.85f);
+                    }
+                    else
+                    {
+                        m_SpeedButtonImage.color = Color.white;
+                    }
+                }
             }
+
+            UpdateSpeedTimerVisual();
+        }
+
+        public void EnsureSpeedTimerBadge()
+        {
+            if (m_SpeedButton == null) return;
+
+            if (m_SpeedTimerBadge == null)
+            {
+                Transform badgeTr = m_SpeedButton.transform.Find("TimerBadge");
+                if (badgeTr != null)
+                {
+                    m_SpeedTimerBadge = badgeTr.gameObject;
+                    m_SpeedTimerText = badgeTr.GetComponentInChildren<TextMeshProUGUI>(true);
+                }
+            }
+
+            if (m_SpeedTimerBadge == null)
+            {
+                GameObject badgeGo = new GameObject("TimerBadge", typeof(RectTransform), typeof(UnityEngine.UI.Image));
+                badgeGo.transform.SetParent(m_SpeedButton.transform, false);
+
+                RectTransform badgeRt = badgeGo.GetComponent<RectTransform>();
+                badgeRt.anchorMin = new Vector2(0.5f, 0f);
+                badgeRt.anchorMax = new Vector2(0.5f, 0f);
+                badgeRt.pivot = new Vector2(0.5f, 1f);
+                badgeRt.anchoredPosition = new Vector2(0f, -4f);
+                badgeRt.sizeDelta = new Vector2(96f, 26f);
+
+                UnityEngine.UI.Image img = badgeGo.GetComponent<UnityEngine.UI.Image>();
+                img.color = new Color(0.08f, 0.12f, 0.18f, 0.88f);
+                img.raycastTarget = false;
+
+                GameObject textGo = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+                textGo.transform.SetParent(badgeGo.transform, false);
+
+                RectTransform textRt = textGo.GetComponent<RectTransform>();
+                textRt.anchorMin = Vector2.zero;
+                textRt.anchorMax = Vector2.one;
+                textRt.sizeDelta = Vector2.zero;
+
+                TextMeshProUGUI tmp = textGo.GetComponent<TextMeshProUGUI>();
+                tmp.alignment = TextAlignmentOptions.Center;
+                tmp.fontSize = 17f;
+                tmp.fontStyle = FontStyles.Bold;
+                tmp.raycastTarget = false;
+                if (m_LevelText != null) tmp.font = m_LevelText.font;
+
+                m_SpeedTimerBadge = badgeGo;
+                m_SpeedTimerText = tmp;
+            }
+        }
+
+        public void UpdateSpeedTimerVisual()
+        {
+            if (m_SpeedTimerBadge == null || m_SpeedTimerText == null) return;
+
+            if (!m_Speed2xTimerEnabled)
+            {
+                m_SpeedTimerBadge.SetActive(false);
+                return;
+            }
+
+            m_SpeedTimerBadge.SetActive(true);
+
+            int totalSecs = Mathf.Max(0, Mathf.CeilToInt(m_Speed2xRemainingSeconds));
+            int mins = totalSecs / 60;
+            int secs = totalSecs % 60;
+            string timeStr = $"{mins:00}:{secs:00}";
+
+            if (m_IsSpeed2x)
+            {
+                m_SpeedTimerText.text = timeStr;
+                m_SpeedTimerText.color = new Color(0.25f, 1.0f, 0.55f); // Canlı neon mint yeşili
+            }
+            else if (m_Speed2xRemainingSeconds <= 0f)
+            {
+                m_SpeedTimerText.text = "00:00";
+                m_SpeedTimerText.color = new Color(0.95f, 0.35f, 0.35f); // Süre doldu (kırmızı)
+            }
+            else
+            {
+                m_SpeedTimerText.text = timeStr;
+                m_SpeedTimerText.color = new Color(0.85f, 0.90f, 0.96f); // Beyaz / açık gri
+            }
+        }
+
+        public void SaveSpeedTimer()
+        {
+            PlayerPrefs.SetFloat(Speed2xRemainingPrefKey, m_Speed2xRemainingSeconds);
+            PlayerPrefs.Save();
+        }
+
+        [ContextMenu("🔄 2X Süresini Yenile (15 Dakika)")]
+        public void RefillSpeed2xTimerContext()
+        {
+            RefillSpeed2xTimer(m_Speed2xDurationMinutes);
+        }
+
+        public void RefillSpeed2xTimer(float minutes = -1f)
+        {
+            float duration = minutes > 0f ? minutes : m_Speed2xDurationMinutes;
+            m_Speed2xRemainingSeconds = duration * 60f;
+            SaveSpeedTimer();
+            UpdateSpeedVisual();
+            UpdateSpeedTimerVisual();
+            Debug.Log($"<color=#00FFAA><b>[CasualHUD]</b></color> ⚡ 2X süresi {duration} dakika olarak yenilendi!");
         }
 
         public void SetLives(int count)

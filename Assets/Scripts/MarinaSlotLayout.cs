@@ -143,7 +143,7 @@ namespace PixelGame
 
         [Header("🫧 Slot Görseli (Köpük Halkası)")]
         [Tooltip("Slot görselini (can simidi / köpük) gizler; görsel arka plandaki ahşap iskele ve babalar (posts) kullanılır.")]
-        [SerializeField] private bool m_HideSlotIndicators = true;
+        [SerializeField] private bool m_HideSlotIndicators = false;
         public bool HideSlotIndicators { get => m_HideSlotIndicators; set => m_HideSlotIndicators = value; }
         [Tooltip("Slot görselinin slot genişliğine göre ölçeği.")]
         [SerializeField] private float m_SlotVisualScale = 1.30f;
@@ -170,7 +170,7 @@ namespace PixelGame
         [SerializeField] private float m_OpenBerthLengthScale = 1.65f;
 
         [Header("⛔ Kapalı Slot Görseli")]
-        [Tooltip("Kapalı bölmelerde asma kilit yerine açık slotla aynı boyutta, koyu dolgulu ve çapraz çizgili soluk slot gösterilir.")]
+        [Tooltip("Engel olan kapalı bölmeler taralı çizgili görselle gösterilir.")]
         [SerializeField] private bool m_UseClosedSlotVisual = true;
         [SerializeField] private Material m_SlotBerthClosedMaterial;
 
@@ -519,14 +519,24 @@ namespace PixelGame
         }
 
         public int OpenSlotCount => m_SlotCount;
-        public int TotalBaysCount => BayCountFor(m_SlotCount);
+        public int TotalBaysCount => m_SlotCount;
+        public int ClosedSlotCount => 0;
 
-        /// <summary>Arka plan resminde çizili bölme sayısı (her zaman 5); 5'ten fazla slotta slot sayısı kadar.</summary>
-        public static int BayCountFor(int slotCount) => Mathf.Max(5, slotCount);
+        /// <summary>Arka plan resminde çizili bölme sayısı (4 slotta 4, 3 ve 5 slotta 5).</summary>
+        public static int BayCountFor(int slotCount)
+        {
+            if (slotCount == 4) return 4;
+            return Mathf.Max(5, slotCount);
+        }
 
         /// <summary>
-        /// Açık slotların hangi bölmelere (soldan 0..4) oturacağı. Arka plandaki 5 bölmeye göre:
-        /// 1: X X 1 X X · 2: X 1 X 2 X · 3: X 1 2 3 X · 4: 1 2 X 3 4 · 5: hepsi.
+        /// Açık slotların hangi bölmelere oturacağı:
+        /// 1: { 2 } (5 bölmeli iskelede orta)
+        /// 2: { 1, 3 } (5 bölmeli iskelede dengeli)
+        /// 3: { 1, 2, 3 } (5 bölmeli iskelede ortalanmış 3 slot, kenarlar temiz su)
+        /// 4: { 0, 1, 2, 3 } (4 bölmeli iskelede ortalanmış 4 slot, kenarlar temiz su)
+        /// 5: { 0, 1, 2, 3, 4 } (5 bölmeli iskelede 5 slot)
+        /// Engel olan kapalı slotlar kaldırılmıştır, yalnızca yerleşilebilir slotlar gösterilir.
         /// </summary>
         public static int[] OpenBaysFor(int slotCount)
         {
@@ -535,14 +545,13 @@ namespace PixelGame
                 case 1: return new[] { 2 };
                 case 2: return new[] { 1, 3 };
                 case 3: return new[] { 1, 2, 3 };
-                case 4: return new[] { 0, 1, 3, 4 };
+                case 4: return new[] { 0, 1, 2, 3 };
             }
             int n = Mathf.Max(0, slotCount);
             var all = new int[n];
             for (int i = 0; i < n; i++) all[i] = i;
             return all;
         }
-        public int ClosedSlotCount => Mathf.Max(0, TotalBaysCount - OpenSlotCount);
         public bool MatchBackgroundBays
         {
             get => m_MatchBackgroundBays;
@@ -676,7 +685,7 @@ namespace PixelGame
             {
                 m_Config4Slots = new MarinaSlotCountConfig(4)
                 {
-                    RowOffsetX = 0.025f,
+                    RowOffsetX = 0.042f,
                     RowOffsetY = -5.40f, // Düz iskele hizası (rıhtımın tam kıyısı)
                     RowOffsetZ = 0.05f,
                     PierWidth = m_PierWidth4Slots > 0.01f ? m_PierWidth4Slots : 8.1f,
@@ -772,7 +781,7 @@ namespace PixelGame
             {
                 m_Config4Slots = new MarinaSlotCountConfig(4)
                 {
-                    RowOffsetX = 0.025f,
+                    RowOffsetX = 0.042f,
                     RowOffsetY = -5.40f,
                     RowOffsetZ = 0.05f,
                     PierWidth = 8.1f,
@@ -819,12 +828,14 @@ namespace PixelGame
         private void Awake()
         {
             EnsureConfigsInitialized();
+            DeactivateAllBarriers();
             SyncWithLevel();
         }
 
         private void OnEnable()
         {
             EnsureConfigsInitialized();
+            DeactivateAllBarriers();
             PixelArtGenerator.LevelLoaded -= OnLevelLoaded;
             PixelArtGenerator.LevelLoaded += OnLevelLoaded;
 #if UNITY_EDITOR
@@ -1363,33 +1374,21 @@ namespace PixelGame
                 }
             }
 
-            // -------------------------------------------------------------
-            // KAPALI / KİLİTLİ SLOT BÖLMELERİ (LOCKED BAY MARKERS WITH LOCK ICON)
-            // -------------------------------------------------------------
-            // Rıhtım iskelesindeki toplam bölme sayısı (arka planda çizili 5 bölme).
+            // Rıhtım iskelesindeki toplam bölme sayısı (tekil sayılarda 5 koy, çiftlerde 6 koy).
             // Aktif slotların dışındaki bölmelere oyuncuya kilitli olduğunu net gösteren
-            // su üstü yanaşma slotu çerçevesi ve altın asma kilit (🔒) yerleştirilir.
-            int totalBays = BayCountFor(count);
-            var openBaySet = new HashSet<int>(OpenBaysFor(count));
+            // su üstü yanaşma slotu çerçevesi yerleştirilir.
+            int totalBays = (count % 2 != 0) ? 5 : 6;
+            if (count > totalBays) totalBays = count;
 
-            // Kapalı slotların görseli açık slotunkiyle aynı boy ve ofsette dursun
             float closedBerthLength = m_SlotBerthLength * (m_UseInnerBerthVisual ? m_OpenBerthLengthScale : 1f);
             Transform refSlot = activeSlots[0].transform;
             Transform refBerth = refSlot.Find("[Slot_Berth]");
             Vector3 openBerthOffsetWorld = refBerth != null ? refBerth.position - refSlot.position : Vector3.zero;
 
+            int startOpenBay = (totalBays - count) / 2;
+            int endOpenBay = startOpenBay + count - 1;
+
             var existingBarriers = new List<MarinaLockedSlotBarrier>(GetComponentsInChildren<MarinaLockedSlotBarrier>(true));
-            // Arka plan bütün bölmeleri açık çizdiğinde kapalı bölmeleri taralı görsel kapatır (göstergeler gizli olsa bile)
-            EnsureBackgroundTexturesInitialized();
-            bool closedOverlayNeeded = m_BackgroundAllBaysOpen != null && m_UseClosedSlotVisual && m_SlotBerthClosedMaterial != null;
-            if (m_HideSlotIndicators && !closedOverlayNeeded)
-            {
-                foreach (var eb in existingBarriers)
-                {
-                    if (eb != null && eb.gameObject.activeSelf) eb.gameObject.SetActive(false);
-                }
-                return;
-            }
             int usedBarrierCount = 0;
 
             ShipQueuePool qPool = UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
@@ -1398,10 +1397,10 @@ namespace PixelGame
             for (int b = 0; b < totalBays; b++)
             {
                 // Açık slot bölmeleri aktif gemi slotlarıdır, bariyer konulmaz
-                if (openBaySet.Contains(b)) continue;
+                if (b >= startOpenBay && b <= endOpenBay) continue;
 
                 // Kapalı bölmenin konumu ve açısı
-                float bt = b - (totalBays - 1) * 0.5f;
+                float bt = (totalBays % 2 != 0) ? (b - (totalBays / 2)) : (b - (totalBays - 1) * 0.5f);
                 float bayPosX = bt * spacing;
                 float bayPosY = arcCurveY * (bt * bt) + m_ArcAsymmetry * bt;
                 float bayAngle = slotAngle + m_ArcAngleFan * bt;
@@ -1441,26 +1440,19 @@ namespace PixelGame
 
                 if (closedSlotLook)
                 {
-                    // Kilit rozeti yok; kapalı slot, açık slotla aynı yer ve boyutta ama koyu/çizgili görselle durur
                     if (barrier.VisualTransform != null && barrier.VisualTransform.gameObject.activeSelf)
                         barrier.VisualTransform.gameObject.SetActive(false);
                     if (barrier.BerthTransform != null)
                         barrier.BerthTransform.position = transform.TransformPoint(bayPosX, bayPosY, 0f) + openBerthOffsetWorld;
                 }
 
-                if (!barrier.gameObject.activeSelf)
-                {
-                    barrier.gameObject.SetActive(true);
-                }
+                if (!barrier.gameObject.activeSelf) barrier.gameObject.SetActive(true);
             }
 
-            // Fazla kalan kapalı slot bariyerlerini gizle
-            for (int i = usedBarrierCount; i < existingBarriers.Count; i++)
+            for (int k = usedBarrierCount; k < existingBarriers.Count; k++)
             {
-                if (existingBarriers[i] != null && existingBarriers[i].gameObject.activeSelf)
-                {
-                    existingBarriers[i].gameObject.SetActive(false);
-                }
+                if (existingBarriers[k] != null && existingBarriers[k].gameObject.activeSelf)
+                    existingBarriers[k].gameObject.SetActive(false);
             }
 
             // Sıranın ortasını (yerel x=0) arka plandaki orta bölmeye, yanaşma görselini de babaların arasına oturt
@@ -1611,8 +1603,21 @@ namespace PixelGame
                 UnityEngine.UI.RawImage rawImg = bgObj.GetComponent<UnityEngine.UI.RawImage>();
                 if (rawImg != null)
                 {
-                    // Bölmeler artık her slot sayısında aynı 5 bölmeye oturuyor: tek arka plan
-                    Texture targetTex = m_BackgroundAllBaysOpen != null ? m_BackgroundAllBaysOpen : m_Background3Slots;
+                    // Slot sayısına göre uygun arka planı seç (3 slot, 4 slot veya 5 slot)
+                    Texture targetTex = null;
+                    if (count <= 3)
+                    {
+                        targetTex = m_Background3Slots != null ? m_Background3Slots : m_BackgroundAllBaysOpen;
+                    }
+                    else if (count == 4)
+                    {
+                        targetTex = m_Background4Slots != null ? m_Background4Slots : m_BackgroundAllBaysOpen;
+                    }
+                    else
+                    {
+                        targetTex = m_BackgroundAllBaysOpen != null ? m_BackgroundAllBaysOpen : m_Background3Slots;
+                    }
+
                     if (targetTex != null && rawImg.texture != targetTex)
                     {
 #if UNITY_EDITOR
@@ -1623,6 +1628,21 @@ namespace PixelGame
                         UnityEditor.EditorUtility.SetDirty(rawImg);
 #endif
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Engel olan kilitli/kapalı slot bariyerlerini tamamen devre dışı bırakır.
+        /// </summary>
+        public void DeactivateAllBarriers()
+        {
+            var existingBarriers = GetComponentsInChildren<MarinaLockedSlotBarrier>(true);
+            for (int b = 0; b < existingBarriers.Length; b++)
+            {
+                if (existingBarriers[b] != null && existingBarriers[b].gameObject.activeSelf)
+                {
+                    existingBarriers[b].gameObject.SetActive(false);
                 }
             }
         }

@@ -91,13 +91,13 @@ namespace PixelGame.Editor
             retryRt.anchorMax = new Vector2(0f, 1f);
             retryRt.pivot = new Vector2(0f, 1f);
             retryRt.anchoredPosition = new Vector2(30f, -80f);
-            retryRt.sizeDelta = new Vector2(88f, 88f);
-            retryRt.localScale = Vector3.one;
+            retryRt.sizeDelta = new Vector2(96f, 96f);
+            retryRt.localScale = Vector3.one * 1.1f;
 
             Image retryImg = retryGo.GetComponent<Image>();
-            Sprite retrySprite = LoadSprite("btn_marine_retry");
-            if (retrySprite == null) retrySprite = LoadSprite("btn_marine_lifebuoy");
+            Sprite retrySprite = LoadSprite("btn_marine_lifebuoy");
             if (retrySprite == null) retrySprite = LoadSprite("btn_retry_ref");
+            if (retrySprite == null) retrySprite = LoadSprite("btn_marine_retry");
             if (retrySprite == null) retrySprite = LoadSprite("btn_restart");
             if (retrySprite != null) retryImg.sprite = retrySprite;
             retryImg.preserveAspect = true;
@@ -114,7 +114,7 @@ namespace PixelGame.Editor
                 EditorUtility.SetDirty(ctrl);
             }
 
-            // Hız (Speed 1X / 2X) Durum Göstergesi
+            // Hız (Speed 1X / 2X) Durum Göstergesi (3D Marin Buton)
             Transform existingSpeed = topUIGo.Find("SpeedButton");
             GameObject speedGo;
             if (existingSpeed != null)
@@ -131,10 +131,10 @@ namespace PixelGame.Editor
             RectTransform speedRt = speedGo.GetComponent<RectTransform>();
             speedRt.anchorMin = new Vector2(0f, 1f);
             speedRt.anchorMax = new Vector2(0f, 1f);
-            speedRt.pivot = new Vector2(0f, 0.5f);
-            speedRt.anchoredPosition = new Vector2(130f, -124f);
-            speedRt.sizeDelta = new Vector2(114f, 52f);
-            speedRt.localScale = Vector3.one;
+            speedRt.pivot = new Vector2(0f, 1f);
+            speedRt.anchoredPosition = new Vector2(145f, -80f);
+            speedRt.sizeDelta = new Vector2(96f, 96f);
+            speedRt.localScale = Vector3.one * 1.1f;
 
             Image speedImg = speedGo.GetComponent<Image>();
             Sprite speed1xSprite = LoadSprite("btn_marine_speed_1x");
@@ -154,6 +154,7 @@ namespace PixelGame.Editor
                 ctrl.SpeedButtonImage = speedImg;
                 ctrl.Speed1xSprite = speed1xSprite;
                 ctrl.Speed2xSprite = speed2xSprite;
+                ctrl.EnsureSpeedTimerBadge();
                 EditorUtility.SetDirty(ctrl);
             }
             EditorUtility.SetDirty(speedGo);
@@ -278,21 +279,20 @@ namespace PixelGame.Editor
             retryRt.anchorMax = new Vector2(0f, 1f);
             retryRt.pivot = new Vector2(0f, 1f);
             retryRt.anchoredPosition = new Vector2(30f, -80f);
-            retryRt.sizeDelta = new Vector2(88f, 88f);
-            retryRt.localScale = Vector3.one;
+            retryRt.sizeDelta = new Vector2(96f, 96f);
+            retryRt.localScale = Vector3.one * 1.1f;
 
             Image retryImg = retryGo.GetComponent<Image>();
-            Sprite retrySprite = LoadSprite("btn_marine_retry");
-            if (retrySprite == null) retrySprite = LoadSprite("btn_marine_lifebuoy");
+            Sprite retrySprite = LoadSprite("btn_marine_lifebuoy");
             if (retrySprite == null) retrySprite = LoadSprite("btn_retry_ref");
-            if (retrySprite == null) retrySprite = LoadSprite("btn_restart");
+            if (retrySprite == null) retrySprite = LoadSprite("btn_marine_retry");
             if (retrySprite != null) retryImg.sprite = retrySprite;
             retryImg.preserveAspect = true;
             retryGo.AddComponent<CasualUIButtonJuice>();
 
             Button retryBtn = retryGo.GetComponent<Button>();
 
-            // 5b. SOL: Hız (Speed 1X / 2X) Durum Göstergesi (Pill)
+            // 5b. SOL: Hız (Speed 1X / 2X) Durum Göstergesi (3D Marin Buton)
             Transform oldSpeed = topUIGo.transform.Find("SpeedButton");
             if (oldSpeed != null)
             {
@@ -305,10 +305,10 @@ namespace PixelGame.Editor
             RectTransform speedRt = speedGo.GetComponent<RectTransform>();
             speedRt.anchorMin = new Vector2(0f, 1f);
             speedRt.anchorMax = new Vector2(0f, 1f);
-            speedRt.pivot = new Vector2(0f, 0.5f);
-            speedRt.anchoredPosition = new Vector2(130f, -124f);
-            speedRt.sizeDelta = new Vector2(114f, 52f);
-            speedRt.localScale = Vector3.one;
+            speedRt.pivot = new Vector2(0f, 1f);
+            speedRt.anchoredPosition = new Vector2(145f, -80f);
+            speedRt.sizeDelta = new Vector2(96f, 96f);
+            speedRt.localScale = Vector3.one * 1.1f;
 
             Image speedImg = speedGo.GetComponent<Image>();
             Sprite speed1xSprite = LoadSprite("btn_marine_speed_1x");
@@ -319,7 +319,7 @@ namespace PixelGame.Editor
 
             Button speedBtn = speedGo.GetComponent<Button>();
 
-            // 6. ORTA: Seviye Kapsülü (Sleek Horizontal Stadium Pill)
+            // 6. ORTA: Seviye Kapsülü (bg_level_marine Ahşap & Halat Marin Rozet)
             GameObject levelCapsuleGo = new GameObject("LevelCapsule", typeof(RectTransform), typeof(Image));
             levelCapsuleGo.transform.SetParent(topUIGo.transform, false);
 
@@ -327,18 +327,30 @@ namespace PixelGame.Editor
             levelCapRt.anchorMin = new Vector2(0.5f, 1f);
             levelCapRt.anchorMax = new Vector2(0.5f, 1f);
             levelCapRt.pivot = new Vector2(0.5f, 1f);
-            levelCapRt.anchoredPosition = new Vector2(0f, -90f);
-            levelCapRt.sizeDelta = new Vector2(330f, 68f); // Daha az yüksek, daha panoramik & belirgin kapsül
+            levelCapRt.anchoredPosition = new Vector2(0f, -80f);
+            levelCapRt.sizeDelta = new Vector2(300f, 105.6f);
             levelCapRt.localScale = Vector3.one;
 
             Image levelCapImg = levelCapsuleGo.GetComponent<Image>();
-            Sprite capSprite = LoadSprite("bg_level_capsule");
-            if (capSprite == null) capSprite = LoadSprite("bg_level_marine");
+            Sprite capSprite = LoadSprite("btn_marine_blank");
             if (capSprite != null)
             {
                 levelCapImg.sprite = capSprite;
-                levelCapImg.type = Image.Type.Simple;
+                levelCapImg.type = Image.Type.Sliced;
+                levelCapImg.pixelsPerUnitMultiplier = 4.8f;
                 levelCapImg.preserveAspect = false;
+            }
+            else
+            {
+                capSprite = LoadSprite("bg_level_marine");
+                if (capSprite == null) capSprite = LoadSprite("bg_level_ref");
+                if (capSprite == null) capSprite = LoadSprite("bg_level_capsule");
+                if (capSprite != null)
+                {
+                    levelCapImg.sprite = capSprite;
+                    levelCapImg.type = Image.Type.Simple;
+                    levelCapImg.preserveAspect = true;
+                }
             }
             levelCapImg.color = Color.white;
             levelCapImg.raycastTarget = false;
@@ -347,22 +359,22 @@ namespace PixelGame.Editor
             levelTextGo.transform.SetParent(levelCapsuleGo.transform, false);
 
             RectTransform ltRt = levelTextGo.GetComponent<RectTransform>();
-            ltRt.anchorMin = new Vector2(0.08f, 0f);
-            ltRt.anchorMax = new Vector2(0.92f, 1f);
+            ltRt.anchorMin = new Vector2(0.12f, 0.05f);
+            ltRt.anchorMax = new Vector2(0.88f, 0.95f);
             ltRt.offsetMin = Vector2.zero;
             ltRt.offsetMax = Vector2.zero;
 
             TextMeshProUGUI levelTmp = levelTextGo.AddComponent<TextMeshProUGUI>();
             levelTmp.text = "LEVEL 1";
             if (font != null) levelTmp.font = font;
-            levelTmp.fontSize = 38f;
+            levelTmp.fontSize = 42f;
             levelTmp.fontStyle = FontStyles.Bold;
             levelTmp.alignment = TextAlignmentOptions.Center;
             levelTmp.color = Color.white;
-            levelTmp.outlineWidth = 0.22f;
-            levelTmp.outlineColor = new Color32(10, 35, 80, 255);
+            levelTmp.outlineWidth = 0.28f;
+            levelTmp.outlineColor = new Color32(14, 55, 115, 255);
 
-            // 7. SAĞ: Ses ve Ayarlar/Titreşim Butonları (Standartlaştırılmış Mavi 3D Marin Butonlar)
+            // 7. SAĞ: Ses ve Titreşim Butonları (Orijinal 3D Marin Butonlar)
             // 7a. Ses Butonu
             GameObject soundGo = new GameObject("SoundButton", typeof(RectTransform), typeof(Image), typeof(Button));
             soundGo.transform.SetParent(topUIGo.transform, false);
@@ -371,9 +383,9 @@ namespace PixelGame.Editor
             soundRt.anchorMin = new Vector2(1f, 1f);
             soundRt.anchorMax = new Vector2(1f, 1f);
             soundRt.pivot = new Vector2(1f, 1f);
-            soundRt.anchoredPosition = new Vector2(-130f, -80f);
-            soundRt.sizeDelta = new Vector2(88f, 88f);
-            soundRt.localScale = Vector3.one;
+            soundRt.anchoredPosition = new Vector2(-150f, -80f);
+            soundRt.sizeDelta = new Vector2(96f, 96f);
+            soundRt.localScale = Vector3.one * 1.1f;
 
             Image soundImg = soundGo.GetComponent<Image>();
             Sprite soundOnSprite = LoadSprite("btn_marine_sound_on");
@@ -385,7 +397,7 @@ namespace PixelGame.Editor
             soundImg.preserveAspect = true;
             soundGo.AddComponent<CasualUIButtonJuice>();
 
-            // 7b. Ayarlar / Titreşim Butonu (Standart 88x88 Mavi 3D Marin Buton)
+            // 7b. Titreşim (Haptics) Butonu (3D Marin Titreşim İkonu)
             GameObject hapticsGo = new GameObject("HapticsButton", typeof(RectTransform), typeof(Image), typeof(Button));
             hapticsGo.transform.SetParent(topUIGo.transform, false);
 
@@ -394,12 +406,11 @@ namespace PixelGame.Editor
             hapRt.anchorMax = new Vector2(1f, 1f);
             hapRt.pivot = new Vector2(1f, 1f);
             hapRt.anchoredPosition = new Vector2(-30f, -80f);
-            hapRt.sizeDelta = new Vector2(88f, 88f);
-            hapRt.localScale = Vector3.one;
+            hapRt.sizeDelta = new Vector2(96f, 96f);
+            hapRt.localScale = Vector3.one * 1.1f;
 
             Image hapImg = hapticsGo.GetComponent<Image>();
-            Sprite hapticOnSprite = LoadSprite("btn_marine_settings");
-            if (hapticOnSprite == null) hapticOnSprite = LoadSprite("btn_marine_haptic_on");
+            Sprite hapticOnSprite = LoadSprite("btn_marine_haptic_on");
             if (hapticOnSprite == null) hapticOnSprite = LoadSprite("btn_haptic_ref");
             if (hapticOnSprite == null) hapticOnSprite = LoadSprite("btn_haptic");
             Sprite hapticOffSprite = LoadSprite("btn_marine_haptic_off");

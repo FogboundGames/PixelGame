@@ -177,7 +177,32 @@ namespace PixelGame
         [SerializeField] private bool m_ShowSceneBoardBackground = true;
         [SerializeField] private Transform m_FramePreviewTransform;
 
+        [Header("🎨 Çerçeve & Pano Canlı Renk Ayarları (Board Frame Colors)")]
+        [Tooltip("Çerçevenin dış podyum zemin rengi (Outer Podium)")]
+        [SerializeField] private Color m_BoardOuterColor = new Color(0.706f, 0.761f, 0.804f, 1f);
+
+        [Tooltip("Çerçevenin bordür / rim rengi (Frame Rim)")]
+        [SerializeField] private Color m_BoardRimColor = new Color(0.686f, 0.745f, 0.792f, 1f);
+
+        [Tooltip("Çerçeve ile podyum arasındaki derinlik çizgisi (Groove Line)")]
+        [SerializeField] private Color m_BoardGrooveColor = new Color(0.412f, 0.463f, 0.510f, 1f);
+
+        [Tooltip("Oyun alanı iç tuval rengi (Canvas - Küplerin oturduğu zemin)")]
+        [SerializeField] private Color m_BoardCanvasColor = new Color(0.898f, 0.925f, 0.949f, 1f);
+
+        [Tooltip("Podyumun en dışındaki yumuşak sahte gölge rengi")]
+        [SerializeField] private Color m_BoardOuterShadowColor = new Color(0.078f, 0.110f, 0.149f, 1f);
+
+        [Tooltip("Çerçevenin dinamik materyali (BoardPodium_Mat)")]
+        [SerializeField] private Material m_BoardPodiumMaterial;
+
         // Properties
+        public Color BoardOuterColor { get => m_BoardOuterColor; set { m_BoardOuterColor = value; UpdateBoardFrameColorsLive(); } }
+        public Color BoardRimColor { get => m_BoardRimColor; set { m_BoardRimColor = value; UpdateBoardFrameColorsLive(); } }
+        public Color BoardGrooveColor { get => m_BoardGrooveColor; set { m_BoardGrooveColor = value; UpdateBoardFrameColorsLive(); } }
+        public Color BoardCanvasColor { get => m_BoardCanvasColor; set { m_BoardCanvasColor = value; UpdateBoardFrameColorsLive(); } }
+        public Color BoardOuterShadowColor { get => m_BoardOuterShadowColor; set { m_BoardOuterShadowColor = value; UpdateBoardFrameColorsLive(); } }
+        public Material BoardPodiumMaterial { get => m_BoardPodiumMaterial; set { m_BoardPodiumMaterial = value; UpdateBoardFrameColorsLive(); } }
         public bool EnableCubeShadows { get => m_EnableCubeShadows; set { m_EnableCubeShadows = value; ApplyShadowsToAllExistingCubes(); } }
         public Material CubeShadowMaterial { get => m_CubeShadowMaterial; set { m_CubeShadowMaterial = value; ApplyShadowsToAllExistingCubes(); } }
         public Vector2 ShadowOffset { get => m_ShadowOffset; set { m_ShadowOffset = value; ApplyShadowsToAllExistingCubes(); } }
@@ -336,6 +361,8 @@ namespace PixelGame
 
         private void OnValidate()
         {
+            UpdateBoardFrameColorsLive();
+
             // Kullanıcı sahnede manuel düzenleme yaparken kodun otomatik transformları ezmesini engelle
             if (m_PreserveSceneEdits) return;
 
@@ -2697,7 +2724,8 @@ namespace PixelGame
 
             Sprite frameSprite = null;
             #if UNITY_EDITOR
-            frameSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/BoardPodium_Reference.png")
+            frameSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/BoardPodium_Mask.png")
+                       ?? UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/BoardPodium_Reference.png")
                        ?? UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/Frame.png") 
                        ?? UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Frame.png");
             #endif
@@ -2715,6 +2743,19 @@ namespace PixelGame
             {
                 sr.sprite = frameSprite;
                 sr.drawMode = SpriteDrawMode.Simple;
+
+#if UNITY_EDITOR
+                if (m_BoardPodiumMaterial == null)
+                {
+                    m_BoardPodiumMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/BoardPodium_Mat.mat");
+                }
+#endif
+                if (m_BoardPodiumMaterial != null)
+                {
+                    sr.sharedMaterial = m_BoardPodiumMaterial;
+                    UpdateBoardFrameColorsLive();
+                }
+
                 float ppx = frameSprite.rect.width / frameSprite.pixelsPerUnit;
                 float ppy = frameSprite.rect.height / frameSprite.pixelsPerUnit;
                 // BoardPodium_Reference sprite'ı kare bir podyumdur (1024x1024, iç tuval 738x738).
@@ -2858,6 +2899,120 @@ namespace PixelGame
             UnityEditor.EditorUtility.SetDirty(gameObject);
             #endif
         }
+
+        /// <summary>
+        /// Çerçeve ve tuval renklerini sahnede anında canlı olarak günceller.
+        /// </summary>
+        public void UpdateBoardFrameColorsLive()
+        {
+            if (m_FramePreviewTransform == null) return;
+            SpriteRenderer sr = m_FramePreviewTransform.GetComponent<SpriteRenderer>();
+            if (sr == null) return;
+
+#if UNITY_EDITOR
+            if (m_BoardPodiumMaterial == null)
+            {
+                m_BoardPodiumMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/BoardPodium_Mat.mat");
+            }
+#endif
+
+            if (m_BoardPodiumMaterial != null)
+            {
+                if (sr.sharedMaterial != m_BoardPodiumMaterial)
+                {
+                    sr.sharedMaterial = m_BoardPodiumMaterial;
+                }
+
+                m_BoardPodiumMaterial.SetColor("_OuterColor", m_BoardOuterColor);
+                m_BoardPodiumMaterial.SetColor("_RimColor", m_BoardRimColor);
+                m_BoardPodiumMaterial.SetColor("_GrooveColor", m_BoardGrooveColor);
+                m_BoardPodiumMaterial.SetColor("_CanvasColor", m_BoardCanvasColor);
+                m_BoardPodiumMaterial.SetColor("_ShadowColor", m_BoardOuterShadowColor);
+            }
+        }
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// Inspector'da seçilen canlı çerçeve renklerini BoardPodium_Reference.png dokusuna kalıcı olarak yazar.
+        /// </summary>
+        [ContextMenu("🎨 Çerçeve Renklerini Dokulara Kaydet (Bake to Textures)")]
+        public void BakeBoardColorsToTextures()
+        {
+            string maskPath = "Assets/Textures/BoardPodium_Mask.png";
+            string texPath = "Assets/Textures/BoardPodium_Reference.png";
+            string resPath = "Assets/Resources/BoardPodium_Reference.png";
+
+            if (!System.IO.File.Exists(maskPath))
+            {
+                Debug.LogWarning("[PixelGame] BoardPodium_Mask.png bulunamadı!");
+                return;
+            }
+
+            byte[] maskBytes = System.IO.File.ReadAllBytes(maskPath);
+            Texture2D maskTex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            if (!maskTex.LoadImage(maskBytes))
+            {
+                DestroyImmediate(maskTex);
+                return;
+            }
+
+            int w = maskTex.width;
+            int h = maskTex.height;
+            Color32[] maskPix = maskTex.GetPixels32();
+            Color32[] outPix = new Color32[maskPix.Length];
+
+            Color cOuter = m_BoardOuterColor;
+            Color cRim = m_BoardRimColor;
+            Color cGroove = m_BoardGrooveColor;
+            Color cCanvas = m_BoardCanvasColor;
+            Color cShadow = m_BoardOuterShadowColor;
+
+            for (int i = 0; i < maskPix.Length; i++)
+            {
+                Color32 m = maskPix[i];
+                float r = m.r / 255f;
+                float g = m.g / 255f;
+                float b = m.b / 255f;
+                float a = m.a / 255f;
+
+                float isSolid = Mathf.Clamp01(r + g + b);
+                float isGroove = Mathf.Clamp01(1f - isSolid) * (a > 0.9f ? 1f : 0f);
+
+                if (a > 0.95f)
+                {
+                    Color col = cOuter * r + cRim * g + cCanvas * b + cGroove * isGroove;
+                    col.a = 1f;
+                    outPix[i] = col;
+                }
+                else if (a > 0.001f)
+                {
+                    Color col = cShadow;
+                    col.a = a;
+                    outPix[i] = col;
+                }
+                else
+                {
+                    outPix[i] = new Color32(0, 0, 0, 0);
+                }
+            }
+
+            Texture2D outTex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            outTex.SetPixels32(outPix);
+            outTex.Apply();
+
+            byte[] pngBytes = outTex.EncodeToPNG();
+            System.IO.File.WriteAllBytes(texPath, pngBytes);
+            System.IO.File.WriteAllBytes(resPath, pngBytes);
+
+            DestroyImmediate(maskTex);
+            DestroyImmediate(outTex);
+
+            UnityEditor.AssetDatabase.ImportAsset(texPath, UnityEditor.ImportAssetOptions.ForceUpdate);
+            UnityEditor.AssetDatabase.ImportAsset(resPath, UnityEditor.ImportAssetOptions.ForceUpdate);
+
+            Debug.Log($"<color=#00FFAA>[PixelGame]</color> Çerçeve renkleri dokulara başarıyla kaydedildi! (Dış: #{ColorUtility.ToHtmlStringRGB(cOuter)}, Bordür: #{ColorUtility.ToHtmlStringRGB(cRim)}, Tuval: #{ColorUtility.ToHtmlStringRGB(cCanvas)})");
+        }
+#endif
 
         #if UNITY_EDITOR
         private void OnDrawGizmos()
