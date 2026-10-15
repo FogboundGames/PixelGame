@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using DG.Tweening;
@@ -78,6 +79,28 @@ namespace PixelGame
         [SerializeField] private int m_StartingCoins = 250;
         [SerializeField] private bool m_IsHardLevel = false;
 
+        [Header("🔥 Hard Level Banner (Zor Seviye Başlangıç Afişi)")]
+        [Tooltip("Hard level başladığında ekranın ortasında yatayda uzanan afiş GameObject'i")]
+        [SerializeField] private GameObject m_HardLevelBannerObj;
+        [Tooltip("Afiş görseli (Resources/Text_Banner_HardLevel)")]
+        [SerializeField] private Sprite m_HardLevelBannerSprite;
+        [Tooltip("Afiş genişliği (piksel, varsayılan: 1140 - ekranın solundan sağına boydan boya uzanır)")]
+        [SerializeField] private float m_HardBannerWidth = 1140f;
+        [Tooltip("Afiş yüksekliği (piksel, varsayılan: 380 - 3:1 oran)")]
+        [SerializeField] private float m_HardBannerHeight = 380f;
+        [Tooltip("Afiş dikey konumu Y (pasta/resim alt ucu ile iskele arası bant, varsayılan: -150)")]
+        [SerializeField] private float m_HardBannerPosY = -150f;
+        [Tooltip("Afişin ekranda kalma süresi (saniye, varsayılan: 2.8)")]
+        [SerializeField] private float m_HardBannerDuration = 2.8f;
+        [Tooltip("Afişin sahne açıldıktan sonra belirmesi için başlangıç gecikmesi (saniye, varsayılan: 0.15)")]
+        [SerializeField] private float m_HardBannerStartDelay = 0.15f;
+
+        private Sequence m_HardBannerSequence;
+        private Coroutine m_HardBannerRoutine;
+
+        /// <summary>Hard level banner aktifken gemilere, küplere veya iskeleye tıklanmasını engeller.</summary>
+        public static bool IsHardBannerActive { get; private set; }
+
         private int m_CurrentLives;
         private int m_CurrentCoins;
         private const string CoinsPrefKey = "PixelGame_Coins";
@@ -96,6 +119,9 @@ namespace PixelGame
         public GameObject RabbitMascot { get => m_RabbitMascot; set => m_RabbitMascot = value; }
         public Sprite RabbitSprite { get => m_RabbitSprite; set => m_RabbitSprite = value; }
         public Sprite HardPillSprite { get => m_HardPillSprite; set => m_HardPillSprite = value; }
+        public GameObject HardLevelBannerObj { get => m_HardLevelBannerObj; set => m_HardLevelBannerObj = value; }
+        public Sprite HardLevelBannerSprite { get => m_HardLevelBannerSprite; set => m_HardLevelBannerSprite = value; }
+        public float HardBannerPosY { get => m_HardBannerPosY; set { m_HardBannerPosY = value; EnsureHardLevelBanner(); } }
 
         public UnityEngine.UI.Image SoundButtonImage { get => m_SoundButtonImage; set => m_SoundButtonImage = value; }
         public Sprite SoundOnSprite { get => m_SoundOnSprite; set => m_SoundOnSprite = value; }
@@ -139,29 +165,34 @@ namespace PixelGame
             WireRetryButton();
             WireSpeedButton();
             InitializeSpeedTimer();
+            EnsureHardLevelBanner();
         }
 
         private void OnDestroy()
         {
             if (Instance == this) Instance = null;
             Time.timeScale = 1.0f;
+            m_HardBannerSequence?.Kill();
         }
 
         private void OnEnable()
         {
             PixelArtGenerator.LevelLoaded += HandleLevelLoaded;
             EnsureRabbitMascot();
+            EnsureHardLevelBanner();
         }
 
         private void OnDisable()
         {
             PixelArtGenerator.LevelLoaded -= HandleLevelLoaded;
             SaveSpeedTimer();
+            m_HardBannerSequence?.Kill();
         }
 
         private void Start()
         {
             EnsureRabbitMascot();
+            EnsureHardLevelBanner();
             SetLives(m_StartingLives);
             HideCoinPill();
             RefreshLevelFromScene();
@@ -328,25 +359,32 @@ namespace PixelGame
 
         private void RefreshLevelFromScene()
         {
+            PixelArtGenerator gen = FindFirstObjectByType<PixelArtGenerator>();
             LevelManager levelManager = FindFirstObjectByType<LevelManager>();
             PixelLevelData currentLevel = null;
             int number = 1;
-            if (levelManager != null)
+
+            // Sahnedeki aktif piksel seviyesi birincil kaynaktır (Level Designer veya runtime geçişi)
+            if (gen != null && gen.ActiveLevelData != null)
             {
-                number = levelManager.CurrentLevelIndex + 1;
-                currentLevel = levelManager.CurrentLevel;
-            }
-            else
-            {
-                PixelArtGenerator gen = FindFirstObjectByType<PixelArtGenerator>();
-                if (gen != null && gen.ActiveLevelData != null)
+                currentLevel = gen.ActiveLevelData;
+                if (levelManager != null && levelManager.Levels != null)
                 {
-                    currentLevel = gen.ActiveLevelData;
+                    int idx = levelManager.Levels.IndexOf(currentLevel);
+                    number = idx >= 0 ? idx + 1 : currentLevel.LevelIndex;
+                }
+                else
+                {
                     number = currentLevel.LevelIndex;
                 }
             }
+            else if (levelManager != null && levelManager.CurrentLevel != null)
+            {
+                currentLevel = levelManager.CurrentLevel;
+                number = levelManager.CurrentLevelIndex + 1;
+            }
 
-            bool isHard = (currentLevel != null) ? currentLevel.IsHardLevel : false;
+            bool isHard = (currentLevel != null) && currentLevel.IsHardLevel;
             SetLevel(number, isHard);
         }
 
@@ -396,6 +434,15 @@ namespace PixelGame
             EnsureRabbitMascot();
             if (m_HardBadge != null) m_HardBadge.SetActive(active);
             if (m_RabbitMascot != null) m_RabbitMascot.SetActive(true);
+
+            if (active)
+            {
+                ShowHardLevelBanner();
+            }
+            else
+            {
+                HideHardLevelBanner();
+            }
         }
 
         /// <summary>
@@ -495,6 +542,257 @@ namespace PixelGame
         }
 
         /// <summary>
+        /// <summary>
+        /// Hard Level afişini arar veya yoksa otomatik oluşturup yapılandırır.
+        /// Ekranın ortasında yatayda uzanan (1140x380 px), Y=-150 hizasında (resim alt ucu ile iskele arası) yer alır.
+        /// </summary>
+        public void EnsureHardLevelBanner()
+        {
+            if (m_HardLevelBannerObj == null)
+            {
+                Transform found = transform.Find("[HardLevel_Banner]");
+                if (found == null) found = transform.Find("HardLevel_Banner");
+                if (found != null)
+                {
+                    m_HardLevelBannerObj = found.gameObject;
+                }
+                else
+                {
+                    // Kök taşıyıcı (Tüm ekranı kaplayan dokunma engelleyici konteyner)
+                    GameObject bannerGo = new GameObject("[HardLevel_Banner]", typeof(RectTransform), typeof(CanvasGroup));
+                    bannerGo.transform.SetParent(transform, false);
+
+                    RectTransform rt = bannerGo.GetComponent<RectTransform>();
+                    rt.anchorMin = Vector2.zero;
+                    rt.anchorMax = Vector2.one;
+                    rt.offsetMin = Vector2.zero;
+                    rt.offsetMax = Vector2.zero;
+                    rt.pivot = new Vector2(0.5f, 0.5f);
+
+                    CanvasGroup cg = bannerGo.GetComponent<CanvasGroup>();
+                    cg.alpha = 1f;
+                    cg.blocksRaycasts = true;
+                    cg.interactable = true;
+
+                    // 1. Ekranın tamamını kaplayan şeffaf dokunma engelleyici (Blocker)
+                    GameObject blocker = new GameObject("Blocker", typeof(RectTransform), typeof(UnityEngine.UI.Image));
+                    blocker.transform.SetParent(bannerGo.transform, false);
+                    RectTransform blockerRt = blocker.GetComponent<RectTransform>();
+                    blockerRt.anchorMin = Vector2.zero;
+                    blockerRt.anchorMax = Vector2.one;
+                    blockerRt.offsetMin = Vector2.zero;
+                    blockerRt.offsetMax = Vector2.zero;
+                    UnityEngine.UI.Image blockerImg = blocker.GetComponent<UnityEngine.UI.Image>();
+                    blockerImg.color = new Color(0f, 0f, 0f, 0f); // Tamamen görünmez
+                    blockerImg.raycastTarget = true; // Tüm ekran tıklamalarını yutar
+
+                    // 2. Görsel afiş kartı (BannerCard)
+                    GameObject cardGo = new GameObject("BannerCard", typeof(RectTransform), typeof(CanvasGroup), typeof(UnityEngine.UI.Image));
+                    cardGo.transform.SetParent(bannerGo.transform, false);
+                    RectTransform cardRt = cardGo.GetComponent<RectTransform>();
+                    cardRt.anchorMin = new Vector2(0.5f, 0.5f);
+                    cardRt.anchorMax = new Vector2(0.5f, 0.5f);
+                    cardRt.pivot = new Vector2(0.5f, 0.5f);
+                    cardRt.anchoredPosition = new Vector2(0f, m_HardBannerPosY);
+                    cardRt.sizeDelta = new Vector2(m_HardBannerWidth, m_HardBannerHeight);
+
+                    UnityEngine.UI.Image cardImg = cardGo.GetComponent<UnityEngine.UI.Image>();
+                    cardImg.sprite = GetHardLevelBannerSprite();
+                    cardImg.preserveAspect = true;
+                    cardImg.raycastTarget = false;
+
+                    CanvasGroup cardCg = cardGo.GetComponent<CanvasGroup>();
+                    cardCg.alpha = 0f;
+                    cardCg.blocksRaycasts = false;
+                    cardCg.interactable = false;
+
+                    bannerGo.transform.SetAsLastSibling();
+                    bannerGo.SetActive(false);
+                    m_HardLevelBannerObj = bannerGo;
+                }
+            }
+
+            if (m_HardLevelBannerObj != null)
+            {
+                RectTransform rt = m_HardLevelBannerObj.GetComponent<RectTransform>();
+                if (rt != null)
+                {
+                    rt.anchorMin = Vector2.zero;
+                    rt.anchorMax = Vector2.one;
+                    rt.offsetMin = Vector2.zero;
+                    rt.offsetMax = Vector2.zero;
+                    rt.pivot = new Vector2(0.5f, 0.5f);
+                }
+
+                CanvasGroup cg = m_HardLevelBannerObj.GetComponent<CanvasGroup>();
+                if (cg == null) cg = m_HardLevelBannerObj.AddComponent<CanvasGroup>();
+                cg.blocksRaycasts = true;
+                cg.interactable = true;
+
+                // Blocker kontrolü
+                Transform blockerTr = m_HardLevelBannerObj.transform.Find("Blocker");
+                if (blockerTr == null)
+                {
+                    GameObject blocker = new GameObject("Blocker", typeof(RectTransform), typeof(UnityEngine.UI.Image));
+                    blocker.transform.SetParent(m_HardLevelBannerObj.transform, false);
+                    blocker.transform.SetAsFirstSibling();
+                    blockerTr = blocker.transform;
+                }
+                RectTransform blockerRt = blockerTr.GetComponent<RectTransform>();
+                if (blockerRt != null)
+                {
+                    blockerRt.anchorMin = Vector2.zero;
+                    blockerRt.anchorMax = Vector2.one;
+                    blockerRt.offsetMin = Vector2.zero;
+                    blockerRt.offsetMax = Vector2.zero;
+                }
+                UnityEngine.UI.Image blockerImg = blockerTr.GetComponent<UnityEngine.UI.Image>();
+                if (blockerImg != null)
+                {
+                    blockerImg.color = new Color(0f, 0f, 0f, 0f);
+                    blockerImg.raycastTarget = true;
+                }
+
+                // BannerCard kontrolü
+                Transform cardTr = m_HardLevelBannerObj.transform.Find("BannerCard");
+                if (cardTr == null)
+                {
+                    GameObject cardGo = new GameObject("BannerCard", typeof(RectTransform), typeof(CanvasGroup), typeof(UnityEngine.UI.Image));
+                    cardGo.transform.SetParent(m_HardLevelBannerObj.transform, false);
+                    cardTr = cardGo.transform;
+
+                    var oldImg = m_HardLevelBannerObj.GetComponent<UnityEngine.UI.Image>();
+                    if (oldImg != null) DestroyImmediate(oldImg);
+                }
+
+                RectTransform cardRt = cardTr.GetComponent<RectTransform>();
+                if (cardRt != null)
+                {
+                    cardRt.anchorMin = new Vector2(0.5f, 0.5f);
+                    cardRt.anchorMax = new Vector2(0.5f, 0.5f);
+                    cardRt.pivot = new Vector2(0.5f, 0.5f);
+                    cardRt.anchoredPosition = new Vector2(0f, m_HardBannerPosY);
+                    cardRt.sizeDelta = new Vector2(m_HardBannerWidth, m_HardBannerHeight);
+                }
+
+                UnityEngine.UI.Image cardImg = cardTr.GetComponent<UnityEngine.UI.Image>();
+                if (cardImg != null)
+                {
+                    cardImg.sprite = GetHardLevelBannerSprite();
+                    cardImg.preserveAspect = true;
+                    cardImg.raycastTarget = false;
+                }
+
+                m_HardLevelBannerObj.transform.SetAsLastSibling();
+            }
+        }
+
+        private Sprite GetHardLevelBannerSprite()
+        {
+            if (m_HardLevelBannerSprite != null) return m_HardLevelBannerSprite;
+            m_HardLevelBannerSprite = Resources.Load<Sprite>("Text_Banner_HardLevel");
+#if UNITY_EDITOR
+            if (m_HardLevelBannerSprite == null)
+            {
+                m_HardLevelBannerSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/Text_Banner_HardLevel.png");
+            }
+            if (m_HardLevelBannerSprite == null)
+            {
+                m_HardLevelBannerSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/Text_Banner_HardLevel.png");
+            }
+#endif
+            return m_HardLevelBannerSprite;
+        }
+
+        /// <summary>
+        /// Zor bölüm başladığında ekranda 'HARD LEVEL' afişini patlatır, ~2.8 saniye canlı tutar ve sönene kadar dokunmayı kilitler.
+        /// </summary>
+        [ContextMenu("🔥 Test Hard Level Banner")]
+        public void ShowHardLevelBanner()
+        {
+            EnsureHardLevelBanner();
+            if (m_HardLevelBannerObj == null) return;
+
+            if (m_HardBannerRoutine != null)
+            {
+                StopCoroutine(m_HardBannerRoutine);
+            }
+            m_HardBannerRoutine = StartCoroutine(ShowHardBannerRoutine());
+        }
+
+        private System.Collections.IEnumerator ShowHardBannerRoutine()
+        {
+            // 1. Eğer yükleme veya sahne geçiş ekranı (LandFlowLoadingScreen) açıksa, tamamen sönüp yok olana kadar bekle!
+            while (LandFlowLoadingScreen.Instance != null && LandFlowLoadingScreen.Instance.IsBusy)
+            {
+                yield return null;
+            }
+
+            // 2. Sahne ve kamera otursun diye kısa bir nefes payı
+            yield return new WaitForSecondsRealtime(Mathf.Max(0.08f, m_HardBannerStartDelay));
+
+            EnsureHardLevelBanner();
+            if (m_HardLevelBannerObj == null) yield break;
+
+            m_HardLevelBannerObj.transform.SetAsLastSibling();
+            m_HardLevelBannerObj.SetActive(true);
+            IsHardBannerActive = true;
+
+            Transform cardTr = m_HardLevelBannerObj.transform.Find("BannerCard");
+            if (cardTr == null) cardTr = m_HardLevelBannerObj.transform;
+
+            CanvasGroup cardCg = cardTr.GetComponent<CanvasGroup>();
+            if (cardCg == null) cardCg = cardTr.gameObject.AddComponent<CanvasGroup>();
+
+            // Başlangıç durumu
+            cardTr.localScale = Vector3.zero;
+            cardCg.alpha = 0f;
+
+            m_HardBannerSequence?.Kill();
+            m_HardBannerSequence = DOTween.Sequence();
+            m_HardBannerSequence.SetUpdate(true);
+
+            // Pop-in (0.35s): 0 -> 1.06x yaylanarak giriş
+            m_HardBannerSequence.Append(cardTr.DOScale(Vector3.one * 1.06f, 0.35f).SetEase(Ease.OutBack, 1.8f));
+            m_HardBannerSequence.Join(cardCg.DOFade(1f, 0.20f));
+
+            // Normal ölçeğe oturma (0.12s)
+            m_HardBannerSequence.Append(cardTr.DOScale(Vector3.one, 0.12f).SetEase(Ease.InOutSine));
+
+            // Ekranda kaldığı sürede canlı nefes alma animasyonu (Juice) - 2.2 saniye
+            m_HardBannerSequence.Append(cardTr.DOScale(Vector3.one * 1.035f, 0.55f).SetEase(Ease.InOutSine).SetLoops(4, LoopType.Yoyo));
+
+            // Kapanış (0.30s): Hafif küçülerek ve solarak çıkış
+            m_HardBannerSequence.Append(cardTr.DOScale(Vector3.one * 0.85f, 0.30f).SetEase(Ease.InBack, 1.3f));
+            m_HardBannerSequence.Join(cardCg.DOFade(0f, 0.25f));
+
+            m_HardBannerSequence.OnComplete(() =>
+            {
+                IsHardBannerActive = false;
+                if (m_HardLevelBannerObj != null)
+                {
+                    m_HardLevelBannerObj.SetActive(false);
+                }
+                m_HardBannerRoutine = null;
+            });
+        }
+
+        public void HideHardLevelBanner()
+        {
+            if (m_HardBannerRoutine != null)
+            {
+                StopCoroutine(m_HardBannerRoutine);
+                m_HardBannerRoutine = null;
+            }
+            m_HardBannerSequence?.Kill();
+            IsHardBannerActive = false;
+            if (m_HardLevelBannerObj != null)
+            {
+                m_HardLevelBannerObj.SetActive(false);
+            }
+        }
+
+        /// <summary>
         /// ⚡ 2X Turbo hız göstergesi.
         /// Kullanıcı isteği: "2x olduğunda da 2x ibaresi olmasın sahnemde bunu istemiyorum yani"
         /// </summary>
@@ -518,6 +816,7 @@ namespace PixelGame
 
         public void ShowLevelFailPopup()
         {
+            HideHardLevelBanner();
             HideLevelFailPopup();
 
             // Kullanıcı isteği: "fail ekranında da o ayarladığımız loading ekranı gelsin ama fail level desin yani öyle ayarla onu"
@@ -1173,6 +1472,7 @@ namespace PixelGame
         /// </summary>
         public void ShowLevelCompletePopup(int reward, System.Action onContinue)
         {
+            HideHardLevelBanner();
             HideLevelCompletePopup();
             // Kullanıcı isteği: "bu ekranda olmasın yine ayarladığımız loading ekranı gibi gelsin ama yazıları belirle"
             // Eski pembe pop-up gösterilmez, doğrudan LandFlowLoadingScreen ile sonraki bölüme geçilir.
@@ -1504,5 +1804,13 @@ namespace PixelGame
             if (count >= 1000) return (count / 1000f).ToString("0.#") + "K";
             return count.ToString();
         }
+
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            EnsureRabbitMascot();
+            EnsureHardLevelBanner();
+        }
+#endif
     }
 }

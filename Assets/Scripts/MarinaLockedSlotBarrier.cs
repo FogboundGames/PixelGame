@@ -208,11 +208,13 @@ namespace PixelGame
 
         public void OnPointerClick(PointerEventData eventData)
         {
+            if (CasualHudController.IsHardBannerActive) return;
             TriggerLockedJiggle();
         }
 
         private void OnMouseDown()
         {
+            if (CasualHudController.IsHardBannerActive) return;
             TriggerLockedJiggle();
         }
 

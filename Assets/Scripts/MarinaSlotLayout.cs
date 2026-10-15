@@ -1314,49 +1314,28 @@ namespace PixelGame
                 var bBobbing = berthTr.GetComponent<MarinaBuoyBobbing>();
                 if (bBobbing == null) berthTr.gameObject.AddComponent<MarinaBuoyBobbing>();
 
-                // 🚢 Gemi Geldiğinde Gövde Temas Gölgesi & Su Temas Halkası (Docked Hull Contact Shadow & Wake)
+                // 🚢 Gemi yanaşırken slotta oluşan siyahlık kaldırıldı (Docked Shadow iptal edildi)
                 Transform dockedShadowTr = tr.Find("[Slot_DockedShadow]");
-                if (dockedShadowTr == null)
+                if (dockedShadowTr != null)
                 {
-                    GameObject dsGo = new GameObject("[Slot_DockedShadow]");
-                    dsGo.transform.SetParent(tr, false);
-                    dockedShadowTr = dsGo.transform;
-                }
-                if (m_HideSlotIndicators)
-                {
-                    if (dockedShadowTr.gameObject.activeSelf) dockedShadowTr.gameObject.SetActive(false);
-                }
-                else
-                {
-                    if (!dockedShadowTr.gameObject.activeSelf) dockedShadowTr.gameObject.SetActive(true);
-                }
-                dockedShadowTr.localPosition = new Vector3(0f, m_SlotBerthOffsetY + 0.001f, m_SlotBerthOffsetZ);
-                dockedShadowTr.localRotation = Quaternion.identity;
-                dockedShadowTr.localScale = berthTr.localScale;
-
-                MeshFilter dsMf = dockedShadowTr.GetComponent<MeshFilter>();
-                if (dsMf == null) dsMf = dockedShadowTr.gameObject.AddComponent<MeshFilter>();
-                if (dsMf.sharedMesh != bMesh) dsMf.sharedMesh = bMesh;
-
-                MeshRenderer dsMr = dockedShadowTr.GetComponent<MeshRenderer>();
-                if (dsMr == null) dsMr = dockedShadowTr.gameObject.AddComponent<MeshRenderer>();
-                
-                if (m_SlotBerthDockedMaterial == null)
-                {
+                    dockedShadowTr.gameObject.SetActive(false);
 #if UNITY_EDITOR
-                    m_SlotBerthDockedMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Marina/Slot_Berth_Docked_Mat.mat");
+                    if (!Application.isPlaying)
+                    {
+                        UnityEditor.EditorApplication.delayCall += () =>
+                        {
+                            if (dockedShadowTr != null && dockedShadowTr.gameObject != null)
+                            {
+                                UnityEngine.Object.DestroyImmediate(dockedShadowTr.gameObject);
+                            }
+                        };
+                    }
+                    else
 #endif
+                    {
+                        UnityEngine.Object.Destroy(dockedShadowTr.gameObject);
+                    }
                 }
-                Material dShadowMat = m_SlotBerthDockedMaterial != null ? m_SlotBerthDockedMaterial : berthMat;
-                if (dsMr.sharedMaterial != dShadowMat) dsMr.sharedMaterial = dShadowMat;
-                dsMr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                dsMr.receiveShadows = false;
-                dsMr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
-                dsMr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
-                dsMr.sortingOrder = 3;
-
-                var dsBobbing = dockedShadowTr.GetComponent<MarinaBuoyBobbing>();
-                if (dsBobbing == null) dockedShadowTr.gameObject.AddComponent<MarinaBuoyBobbing>();
 
                 // Slot bileşeninin referanslarını güncelle
                 ShipSlot shipSlot = tr.GetComponent<ShipSlot>();
@@ -1374,9 +1353,36 @@ namespace PixelGame
                 }
             }
 
-            // Kapalı slotlar kaldırıldı: yalnızca açık (yanaşılabilir) slotlar gösterilir. Önceki sürümlerden sahnede
-            // kalmış kapalı bölme görselleri silinir; hiçbir yerden yeniden oluşturulmaz.
+            // Önceki sürümlerden kalmış kilit bariyerleri gizlenir; kapalı bölmeler açık slotlarla aynı ızgarada
+            // (aynı konum, rotasyon, ölçek ve taban izi) taralı görselle kapatılır.
             RemoveClosedBayVisuals();
+            if (m_UseClosedSlotVisual && !m_HideSlotIndicators)
+            {
+                float fitSlotWidth = slotWidth > 0.001f ? slotWidth : 1f;
+                float fitSlotLength = slotLength > 0.001f ? slotLength : 1.55f;
+                ShipQueuePool closedQueuePool = UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
+                Quaternion closedBaseRot = closedQueuePool != null ? closedQueuePool.transform.rotation : Quaternion.Euler(m_WaterTiltX, 0f, 0f);
+                for (int b = 0; b < bayCount; b++)
+                {
+                    if (System.Array.IndexOf(openBays, b) >= 0) continue;
+                    float t = b - bayCenter;
+                    Transform closedTr = GetOrCreateClosedBayVisual(b);
+                    closedTr.localPosition = new Vector3(t * spacing, arcCurveY * (t * t) + m_ArcAsymmetry * t, 0f);
+                    closedTr.rotation = closedBaseRot * Quaternion.Euler(0f, slotAngle + m_ArcAngleFan * t, 0f);
+                    closedTr.localScale = new Vector3(slotWidth * fit, 1f, slotLength * fit);
+
+                    // Açık slottaki indicator'ın taban iziyle birebir aynı: merkez = yanaşma noktası, boyut = berth genişlik/uzunluğu
+                    Transform quad = closedTr.GetChild(0);
+                    quad.localPosition = new Vector3(0f, m_SlotBerthOffsetY, m_SlotBerthOffsetZ);
+                    quad.localRotation = Quaternion.identity;
+                    quad.localScale = new Vector3(m_SlotBerthWidth / fitSlotWidth, 1f, m_SlotBerthLength / fitSlotLength);
+                    MeshRenderer qMr = quad.GetComponent<MeshRenderer>();
+                    if (m_SlotBerthClosedMaterial != null && qMr.sharedMaterial != m_SlotBerthClosedMaterial)
+                        qMr.sharedMaterial = m_SlotBerthClosedMaterial;
+
+                    if (!closedTr.gameObject.activeSelf) closedTr.gameObject.SetActive(true);
+                }
+            }
 
             // Sıranın ortasını (yerel x=0) arka plandaki orta bölmeye, yanaşma görselini de babaların arasına oturt
             if (matchBays)
@@ -1572,6 +1578,47 @@ namespace PixelGame
                 if (existingBarriers[b] != null && existingBarriers[b].gameObject.activeSelf)
                     existingBarriers[b].gameObject.SetActive(false);
             }
+
+            for (int c = 0; c < transform.childCount; c++)
+            {
+                Transform child = transform.GetChild(c);
+                if (child.name.StartsWith(ClosedBayPrefix) && child.gameObject.activeSelf)
+                    child.gameObject.SetActive(false);
+            }
+        }
+
+        private const string ClosedBayPrefix = "[Closed_Bay_";
+
+        /// <summary>Kapalı bölme için slot ile aynı hiyerarşiye sahip (kök + taralı quad) görseli bulur/oluşturur.</summary>
+        private Transform GetOrCreateClosedBayVisual(int bay)
+        {
+            string bayName = ClosedBayPrefix + bay + "]";
+            Transform root = transform.Find(bayName);
+            if (root == null)
+            {
+                root = new GameObject(bayName).transform;
+                root.SetParent(transform, false);
+            }
+
+            Transform quad = root.childCount > 0 ? root.GetChild(0) : null;
+            if (quad == null)
+            {
+                quad = new GameObject("[Closed_Berth]").transform;
+                quad.SetParent(root, false);
+            }
+
+            MeshFilter mf = quad.GetComponent<MeshFilter>();
+            if (mf == null) mf = quad.gameObject.AddComponent<MeshFilter>();
+            if (mf.sharedMesh != GetBerthQuadMesh()) mf.sharedMesh = GetBerthQuadMesh();
+
+            MeshRenderer mr = quad.GetComponent<MeshRenderer>();
+            if (mr == null) mr = quad.gameObject.AddComponent<MeshRenderer>();
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+            mr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+            mr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+            mr.sortingOrder = 3;
+            return root;
         }
 
         private void EnsureBackgroundTexturesInitialized()

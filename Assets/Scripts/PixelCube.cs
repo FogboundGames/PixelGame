@@ -856,21 +856,21 @@ namespace PixelGame
         // Unity UI EventSystem tıklandığında
         public void OnPointerClick(PointerEventData eventData)
         {
-            if (!Application.isPlaying) return;
+            if (!Application.isPlaying || CasualHudController.IsHardBannerActive) return;
             BurstAndDestroy();
         }
 
         // Unity UI EventSystem basıldığında
         public void OnPointerDown(PointerEventData eventData)
         {
-            if (!Application.isPlaying) return;
+            if (!Application.isPlaying || CasualHudController.IsHardBannerActive) return;
             BurstAndDestroy();
         }
 
         // Klasik Unity Physics tıklaması fallback
         private void OnMouseDown()
         {
-            if (!Application.isPlaying) return;
+            if (!Application.isPlaying || CasualHudController.IsHardBannerActive) return;
             BurstAndDestroy();
         }
 

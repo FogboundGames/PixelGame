@@ -82,13 +82,31 @@ namespace PixelGame
                 m_BerthRenderer = m_IndicatorTransform.GetComponent<MeshRenderer>();
             }
 
-            if (m_DockedShadowRenderer == null)
+            Transform dsTr = transform.Find("[Slot_DockedShadow]");
+            if (dsTr != null)
             {
-                Transform dsTr = transform.Find("[Slot_DockedShadow]");
-                if (dsTr != null)
+                dsTr.gameObject.SetActive(false);
+#if UNITY_EDITOR
+                if (!Application.isPlaying)
                 {
-                    m_DockedShadowRenderer = dsTr.GetComponent<MeshRenderer>();
+                    UnityEditor.EditorApplication.delayCall += () =>
+                    {
+                        if (dsTr != null && dsTr.gameObject != null)
+                        {
+                            DestroyImmediate(dsTr.gameObject);
+                        }
+                    };
                 }
+                else
+#endif
+                {
+                    Destroy(dsTr.gameObject);
+                }
+                m_DockedShadowRenderer = null;
+            }
+            else
+            {
+                m_DockedShadowRenderer = null;
             }
         }
 
@@ -96,7 +114,10 @@ namespace PixelGame
         {
             EnsureIndicatorReference();
 
-            float targetProgress = (m_DockedShip != null) ? 1f : 0f;
+            // Gemi slota tamamen oturana kadar (IsDocked) boş slot görseli kaybolmaz;
+            // Öncesinde slota gidiş esnasında kararma/siyahlık oluşmaz.
+            bool isShipLanded = m_DockedShip != null && m_DockedShip.IsDocked;
+            float targetProgress = isShipLanded ? 1f : 0f;
             if (immediate || !Application.isPlaying)
             {
                 m_DockProgress = targetProgress;
@@ -140,23 +161,10 @@ namespace PixelGame
                 }
             }
 
-            // 2. Gemi Geldiğinde Gövde Temas Gölgesi ve Su Temas Halkası (Docked Hull Shadow)
+            // 2. Slottaki siyah temas gölgesi kaldırıldı (Gemi kendi silüet gölgesini kullanır)
             if (m_DockedShadowRenderer != null)
             {
-                float shadowAlpha = m_DockProgress;
-                if (shadowAlpha > 0.005f)
-                {
-                    if (!m_DockedShadowRenderer.enabled) m_DockedShadowRenderer.enabled = true;
-
-                    if (m_ShadowPropBlock == null) m_ShadowPropBlock = new MaterialPropertyBlock();
-                    m_DockedShadowRenderer.GetPropertyBlock(m_ShadowPropBlock);
-                    m_ShadowPropBlock.SetColor("_Color", new Color(1f, 1f, 1f, shadowAlpha));
-                    m_DockedShadowRenderer.SetPropertyBlock(m_ShadowPropBlock);
-                }
-                else
-                {
-                    if (m_DockedShadowRenderer.enabled) m_DockedShadowRenderer.enabled = false;
-                }
+                m_DockedShadowRenderer.enabled = false;
             }
         }
 
@@ -168,7 +176,8 @@ namespace PixelGame
             m_DockedShip = ship;
             if (ship != null)
             {
-                ship.IsDocked = true;
+                // Not: ship.IsDocked burada hemen true yapılmaz; gemi seyir animasyonunu
+                // tamamlayıp slota tam oturduğunda ShipController içinde IsDocked = true yapılır.
                 ship.EnsureSilhouetteShadow();
             }
             UpdateVisualState(false);

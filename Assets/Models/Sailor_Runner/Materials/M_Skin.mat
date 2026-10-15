@@ -12,8 +12,7 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
-  m_InvalidKeywords:
-  - _STYLIZEDPLASTICON_ON
+  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -144,13 +143,13 @@ Material:
     - _OutlineWidth: 1
     - _PillowRoundness: 0.5
     - _PlasticAngleX: 0.5
-    - _PlasticBevelAO: 0.45
+    - _PlasticBevelAO: 0
     - _PlasticHighlightAngle: 0
-    - _PlasticHighlightIntensity: 2.85
+    - _PlasticHighlightIntensity: 0
     - _PlasticHighlightLength: 1.85
     - _PlasticHighlightSize: 0.26
     - _PlasticHighlightWidth: 0.65
-    - _PlasticTopLight: 0.25
+    - _PlasticTopLight: 0
     - _ProceduralBevelIntensity: 1.351
     - _ProceduralBevelUVMargin: 0.13
     - _ProceduralBevelWidth: 0
@@ -159,8 +158,8 @@ Material:
     - _RampBandsSmoothing: 0.1
     - _RampOffset: 0
     - _RampScale: 1
-    - _RampSmoothing: 0.908
-    - _RampThreshold: 0.383
+    - _RampSmoothing: 0.25
+    - _RampThreshold: 0.42
     - _RampType: 0
     - _ReceiveShadows: 1
     - _ReceiveShadowsOff: 1
@@ -171,22 +170,22 @@ Material:
     - _RimMin: 0.55
     - _ShadowColorLightAtten: 1
     - _SingleIndirectColor: 0
-    - _Smoothness: 0.843
+    - _Smoothness: 0
     - _SmoothnessTextureChannel: 0
-    - _SpecularHighlights: 1
+    - _SpecularHighlights: 0
     - _SpecularMapType: 0
     - _SpecularRoughness: 0.5
-    - _SpecularRoughnessPBR: 0.18
+    - _SpecularRoughnessPBR: 1
     - _SpecularToonSize: 0.25
     - _SpecularToonSmoothness: 0.05
     - _SpecularType: 0
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
-    - _StylizedPlasticOn: 1
+    - _StylizedPlasticOn: 0
     - _Surface: 0
     - _UseAlphaTest: 0
     - _UseEmission: 0
-    - _UseFresnelReflections: 1
+    - _UseFresnelReflections: 0
     - _UseMatCap: 0
     - _UseMatCapMask: 0
     - _UseMobileMode: 0
@@ -203,17 +202,17 @@ Material:
     - _ZWrite: 1
     - __dummy__: 0
     m_Colors:
-    - _BaseColor: {r: 0.972549, g: 0.7764706, b: 0.627451, a: 1}
+    - _BaseColor: {r: 0.99, g: 0.74, b: 0.58, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _HColor: {r: 1, g: 1, b: 1, a: 1}
-    - _MatCapColor: {r: 0.12, g: 0.12, b: 0.12, a: 1}
+    - _MatCapColor: {r: 0, g: 0, b: 0, a: 1}
     - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
-    - _PlasticHighlightColor: {r: 1, g: 1, b: 1, a: 1}
+    - _PlasticHighlightColor: {r: 0, g: 0, b: 0, a: 1}
     - _ReflectionColor: {r: 1, g: 1, b: 1, a: 1}
-    - _RimColor: {r: 0.18, g: 0.18, b: 0.18, a: 0.5}
-    - _SColor: {r: 0.84, g: 0.82, b: 0.88, a: 1}
-    - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
-    - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}
+    - _RimColor: {r: 0, g: 0, b: 0, a: 0}
+    - _SColor: {r: 0.68, g: 0.52, b: 0.54, a: 1}
+    - _SpecColor: {r: 0, g: 0, b: 0, a: 1}
+    - _SpecularColor: {r: 0, g: 0, b: 0, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

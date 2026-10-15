@@ -87,7 +87,7 @@ MonoBehaviour:
   m_AnimatorSpeedRange: {x: 0.8, y: 3}
   m_RingDiameter: 1.05
   m_RingAlpha: 0.6
-  m_TiltTowardsCamera: 22
+  m_TiltTowardsCamera: 36
 --- !u!1001 &1178437165868292222
 PrefabInstance:
   m_ObjectHideFlags: 0

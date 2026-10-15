@@ -7,9 +7,20 @@ namespace PixelGame.Editor
     /// Bir bölümün görselinden zorluk ölçümleri çıkarır. Zorluk büyük ölçüde resmin renk dağılımından gelir:
     /// tek bir renk ekranın çoğunu kaplıyorsa o renkten art arda gemi gelse bile oyuncu hata yapamaz.
     /// </summary>
+    [UnityEditor.InitializeOnLoad]
     public static class LevelDifficultyReport
     {
         public enum Tier { Kolay, Orta, Zor }
+
+        static LevelDifficultyReport()
+        {
+            PixelLevelData.EditorAnalyzedTier = level =>
+            {
+                var rep = GetCached(level);
+                if (rep == null || !rep.valid) return null;
+                return rep.tier == Tier.Zor ? LevelDifficultyTier.Zor : rep.tier == Tier.Orta ? LevelDifficultyTier.Orta : LevelDifficultyTier.Kolay;
+            };
+        }
 
         public class Result
         {

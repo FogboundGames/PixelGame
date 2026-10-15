@@ -4643,14 +4643,36 @@ namespace PixelGame.Editor
                     if (!proceed) return;
                 }
 
+                // Zorluk kademesini analiz raporuyla senkronize et
+                var rep = LevelDifficultyReport.GetCached(m_SelectedLevel);
+                if (rep != null && rep.valid)
+                {
+                    LevelDifficultyTier tier = rep.tier == LevelDifficultyReport.Tier.Zor ? LevelDifficultyTier.Zor :
+                                               rep.tier == LevelDifficultyReport.Tier.Orta ? LevelDifficultyTier.Orta : LevelDifficultyTier.Kolay;
+                    if (m_SelectedLevel.DifficultyTier != tier)
+                    {
+                        m_SelectedLevel.DifficultyTier = tier;
+                        EditorUtility.SetDirty(m_SelectedLevel);
+                        AssetDatabase.SaveAssets();
+                    }
+                }
+
                 gen.LoadLevel(m_SelectedLevel);
+
+                // HUD'u aktif bölümün numarası ve zorluk durumuyla anında güncelle
+                CasualHudController hud = Object.FindFirstObjectByType<CasualHudController>();
+                if (hud != null)
+                {
+                    hud.SetLevel(m_SelectedLevel.LevelIndex, m_SelectedLevel.IsHardLevel);
+                }
+
                 SceneView.RepaintAll();
                 if (SceneView.lastActiveSceneView != null)
                 {
                     SceneView.lastActiveSceneView.FrameSelected();
                 }
                 EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
-                Debug.Log($"<color=#00FFAA><b>[LevelDesigner]</b></color> '{m_SelectedLevel.LevelName}' sahnede başarıyla inşa edildi!");
+                Debug.Log($"<color=#00FFAA><b>[LevelDesigner]</b></color> '{m_SelectedLevel.LevelName}' sahnede başarıyla inşa edildi! (Zorluk: {m_SelectedLevel.DifficultyTier})");
             }
         }
 

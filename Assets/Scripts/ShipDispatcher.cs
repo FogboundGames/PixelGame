@@ -3242,9 +3242,26 @@ namespace PixelGame
 
         #region Reversed Ship Runners (Tersine Gemi Koşucuları)
 
-        /// <summary>Koşucu prefabının gövde materyali (panodaki küpler de bununla çizilsin diye).</summary>
+        /// <summary>Panodaki küpler için gövde materyali (denizci koşucu açıkken insansı model materyali yerine küp materyalini döndürür).</summary>
         public Material GetRunnerBodyMaterial()
         {
+            if (m_UseSailorRunner)
+            {
+#if UNITY_EDITOR
+                if (m_TabletopRunnerPrefab == null)
+                    m_TabletopRunnerPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(TabletopRunnerPrefabPath);
+#endif
+                if (m_TabletopRunnerPrefab != null)
+                {
+                    foreach (var r in m_TabletopRunnerPrefab.GetComponentsInChildren<Renderer>(true))
+                    {
+                        if (r == null || r.sharedMaterial == null) continue;
+                        if (r.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                        return SharedColorMaterialCache.ResolveSource(r.sharedMaterial);
+                    }
+                }
+            }
+
             GameObject prefab = GetRunnerPrefab();
             if (prefab == null) return null;
             foreach (var r in prefab.GetComponentsInChildren<Renderer>(true))
@@ -3672,6 +3689,7 @@ namespace PixelGame
         private void ApplyColorToRunner(GameObject runner, Color color)
         {
             if (runner == null) return;
+
             // Takım rengi parçaları (TeamColor_*) varsa yalnızca onlar boyanır; karakterin geri kalanı kendi renginde kalır
             bool hasTeamParts = false;
             foreach (var r in runner.GetComponentsInChildren<Renderer>(true))
@@ -3680,12 +3698,15 @@ namespace PixelGame
             }
             if (hasTeamParts)
             {
-                // Denizci: yukarıdan en çok şapka göründüğü için şapkanın tamamı takım renginde, ponpon beyaz (kontrast)
+                // Denizci: yukarıdan en çok şapka göründüğü için şapkanın tamamı (şapka gövdesi, şerit ve ponpon)
+                // toplanan küpün / ait olduğu geminin tam renginde boyanır (ör. kahverengi küp için şapka tam kahverengi).
                 foreach (var r in runner.GetComponentsInChildren<Renderer>(true))
                 {
                     if (r == null) continue;
-                    if (r.name == "TeamColor_Pompom") SharedColorMaterialCache.Apply(r, new Color(0.97f, 0.97f, 0.95f), Color.black);
-                    else if (r.name == "Cap" || r.name.StartsWith("TeamColor", System.StringComparison.Ordinal)) SharedColorMaterialCache.Apply(r, color, Color.black);
+                    if (r.name == "Cap" || r.name.StartsWith("TeamColor", System.StringComparison.Ordinal))
+                    {
+                        SharedColorMaterialCache.Apply(r, color, Color.black);
+                    }
                     else if (r.name == "Torso" || r.name == "ArmL" || r.name == "ArmR")
                     {
                         // Tişört çizgileri (lacivert slotlar) takım renginde; şort ve ayakkabı lacivert kalır
@@ -3703,13 +3724,26 @@ namespace PixelGame
                         if (changed) r.sharedMaterials = mats;
                     }
                 }
-                return;
             }
+            else
+            {
+                foreach (var r in runner.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (r == null) continue;
+                    if (r.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                    SharedColorMaterialCache.Apply(r, color, Color.black);
+                }
+            }
+
+            // Kullanıcı isteği: Şapkadaki ve karakterdeki tüm parlaklıkları / specular ve matcap glint'lerini kesinlikle sıfırla
             foreach (var r in runner.GetComponentsInChildren<Renderer>(true))
             {
                 if (r == null) continue;
-                if (r.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
-                SharedColorMaterialCache.Apply(r, color, Color.black);
+                var mats = r.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    SharedColorMaterialCache.SanitizeMatteProperties(mats[i]);
+                }
             }
         }
 
@@ -3940,11 +3974,11 @@ namespace PixelGame
             float runnerPathZ = groundPlaneZ - RunnerGroundDepth(runner);
             shorePoint.z = runnerPathZ;
 
-            // Koşucu karakter kesinlikle geminin renginde:
-            Color runnerColor = ship.ShipColor;
+            // Koşucu karakter kesinlikle toplanan küpün / ait olduğu geminin renginde:
+            Color runnerColor = targetCube != null ? targetCube.CurrentColor : ship.ShipColor;
             ApplyColorToRunner(runner, runnerColor);
-            SailorRunnerVisual sailorSetup = runner.GetComponent<SailorRunnerVisual>();
-            if (sailorSetup != null) sailorSetup.SetupTeamRing(runnerColor, groundPlaneZ);
+            // SailorRunnerVisual sailorSetup = runner.GetComponent<SailorRunnerVisual>();
+            // if (sailorSetup != null) sailorSetup.SetupTeamRing(runnerColor, groundPlaneZ); // Kullanıcı isteği: Renkli ayak altı halkası kaldırıldı
 
             PixelCube pc = runner.GetComponent<PixelCube>();
             if (pc != null)

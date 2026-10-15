@@ -47,6 +47,13 @@ namespace PixelGame
         // varken yeni renk istenirse yine orijinal kaynaktan türetilir (zincirleme kopya oluşmaz).
         private static readonly Dictionary<Material, Material> s_SourceOf = new Dictionary<Material, Material>(64);
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        public static void Clear()
+        {
+            s_Cache.Clear();
+            s_SourceOf.Clear();
+        }
+
         public static Material ResolveSource(Material mat)
         {
             if (mat == null) return null;
@@ -67,9 +74,31 @@ namespace PixelGame
             if (mat.HasProperty(ColorProp)) mat.SetColor(ColorProp, color);
             if (mat.HasProperty(EmissionColorProp)) mat.SetColor(EmissionColorProp, emission);
 
+            // Koşucu / karakter materyalleri (M_*) kesinlikle mat olmalı: şapka ve gövdede parlaklık / glint noktası olmasın
+            if (source.name.StartsWith("M_", System.StringComparison.Ordinal))
+            {
+                SanitizeMatteProperties(mat);
+            }
+
             s_Cache[key] = mat;
             s_SourceOf[mat] = source;
             return mat;
+        }
+
+        public static void SanitizeMatteProperties(Material mat)
+        {
+            if (mat == null) return;
+            if (mat.HasProperty("_SpecularColor")) mat.SetColor("_SpecularColor", Color.black);
+            if (mat.HasProperty("_SpecColor")) mat.SetColor("_SpecColor", Color.black);
+            if (mat.HasProperty("_MatCapColor")) mat.SetColor("_MatCapColor", Color.black);
+            if (mat.HasProperty("_PlasticHighlightColor")) mat.SetColor("_PlasticHighlightColor", Color.black);
+            if (mat.HasProperty("_PlasticHighlightIntensity")) mat.SetFloat("_PlasticHighlightIntensity", 0f);
+            if (mat.HasProperty("_PlasticTopLight")) mat.SetFloat("_PlasticTopLight", 0f);
+            if (mat.HasProperty("_StylizedPlasticOn")) mat.SetFloat("_StylizedPlasticOn", 0f);
+            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0f);
+            if (mat.HasProperty("_SpecularHighlights")) mat.SetFloat("_SpecularHighlights", 0f);
+            if (mat.HasProperty("_SpecularRoughnessPBR")) mat.SetFloat("_SpecularRoughnessPBR", 1f);
+            if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", Color.clear);
         }
 
         /// <summary>Renderer'a renk materyalini atar ve eski MPB'yi temizler (SRP Batcher uyumu için şart).</summary>

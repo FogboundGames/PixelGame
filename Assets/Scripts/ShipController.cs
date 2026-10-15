@@ -2918,6 +2918,7 @@ namespace PixelGame
 
         public void OnPointerDown(PointerEventData eventData)
         {
+            if (CasualHudController.IsHardBannerActive) return;
             m_IsPointerDown = true;
             m_DragThresholdPassed = false;
             m_WasDragged = false;
@@ -2944,6 +2945,7 @@ namespace PixelGame
 
         public void OnPointerClick(PointerEventData eventData)
         {
+            if (CasualHudController.IsHardBannerActive) return;
             if (m_IsMoving || m_IsDeparting || m_IsQueueAnimating) return;
             if (IsLinked && m_LinkedPartner != null && m_LinkedPartner.IsQueueAnimating) return;
 

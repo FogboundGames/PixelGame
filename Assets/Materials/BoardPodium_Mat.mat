@@ -30,10 +30,10 @@ Material:
     m_Ints: []
     m_Floats: []
     m_Colors:
-    - _CanvasColor: {r: 0.89411765, g: 0.90588236, b: 0.92156863, a: 1}
-    - _GrooveColor: {r: 0.43137255, g: 0.45490196, b: 0.4862745, a: 1}
-    - _OuterColor: {r: 0.43137255, g: 0.45490196, b: 0.4862745, a: 1}
-    - _RimColor: {r: 0.43137255, g: 0.45490196, b: 0.4862745, a: 1}
-    - _ShadowColor: {r: 0.11764706, g: 0.15686275, b: 0.21960784, a: 1}
+    - _CanvasColor: {r: 0.85711104, g: 0.9062198, b: 0.9716981, a: 1}
+    - _GrooveColor: {r: 0.4313725, g: 0.45490193, b: 0.48627448, a: 1}
+    - _OuterColor: {r: 0, g: 0.08490566, b: 0.1981132, a: 1}
+    - _RimColor: {r: 0.57872015, g: 0.674363, b: 0.8018868, a: 1}
+    - _ShadowColor: {r: 0.39248845, g: 0.4592382, b: 0.5660378, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

@@ -35,7 +35,17 @@ namespace PixelGame
 
         [Header("📐 Kamera Açısı Eğim Düzeltmesi (Tilt)")]
         [Tooltip("Karakterin tepeden bakıldığında sadece şapka gibi görünmesini engelleyen, yüzünü, gözlerini ve göğsünü kameraya gösteren eğim açısı (derece).")]
-        [SerializeField, Range(0f, 40f)] private float m_TiltTowardsCamera = 22f;
+        [SerializeField, Range(0f, 60f)] private float m_TiltTowardsCamera = 36f;
+
+        public float TiltTowardsCamera
+        {
+            get => m_TiltTowardsCamera;
+            set
+            {
+                m_TiltTowardsCamera = value;
+                ApplyFacing(1f);
+            }
+        }
 
         // Animator parametre adları (Sailor_Runner.controller ile aynı olmalı)
         public const string ParamHopDown = "HopDown";
@@ -74,6 +84,8 @@ namespace PixelGame
         }
 
         [Header("Takım halkası (ayak altı)")]
+        [Tooltip("Ayakların altındaki renkli takım halkası (kullanıcı isteğiyle varsayılan olarak kapalıdır).")]
+        [SerializeField] private bool m_EnableTeamRing = false;
         [Tooltip("Ayakların altındaki takım rengi halkasının çapı (model birimi; 1 = panodaki küp).")]
         [SerializeField] private float m_RingDiameter = 1.05f;
         [SerializeField, Range(0f, 1f)] private float m_RingAlpha = 0.6f;
@@ -85,6 +97,17 @@ namespace PixelGame
         /// <summary>Ayakların altına zemine yatık, takım renginde yumuşak bir halka koyar.</summary>
         public void SetupTeamRing(Color team, float groundZ)
         {
+            if (!m_EnableTeamRing)
+            {
+                if (m_Ring != null)
+                {
+                    m_Ring.enabled = false;
+                    if (m_Ring.gameObject != null) Destroy(m_Ring.gameObject);
+                    m_Ring = null;
+                }
+                return;
+            }
+
             m_GroundZ = groundZ;
             if (m_Ring == null)
             {
@@ -103,12 +126,12 @@ namespace PixelGame
         /// <summary>Gemiden inerken/binerken halka gizlenir (suyun üstünde görünmesin).</summary>
         public void SetRingVisible(bool visible)
         {
-            if (m_Ring != null) m_Ring.enabled = visible;
+            if (m_Ring != null) m_Ring.enabled = visible && m_EnableTeamRing;
         }
 
         private void FollowRing()
         {
-            if (m_Ring == null) return;
+            if (m_Ring == null || !m_EnableTeamRing) return;
             float unit = m_ModelPivot != null ? m_ModelPivot.lossyScale.x : transform.lossyScale.x;
             Vector3 p = transform.position;
             // Zemin düzleminin hemen önünde (kameraya doğru -Z), dönmeden, XY'de yatık
@@ -157,6 +180,12 @@ namespace PixelGame
             if (m_CargoSocket == null) m_CargoSocket = FindDeep(transform, "CargoSocket");
             m_LastPos = transform.position;
             ApplyFacing(1f);
+
+            if (!m_EnableTeamRing)
+            {
+                var existingRing = transform.Find("TeamRing");
+                if (existingRing != null) Destroy(existingRing.gameObject);
+            }
         }
 
         /// <summary>
@@ -270,14 +299,31 @@ namespace PixelGame
         {
             if (m_ModelPivot == null) return;
             // Model: yukarı +Y, yüz +Z. Dünyada yukarı kameraya doğru (-Z), yüz yürüme yönünde (XY düzlemi).
-            Quaternion target = Quaternion.LookRotation(m_Facing, Vector3.back);
+            Quaternion baseFacing = Quaternion.LookRotation(m_Facing, Vector3.back);
+            Quaternion target;
             if (m_TiltTowardsCamera > 0.01f)
             {
-                // Modeli hafifçe geriye/kameraya doğru yatırarak başın arkaya kaymasını ve yüzün/göğsün görünmesini sağla
-                target = target * Quaternion.Euler(-m_TiltTowardsCamera, 0f, 0f);
+                // Karakterin omurgasını dünya X ekseninde kameraya doğru geriye yatır (Zemin -Z'den Ekran +Y'ye).
+                // Böylece yürüme yönünden bağımsız olarak yüzü, göğsü ve vücudu kameraya net şekilde görünür.
+                target = Quaternion.Euler(m_TiltTowardsCamera, 0f, 0f) * baseFacing;
+            }
+            else
+            {
+                target = baseFacing;
             }
             m_ModelPivot.rotation = t >= 1f ? target : Quaternion.Slerp(m_ModelPivot.rotation, target, t);
         }
+
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            if (m_ModelPivot == null) m_ModelPivot = transform.Find("ModelPivot");
+            if (m_ModelPivot != null && !Application.isPlaying)
+            {
+                ApplyFacing(1f);
+            }
+        }
+#endif
 
         private static Transform FindDeep(Transform root, string name)
         {

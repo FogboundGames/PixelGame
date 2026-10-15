@@ -183,6 +183,7 @@ namespace PixelGame
 
         private void TryPopCubeAt(Vector2 screenPosition)
         {
+            if (CasualHudController.IsHardBannerActive) return;
             EnsureCameraAndRaycaster();
             if (m_WorldCamera == null) return;
 

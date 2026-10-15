@@ -392,8 +392,36 @@ namespace PixelGame
         /// <summary>Zorluk kademesi (Kolay / Orta / Zor). Analizden atanır; HUD rozeti bunu kullanır.</summary>
         public LevelDifficultyTier DifficultyTier { get => m_DifficultyTier; set => m_DifficultyTier = value; }
 
-        /// <summary>Eski alanla uyumluluk: yalnızca Zor kademesinde true döner.</summary>
-        public bool IsHardLevel => m_DifficultyTier == LevelDifficultyTier.Zor;
+        /// <summary>
+        /// Zor seviye mi: serialized kademe Zor ise VEYA Level Designer analizinde (LevelDifficultyReport)
+        /// Zor olarak nitelendirilen bir bölümse daima true döner.
+        /// </summary>
+#if UNITY_EDITOR
+        /// <summary>
+        /// Editor assembly'si (LevelDifficultyReport) tarafından atanır; runtime assembly editor koduna doğrudan erişemez.
+        /// Geçerli analiz yoksa null döner.
+        /// </summary>
+        public static Func<PixelLevelData, LevelDifficultyTier?> EditorAnalyzedTier;
+#endif
+
+        public bool IsHardLevel
+        {
+            get
+            {
+                if (m_DifficultyTier == LevelDifficultyTier.Zor) return true;
+#if UNITY_EDITOR
+                try
+                {
+                    if (EditorAnalyzedTier != null && EditorAnalyzedTier(this) == LevelDifficultyTier.Zor)
+                    {
+                        return true;
+                    }
+                }
+                catch { }
+#endif
+                return false;
+            }
+        }
 
         private void OnValidate()
         {
@@ -404,6 +432,22 @@ namespace PixelGame
                     m_DifficultyTier = LevelDifficultyTier.Zor;
                 m_LegacyIsHardLevel = false;
             }
+
+#if UNITY_EDITOR
+            try
+            {
+                LevelDifficultyTier? analyzed = EditorAnalyzedTier != null ? EditorAnalyzedTier(this) : null;
+                if (analyzed.HasValue)
+                {
+                    LevelDifficultyTier analyzedTier = analyzed.Value;
+                    if (m_DifficultyTier != analyzedTier)
+                    {
+                        m_DifficultyTier = analyzedTier;
+                    }
+                }
+            }
+            catch { }
+#endif
         }
 
         public Texture2D LevelTexture { get => m_LevelTexture; set => m_LevelTexture = value; }
