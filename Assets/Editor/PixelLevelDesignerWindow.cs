@@ -1306,9 +1306,7 @@ namespace PixelGame.Editor
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField($"Toplam Küp: {totalCubes}", EditorStyles.boldLabel, GUILayout.Width(130));
             EditorGUILayout.LabelField($"Renk: {colorCount}", EditorStyles.boldLabel, GUILayout.Width(90));
-            int totalBaysHeader = MarinaSlotLayout.BayCountFor(m_SelectedLevel.SlotCount);
-            int closedBaysHeader = Mathf.Max(0, totalBaysHeader - m_SelectedLevel.SlotCount);
-            EditorGUILayout.LabelField($"Slot: {m_SelectedLevel.SlotCount} Açık/{closedBaysHeader} Kilitli", EditorStyles.boldLabel, GUILayout.Width(145));
+            EditorGUILayout.LabelField($"Slot: {m_SelectedLevel.SlotCount}", EditorStyles.boldLabel, GUILayout.Width(145));
             EditorGUILayout.LabelField($"Vagon: ~{reqWagons}", EditorStyles.boldLabel, GUILayout.Width(95));
 
             if (diffRep.valid)
@@ -2068,9 +2066,7 @@ namespace PixelGame.Editor
                     NotifyLiveSceneUpdate();
                 }
 
-                int totalBaysRow = MarinaSlotLayout.BayCountFor(m_SelectedLevel.SlotCount);
-                int closedBaysRow = Mathf.Max(0, totalBaysRow - m_SelectedLevel.SlotCount);
-                EditorGUILayout.LabelField($"   ⚓ {m_SelectedLevel.SlotCount} Açık Slot / 🔒 {closedBaysRow} Kilitli Bölme (Toplam {totalBaysRow} Bölme)", EditorStyles.miniLabel);
+
             });
 
             DrawSequenceCard("🔢 Gemi Sayıları", wide, () =>

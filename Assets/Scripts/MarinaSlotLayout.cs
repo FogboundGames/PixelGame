@@ -1374,86 +1374,9 @@ namespace PixelGame
                 }
             }
 
-            // Rıhtım iskelesindeki toplam bölme sayısı (tekil sayılarda 5 koy, çiftlerde 6 koy).
-            // Aktif slotların dışındaki bölmelere oyuncuya kilitli olduğunu net gösteren
-            // su üstü yanaşma slotu çerçevesi yerleştirilir.
-            int totalBays = (count % 2 != 0) ? 5 : 6;
-            if (count > totalBays) totalBays = count;
-
-            float closedBerthLength = m_SlotBerthLength * (m_UseInnerBerthVisual ? m_OpenBerthLengthScale : 1f);
-            Transform refSlot = activeSlots[0].transform;
-            Transform refBerth = refSlot.Find("[Slot_Berth]");
-            Vector3 openBerthOffsetWorld = refBerth != null ? refBerth.position - refSlot.position : Vector3.zero;
-
-            int startOpenBay = (totalBays - count) / 2;
-            int endOpenBay = startOpenBay + count - 1;
-
-            var existingBarriers = new List<MarinaLockedSlotBarrier>(GetComponentsInChildren<MarinaLockedSlotBarrier>(true));
-            int usedBarrierCount = 0;
-
-            ShipQueuePool qPool = UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
-            Quaternion barrierBaseRot = qPool != null ? qPool.transform.rotation : Quaternion.Euler(m_WaterTiltX, 0f, 0f);
-
-            for (int b = 0; b < totalBays; b++)
-            {
-                // Açık slot bölmeleri aktif gemi slotlarıdır, bariyer konulmaz
-                if (b >= startOpenBay && b <= endOpenBay) continue;
-
-                // Kapalı bölmenin konumu ve açısı
-                float bt = (totalBays % 2 != 0) ? (b - (totalBays / 2)) : (b - (totalBays - 1) * 0.5f);
-                float bayPosX = bt * spacing;
-                float bayPosY = arcCurveY * (bt * bt) + m_ArcAsymmetry * bt;
-                float bayAngle = slotAngle + m_ArcAngleFan * bt;
-
-                MarinaLockedSlotBarrier barrier = null;
-                if (usedBarrierCount < existingBarriers.Count)
-                {
-                    barrier = existingBarriers[usedBarrierCount++];
-                }
-                else
-                {
-                    GameObject bGo = new GameObject($"[Locked_Slot_Barrier_Bay_{b}]");
-                    bGo.transform.SetParent(transform, false);
-                    barrier = bGo.AddComponent<MarinaLockedSlotBarrier>();
-                    existingBarriers.Add(barrier);
-                    usedBarrierCount++;
-                }
-
-                barrier.gameObject.name = $"[Locked_Slot_Barrier_Bay_{b}]";
-                bool closedSlotLook = m_UseClosedSlotVisual && m_SlotBerthClosedMaterial != null;
-                barrier.Setup(
-                    b,
-                    m_LockedBarrierMaterial,
-                    GetPierQuadMesh(),
-                    closedSlotLook ? m_SlotBerthClosedMaterial : m_SlotBerthMaterial,
-                    m_SlotBerthMesh != null ? m_SlotBerthMesh : GetBerthQuadMesh(),
-                    m_LockedBarrierWidth * fit,
-                    m_LockedBarrierHeight * fit,
-                    m_SlotBerthWidth * fit,
-                    (closedSlotLook ? closedBerthLength : m_SlotBerthLength) * fit
-                );
-
-                Transform bTr = barrier.transform;
-                bTr.localPosition = new Vector3(bayPosX, bayPosY + m_LockedBarrierOffsetY, m_LockedBarrierOffsetZ);
-                bTr.rotation = barrierBaseRot * Quaternion.Euler(0f, bayAngle, 0f);
-                bTr.localScale = Vector3.one;
-
-                if (closedSlotLook)
-                {
-                    if (barrier.VisualTransform != null && barrier.VisualTransform.gameObject.activeSelf)
-                        barrier.VisualTransform.gameObject.SetActive(false);
-                    if (barrier.BerthTransform != null)
-                        barrier.BerthTransform.position = transform.TransformPoint(bayPosX, bayPosY, 0f) + openBerthOffsetWorld;
-                }
-
-                if (!barrier.gameObject.activeSelf) barrier.gameObject.SetActive(true);
-            }
-
-            for (int k = usedBarrierCount; k < existingBarriers.Count; k++)
-            {
-                if (existingBarriers[k] != null && existingBarriers[k].gameObject.activeSelf)
-                    existingBarriers[k].gameObject.SetActive(false);
-            }
+            // Kapalı slotlar kaldırıldı: yalnızca açık (yanaşılabilir) slotlar gösterilir. Önceki sürümlerden sahnede
+            // kalmış kapalı bölme görselleri silinir; hiçbir yerden yeniden oluşturulmaz.
+            RemoveClosedBayVisuals();
 
             // Sıranın ortasını (yerel x=0) arka plandaki orta bölmeye, yanaşma görselini de babaların arasına oturt
             if (matchBays)
@@ -1637,13 +1560,17 @@ namespace PixelGame
         /// </summary>
         public void DeactivateAllBarriers()
         {
+            RemoveClosedBayVisuals();
+        }
+
+        /// <summary>Önceki sürümlerden kalmış kapalı slot (kilitli bölme) görsellerini gizler; yenisi oluşturulmaz.</summary>
+        public void RemoveClosedBayVisuals()
+        {
             var existingBarriers = GetComponentsInChildren<MarinaLockedSlotBarrier>(true);
             for (int b = 0; b < existingBarriers.Length; b++)
             {
                 if (existingBarriers[b] != null && existingBarriers[b].gameObject.activeSelf)
-                {
                     existingBarriers[b].gameObject.SetActive(false);
-                }
             }
         }
 

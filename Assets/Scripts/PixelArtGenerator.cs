@@ -93,8 +93,8 @@ namespace PixelGame
         [Tooltip("Küp boyutunu sabitlemek için baz alınan ızgara çözünürlüğü (örn. 28). Seviye 10x10 da olsa 32x32 de olsa küpler daima bu baz çözünürlüğe göre aynı boyutta kalır!")]
         [SerializeField] private int m_FixedBaseGridDimension = 28;
 
-        [Tooltip("Çerçeve görselinin iç tuvalinin dış boyuta oranı (BoardPodium_Mask: 737/1024). Resim bu tuvalin içine sığdırılır.")]
-        [SerializeField] [Range(0.3f, 1f)] private float m_FrameCanvasRatio = 0.72f;
+        [Tooltip("Çerçeve görselinin iç tuvalinin dış boyuta oranı (BoardPodium_MaskThin: 872/1024). Resim bu tuvalin içine sığdırılır.")]
+        [SerializeField] [Range(0.3f, 1f)] private float m_FrameCanvasRatio = 0.85f;
         [Tooltip("Resim ile çerçevenin iç tuval kenarı arasında her yönde bırakılan pay (dünya birimi).")]
         [SerializeField] [Range(0f, 1f)] private float m_FrameCanvasPadding = 0.12f;
         [Tooltip("Kamera eğik baktığı için düz çerçeve ekranda dikeyde basık görünür; açıkken çerçeve ve resim alanı dikeyde " +
@@ -2774,7 +2774,9 @@ namespace PixelGame
 
             Sprite frameSprite = null;
             #if UNITY_EDITOR
-            frameSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/BoardPodium_Mask.png")
+            // İnce kenarlı, iki bölgeli (kenar + tuval) maske önce
+            frameSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/BoardPodium_MaskThin.png")
+                       ?? UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/BoardPodium_Mask.png")
                        ?? UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/BoardPodium_Reference.png")
                        ?? UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/Frame.png") 
                        ?? UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Frame.png");
@@ -2988,7 +2990,8 @@ namespace PixelGame
         [ContextMenu("🎨 Çerçeve Renklerini Dokulara Kaydet (Bake to Textures)")]
         public void BakeBoardColorsToTextures()
         {
-            string maskPath = "Assets/Textures/BoardPodium_Mask.png";
+            string maskPath = System.IO.File.Exists("Assets/Textures/BoardPodium_MaskThin.png")
+                ? "Assets/Textures/BoardPodium_MaskThin.png" : "Assets/Textures/BoardPodium_Mask.png";
             string texPath = "Assets/Textures/BoardPodium_Reference.png";
             string resPath = "Assets/Resources/BoardPodium_Reference.png";
 
