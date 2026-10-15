@@ -1353,36 +1353,9 @@ namespace PixelGame
                 }
             }
 
-            // Önceki sürümlerden kalmış kilit bariyerleri gizlenir; kapalı bölmeler açık slotlarla aynı ızgarada
-            // (aynı konum, rotasyon, ölçek ve taban izi) taralı görselle kapatılır.
+            // Kapalı slotlar kaldırıldı (kullanıcı kararı): yalnızca açık slotlar gösterilir. Kapalı bölme görseli
+            // hiçbir yerden oluşturulmaz; önceki sürümlerden sahnede kalanlar gizlenir. Geri getirmeyin.
             RemoveClosedBayVisuals();
-            if (m_UseClosedSlotVisual && !m_HideSlotIndicators)
-            {
-                float fitSlotWidth = slotWidth > 0.001f ? slotWidth : 1f;
-                float fitSlotLength = slotLength > 0.001f ? slotLength : 1.55f;
-                ShipQueuePool closedQueuePool = UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
-                Quaternion closedBaseRot = closedQueuePool != null ? closedQueuePool.transform.rotation : Quaternion.Euler(m_WaterTiltX, 0f, 0f);
-                for (int b = 0; b < bayCount; b++)
-                {
-                    if (System.Array.IndexOf(openBays, b) >= 0) continue;
-                    float t = b - bayCenter;
-                    Transform closedTr = GetOrCreateClosedBayVisual(b);
-                    closedTr.localPosition = new Vector3(t * spacing, arcCurveY * (t * t) + m_ArcAsymmetry * t, 0f);
-                    closedTr.rotation = closedBaseRot * Quaternion.Euler(0f, slotAngle + m_ArcAngleFan * t, 0f);
-                    closedTr.localScale = new Vector3(slotWidth * fit, 1f, slotLength * fit);
-
-                    // Açık slottaki indicator'ın taban iziyle birebir aynı: merkez = yanaşma noktası, boyut = berth genişlik/uzunluğu
-                    Transform quad = closedTr.GetChild(0);
-                    quad.localPosition = new Vector3(0f, m_SlotBerthOffsetY, m_SlotBerthOffsetZ);
-                    quad.localRotation = Quaternion.identity;
-                    quad.localScale = new Vector3(m_SlotBerthWidth / fitSlotWidth, 1f, m_SlotBerthLength / fitSlotLength);
-                    MeshRenderer qMr = quad.GetComponent<MeshRenderer>();
-                    if (m_SlotBerthClosedMaterial != null && qMr.sharedMaterial != m_SlotBerthClosedMaterial)
-                        qMr.sharedMaterial = m_SlotBerthClosedMaterial;
-
-                    if (!closedTr.gameObject.activeSelf) closedTr.gameObject.SetActive(true);
-                }
-            }
 
             // Sıranın ortasını (yerel x=0) arka plandaki orta bölmeye, yanaşma görselini de babaların arasına oturt
             if (matchBays)
@@ -1588,38 +1561,6 @@ namespace PixelGame
         }
 
         private const string ClosedBayPrefix = "[Closed_Bay_";
-
-        /// <summary>Kapalı bölme için slot ile aynı hiyerarşiye sahip (kök + taralı quad) görseli bulur/oluşturur.</summary>
-        private Transform GetOrCreateClosedBayVisual(int bay)
-        {
-            string bayName = ClosedBayPrefix + bay + "]";
-            Transform root = transform.Find(bayName);
-            if (root == null)
-            {
-                root = new GameObject(bayName).transform;
-                root.SetParent(transform, false);
-            }
-
-            Transform quad = root.childCount > 0 ? root.GetChild(0) : null;
-            if (quad == null)
-            {
-                quad = new GameObject("[Closed_Berth]").transform;
-                quad.SetParent(root, false);
-            }
-
-            MeshFilter mf = quad.GetComponent<MeshFilter>();
-            if (mf == null) mf = quad.gameObject.AddComponent<MeshFilter>();
-            if (mf.sharedMesh != GetBerthQuadMesh()) mf.sharedMesh = GetBerthQuadMesh();
-
-            MeshRenderer mr = quad.GetComponent<MeshRenderer>();
-            if (mr == null) mr = quad.gameObject.AddComponent<MeshRenderer>();
-            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            mr.receiveShadows = false;
-            mr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
-            mr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
-            mr.sortingOrder = 3;
-            return root;
-        }
 
         private void EnsureBackgroundTexturesInitialized()
         {
