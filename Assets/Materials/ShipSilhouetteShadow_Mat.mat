@@ -28,7 +28,7 @@ Material:
     - _GroundY: 0
     - _StencilRef: 37
     m_Colors:
-    - _Color: {r: 0.02, g: 0.08, b: 0.22, a: 0.4}
-    - _ShadowDir: {r: 0.7, g: -0.15, b: 0, a: 0}
+    - _Color: {r: 0.02, g: 0.08, b: 0.22, a: 0.38}
+    - _ShadowDir: {r: 0.2, g: -0.5, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

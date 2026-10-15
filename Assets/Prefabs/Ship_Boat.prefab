@@ -4917,8 +4917,8 @@ MonoBehaviour:
   m_DockForwardOffset: 0.28
   m_DockHeightOffset: 0.08
   m_AlignSternToSlotBack: 1
-  m_SternInsetRatio: 0.05
-  m_DockSideOffset: 0
+  m_SternInsetRatio: 0.1
+  m_DockSideOffset: -0.03
   m_EnableWaterBobbing: 1
   m_BobFrequency: 2.4
   m_BobHeight: 0.035
@@ -4959,10 +4959,10 @@ MonoBehaviour:
   m_BadgeRoofNudge: {x: 0, y: 0.02, z: 0.5}
   m_BadgeRoofScale: 1
   m_BadgeRoofStretch: 2.106
-  m_EnableSilhouetteShadow: 0
-  m_SilhouetteShadowDirection: {x: 0.7, y: -0.15}
-  m_SilhouetteShadowColor: {r: 0.02, g: 0.08, b: 0.22, a: 0.4}
-  m_SilhouetteShadowSoftness: 0.16
+  m_EnableSilhouetteShadow: 1
+  m_SilhouetteShadowDirection: {x: 0.2, y: -0.5}
+  m_SilhouetteShadowColor: {r: 0.02, g: 0.08, b: 0.22, a: 0.38}
+  m_SilhouetteShadowSoftness: 0.35
   m_SilhouetteShadowMaterial: {fileID: 2100000, guid: 92ac416001e4a92f48bdce00036a2366, type: 2}
   m_EnableChimneySmoke: 1
   m_ChimneyCorner: 5
@@ -4972,7 +4972,7 @@ MonoBehaviour:
   m_ChimneyBodyMaterial: {fileID: 2100000, guid: 8ef5c03754fd16c45a96db1b4f00eca8, type: 2}
   m_ChimneyRimMaterial: {fileID: 2100000, guid: 09d61ba2a2ea0574e9911d9f69c0fd85, type: 2}
   m_ChimneySmokeMaterial: {fileID: 2100000, guid: de6c8c1739461784ab7a8d3541d71800, type: 2}
-  m_EnableHullRings: 0
+  m_EnableHullRings: 1
   m_HullRingCount: 2
   m_HullRingStartScale: 0.95
   m_HullRingGrow: 0.25
@@ -5286,7 +5286,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &8227756706719831579
 Transform:
   m_ObjectHideFlags: 0

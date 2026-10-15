@@ -15,6 +15,9 @@ namespace PixelGame.Editor
 
         static CaptureGameViewScreenshot()
         {
+            // Otomatik çalıştırma kapalı: her editör açılışında kuyruğu dünya koordinatında -42°/y=-6'ya koyup
+            // örnek gemileri ve üst barı yeniden kuruyor, sahnedeki ayarları bozuyordu. Menüden elle çalıştırılabilir.
+#if PIXELGAME_AUTO_SCENE_SETUP
             EditorApplication.delayCall += () =>
             {
                 if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;
@@ -24,6 +27,7 @@ namespace PixelGame.Editor
                     CaptureGemiScene();
                 }
             };
+#endif
         }
 
         private static bool s_IsCapturing = false;

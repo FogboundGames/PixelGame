@@ -176,6 +176,7 @@ namespace PixelGame
         // Drag & Pickup çalışma zamanı değişkenleri
         private bool m_IsPointerDown = false;
         private bool m_IsDragging = false;
+        private bool m_SailSoundActive = false;
         private bool m_IsPickedUp = false;
         private bool m_DragThresholdPassed = false;
         private bool m_WasDragged = false;
@@ -317,14 +318,14 @@ namespace PixelGame
 
         [Header("🌑 Gemi Silüet Gölgesi")]
         [Tooltip("Geminin gövde şeklini takip eden, sağa düşen net gölge. Açıkken eski yumuşak (quad) gölge ve gövdenin gerçek ışık gölgesi kapanır.")]
-        [SerializeField] private bool m_EnableSilhouetteShadow = false;
+        [SerializeField] private bool m_EnableSilhouetteShadow = true;
         [Tooltip("Işık yönü: gövdenin her birim yüksekliği gölgeyi ne kadar kaydırır (X: sağ, Y: aşağı/kıç yönü negatif). Büyüdükçe gölge uzar.")]
-        [SerializeField] private Vector2 m_SilhouetteShadowDirection = new Vector2(0.70f, -0.15f);
+        [SerializeField] private Vector2 m_SilhouetteShadowDirection = new Vector2(0.20f, -0.50f);
         [Tooltip("Gölge rengi ve opaklığı (alfa).")]
-        [SerializeField] private Color m_SilhouetteShadowColor = new Color(0.02f, 0.08f, 0.22f, 0.40f);
+        [SerializeField] private Color m_SilhouetteShadowColor = new Color(0.02f, 0.08f, 0.22f, 0.38f);
         [Tooltip("Gölge kenarının yumuşaklığı (0 = keskin). Kenar bu genişlikte dışa doğru saydamlaşır.")]
         [Range(0f, 0.8f)]
-        [SerializeField] private float m_SilhouetteShadowSoftness = 0.16f;
+        [SerializeField] private float m_SilhouetteShadowSoftness = 0.35f;
         [SerializeField] private Material m_SilhouetteShadowMaterial;
         private const string SilhouetteShadowName = "[Ship_SilhouetteShadow]";
         private static Material s_SilhouetteShadowFallbackMaterial;
@@ -1138,6 +1139,13 @@ namespace PixelGame
         private void OnDisable()
         {
             s_ActiveShips.Remove(this);
+
+            // Slota giderken yolculuğu kesilen (silinen / kapatılan) gemi seyir sesini de bıraksın
+            if (m_SailSoundActive)
+            {
+                m_SailSoundActive = false;
+                if (HypercasualFeedbackManager.ExistingInstance != null) HypercasualFeedbackManager.ExistingInstance.StopShipSailSound();
+            }
 
             m_IsPointerDown = false;
             m_IsDragging = false;
@@ -2410,6 +2418,7 @@ namespace PixelGame
             if (HypercasualFeedbackManager.Instance != null)
             {
                 HypercasualFeedbackManager.Instance.StartShipSailSound(transform.position);
+                m_SailSoundActive = true;
             }
 
             // Eski slottan ayrıl
@@ -2556,6 +2565,7 @@ namespace PixelGame
             if (HypercasualFeedbackManager.Instance != null)
             {
                 HypercasualFeedbackManager.Instance.StopShipSailSound();
+                m_SailSoundActive = false;
             }
 
             // 💦 Su Sıçraması, 🔊 İskele Kilit Darbesi Sesi & 📳 Orta Mobil Titreşim

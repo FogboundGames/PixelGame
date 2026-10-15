@@ -452,6 +452,8 @@ namespace PixelGame
         {
             StopAllCoroutines();
             DestroyLiveRunners();
+            m_RunnerSerial = 0;
+            if (HypercasualFeedbackManager.Instance != null) HypercasualFeedbackManager.Instance.ResetShipSailSound();
             m_PlayerSentShipCount = 0;
             m_IsLevelFailed = false;
             m_LevelEndPending = false;
@@ -4091,7 +4093,8 @@ namespace PixelGame
 
             if (HypercasualFeedbackManager.Instance != null)
             {
-                HypercasualFeedbackManager.Instance.PlayCubeLiftoffFeedback(targetCube.transform.position, indexInQueue);
+                // Gecikmesiz: index yalnızca perde çeşitlemesi (sıra numarası oyun boyu büyüdüğü için gecikme saniyelerce birikiyordu)
+                HypercasualFeedbackManager.Instance.PlayCubeLiftoffFeedback(targetCube.transform.position, indexInQueue, immediate: true);
             }
 
             GameObject carriedCargo = CreateCarriedCargoVisual(targetCube, runner.transform);

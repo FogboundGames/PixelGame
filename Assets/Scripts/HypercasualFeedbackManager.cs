@@ -45,6 +45,9 @@ namespace PixelGame
             }
         }
 
+        /// <summary>Var olan örnek (yoksa null; Instance gibi yeni obje yaratmaz — OnDisable/kapanışta güvenli).</summary>
+        public static HypercasualFeedbackManager ExistingInstance => s_Instance;
+
         [Header("✨ Görsel Efektler")]
         [SerializeField] private bool m_EnableSparkles = true;
         [SerializeField] private bool m_EnableWaterSplash = true;
@@ -84,6 +87,9 @@ namespace PixelGame
         private AudioSource m_ChimeSource;
         private AudioSource m_FxSource;
         private AudioSource m_SailSource;
+        // Küp kalkış sesi kendi kaynağında: her çalışta perdesini değiştirdiği için ortak kaynakta
+        // o an çalan binme/gemi doldu seslerinin perdesini de bozuyordu
+        private AudioSource m_LiftoffSource;
         private AudioClip[] m_ChimeClips;
         private AudioClip m_ShipFullClip;
         private AudioClip m_SplashClip;
@@ -157,6 +163,13 @@ namespace PixelGame
                 m_FxSource = gameObject.AddComponent<AudioSource>();
                 m_FxSource.playOnAwake = false;
                 m_FxSource.spatialBlend = 0f;
+            }
+
+            if (m_LiftoffSource == null)
+            {
+                m_LiftoffSource = gameObject.AddComponent<AudioSource>();
+                m_LiftoffSource.playOnAwake = false;
+                m_LiftoffSource.spatialBlend = 0f;
             }
 
             if (m_SailSource == null)
@@ -1109,16 +1122,17 @@ namespace PixelGame
         /// Çoklu küplerde 'index' ile minik arpeggio gecikmesi ve hafif artan pitch eklenerek
         /// bağımlılık yapan bir "pıt-pıt-pıt" ASMR melodisi oluşturulur.
         /// </summary>
-        public void PlayCubeLiftoffFeedback(Vector3 position, int index = 0)
+        /// <param name="immediate">true: gecikmesiz çal (denizci modu; index yalnızca perde çeşitlemesi için).</param>
+        public void PlayCubeLiftoffFeedback(Vector3 position, int index = 0, bool immediate = false)
         {
             // Titreşim sesten bağımsız: ses klibi yoksa ya da ses kapalıysa da hissedilsin
             if (index <= 0) TriggerHapticLight();
 
             if (!m_EnableSound || m_ChimeSource == null || m_LiftoffClip == null) return;
 
-            if (index <= 0)
+            if (index <= 0 || immediate)
             {
-                PlayLiftoffSound(0);
+                PlayLiftoffSound(Mathf.Max(0, index));
             }
             else
             {
@@ -1135,13 +1149,14 @@ namespace PixelGame
 
         private void PlayLiftoffSound(int index)
         {
-            if (m_ChimeSource == null || m_LiftoffClip == null) return;
+            AudioSource src = m_LiftoffSource != null ? m_LiftoffSource : m_ChimeSource;
+            if (src == null || m_LiftoffClip == null) return;
 
             // Her küp için hafif yükselen sevimli pitch skalası (1.0 -> 1.25)
             float pitch = Mathf.Clamp(1.0f + (index % 6) * 0.045f + UnityEngine.Random.Range(-0.015f, 0.015f), 0.95f, 1.35f);
-            m_ChimeSource.pitch = pitch;
+            src.pitch = pitch;
             // Hafif, gevrek ve tatmin edici hypercasual kum kalkış sesi:
-            m_ChimeSource.PlayOneShot(m_LiftoffClip, m_MasterVolume * 0.44f);
+            src.PlayOneShot(m_LiftoffClip, m_MasterVolume * 0.44f);
         }
 
         private float m_LastBoardingSoundTime = -1f;
@@ -1250,6 +1265,25 @@ namespace PixelGame
         /// <summary>
         /// Gemi slota varıp yerleştiğinde seyir sesini pürüzsüz sönümle durdurur (sıfır tıklama / patlama).
         /// </summary>
+        /// <summary>
+        /// Bölüm yeniden yüklenirken / retry'da: yolda kesilen gemiler "vardım" diyemediği için sayaç takılı kalıp
+        /// seyir sesi sonsuz döngüde çalıyordu. Sayaç sıfırlanır, ses hemen susturulur.
+        /// </summary>
+        public void ResetShipSailSound()
+        {
+            m_ActiveSailingShips = 0;
+            if (m_SailFadeRoutine != null)
+            {
+                StopCoroutine(m_SailFadeRoutine);
+                m_SailFadeRoutine = null;
+            }
+            if (m_SailSource != null)
+            {
+                m_SailSource.Stop();
+                m_SailSource.volume = 0f;
+            }
+        }
+
         public void StopShipSailSound()
         {
             m_ActiveSailingShips = Mathf.Max(0, m_ActiveSailingShips - 1);

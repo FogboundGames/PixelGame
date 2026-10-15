@@ -93,6 +93,30 @@ namespace PixelGame
         [Tooltip("Küp boyutunu sabitlemek için baz alınan ızgara çözünürlüğü (örn. 28). Seviye 10x10 da olsa 32x32 de olsa küpler daima bu baz çözünürlüğe göre aynı boyutta kalır!")]
         [SerializeField] private int m_FixedBaseGridDimension = 28;
 
+        [Tooltip("Çerçeve görselinin iç tuvalinin dış boyuta oranı (BoardPodium_Mask: 737/1024). Resim bu tuvalin içine sığdırılır.")]
+        [SerializeField] [Range(0.3f, 1f)] private float m_FrameCanvasRatio = 0.72f;
+        [Tooltip("Resim ile çerçevenin iç tuval kenarı arasında her yönde bırakılan pay (dünya birimi).")]
+        [SerializeField] [Range(0f, 1f)] private float m_FrameCanvasPadding = 0.12f;
+        [Tooltip("Kamera eğik baktığı için düz çerçeve ekranda dikeyde basık görünür; açıkken çerçeve ve resim alanı dikeyde " +
+                 "kamera açısına göre uzatılır, ekranda kare görünür (resmin köşeleri tuvalin köşelerine oturur).")]
+        [SerializeField] private bool m_CompensateCameraTilt = true;
+
+        /// <summary>Eğik kamerada düz (XY) bir yüzeyin ekranda dikeyde ne kadar kısaldığı (1 = kısalmaz).</summary>
+        private float CameraTiltForeshortening(Camera cam)
+        {
+            if (!m_CompensateCameraTilt || cam == null) return 1f;
+            return Mathf.Clamp(Mathf.Abs(Vector3.Dot(Vector3.up, cam.transform.up)), 0.5f, 1f);
+        }
+
+        /// <summary>Resmin sığdırılacağı alan: sabit çerçevenin iç tuvali, her yönde eşit pay bırakılarak.</summary>
+        private void GetPictureFitArea(Camera cam, ref float worldWidth, ref float worldHeight)
+        {
+            float frameSize = Mathf.Min(worldWidth, worldHeight);
+            float canvas = Mathf.Max(0.1f, frameSize * m_FrameCanvasRatio - 2f * m_FrameCanvasPadding);
+            worldWidth = canvas;
+            worldHeight = canvas / CameraTiltForeshortening(cam);
+        }
+
         [Tooltip("Küpler arasındaki DİKEY (satırlar/önler, Y ekseni) fiziksel boşluk oranı (0 = bitişik, 0.1 = %10 boşluk, negatif = üst üste biner)")]
         [Range(-0.3f, 1.0f)]
         [SerializeField] private float m_CubeSpacing = 0.06f;
@@ -791,9 +815,7 @@ namespace PixelGame
             // Podyumun dış boyutu = boardSquareSize. 
             // Podyum dokusunun iç sınır oluğu/çizgisi tam %62 oranındadır (635px / 1024px).
             // Küpler bu iç sınır çizgisinin tam içine yerleşir ve iç çizgiden asla dışarı taşmaz.
-            float innerCanvasSize = Mathf.Min(worldWidth, worldHeight) * 0.62f;
-            worldWidth = innerCanvasSize;
-            worldHeight = innerCanvasSize;
+            GetPictureFitArea(cam, ref worldWidth, ref worldHeight);
 
             Texture2D activeTex = GetActiveTexture();
             GetEffectiveGridSize(activeTex, out int cols, out int rows);
@@ -835,6 +857,13 @@ namespace PixelGame
             float stepFactorX = 1f + spacingX;
             float stepFactorY = 1f + spacingY;
             cellSize = Mathf.Min(worldWidth / (baseDim * stepFactorX), worldHeight / (baseDim * stepFactorY));
+            // Küp boyu sabit kalır; ama resim (dolu pikselleri) çerçeveye sığmıyorsa sığacak kadar küçültülür
+            {
+                bool hasVis = m_SkipTransparent && maxX >= minX && maxY >= minY;
+                int fitW = hasVis ? (maxX - minX + 1) : cols;
+                int fitH = hasVis ? (maxY - minY + 1) : rows;
+                cellSize = Mathf.Min(cellSize, worldWidth / (fitW * stepFactorX), worldHeight / (fitH * stepFactorY));
+            }
 
             stepX = cellSize * stepFactorX;
             stepY = cellSize * stepFactorY;
@@ -1046,9 +1075,7 @@ namespace PixelGame
             // Podyumun dış boyutu = boardSquareSize.
             // Podyum dokusunun iç sınır oluğu/çizgisi tam %62 oranındadır (635px / 1024px).
             // Küpler bu iç sınır çizgisinin tam içine yerleşir ve iç çizgiden asla dışarı taşmaz.
-            float innerCanvasSize = Mathf.Min(worldWidth, worldHeight) * 0.62f;
-            worldWidth = innerCanvasSize;
-            worldHeight = innerCanvasSize;
+            GetPictureFitArea(cam, ref worldWidth, ref worldHeight);
 
             // 2. Izgara boyutlarını belirle (1:1 piksel koruması)
             GetEffectiveGridSize(activeTex, out int cols, out int rows);
@@ -1098,6 +1125,13 @@ namespace PixelGame
             float stepFactorX = 1f + spacingX;
             float stepFactorY = 1f + spacingY;
             cellSize = Mathf.Min(worldWidth / (baseDim * stepFactorX), worldHeight / (baseDim * stepFactorY));
+            // Küp boyu sabit kalır; ama resim (dolu pikselleri) çerçeveye sığmıyorsa sığacak kadar küçültülür
+            {
+                bool hasVis = m_SkipTransparent && maxX >= minX && maxY >= minY;
+                int fitW = hasVis ? (maxX - minX + 1) : cols;
+                int fitH = hasVis ? (maxY - minY + 1) : rows;
+                cellSize = Mathf.Min(cellSize, worldWidth / (fitW * stepFactorX), worldHeight / (fitH * stepFactorY));
+            }
 
             stepX = cellSize * stepFactorX;
             stepY = cellSize * stepFactorY;
@@ -2715,7 +2749,23 @@ namespace PixelGame
 
             m_FramePreviewTransform.gameObject.SetActive(true);
             // Z derinliği: Küplerin (z = 0..0.5) ve koşan denizcilerin (z ≈ 0.36) TAMAMEN arkasında kalması için z = m_TargetZ + 0.60f
-            m_FramePreviewTransform.position = new Vector3(worldCenter.x, worldCenter.y, m_TargetZ + 0.60f);
+            float frameZ = m_TargetZ + 0.60f;
+            Vector3 framePos = new Vector3(worldCenter.x, worldCenter.y, frameZ);
+            // Kamera eğik baktığı için kameraya daha yakın duran küpler ekranda kayar: çerçeveyi, resmin merkezinden
+            // kamera bakış yönünde çerçeve düzlemine izdüşürülen noktaya koy ki ekranda resim çerçevenin tam ortasında dursun
+            if (cam != null)
+            {
+                float cubeZ = worldCenter.z + m_TargetZ;
+                if (m_CubesContainer != null && m_CubesContainer.childCount > 0) cubeZ = m_CubesContainer.GetChild(0).position.z;
+                Vector3 fwd = cam.transform.forward;
+                if (Mathf.Abs(fwd.z) > 1e-3f)
+                {
+                    float t = (frameZ - cubeZ) / fwd.z;
+                    framePos.x += fwd.x * t;
+                    framePos.y += fwd.y * t;
+                }
+            }
+            m_FramePreviewTransform.position = framePos;
             m_FramePreviewTransform.rotation = Quaternion.identity;
 
             // 1. Podyum / Çerçeve Görseli (Board Podium Sprite)
@@ -2761,7 +2811,7 @@ namespace PixelGame
                 // BoardPodium_Reference sprite'ı kare bir podyumdur (1024x1024, iç tuval 738x738).
                 // fixedSandWidth / Height kare podyumun dış boyutunu belirler.
                 float targetW = boardSquareSize;
-                float targetH = boardSquareSize;
+                float targetH = boardSquareSize / CameraTiltForeshortening(cam);
                 m_FramePreviewTransform.localScale = new Vector3(targetW / Mathf.Max(0.01f, ppx), targetH / Mathf.Max(0.01f, ppy), 1f);
                 sr.color = Color.white;
                 sr.sortingOrder = -50; // Küplerin ve denizcilerin tamamen arkasında çizilir

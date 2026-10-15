@@ -145,7 +145,7 @@ namespace PixelGame.Editor
 
                 if (colsProp != null) colsProp.intValue = 3;
                 if (rowsProp != null) rowsProp.intValue = 1;
-                if (offYProp != null) offYProp.floatValue = -6.00f;
+                if (offYProp != null) offYProp.floatValue = -6.80f;
                 if (spXProp != null) spXProp.floatValue = 1.48f;
                 if (scaleProp != null) scaleProp.floatValue = 0.38f;
 
