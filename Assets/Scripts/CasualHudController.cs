@@ -70,8 +70,8 @@ namespace PixelGame
         private float m_Speed2xRemainingSeconds = 900f;
         private float m_TimerSaveCooldown = 0f;
 
-        private const string Speed2xRemainingPrefKey = "PixelGame_Speed2xRemainingSeconds";
-        private const string Speed2xInitializedPrefKey = "PixelGame_Speed2xInitialized";
+        internal const string Speed2xRemainingPrefKey = "PixelGame_Speed2xRemainingSeconds";
+        internal const string Speed2xInitializedPrefKey = "PixelGame_Speed2xInitialized";
 
         [Header("🧪 Başlangıç Değerleri")]
         [SerializeField] private int m_StartingLives = 3;

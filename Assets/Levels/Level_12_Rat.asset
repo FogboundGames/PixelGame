@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Level_12_Rat
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Rat
-  m_LevelIndex: 18
-  m_DifficultyTier: 1
+  m_LevelIndex: 21
+  m_DifficultyTier: 2
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: b9f592f38be50bd818a21522bcad8439, type: 3}
   m_OriginalSourceTexture: {fileID: 2800000, guid: f4920f09a8a1226d687544c86d7dd2af, type: 3}

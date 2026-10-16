@@ -309,7 +309,15 @@ namespace PixelGame.Editor
                 var diffRep = LevelDifficultyReport.GetCached(level);
 
                 EditorGUILayout.BeginHorizontal();
-                if (diffRep.valid)
+                if (level.DifficultyIsManual)
+                {
+                    var manualTier = LevelDifficultyReport.EffectiveTier(level, diffRep);
+                    GUI.contentColor = LevelDifficultyReport.TierColor(manualTier);
+                    EditorGUILayout.LabelField(new GUIContent($"{LevelDifficultyReport.TierLabel(manualTier)} ✎",
+                        "Zorluk elle seçildi" + (diffRep.valid ? $" (analiz: {LevelDifficultyReport.TierLabel(diffRep.tier)})" : "")),
+                        EditorStyles.miniBoldLabel, GUILayout.Width(110));
+                }
+                else if (diffRep.valid)
                 {
                     GUI.contentColor = LevelDifficultyReport.TierColor(diffRep.tier);
                     EditorGUILayout.LabelField($"{LevelDifficultyReport.TierLabel(diffRep.tier)} ({Mathf.RoundToInt(diffRep.score)})", EditorStyles.miniBoldLabel, GUILayout.Width(110));
@@ -1086,6 +1094,58 @@ namespace PixelGame.Editor
 
         #region TAB 0: LEVEL SETUP & GRID
 
+        private static readonly GUIContent[] s_DifficultyOptions =
+        {
+            new GUIContent("Otomatik (analiz)"), new GUIContent("🟢 Kolay"), new GUIContent("🟡 Orta"), new GUIContent("🔴 Zor")
+        };
+
+        /// <summary>
+        /// Zorluk kademesi: "Otomatik" iken analiz karar verir; Kolay / Orta / Zor seçilirse kademe kilitlenir
+        /// ve hiçbir otomatik atama (derleme sonrası senkron, sahnede inşa, toplu atama) onu ezmez.
+        /// </summary>
+        private void DrawDifficultyOverrideField()
+        {
+            var diffRep = LevelDifficultyReport.GetCached(m_SelectedLevel);
+            int current = m_SelectedLevel.DifficultyIsManual ? 1 + (int)m_SelectedLevel.DifficultyTier : 0;
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUI.BeginChangeCheck();
+            int chosen = EditorGUILayout.Popup(new GUIContent("Zorluk",
+                "Otomatik: zorluk analizi karar verir. Kolay / Orta / Zor: senin seçimin geçerli olur, analiz değiştirmez. " +
+                "Oyunda yalnızca Zor kademesi 'HARD' rozetini ve afişini gösterir."), current, s_DifficultyOptions);
+            if (EditorGUI.EndChangeCheck() && chosen != current)
+            {
+                Undo.RecordObject(m_SelectedLevel, "Zorluk Kademesi");
+                if (chosen == 0)
+                {
+                    m_SelectedLevel.DifficultyIsManual = false;
+                    if (diffRep.valid) m_SelectedLevel.DifficultyTier = (LevelDifficultyTier)(int)diffRep.tier;
+                }
+                else
+                {
+                    m_SelectedLevel.DifficultyIsManual = true;
+                    m_SelectedLevel.DifficultyTier = (LevelDifficultyTier)(chosen - 1);
+                }
+                EditorUtility.SetDirty(m_SelectedLevel);
+                AssetDatabase.SaveAssets();
+                RefreshHudDifficulty();
+            }
+
+            GUIStyle hint = new GUIStyle(EditorStyles.miniLabel) { normal = { textColor = Color.gray } };
+            string analysis = diffRep.valid ? $"Analiz: {LevelDifficultyReport.TierLabel(diffRep.tier)} ({Mathf.RoundToInt(diffRep.score)})" : "Analiz: —";
+            EditorGUILayout.LabelField(analysis, hint, GUILayout.Width(150));
+            EditorGUILayout.EndHorizontal();
+        }
+
+        /// <summary>Sahnede açık bölüm buysa HUD'daki HARD rozetini yeni kademeye göre günceller.</summary>
+        private void RefreshHudDifficulty()
+        {
+            PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (gen == null || gen.ActiveLevelData != m_SelectedLevel) return;
+            CasualHudController hud = Object.FindFirstObjectByType<CasualHudController>();
+            if (hud != null) hud.SetLevel(m_SelectedLevel.LevelIndex, m_SelectedLevel.IsHardLevel);
+        }
+
         private void DrawLevelSetupTab()
         {
             // 1. Temel Bilgiler
@@ -1093,6 +1153,7 @@ namespace PixelGame.Editor
             EditorGUILayout.LabelField("📋 Genel Bilgiler", EditorStyles.boldLabel);
             m_SelectedLevel.LevelName = EditorGUILayout.TextField("Level Adı", m_SelectedLevel.LevelName);
             m_SelectedLevel.LevelIndex = EditorGUILayout.IntField("Level Numarası", m_SelectedLevel.LevelIndex);
+            DrawDifficultyOverrideField();
             EditorGUI.BeginChangeCheck();
             bool disableTurbo = EditorGUILayout.Toggle(
                 new GUIContent("2X Hızlanmayı Kapat", "Açıksa bu bölümde oyun sonundaki otomatik yerleştirme ve 2X hızlanma çalışmaz."),
@@ -1309,7 +1370,14 @@ namespace PixelGame.Editor
             EditorGUILayout.LabelField($"Slot: {m_SelectedLevel.SlotCount}", EditorStyles.boldLabel, GUILayout.Width(145));
             EditorGUILayout.LabelField($"Vagon: ~{reqWagons}", EditorStyles.boldLabel, GUILayout.Width(95));
 
-            if (diffRep.valid)
+            if (m_SelectedLevel.DifficultyIsManual)
+            {
+                var manualTier = LevelDifficultyReport.EffectiveTier(m_SelectedLevel, diffRep);
+                GUI.contentColor = LevelDifficultyReport.TierColor(manualTier);
+                EditorGUILayout.LabelField($"Zorluk: {LevelDifficultyReport.TierLabel(manualTier)} ✎ elle", EditorStyles.boldLabel);
+                GUI.contentColor = Color.white;
+            }
+            else if (diffRep.valid)
             {
                 GUI.contentColor = LevelDifficultyReport.TierColor(diffRep.tier);
                 EditorGUILayout.LabelField($"Zorluk: {LevelDifficultyReport.TierLabel(diffRep.tier)} ({Mathf.RoundToInt(diffRep.score)}/100)", EditorStyles.boldLabel);
@@ -4443,7 +4511,7 @@ namespace PixelGame.Editor
             {
                 var ra = LevelDifficultyReport.GetCached(a);
                 var rb = LevelDifficultyReport.GetCached(b);
-                int byTier = ((int)ra.tier).CompareTo((int)rb.tier);
+                int byTier = ((int)LevelDifficultyReport.EffectiveTier(a, ra)).CompareTo((int)LevelDifficultyReport.EffectiveTier(b, rb));
                 return byTier != 0 ? byTier : ra.score.CompareTo(rb.score);
             });
 
@@ -4457,11 +4525,12 @@ namespace PixelGame.Editor
         /// </summary>
         private void AssignDifficultyTiersFromAnalysis()
         {
-            int kolay = 0, orta = 0, zor = 0, atlanan = 0;
+            int kolay = 0, orta = 0, zor = 0, atlanan = 0, elle = 0;
 
             foreach (var lvl in m_AllLevels)
             {
                 if (lvl == null) continue;
+                if (lvl.DifficultyIsManual) { elle++; continue; }   // elle seçilen kademe korunur
 
                 var r = LevelDifficultyReport.Compute(lvl);
                 if (!r.valid)
@@ -4496,12 +4565,14 @@ namespace PixelGame.Editor
 
             Debug.Log($"<color=#00FFAA><b>[LevelDesigner]</b></color> Zorluk kademeleri analizden atandı — " +
                       $"🟢 Kolay: {kolay} · 🟡 Orta: {orta} · 🔴 Zor: {zor}" +
-                      (atlanan > 0 ? $" · ⚪ atlanan (geçersiz analiz): {atlanan}" : ""));
+                      (atlanan > 0 ? $" · ⚪ atlanan (geçersiz analiz): {atlanan}" : "") +
+                      (elle > 0 ? $" · ✎ elle seçilmiş (dokunulmadı): {elle}" : ""));
 
             EditorUtility.DisplayDialog(
                 "Kademeler Atandı",
                 $"🟢 Kolay: {kolay}\n🟡 Orta: {orta}\n🔴 Zor: {zor}" +
-                (atlanan > 0 ? $"\n⚪ Atlanan (görsel analiz edilemedi): {atlanan}" : ""),
+                (atlanan > 0 ? $"\n⚪ Atlanan (görsel analiz edilemedi): {atlanan}" : "") +
+                (elle > 0 ? $"\n✎ Elle seçilmiş, dokunulmadı: {elle}" : ""),
                 "Tamam");
         }
 
@@ -4645,7 +4716,7 @@ namespace PixelGame.Editor
 
                 // Zorluk kademesini analiz raporuyla senkronize et
                 var rep = LevelDifficultyReport.GetCached(m_SelectedLevel);
-                if (rep != null && rep.valid)
+                if (rep != null && rep.valid && !m_SelectedLevel.DifficultyIsManual)
                 {
                     LevelDifficultyTier tier = rep.tier == LevelDifficultyReport.Tier.Zor ? LevelDifficultyTier.Zor :
                                                rep.tier == LevelDifficultyReport.Tier.Orta ? LevelDifficultyTier.Orta : LevelDifficultyTier.Kolay;

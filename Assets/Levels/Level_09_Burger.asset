@@ -15,6 +15,7 @@ MonoBehaviour:
   m_LevelName: Burger
   m_LevelIndex: 8
   m_DifficultyTier: 1
+  m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: 85ff01fff55983161866fe0f3a251112, type: 3}
   m_OriginalSourceTexture: {fileID: 2800000, guid: 8771a6815f3eee83fa697cbf463772a9, type: 3}

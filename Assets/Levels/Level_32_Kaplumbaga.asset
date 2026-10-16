@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Level_32_Kaplumbaga
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: "Kaplumba\u011Fa"
-  m_LevelIndex: 5
-  m_DifficultyTier: 0
+  m_LevelIndex: 6
+  m_DifficultyTier: 1
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: 5da63950986175ee996d0697cfcd2dc3, type: 3}
   m_OriginalSourceTexture: {fileID: 0}

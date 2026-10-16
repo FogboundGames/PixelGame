@@ -16,6 +16,13 @@ namespace PixelGame
 
         private const string ProgressPrefKey = "PixelGame_CurrentLevelIndex";
 
+        // Güncellemede herkesin ilerlemesini sıfırlamak için bu sayıyı bir artır. Cihazda kayıtlı sürüm
+        // daha eskiyse oyuncu bir kerelik 1. bölümden başlar ve 2X süresi ilk kurulumdaki tam süreye döner
+        // (ses, titreşim, coin vb. ayarlar korunur).
+        // 1: level sırası ve kuyrukları yeniden düzenlendi (2026-10-17).
+        private const int ProgressResetVersion = 1;
+        private const string ProgressVersionPrefKey = "PixelGame_ProgressVersion";
+
         [Header("📋 Bölüm Sırası (Tek Doğruluk Kaynağı)")]
         [Tooltip("Atanmışsa bölüm sırası için tek doğruluk kaynağıdır: Level Designer bunu günceller, " +
                  "buradaki liste her yenilemede (Awake/RefreshFromSequence) bu asset'ten yeniden doldurulur.")]
@@ -70,6 +77,23 @@ namespace PixelGame
             }
             RefreshFromSequence();
             EnsureGenerator();
+        }
+
+        /// <summary>
+        /// Kayıtlı ilerleme sürümü ProgressResetVersion'dan eskiyse bölüm ilerlemesini ve 2X süresini bir kez siler.
+        /// Sahne yüklenmeden çalışır ki HUD 2X süresini eski kayıttan okumasın.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void ApplyProgressResetIfNeeded()
+        {
+            if (PlayerPrefs.GetInt(ProgressVersionPrefKey, 0) >= ProgressResetVersion) return;
+
+            PlayerPrefs.DeleteKey(ProgressPrefKey);
+            PlayerPrefs.DeleteKey(CasualHudController.Speed2xRemainingPrefKey);
+            PlayerPrefs.DeleteKey(CasualHudController.Speed2xInitializedPrefKey);
+            PlayerPrefs.SetInt(ProgressVersionPrefKey, ProgressResetVersion);
+            PlayerPrefs.Save();
+            Debug.Log($"<color=#00FFAA><b>[LevelManager]</b></color> İlerleme sürümü {ProgressResetVersion}: bölüm ilerlemesi ve 2X süresi sıfırlandı.");
         }
 
         private void Start()

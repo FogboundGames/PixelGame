@@ -41,6 +41,13 @@ namespace PixelGame.Editor
         }
 
         public static string TierLabel(Tier t) => t == Tier.Kolay ? "🟢 Kolay" : t == Tier.Orta ? "🟡 Orta" : "🔴 Zor";
+        /// <summary>Bölümde geçerli kademe: elle seçildiyse o, değilse analiz sonucu.</summary>
+        public static Tier EffectiveTier(PixelLevelData level, Result rep)
+        {
+            if (level != null && level.DifficultyIsManual) return (Tier)(int)level.DifficultyTier;
+            return rep != null ? rep.tier : Tier.Kolay;
+        }
+
         public static Color TierColor(Tier t) => t == Tier.Kolay ? new Color(0.3f, 0.95f, 0.45f) : t == Tier.Orta ? new Color(0.95f, 0.85f, 0.25f) : new Color(1f, 0.45f, 0.35f);
 
         // Liste ve tablolar her çizimde resim okumasın: bölüm değişmedikçe sonuç önbellekten

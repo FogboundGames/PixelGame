@@ -233,6 +233,9 @@ namespace PixelGame
                  "Zor kademesindeyse üst barda tavşanın yanında 'HARD' rozeti görünür.")]
         [SerializeField] private LevelDifficultyTier m_DifficultyTier = LevelDifficultyTier.Kolay;
 
+        [Tooltip("Açıksa zorluk kademesi elle seçilmiştir: analiz (LevelDifficultyReport) bu bölümün kademesini değiştirmez.")]
+        [SerializeField] private bool m_DifficultyManual = false;
+
         /// <summary>Eski m_IsHardLevel bool'unun kademe alanına taşınması için; taşındıktan sonra false kalır.</summary>
         [HideInInspector, SerializeField, UnityEngine.Serialization.FormerlySerializedAs("m_IsHardLevel")]
         private bool m_LegacyIsHardLevel = false;
@@ -392,6 +395,9 @@ namespace PixelGame
         /// <summary>Zorluk kademesi (Kolay / Orta / Zor). Analizden atanır; HUD rozeti bunu kullanır.</summary>
         public LevelDifficultyTier DifficultyTier { get => m_DifficultyTier; set => m_DifficultyTier = value; }
 
+        /// <summary>Kademe Level Designer'da elle seçildiyse true; o zaman analiz kademeyi ezmez.</summary>
+        public bool DifficultyIsManual { get => m_DifficultyManual; set => m_DifficultyManual = value; }
+
         /// <summary>
         /// Zor seviye mi: serialized kademe Zor ise VEYA Level Designer analizinde (LevelDifficultyReport)
         /// Zor olarak nitelendirilen bir bölümse daima true döner.
@@ -409,6 +415,7 @@ namespace PixelGame
             get
             {
                 if (m_DifficultyTier == LevelDifficultyTier.Zor) return true;
+                if (m_DifficultyManual) return false;
 #if UNITY_EDITOR
                 try
                 {
@@ -436,7 +443,7 @@ namespace PixelGame
 #if UNITY_EDITOR
             try
             {
-                LevelDifficultyTier? analyzed = EditorAnalyzedTier != null ? EditorAnalyzedTier(this) : null;
+                LevelDifficultyTier? analyzed = !m_DifficultyManual && EditorAnalyzedTier != null ? EditorAnalyzedTier(this) : null;
                 if (analyzed.HasValue)
                 {
                     LevelDifficultyTier analyzedTier = analyzed.Value;

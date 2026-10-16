@@ -25,7 +25,7 @@ namespace PixelGame.Editor
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 var level = AssetDatabase.LoadAssetAtPath<PixelLevelData>(path);
-                if (level == null) continue;
+                if (level == null || level.DifficultyIsManual) continue;
 
                 var rep = LevelDifficultyReport.Compute(level);
                 if (!rep.valid) continue;

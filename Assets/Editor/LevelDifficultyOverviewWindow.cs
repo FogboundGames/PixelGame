@@ -70,9 +70,9 @@ namespace PixelGame.Editor
                 return;
             }
 
-            int kolay = m_Rows.Count(r => r.rep != null && r.rep.valid && r.rep.tier == LevelDifficultyReport.Tier.Kolay);
-            int orta = m_Rows.Count(r => r.rep != null && r.rep.valid && r.rep.tier == LevelDifficultyReport.Tier.Orta);
-            int zor = m_Rows.Count(r => r.rep != null && r.rep.valid && r.rep.tier == LevelDifficultyReport.Tier.Zor);
+            int kolay = m_Rows.Count(r => r.rep != null && r.rep.valid && LevelDifficultyReport.EffectiveTier(r.level, r.rep) == LevelDifficultyReport.Tier.Kolay);
+            int orta = m_Rows.Count(r => r.rep != null && r.rep.valid && LevelDifficultyReport.EffectiveTier(r.level, r.rep) == LevelDifficultyReport.Tier.Orta);
+            int zor = m_Rows.Count(r => r.rep != null && r.rep.valid && LevelDifficultyReport.EffectiveTier(r.level, r.rep) == LevelDifficultyReport.Tier.Zor);
             EditorGUILayout.LabelField($"🟢 {kolay} Kolay · 🟡 {orta} Orta · 🔴 {zor} Zor", EditorStyles.miniBoldLabel);
 
             string[] heads = { "#", "Bölüm", "Kademe", "Puan", "Baskın renk", "Etkin renk", "Bölge (ort.)", "Başta açık", "Gömülü renk", "Gemi", "Slot", "🎲 Kayıp", "🧠 Kayıp" };
@@ -97,19 +97,20 @@ namespace PixelGame.Editor
                     continue;
                 }
                 var rep = r.rep;
-                bool dip = prevTier.HasValue && rep.tier < prevTier.Value;   // zordan sonra daha kolay geliyor
-                prevTier = rep.tier;
+                var tier = LevelDifficultyReport.EffectiveTier(r.level, rep);   // elle seçildiyse o
+                bool dip = prevTier.HasValue && tier < prevTier.Value;   // zordan sonra daha kolay geliyor
+                prevTier = tier;
 
                 var cells = new[]
                 {
-                    (r.index + 1).ToString(), r.level.name, LevelDifficultyReport.TierLabel(rep.tier), $"{rep.score:0}",
+                    (r.index + 1).ToString(), r.level.name, LevelDifficultyReport.TierLabel(tier) + (r.level.DifficultyIsManual ? " ✎" : ""), $"{rep.score:0}",
                     $"%{rep.dominantShare * 100f:0}", $"{rep.effectiveColors:0.0}/{rep.colorCount}", $"{rep.regionCount} ({rep.avgRegionSize:0})",
                     $"%{rep.exposedShare * 100f:0}", rep.buriedColors.ToString(), r.ships.ToString(), r.slots.ToString(), r.randomFail, r.smartFail
                 };
                 for (int i = 0; i < cells.Length; i++)
                 {
                     var st = EditorStyles.label;
-                    if (i == 2) st = Colored(dip ? new Color(0.6f, 0.8f, 1f) : LevelDifficultyReport.TierColor(rep.tier));
+                    if (i == 2) st = Colored(dip ? new Color(0.6f, 0.8f, 1f) : LevelDifficultyReport.TierColor(tier));
                     if (i == 4 && rep.dominantShare >= 0.45f) st = Colored(new Color(1f, 0.6f, 0.35f));
                     if (i == 12 && r.smartFail != "-" && !r.smartFail.StartsWith("%0")) st = Colored(new Color(1f, 0.45f, 0.4f));
                     if (i == 1)
