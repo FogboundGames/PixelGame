@@ -22,7 +22,6 @@ namespace PixelGame
     /// 🔊 Tatmin edici hiper-kaliteli prosedürel ses efektleri (Melodik küp dizilimi, su bloop, iskele kütüğü, gemi düdüğü)
     /// 📳 Mobil cihazlar için hafif, tatlı dokunsal titreşim (Light & Medium haptics)
     /// </summary>
-    [ExecuteAlways]
     [DisallowMultipleComponent]
     [AddComponentMenu("PixelGame/Hypercasual Feedback Manager")]
     public class HypercasualFeedbackManager : MonoBehaviour
@@ -54,13 +53,21 @@ namespace PixelGame
 
         [Header("🔊 Ses Ayarları")]
         [SerializeField] private bool m_EnableSound = true;
-        [Range(0f, 1f)] [SerializeField] private float m_MasterVolume = 0.75f;
+        [Range(0f, 1f)] [SerializeField] private float m_MasterVolume = 0.90f;
+
+        public bool EnableSound
+        {
+            get => m_EnableSound && (CasualHudController.Instance == null || CasualHudController.Instance.SoundEnabled);
+            set => m_EnableSound = value;
+        }
+
+        public bool IsSoundActive => m_EnableSound && (CasualHudController.Instance == null || CasualHudController.Instance.SoundEnabled);
 
         [Header("🚢 Gemiye Binme Sesi (Boarding Sound FX)")]
         [Tooltip("Küpler gemiye binerken çalacak ses tınısı tarzı.")]
         [SerializeField] private BoardingSoundStyle m_BoardingSoundStyle = BoardingSoundStyle.WarmWoodMarimba;
-        [Tooltip("Gemiye binme sesinin temel ses seviyesi (önceki 0.82 yerine daha yumuşak ve dengeli).")]
-        [Range(0.05f, 1f)] [SerializeField] private float m_BoardingVolume = 0.40f;
+        [Tooltip("Gemiye binme sesinin temel ses seviyesi (tok, melodik ve net duyulabilir).")]
+        [Range(0.05f, 1f)] [SerializeField] private float m_BoardingVolume = 0.75f;
         [Tooltip("Aynı anda çok sayıda küp bindiğinde seslerin üst üste binip gürültü yapmasını önleyen minimum aralık (sn).")]
         [SerializeField] private float m_MinBoardingSoundInterval = 0.038f;
         [Tooltip("Hızlı küp akışında seslerin ses seviyesini dinamik olarak dengeleyen polifoni koruması.")]
@@ -99,6 +106,7 @@ namespace PixelGame
         private AudioClip m_LiftoffClip;
         private AudioClip m_SailClip;
         private AudioClip m_GameLaunchClip;
+        private AudioClip m_ButtonClickClip;
         private int m_ActiveSailingShips = 0;
         private Coroutine m_SailFadeRoutine;
 
@@ -151,33 +159,27 @@ namespace PixelGame
 
         private void InitializeAudio()
         {
-            if (m_ChimeSource == null)
-            {
-                m_ChimeSource = gameObject.AddComponent<AudioSource>();
-                m_ChimeSource.playOnAwake = false;
-                m_ChimeSource.spatialBlend = 0f; // 2D berrak ses
-            }
+            AudioSource[] sources = GetComponents<AudioSource>();
+            if (m_ChimeSource == null) m_ChimeSource = sources.Length > 0 ? sources[0] : gameObject.AddComponent<AudioSource>();
+            if (m_FxSource == null) m_FxSource = sources.Length > 1 ? sources[1] : gameObject.AddComponent<AudioSource>();
+            if (m_LiftoffSource == null) m_LiftoffSource = sources.Length > 2 ? sources[2] : gameObject.AddComponent<AudioSource>();
+            if (m_SailSource == null) m_SailSource = sources.Length > 3 ? sources[3] : gameObject.AddComponent<AudioSource>();
 
-            if (m_FxSource == null)
-            {
-                m_FxSource = gameObject.AddComponent<AudioSource>();
-                m_FxSource.playOnAwake = false;
-                m_FxSource.spatialBlend = 0f;
-            }
+            m_ChimeSource.playOnAwake = false;
+            m_ChimeSource.spatialBlend = 0f; // 2D berrak ses
+            m_FxSource.playOnAwake = false;
+            m_FxSource.spatialBlend = 0f;
+            m_LiftoffSource.playOnAwake = false;
+            m_LiftoffSource.spatialBlend = 0f;
+            m_SailSource.playOnAwake = false;
+            m_SailSource.spatialBlend = 0f;
+            m_SailSource.loop = true;
 
-            if (m_LiftoffSource == null)
+            // Fazlalık AudioSource'ları temizle
+            for (int i = 4; i < sources.Length; i++)
             {
-                m_LiftoffSource = gameObject.AddComponent<AudioSource>();
-                m_LiftoffSource.playOnAwake = false;
-                m_LiftoffSource.spatialBlend = 0f;
-            }
-
-            if (m_SailSource == null)
-            {
-                m_SailSource = gameObject.AddComponent<AudioSource>();
-                m_SailSource.playOnAwake = false;
-                m_SailSource.spatialBlend = 0f;
-                m_SailSource.loop = true;
+                if (Application.isPlaying) Destroy(sources[i]);
+                else DestroyImmediate(sources[i]);
             }
 
             // Seçilen tarza göre küp binme seslerini oluştur (Ahşap Marimba, Su Damlası Bloop, Pastel vb.)
@@ -194,6 +196,7 @@ namespace PixelGame
             if (m_LiftoffClip == null) m_LiftoffClip = CreateProceduralLiftoffClip();
             if (m_SailClip == null) m_SailClip = CreateProceduralSailClip();
             if (m_GameLaunchClip == null) m_GameLaunchClip = CreateProceduralGameLaunchClip();
+            if (m_ButtonClickClip == null) m_ButtonClickClip = CreateProceduralButtonClickClip();
         }
 
         private void OnValidate()
@@ -797,6 +800,32 @@ namespace PixelGame
             return clip;
         }
 
+        /// <summary>
+        /// UI butonlarına tıklandığında çalan tatlı, gevrek ve hafif ahşap/balon klik sesi.
+        /// </summary>
+        private AudioClip CreateProceduralButtonClickClip()
+        {
+            int sampleRate = 44100;
+            float duration = 0.042f; // 42 ms çıtır buton dokunuşu
+            int count = Mathf.CeilToInt(sampleRate * duration);
+            float[] samples = new float[count];
+
+            float phase = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float t = i / (float)sampleRate;
+                float attack = Mathf.Clamp01(t / 0.001f);
+                float freq = Mathf.Lerp(1400f, 480f, t / duration);
+                phase += 2f * Mathf.PI * freq / sampleRate;
+                float env = attack * Mathf.Exp(-t * 90f);
+                samples[i] = Mathf.Clamp(Mathf.Sin(phase) * env * 0.85f, -1f, 1f);
+            }
+
+            AudioClip clip = AudioClip.Create("UI_ButtonClick", count, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
         #endregion
 
         #region ✨ & 💦 Görsel Partikül Sistemleri
@@ -1128,7 +1157,7 @@ namespace PixelGame
             // Titreşim sesten bağımsız: ses klibi yoksa ya da ses kapalıysa da hissedilsin
             if (index <= 0) TriggerHapticLight();
 
-            if (!m_EnableSound || m_ChimeSource == null || m_LiftoffClip == null) return;
+            if (!IsSoundActive) return;
 
             if (index <= 0 || immediate)
             {
@@ -1150,13 +1179,15 @@ namespace PixelGame
         private void PlayLiftoffSound(int index)
         {
             AudioSource src = m_LiftoffSource != null ? m_LiftoffSource : m_ChimeSource;
-            if (src == null || m_LiftoffClip == null) return;
+            if (src == null) return;
+            if (m_LiftoffClip == null) m_LiftoffClip = CreateProceduralLiftoffClip();
+            if (m_LiftoffClip == null) return;
 
             // Her küp için hafif yükselen sevimli pitch skalası (1.0 -> 1.25)
             float pitch = Mathf.Clamp(1.0f + (index % 6) * 0.045f + UnityEngine.Random.Range(-0.015f, 0.015f), 0.95f, 1.35f);
             src.pitch = pitch;
             // Hafif, gevrek ve tatmin edici hypercasual kum kalkış sesi:
-            src.PlayOneShot(m_LiftoffClip, m_MasterVolume * 0.44f);
+            src.PlayOneShot(m_LiftoffClip, m_MasterVolume * 0.65f);
         }
 
         private float m_LastBoardingSoundTime = -1f;
@@ -1178,48 +1209,61 @@ namespace PixelGame
             }
 
             // 2. Melodik Tatmin Edici Ses (🔊 Chime / ShipFull)
-            if (m_EnableSound && m_ChimeSource != null)
+            if (IsSoundActive)
             {
-                float now = Time.time;
-
-                if (isShipFull && m_ShipFullClip != null)
+                AudioSource chimeSrc = m_ChimeSource != null ? m_ChimeSource : m_FxSource;
+                if (chimeSrc != null)
                 {
-                    m_ChimeSource.pitch = 1.0f;
-                    m_ChimeSource.PlayOneShot(m_ShipFullClip, m_MasterVolume * 0.75f);
-                    m_LastBoardingSoundTime = now;
-                    m_RecentBoardingClusterCount = 0;
-                }
-                else if (m_ChimeClips != null && m_ChimeClips.Length > 0)
-                {
-                    // Yoğunluk takip penceresi (son 0.35 saniye içinde kaç küp bindi?)
-                    if (now - m_LastClusterResetTime > 0.35f)
+                    float now = Time.time;
+
+                    if (isShipFull)
                     {
-                        m_RecentBoardingClusterCount = 0;
-                        m_LastClusterResetTime = now;
-                    }
-
-                    // Aşırı yoğun ses yığılmasını ve gürültü patlamasını önleyen mikro-aralık (en az m_MinBoardingSoundInterval)
-                    bool canPlaySound = (now - m_LastBoardingSoundTime) >= m_MinBoardingSoundInterval;
-
-                    if (canPlaySound)
-                    {
-                        m_LastBoardingSoundTime = now;
-                        m_RecentBoardingClusterCount++;
-
-                        // Polifoni / Yoğunluk Sönümleme (Density Damping):
-                        // Çok sayıda küp arka arkaya hızla bindiğinde ses seviyesi kademeli olarak
-                        // %50-%65 bandına sönümlenir; böylece toplam gürültü patlaması yaşanmaz!
-                        float densityDamping = m_EnableBoardingDensityDamping
-                            ? Mathf.Clamp(1.0f - (m_RecentBoardingClusterCount * 0.045f), 0.55f, 1.0f)
-                            : 1.0f;
-
-                        int noteIdx = Mathf.Abs(cargoIndex - 1) % m_ChimeClips.Length;
-                        AudioClip clip = m_ChimeClips[noteIdx];
-                        if (clip != null)
+                        if (m_ShipFullClip == null) m_ShipFullClip = CreateProceduralShipFullClip();
+                        if (m_ShipFullClip != null)
                         {
-                            m_ChimeSource.pitch = UnityEngine.Random.Range(0.99f, 1.01f);
-                            float playVol = m_MasterVolume * m_BoardingVolume * densityDamping;
-                            m_ChimeSource.PlayOneShot(clip, playVol);
+                            chimeSrc.pitch = 1.0f;
+                            chimeSrc.PlayOneShot(m_ShipFullClip, m_MasterVolume * 0.90f);
+                            m_LastBoardingSoundTime = now;
+                            m_RecentBoardingClusterCount = 0;
+                        }
+                    }
+                    else
+                    {
+                        if (m_ChimeClips == null || m_ChimeClips.Length == 0 || System.Array.Exists(m_ChimeClips, c => c == null))
+                        {
+                            RegenerateBoardingClips();
+                        }
+
+                        if (m_ChimeClips != null && m_ChimeClips.Length > 0)
+                        {
+                            // Yoğunluk takip penceresi (son 0.35 saniye içinde kaç küp bindi?)
+                            if (now - m_LastClusterResetTime > 0.35f)
+                            {
+                                m_RecentBoardingClusterCount = 0;
+                                m_LastClusterResetTime = now;
+                            }
+
+                            // Aşırı yoğun ses yığılmasını ve gürültü patlamasını önleyen mikro-aralık
+                            bool canPlaySound = (now - m_LastBoardingSoundTime) >= m_MinBoardingSoundInterval;
+
+                            if (canPlaySound)
+                            {
+                                m_LastBoardingSoundTime = now;
+                                m_RecentBoardingClusterCount++;
+
+                                float densityDamping = m_EnableBoardingDensityDamping
+                                    ? Mathf.Clamp(1.0f - (m_RecentBoardingClusterCount * 0.025f), 0.70f, 1.0f)
+                                    : 1.0f;
+
+                                int noteIdx = Mathf.Abs(cargoIndex - 1) % m_ChimeClips.Length;
+                                AudioClip clip = m_ChimeClips[noteIdx];
+                                if (clip != null)
+                                {
+                                    chimeSrc.pitch = UnityEngine.Random.Range(0.99f, 1.01f);
+                                    float playVol = m_MasterVolume * m_BoardingVolume * densityDamping;
+                                    chimeSrc.PlayOneShot(clip, playVol);
+                                }
+                            }
                         }
                     }
                 }
@@ -1243,7 +1287,9 @@ namespace PixelGame
         public void StartShipSailSound(Vector3 position)
         {
             m_ActiveSailingShips++;
-            if (!m_EnableSound || m_SailSource == null || m_SailClip == null) return;
+            if (!IsSoundActive || m_SailSource == null) return;
+            if (m_SailClip == null) m_SailClip = CreateProceduralSailClip();
+            if (m_SailClip == null) return;
 
             if (m_SailFadeRoutine != null)
             {
@@ -1259,7 +1305,7 @@ namespace PixelGame
                 m_SailSource.pitch = UnityEngine.Random.Range(0.98f, 1.02f);
                 m_SailSource.Play();
             }
-            m_SailFadeRoutine = StartCoroutine(FadeSailSource(m_MasterVolume * 0.35f, 0.05f, false));
+            m_SailFadeRoutine = StartCoroutine(FadeSailSource(m_MasterVolume * 0.45f, 0.05f, false));
         }
 
         /// <summary>
@@ -1339,10 +1385,14 @@ namespace PixelGame
             }
 
             // 2. Tok İskele Kilit Darbesi Sesi (🔊 Dock Snap & Thud)
-            if (m_EnableSound && m_FxSource != null && m_DockClip != null)
+            if (IsSoundActive && m_FxSource != null)
             {
-                m_FxSource.pitch = UnityEngine.Random.Range(0.97f, 1.03f);
-                m_FxSource.PlayOneShot(m_DockClip, m_MasterVolume * 0.95f);
+                if (m_DockClip == null) m_DockClip = CreateProceduralDockClip();
+                if (m_DockClip != null)
+                {
+                    m_FxSource.pitch = UnityEngine.Random.Range(0.97f, 1.03f);
+                    m_FxSource.PlayOneShot(m_DockClip, m_MasterVolume * 0.95f);
+                }
             }
 
             // 3. Orta Titreşim (📳 Medium Haptic)
@@ -1356,9 +1406,14 @@ namespace PixelGame
         /// </summary>
         public void PlayShipDepartFeedback(Vector3 position)
         {
-            if (m_EnableSound && m_FxSource != null && m_DepartClip != null)
+            if (IsSoundActive && m_FxSource != null)
             {
-                m_FxSource.PlayOneShot(m_DepartClip, m_MasterVolume * 0.90f);
+                if (m_DepartClip == null) m_DepartClip = CreateProceduralDepartClip();
+                if (m_DepartClip != null)
+                {
+                    m_FxSource.pitch = UnityEngine.Random.Range(0.98f, 1.02f);
+                    m_FxSource.PlayOneShot(m_DepartClip, m_MasterVolume * 0.95f);
+                }
             }
 
             TriggerHapticMedium();
@@ -1369,9 +1424,14 @@ namespace PixelGame
         /// </summary>
         public void PlayDenialFeedback()
         {
-            if (m_EnableSound && m_FxSource != null && m_DenialClip != null)
+            if (IsSoundActive && m_FxSource != null)
             {
-                m_FxSource.PlayOneShot(m_DenialClip, m_MasterVolume * 0.75f);
+                if (m_DenialClip == null) m_DenialClip = CreateProceduralDenialClip();
+                if (m_DenialClip != null)
+                {
+                    m_FxSource.pitch = UnityEngine.Random.Range(0.98f, 1.02f);
+                    m_FxSource.PlayOneShot(m_DenialClip, m_MasterVolume * 0.85f);
+                }
             }
 
             TriggerHapticWarning();
@@ -1382,21 +1442,39 @@ namespace PixelGame
         /// </summary>
         public void PlayGameLaunchFeedback()
         {
-            if (!m_EnableSound || s_LaunchSoundPlayed) return;
+            if (!IsSoundActive || s_LaunchSoundPlayed) return;
             s_LaunchSoundPlayed = true;
 
-            if (m_FxSource != null && m_GameLaunchClip != null)
+            AudioSource src = m_FxSource != null ? m_FxSource : m_ChimeSource;
+            if (src != null)
             {
-                m_FxSource.pitch = 1.0f;
-                m_FxSource.PlayOneShot(m_GameLaunchClip, m_MasterVolume * 0.95f);
-            }
-            else if (m_ChimeSource != null && m_GameLaunchClip != null)
-            {
-                m_ChimeSource.pitch = 1.0f;
-                m_ChimeSource.PlayOneShot(m_GameLaunchClip, m_MasterVolume * 0.95f);
+                if (m_GameLaunchClip == null) m_GameLaunchClip = CreateProceduralGameLaunchClip();
+                if (m_GameLaunchClip != null)
+                {
+                    src.pitch = 1.0f;
+                    src.PlayOneShot(m_GameLaunchClip, m_MasterVolume * 0.95f);
+                }
             }
 
             TriggerHapticMedium();
+        }
+
+        /// <summary>
+        /// UI butonlarına tıklandığında hafif, tatlı ve çıtır dokunma sesi verir.
+        /// </summary>
+        public void PlayButtonClickFeedback()
+        {
+            if (!IsSoundActive) return;
+            AudioSource src = m_FxSource != null ? m_FxSource : m_ChimeSource;
+            if (src != null)
+            {
+                if (m_ButtonClickClip == null) m_ButtonClickClip = CreateProceduralButtonClickClip();
+                if (m_ButtonClickClip != null)
+                {
+                    src.pitch = UnityEngine.Random.Range(0.96f, 1.04f);
+                    src.PlayOneShot(m_ButtonClickClip, m_MasterVolume * 0.80f);
+                }
+            }
         }
 
         private void SpawnSparkles(Vector3 pos, Color tint, int count)

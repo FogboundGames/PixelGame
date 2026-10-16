@@ -15,6 +15,13 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 		[TCP2ColorNoAlpha] _HColor ("Highlight Color", Color) = (0.75,0.75,0.75,1)
 		[TCP2ColorNoAlpha] _SColor ("Shadow Color", Color) = (0.2,0.2,0.2,1)
 		[MainTexture] _BaseMap ("Albedo", 2D) = "white" {}
+		[HDR] _EmissionColor ("Emission Color", Color) = (0,0,0,0)
+		[TCP2Separator]
+
+		[TCP2Header(GPU Procedural Animation)]
+		_WobblePhase ("Wobble Phase", Float) = 0
+		_WobbleAmount ("Wobble Amount", Range(0, 1)) = 0
+		_SquashAmount ("Squash Amount", Range(-0.5, 0.5)) = 0
 		[TCP2Separator]
 
 		[TCP2Header(Ramp Shading)]
@@ -106,6 +113,7 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 			// Shader Properties
 			float4 _BaseMap_ST;
 			fixed4 _BaseColor;
+			fixed4 _EmissionColor;
 			fixed4 _MatCapColor;
 			float _RampThreshold;
 			float _RampSmoothing;
@@ -130,7 +138,47 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 			float _ProceduralBevelWidth;
 			float _ProceduralBevelIntensity;
 			float _ProceduralBevelUVMargin;
+			float _WobblePhase;
+			float _WobbleAmount;
+			float _SquashAmount;
 		CBUFFER_END
+
+		#if defined(UNITY_INSTANCING_ENABLED) || defined(UNITY_PROCEDURAL_INSTANCING_ENABLED) || defined(UNITY_STEREO_INSTANCING_ENABLED)
+			UNITY_INSTANCING_BUFFER_START(Props)
+				UNITY_DEFINE_INSTANCED_PROP(float4, _BaseColor)
+				UNITY_DEFINE_INSTANCED_PROP(float4, _EmissionColor)
+				UNITY_DEFINE_INSTANCED_PROP(float, _WobblePhase)
+				UNITY_DEFINE_INSTANCED_PROP(float, _WobbleAmount)
+				UNITY_DEFINE_INSTANCED_PROP(float, _SquashAmount)
+			UNITY_INSTANCING_BUFFER_END(Props)
+			#define GET_INSTANCED_PROP(prop) UNITY_ACCESS_INSTANCED_PROP(Props, prop)
+		#else
+			#define GET_INSTANCED_PROP(prop) prop
+		#endif
+
+		// Procedural GPU Vertex Animation (Pillar 1)
+		inline float3 ApplyProceduralWobble(float3 positionOS, float wobblePhase, float wobbleAmount, float squashAmount)
+		{
+			if (wobbleAmount <= 0.0001 && abs(squashAmount) <= 0.0001)
+				return positionOS;
+
+			float t = _Time.y * 6.5 + wobblePhase;
+			float height = saturate(positionOS.y + 0.5);
+			
+			float swayX = sin(t) * wobbleAmount * 0.08 * height;
+			float swayZ = cos(t * 0.85) * wobbleAmount * 0.08 * height;
+			
+			float dynamicSquash = squashAmount + sin(t * 2.0) * wobbleAmount * 0.04;
+			float scaleY = max(0.1, 1.0 + dynamicSquash);
+			float scaleXZ = 1.0 / sqrt(scaleY);
+			
+			float3 outPos = positionOS;
+			outPos.y = (outPos.y + 0.5) * scaleY - 0.5;
+			outPos.x = outPos.x * scaleXZ + swayX;
+			outPos.z = outPos.z * scaleXZ + swayZ;
+			
+			return outPos;
+		}
 
 		#include "PixelGamePlastic.hlsl"
 
@@ -245,16 +293,21 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 				UNITY_TRANSFER_INSTANCE_ID(input, output);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 
+				float wobblePhase = GET_INSTANCED_PROP(_WobblePhase);
+				float wobbleAmount = GET_INSTANCED_PROP(_WobbleAmount);
+				float squashAmount = GET_INSTANCED_PROP(_SquashAmount);
+				float3 animatedVertex = ApplyProceduralWobble(input.vertex.xyz, wobblePhase, wobbleAmount, squashAmount);
+
 				// Texture Coordinates
 				output.pack0.xy.xy = input.texcoord0.xy * _BaseMap_ST.xy + _BaseMap_ST.zw;
 
-				float3 worldPos = mul(UNITY_MATRIX_M, input.vertex).xyz;
-				VertexPositionInputs vertexInput = GetVertexPositionInputs(input.vertex.xyz);
+				float3 worldPos = mul(UNITY_MATRIX_M, float4(animatedVertex, 1.0)).xyz;
+				VertexPositionInputs vertexInput = GetVertexPositionInputs(animatedVertex);
 			#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
 				output.shadowCoord = GetShadowCoord(vertexInput);
 			#endif
 
-				float3 meshNormal = ApplyPlasticPillowNormal(input.vertex.xyz, input.normal, _PillowRoundness);
+				float3 meshNormal = ApplyPlasticPillowNormal(animatedVertex, input.normal, _PillowRoundness);
 				VertexNormalInputs vertexNormalInput = GetVertexNormalInputs(meshNormal);
 			#ifdef _ADDITIONAL_LIGHTS_VERTEX
 				// Vertex lighting
@@ -291,7 +344,7 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 
 				// Shader Properties Sampling
 				float4 __albedo = ( TCP2_TEX2D_SAMPLE(_BaseMap, _BaseMap, input.pack0.xy).rgba );
-				float4 __mainColor = ( _BaseColor.rgba );
+				float4 __mainColor = ( GET_INSTANCED_PROP(_BaseColor).rgba );
 				float __alpha = ( __albedo.a * __mainColor.a );
 				float __ambientIntensity = ( 1.0 );
 				float3 __matcapColor = ( _MatCapColor.rgb );
@@ -313,7 +366,7 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 				half3 albedo = __albedo.rgb;
 				half alpha = __alpha;
 
-				half3 emission = half3(0,0,0);
+				half3 emission = GET_INSTANCED_PROP(_EmissionColor).rgb;
 				
 				albedo *= __mainColor.rgb;
 
@@ -594,9 +647,9 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 			#endif
 			};
 
-			float4 GetShadowPositionHClip(Attributes input)
+			float4 GetShadowPositionHClip(Attributes input, float3 animatedPos)
 			{
-				float3 positionWS = TransformObjectToWorld(input.vertex.xyz);
+				float3 positionWS = TransformObjectToWorld(animatedPos);
 				float3 normalWS = TransformObjectToWorldNormal(input.normal);
 
 				#if _CASTING_PUNCTUAL_LIGHT_SHADOW
@@ -620,27 +673,33 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 				Varyings output = (Varyings)0;
 				UNITY_SETUP_INSTANCE_ID(input);
 				#if defined(DEPTH_ONLY_PASS)
+					UNITY_TRANSFER_INSTANCE_ID(input, output);
 					UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 				#endif
+
+				float wobblePhase = GET_INSTANCED_PROP(_WobblePhase);
+				float wobbleAmount = GET_INSTANCED_PROP(_WobbleAmount);
+				float squashAmount = GET_INSTANCED_PROP(_SquashAmount);
+				float3 animatedPos = ApplyProceduralWobble(input.vertex.xyz, wobblePhase, wobbleAmount, squashAmount);
 
 				float3 worldNormalUv = mul(UNITY_MATRIX_M, float4(input.normal, 1.0)).xyz;
 
 				// Texture Coordinates
 				output.pack1.xy.xy = input.texcoord0.xy * _BaseMap_ST.xy + _BaseMap_ST.zw;
 
-				float3 worldPos = mul(UNITY_MATRIX_M, input.vertex).xyz;
-				VertexPositionInputs vertexInput = GetVertexPositionInputs(input.vertex.xyz);
+				float3 worldPos = mul(UNITY_MATRIX_M, float4(animatedPos, 1.0)).xyz;
+				VertexPositionInputs vertexInput = GetVertexPositionInputs(animatedPos);
 				output.normal = normalize(worldNormalUv);
 				output.pack0.xyz = vertexInput.positionWS;
 
 				#if defined(DEPTH_ONLY_PASS)
-					output.positionCS = TransformObjectToHClip(input.vertex.xyz);
+					output.positionCS = TransformObjectToHClip(animatedPos);
 					#if defined(DEPTH_NORMALS_PASS)
 						float3 normalWS = TransformObjectToWorldNormal(input.normal);
 						output.normalWS = normalWS; // already normalized in TransformObjectToWorldNormal
 					#endif
 				#elif defined(SHADOW_CASTER_PASS)
-					output.positionCS = GetShadowPositionHClip(input);
+					output.positionCS = GetShadowPositionHClip(input, animatedPos);
 				#else
 					output.positionCS = float4(0,0,0,0);
 				#endif
@@ -660,6 +719,7 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 			) : SV_TARGET
 			{
 				#if defined(DEPTH_ONLY_PASS)
+					UNITY_SETUP_INSTANCE_ID(input);
 					UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 				#endif
 
@@ -668,7 +728,11 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 
 				// Shader Properties Sampling
 				float4 __albedo = ( TCP2_TEX2D_SAMPLE(_BaseMap, _BaseMap, input.pack1.xy).rgba );
+			#if defined(DEPTH_ONLY_PASS) && (defined(UNITY_INSTANCING_ENABLED) || defined(UNITY_PROCEDURAL_INSTANCING_ENABLED) || defined(UNITY_STEREO_INSTANCING_ENABLED))
+				float4 __mainColor = ( GET_INSTANCED_PROP(_BaseColor).rgba );
+			#else
 				float4 __mainColor = ( _BaseColor.rgba );
+			#endif
 				float __alpha = ( __albedo.a * __mainColor.a );
 
 				half3 viewDirWS = GetWorldSpaceNormalizeViewDir(positionWS);

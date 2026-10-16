@@ -58,7 +58,13 @@ namespace PixelGame
 
         [Header("Ses Efekti")]
         [SerializeField] private bool m_EnablePopSound = true;
-        [SerializeField] [Range(0f, 1f)] private float m_SoundVolume = 0.65f;
+        [SerializeField] [Range(0f, 1f)] private float m_SoundVolume = 0.85f;
+
+        public bool EnablePopSound
+        {
+            get => m_EnablePopSound;
+            set => m_EnablePopSound = value;
+        }
 
         private ParticleSystem m_ParticleSystem;
         private AudioSource m_AudioSource;
@@ -87,6 +93,7 @@ namespace PixelGame
         {
             s_Instance = this;
             SetupParticleSystem();
+            SetupAudio();
 
             #if UNITY_EDITOR
             m_LastEditorTime = EditorApplication.timeSinceStartup;
@@ -360,6 +367,11 @@ namespace PixelGame
                 if (!CasualHudController.Instance.SoundEnabled) return;
             }
 
+            if (m_AudioSource == null || m_PopAudioClip == null)
+            {
+                SetupAudio();
+            }
+
             if (!m_EnablePopSound || m_AudioSource == null || m_PopAudioClip == null) return;
 
             // Her tıklamada rastgele ton değişimi (tatmin edici klik)
@@ -374,6 +386,7 @@ namespace PixelGame
         public void PlayGlassShatterSound(float pitch = 1.0f)
         {
             if (CasualHudController.Instance != null && !CasualHudController.Instance.SoundEnabled) return;
+            if (m_AudioSource == null) SetupAudio();
             if (!m_EnablePopSound || m_AudioSource == null) return;
             if (m_GlassShatterClip == null) m_GlassShatterClip = CreateProceduralGlassClip();
             if (m_GlassShatterClip == null) return;

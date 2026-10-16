@@ -240,6 +240,9 @@ namespace PixelGame
         private static readonly int BaseColorProp = Shader.PropertyToID("_BaseColor");
         private static readonly int ColorProp = Shader.PropertyToID("_Color");
         private static readonly int EmissionColorProp = Shader.PropertyToID("_EmissionColor");
+        private static readonly int WobblePhaseProp = Shader.PropertyToID("_WobblePhase");
+        private static readonly int WobbleAmountProp = Shader.PropertyToID("_WobbleAmount");
+        private static readonly int SquashAmountProp = Shader.PropertyToID("_SquashAmount");
         private static readonly int HColorProp = Shader.PropertyToID("_HColor");
         private static readonly int SColorProp = Shader.PropertyToID("_SColor");
         private static readonly int SpecularHighlightsProp = Shader.PropertyToID("_SpecularHighlights");
@@ -250,6 +253,41 @@ namespace PixelGame
         private static readonly int StylizedPlasticOnProp = Shader.PropertyToID("_StylizedPlasticOn");
         private static readonly int PlasticTopLightProp = Shader.PropertyToID("_PlasticTopLight");
         private static readonly int PlasticHighlightIntensityProp = Shader.PropertyToID("_PlasticHighlightIntensity");
+
+        [Header("⚡ GPU Instancing & Vertex Animation (CrowdFlow Optimization)")]
+        [Tooltip("Açıkken tüm küpler tek bir paylaşılan materyal ve GPU Instancing (MaterialPropertyBlock) ile çizilir; Draw Call sayısı yüzlerceden 1-2'ye düşer.")]
+        [SerializeField] private static bool s_UseGpuInstancing = true;
+        public static bool UseGpuInstancing
+        {
+            get => s_UseGpuInstancing;
+            set => s_UseGpuInstancing = value;
+        }
+
+        [Tooltip("GPU Vertex Wobble (Pillar 1): Küpün prosedürel sallanma / nefes alma genliği. 0 ise hareketsiz.")]
+        [SerializeField] private float m_WobbleAmount = 0f;
+        public float WobbleAmount
+        {
+            get => m_WobbleAmount;
+            set
+            {
+                if (Mathf.Approximately(m_WobbleAmount, value)) return;
+                m_WobbleAmount = value;
+                ApplyVisualColor(m_CurrentColor, m_EmissionIntensity);
+            }
+        }
+
+        [Tooltip("GPU Vertex Squash & Stretch: Pozitif değer dikey uzatır, negatif değer basıklaştırır.")]
+        [SerializeField] private float m_SquashAmount = 0f;
+        public float SquashAmount
+        {
+            get => m_SquashAmount;
+            set
+            {
+                if (Mathf.Approximately(m_SquashAmount, value)) return;
+                m_SquashAmount = value;
+                ApplyVisualColor(m_CurrentColor, m_EmissionIntensity);
+            }
+        }
 
         public int CubeId => m_CubeId;
         public CubeAssignmentState AssignmentState => m_AssignmentState;
@@ -412,10 +450,11 @@ namespace PixelGame
             MeshRenderer[] body = GetBodyRenderers();
             if (body == null || body.Length == 0) return;
 
-            if (Application.isPlaying)
+            Color emissionColor = emission > 0f ? color * emission : Color.black;
+
+            if (Application.isPlaying && !s_UseGpuInstancing)
             {
-                // Oyunda renk başına paylaşılan materyal: MPB SRP Batcher'ı bozup her parçayı ayrı draw call yapıyordu
-                Color emissionColor = emission > 0f ? color * emission : Color.black;
+                // Eski mod: renk başına paylaşılan materyal örneği (SRP Batcher)
                 for (int i = 0; i < body.Length; i++)
                 {
                     SharedColorMaterialCache.Apply(body[i], color, emissionColor);
@@ -423,25 +462,38 @@ namespace PixelGame
                 return;
             }
 
+            // ⚡ GPU INSTANCING MODU (CrowdFlow Optimization):
+            // Tüm küpler tek bir materyali (PixelCube_Cartoon) paylaşır; renk, emisyon ve
+            // prosedürel vertex wobble parametreleri MaterialPropertyBlock ile GPU'ya aktarılır.
+            // Bu sayede yüzlerce / binlerce küp 1-2 Draw Call içinde GPU tarafından çizilir.
             if (s_PropertyBlock == null)
                 s_PropertyBlock = new MaterialPropertyBlock();
 
-            s_PropertyBlock.Clear();
-            s_PropertyBlock.SetColor(BaseColorProp, color);
-            s_PropertyBlock.SetColor(ColorProp, color);
-
-            if (emission > 0f)
-            {
-                s_PropertyBlock.SetColor(EmissionColorProp, color * emission);
-            }
-            else
-            {
-                s_PropertyBlock.SetColor(EmissionColorProp, Color.black);
-            }
+            float wobblePhase = (m_GridX * 0.73f + m_GridY * 0.51f + m_CubeId * 0.29f) % (Mathf.PI * 2f);
 
             for (int i = 0; i < body.Length; i++)
             {
-                if (body[i] != null) body[i].SetPropertyBlock(s_PropertyBlock);
+                if (body[i] == null) continue;
+
+                // SharedColorMaterialCache klonu atanmışsa, ana instanced materyale geri döndür:
+                if (Application.isPlaying)
+                {
+                    Material master = SharedColorMaterialCache.ResolveSource(body[i].sharedMaterial);
+                    if (master != null && body[i].sharedMaterial != master)
+                    {
+                        body[i].sharedMaterial = master;
+                    }
+                }
+
+                s_PropertyBlock.Clear();
+                s_PropertyBlock.SetColor(BaseColorProp, color);
+                s_PropertyBlock.SetColor(ColorProp, color);
+                s_PropertyBlock.SetColor(EmissionColorProp, emissionColor);
+                s_PropertyBlock.SetFloat(WobblePhaseProp, wobblePhase);
+                s_PropertyBlock.SetFloat(WobbleAmountProp, m_WobbleAmount);
+                s_PropertyBlock.SetFloat(SquashAmountProp, m_SquashAmount);
+
+                body[i].SetPropertyBlock(s_PropertyBlock);
             }
         }
 

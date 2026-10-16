@@ -22,6 +22,9 @@ namespace PixelGame
         [Tooltip("Bırakılma animasyon süresi (saniye)")]
         [SerializeField] private float m_ReleaseDuration = 0.14f;
 
+        [Tooltip("Butona basıldığında tatlı klik ses efekti çalsın mı")]
+        [SerializeField] private bool m_PlayClickSound = true;
+
         private Vector3 m_OriginalScale;
         private Tween m_CurrentTween;
         private bool m_IsPressed = false;
@@ -43,6 +46,12 @@ namespace PixelGame
         {
             m_IsPressed = true;
             KillTween();
+
+            if (m_PlayClickSound && HypercasualFeedbackManager.Instance != null)
+            {
+                HypercasualFeedbackManager.Instance.PlayButtonClickFeedback();
+            }
+
             Vector3 target = m_OriginalScale * m_PressedScaleMultiplier;
             m_CurrentTween = transform.DOScale(target, m_PressDuration)
                 .SetEase(Ease.OutQuad)

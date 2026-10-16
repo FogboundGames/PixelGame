@@ -84,16 +84,16 @@ namespace PixelGame
         [SerializeField] private GameObject m_HardLevelBannerObj;
         [Tooltip("Afiş görseli (Resources/Text_Banner_HardLevel)")]
         [SerializeField] private Sprite m_HardLevelBannerSprite;
-        [Tooltip("Afiş genişliği (piksel, varsayılan: 1140 - ekranın solundan sağına boydan boya uzanır)")]
-        [SerializeField] private float m_HardBannerWidth = 1140f;
-        [Tooltip("Afiş yüksekliği (piksel, varsayılan: 380 - 3:1 oran)")]
-        [SerializeField] private float m_HardBannerHeight = 380f;
-        [Tooltip("Afiş dikey konumu Y (pasta/resim alt ucu ile iskele arası bant, varsayılan: -150)")]
-        [SerializeField] private float m_HardBannerPosY = -150f;
-        [Tooltip("Afişin ekranda kalma süresi (saniye, varsayılan: 2.8)")]
-        [SerializeField] private float m_HardBannerDuration = 2.8f;
-        [Tooltip("Afişin sahne açıldıktan sonra belirmesi için başlangıç gecikmesi (saniye, varsayılan: 0.15)")]
-        [SerializeField] private float m_HardBannerStartDelay = 0.15f;
+        [Tooltip("Afiş genişliği (piksel, ekranı yatayda tamamen kaplaması için varsayılan: 1180)")]
+        [SerializeField] private float m_HardBannerWidth = 1180f;
+        [Tooltip("Afiş yüksekliği (piksel, varsayılan: 400 - 3:1 oran)")]
+        [SerializeField] private float m_HardBannerHeight = 400f;
+        [Tooltip("Afiş dikey konumu Y (varsayılan: -20, ekranın orta/üst bandına taşındı)")]
+        [SerializeField] private float m_HardBannerPosY = -20f;
+        [Tooltip("Afişin ekranda kalma süresi (saniye, varsayılan: 1.15)")]
+        [SerializeField] private float m_HardBannerDuration = 1.15f;
+        [Tooltip("Afişin sahne açıldıktan sonra belirmesi için başlangıç gecikmesi (saniye, varsayılan: 0.05)")]
+        [SerializeField] private float m_HardBannerStartDelay = 0.05f;
 
         private Sequence m_HardBannerSequence;
         private Coroutine m_HardBannerRoutine;
@@ -121,7 +121,10 @@ namespace PixelGame
         public Sprite HardPillSprite { get => m_HardPillSprite; set => m_HardPillSprite = value; }
         public GameObject HardLevelBannerObj { get => m_HardLevelBannerObj; set => m_HardLevelBannerObj = value; }
         public Sprite HardLevelBannerSprite { get => m_HardLevelBannerSprite; set => m_HardLevelBannerSprite = value; }
+        public float HardBannerWidth { get => m_HardBannerWidth; set { m_HardBannerWidth = value; EnsureHardLevelBanner(); } }
+        public float HardBannerHeight { get => m_HardBannerHeight; set { m_HardBannerHeight = value; EnsureHardLevelBanner(); } }
         public float HardBannerPosY { get => m_HardBannerPosY; set { m_HardBannerPosY = value; EnsureHardLevelBanner(); } }
+        public float HardBannerDuration { get => m_HardBannerDuration; set => m_HardBannerDuration = value; }
 
         public UnityEngine.UI.Image SoundButtonImage { get => m_SoundButtonImage; set => m_SoundButtonImage = value; }
         public Sprite SoundOnSprite { get => m_SoundOnSprite; set => m_SoundOnSprite = value; }
@@ -729,7 +732,7 @@ namespace PixelGame
             }
 
             // 2. Sahne ve kamera otursun diye kısa bir nefes payı
-            yield return new WaitForSecondsRealtime(Mathf.Max(0.08f, m_HardBannerStartDelay));
+            yield return new WaitForSecondsRealtime(Mathf.Max(0.04f, m_HardBannerStartDelay));
 
             EnsureHardLevelBanner();
             if (m_HardLevelBannerObj == null) yield break;
@@ -752,19 +755,21 @@ namespace PixelGame
             m_HardBannerSequence = DOTween.Sequence();
             m_HardBannerSequence.SetUpdate(true);
 
-            // Pop-in (0.35s): 0 -> 1.06x yaylanarak giriş
-            m_HardBannerSequence.Append(cardTr.DOScale(Vector3.one * 1.06f, 0.35f).SetEase(Ease.OutBack, 1.8f));
-            m_HardBannerSequence.Join(cardCg.DOFade(1f, 0.20f));
+            // Pop-in (0.22s): 0 -> 1.05x yaylanarak giriş
+            m_HardBannerSequence.Append(cardTr.DOScale(Vector3.one * 1.05f, 0.22f).SetEase(Ease.OutBack, 1.5f));
+            m_HardBannerSequence.Join(cardCg.DOFade(1f, 0.14f));
 
-            // Normal ölçeğe oturma (0.12s)
-            m_HardBannerSequence.Append(cardTr.DOScale(Vector3.one, 0.12f).SetEase(Ease.InOutSine));
+            // Normal ölçeğe oturma (0.06s)
+            m_HardBannerSequence.Append(cardTr.DOScale(Vector3.one, 0.06f).SetEase(Ease.InOutSine));
 
-            // Ekranda kaldığı sürede canlı nefes alma animasyonu (Juice) - 2.2 saniye
-            m_HardBannerSequence.Append(cardTr.DOScale(Vector3.one * 1.035f, 0.55f).SetEase(Ease.InOutSine).SetLoops(4, LoopType.Yoyo));
+            // Ekranda kaldığı sürede canlı nefes alma animasyonu (Juice) - süresi azaltıldı, hızlı ve akıcı
+            float effectiveDuration = Mathf.Max(0.7f, m_HardBannerDuration);
+            float holdDuration = Mathf.Max(0.35f, effectiveDuration - 0.44f);
+            m_HardBannerSequence.Append(cardTr.DOScale(Vector3.one * 1.025f, holdDuration * 0.5f).SetEase(Ease.InOutSine).SetLoops(2, LoopType.Yoyo));
 
-            // Kapanış (0.30s): Hafif küçülerek ve solarak çıkış
-            m_HardBannerSequence.Append(cardTr.DOScale(Vector3.one * 0.85f, 0.30f).SetEase(Ease.InBack, 1.3f));
-            m_HardBannerSequence.Join(cardCg.DOFade(0f, 0.25f));
+            // Kapanış (0.16s): Hafif küçülerek ve solarak hızlı çıkış
+            m_HardBannerSequence.Append(cardTr.DOScale(Vector3.one * 0.88f, 0.16f).SetEase(Ease.InBack, 1.2f));
+            m_HardBannerSequence.Join(cardCg.DOFade(0f, 0.14f));
 
             m_HardBannerSequence.OnComplete(() =>
             {
@@ -776,6 +781,28 @@ namespace PixelGame
                 m_HardBannerRoutine = null;
             });
         }
+
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            EnsureRabbitMascot();
+            EnsureHardLevelBanner();
+
+            if (m_HardLevelBannerObj != null)
+            {
+                Transform cardTr = m_HardLevelBannerObj.transform.Find("BannerCard");
+                if (cardTr != null)
+                {
+                    RectTransform cardRt = cardTr.GetComponent<RectTransform>();
+                    if (cardRt != null)
+                    {
+                        cardRt.anchoredPosition = new Vector2(0f, m_HardBannerPosY);
+                        cardRt.sizeDelta = new Vector2(m_HardBannerWidth, m_HardBannerHeight);
+                    }
+                }
+            }
+        }
+#endif
 
         public void HideHardLevelBanner()
         {
@@ -1154,13 +1181,26 @@ namespace PixelGame
             PlayerPrefs.Save();
             ApplyAudioState();
             UpdateSoundVisual();
+            if (m_SoundEnabled && HypercasualFeedbackManager.Instance != null)
+            {
+                HypercasualFeedbackManager.Instance.PlayButtonClickFeedback();
+            }
             Debug.Log($"<color=#44FF44><b>[CasualHUD]</b></color> Ses: {(m_SoundEnabled ? "Açık" : "Kapalı")}");
         }
 
         private void ApplyAudioState()
         {
-            AudioListener.pause = !m_SoundEnabled;
             AudioListener.volume = m_SoundEnabled ? 1f : 0f;
+            AudioListener.pause = false;
+
+            if (HypercasualFeedbackManager.ExistingInstance != null)
+            {
+                HypercasualFeedbackManager.ExistingInstance.EnableSound = m_SoundEnabled;
+            }
+            if (VoxelParticleManager.Instance != null)
+            {
+                VoxelParticleManager.Instance.EnablePopSound = m_SoundEnabled;
+            }
         }
 
         private void UpdateSoundVisual()
@@ -1805,12 +1845,5 @@ namespace PixelGame
             return count.ToString();
         }
 
-#if UNITY_EDITOR
-        private void OnValidate()
-        {
-            EnsureRabbitMascot();
-            EnsureHardLevelBanner();
-        }
-#endif
     }
 }

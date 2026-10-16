@@ -115,6 +115,9 @@ namespace PixelGame
         [SerializeField, Min(0.3f)] private float m_SailorSizeVsCube = 1.67f;
         [Tooltip("Denizcilerin gemiden art arda çıkış aralığı (sn).")]
         [SerializeField, Min(0.05f)] private float m_SailorLaunchInterval = 0.35f;
+        [Tooltip("Denizcinin şapka alt şeridi için sabit ayırt edici renk (şapkanın üst kubbesi, ponponu ve tişörtü toplanacak küpün renginde olurken alt şerit bu renkte [varsayılan beyaz] kalarak denizci şapkası formunu belirginleştirir).")]
+        [SerializeField] private Color m_SailorHatFixedColor = Color.white;
+        public Color SailorHatFixedColor { get => m_SailorHatFixedColor; set => m_SailorHatFixedColor = value; }
         [Tooltip("Koşucuların yürüdüğü çerçevenin, bölüm başındaki resmin dış küp merkezlerinden uzaklığı (küp cinsinden).")]
         [SerializeField, Min(0.5f)] private float m_RunnerFrameMarginCubes = 1.2f;
         [Tooltip("Açıksa denizci çerçevesi sahnedeki OtCerceve ile genişletilir (eski davranış). Kapalıyken her levelde resmin kendi sınırları + pay kullanılır.")]
@@ -2263,8 +2266,29 @@ namespace PixelGame
                 }
 
                 m_PlayerSentShipCount++;
-                ship.SailToSlot(slotA);
-                partner.SailToSlot(slotB);
+
+                // ⚓ Halatlı gemilerin sol-sağ yön tutarlılığı:
+                // Gemiler yan yana duruyorsa, oyuncu sağdaki veya soldaki gemiye tıklasa dahi
+                // her zaman soldaki gemi soldaki slota, sağdaki gemi sağdaki slota yanaşmalıdır.
+                // Böylece sağdaki gemiye basıldığında gemiler birbirlerinin önünü kesmez,
+                // halat ters dönmez ve sol-sağ oryantasyonu daima korunur.
+                ShipSlot leftSlot = (slotA.transform.position.x <= slotB.transform.position.x) ? slotA : slotB;
+                ShipSlot rightSlot = (slotA.transform.position.x <= slotB.transform.position.x) ? slotB : slotA;
+
+                if (Mathf.Abs(ship.transform.position.x - partner.transform.position.x) > 0.15f)
+                {
+                    ShipController leftShip = (ship.transform.position.x <= partner.transform.position.x) ? ship : partner;
+                    ShipController rightShip = (ship.transform.position.x <= partner.transform.position.x) ? partner : ship;
+
+                    leftShip.SailToSlot(leftSlot);
+                    rightShip.SailToSlot(rightSlot);
+                }
+                else
+                {
+                    // Alt alta (aynı sütun / tandem) bağlı gemilerde tıklanan gemi ilk slota, partneri ikinci slota gider
+                    ship.SailToSlot(leftSlot);
+                    partner.SailToSlot(rightSlot);
+                }
                 return true;
             }
 
@@ -3698,13 +3722,24 @@ namespace PixelGame
             }
             if (hasTeamParts)
             {
-                // Denizci: yukarıdan en çok şapka göründüğü için şapkanın tamamı (şapka gövdesi, şerit ve ponpon)
-                // toplanan küpün / ait olduğu geminin tam renginde boyanır (ör. kahverengi küp için şapka tam kahverengi).
+                // Denizci: Toplanacak küpün rengi ağırlıklı olsun diye şapkanın üst kısmı (Cap) ve ponpon küp renginde;
+                // şapkanın alt şeridi (Band) ise sabit ayırt edici renkte (beyaz) boyanır.
                 foreach (var r in runner.GetComponentsInChildren<Renderer>(true))
                 {
                     if (r == null) continue;
-                    if (r.name == "Cap" || r.name.StartsWith("TeamColor", System.StringComparison.Ordinal))
+                    if (r.name.IndexOf("Band", System.StringComparison.OrdinalIgnoreCase) >= 0)
                     {
+                        // Şapkanın alt kısmı: sabit beyaz şerit
+                        SharedColorMaterialCache.Apply(r, m_SailorHatFixedColor, Color.black);
+                    }
+                    else if (r.name.IndexOf("Cap", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        // Şapkanın üst kısmı: toplanacak küpün rengi (kahverengi, sarı vb. baskın renk)
+                        SharedColorMaterialCache.Apply(r, color, Color.black);
+                    }
+                    else if (r.name.StartsWith("TeamColor", System.StringComparison.Ordinal))
+                    {
+                        // Ponpon ve diğer takım parçaları: toplanacak küpün rengi
                         SharedColorMaterialCache.Apply(r, color, Color.black);
                     }
                     else if (r.name == "Torso" || r.name == "ArmL" || r.name == "ArmR")
