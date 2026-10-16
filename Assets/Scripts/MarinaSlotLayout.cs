@@ -327,33 +327,33 @@ namespace PixelGame
 
         public float PierOffsetY
         {
-            get => m_UsePerCountSettings ? GetConfig(m_SlotCount).PierOffsetY : m_PierOffsetY;
+            get => m_UsePerCountSettings ? GetConfig(BayCountFor(m_SlotCount)).PierOffsetY : m_PierOffsetY;
             set
             {
                 m_PierOffsetY = value;
-                if (m_UsePerCountSettings) GetConfig(m_SlotCount).PierOffsetY = value;
+                if (m_UsePerCountSettings) GetConfig(BayCountFor(m_SlotCount)).PierOffsetY = value;
                 ApplyLayout();
             }
         }
 
         public float PierOffsetZ
         {
-            get => m_UsePerCountSettings ? GetConfig(m_SlotCount).PierOffsetZ : m_PierOffsetZ;
+            get => m_UsePerCountSettings ? GetConfig(BayCountFor(m_SlotCount)).PierOffsetZ : m_PierOffsetZ;
             set
             {
                 m_PierOffsetZ = value;
-                if (m_UsePerCountSettings) GetConfig(m_SlotCount).PierOffsetZ = value;
+                if (m_UsePerCountSettings) GetConfig(BayCountFor(m_SlotCount)).PierOffsetZ = value;
                 ApplyLayout();
             }
         }
 
         public float PierScaleMultiplier
         {
-            get => m_UsePerCountSettings ? GetConfig(m_SlotCount).PierScaleMultiplier : m_PierScaleMultiplier;
+            get => m_UsePerCountSettings ? GetConfig(BayCountFor(m_SlotCount)).PierScaleMultiplier : m_PierScaleMultiplier;
             set
             {
                 m_PierScaleMultiplier = value;
-                if (m_UsePerCountSettings) GetConfig(m_SlotCount).PierScaleMultiplier = value;
+                if (m_UsePerCountSettings) GetConfig(BayCountFor(m_SlotCount)).PierScaleMultiplier = value;
                 ApplyLayout();
             }
         }
@@ -366,33 +366,33 @@ namespace PixelGame
 
         public float BaySlotOffsetY
         {
-            get => m_UsePerCountSettings ? GetConfig(m_SlotCount).BaySlotOffsetY : m_BaySlotOffsetY;
+            get => m_UsePerCountSettings ? GetConfig(BayCountFor(m_SlotCount)).BaySlotOffsetY : m_BaySlotOffsetY;
             set
             {
                 m_BaySlotOffsetY = value;
-                if (m_UsePerCountSettings) GetConfig(m_SlotCount).BaySlotOffsetY = value;
+                if (m_UsePerCountSettings) GetConfig(BayCountFor(m_SlotCount)).BaySlotOffsetY = value;
                 ApplyLayout();
             }
         }
 
         public float SlotWidth
         {
-            get => m_UsePerCountSettings ? GetConfig(m_SlotCount).SlotWidth : m_SlotWidth;
+            get => m_UsePerCountSettings ? GetConfig(BayCountFor(m_SlotCount)).SlotWidth : m_SlotWidth;
             set
             {
                 m_SlotWidth = value;
-                if (m_UsePerCountSettings) GetConfig(m_SlotCount).SlotWidth = value;
+                if (m_UsePerCountSettings) GetConfig(BayCountFor(m_SlotCount)).SlotWidth = value;
                 ApplyLayout();
             }
         }
 
         public float SlotLength
         {
-            get => m_UsePerCountSettings ? GetConfig(m_SlotCount).SlotLength : m_SlotLength;
+            get => m_UsePerCountSettings ? GetConfig(BayCountFor(m_SlotCount)).SlotLength : m_SlotLength;
             set
             {
                 m_SlotLength = value;
-                if (m_UsePerCountSettings) GetConfig(m_SlotCount).SlotLength = value;
+                if (m_UsePerCountSettings) GetConfig(BayCountFor(m_SlotCount)).SlotLength = value;
                 ApplyLayout();
             }
         }
@@ -405,22 +405,22 @@ namespace PixelGame
 
         public float SlotSpacing
         {
-            get => m_UsePerCountSettings ? GetConfig(m_SlotCount).LegacySpacing : m_SlotSpacing;
+            get => m_UsePerCountSettings ? GetConfig(BayCountFor(m_SlotCount)).LegacySpacing : m_SlotSpacing;
             set
             {
                 m_SlotSpacing = value;
-                if (m_UsePerCountSettings) GetConfig(m_SlotCount).LegacySpacing = value;
+                if (m_UsePerCountSettings) GetConfig(BayCountFor(m_SlotCount)).LegacySpacing = value;
                 ApplyLayout();
             }
         }
 
         public float SlotAngle
         {
-            get => m_UsePerCountSettings ? GetConfig(m_SlotCount).SlotAngle : m_SlotAngle;
+            get => m_UsePerCountSettings ? GetConfig(BayCountFor(m_SlotCount)).SlotAngle : m_SlotAngle;
             set
             {
                 m_SlotAngle = value;
-                if (m_UsePerCountSettings) GetConfig(m_SlotCount).SlotAngle = value;
+                if (m_UsePerCountSettings) GetConfig(BayCountFor(m_SlotCount)).SlotAngle = value;
                 ApplyLayout();
             }
         }
@@ -433,22 +433,22 @@ namespace PixelGame
 
         public float OffsetY
         {
-            get => m_UsePerCountSettings ? GetConfig(m_SlotCount).RowOffsetY : m_OffsetY;
+            get => m_UsePerCountSettings ? GetConfig(BayCountFor(m_SlotCount)).RowOffsetY : m_OffsetY;
             set
             {
                 m_OffsetY = value;
-                if (m_UsePerCountSettings) GetConfig(m_SlotCount).RowOffsetY = value;
+                if (m_UsePerCountSettings) GetConfig(BayCountFor(m_SlotCount)).RowOffsetY = value;
                 ApplyLayout();
             }
         }
 
         public float OffsetZ
         {
-            get => m_UsePerCountSettings ? GetConfig(m_SlotCount).RowOffsetZ : m_OffsetZ;
+            get => m_UsePerCountSettings ? GetConfig(BayCountFor(m_SlotCount)).RowOffsetZ : m_OffsetZ;
             set
             {
                 m_OffsetZ = value;
-                if (m_UsePerCountSettings) GetConfig(m_SlotCount).RowOffsetZ = value;
+                if (m_UsePerCountSettings) GetConfig(BayCountFor(m_SlotCount)).RowOffsetZ = value;
                 ApplyLayout();
             }
         }
@@ -491,11 +491,11 @@ namespace PixelGame
 
         public float ArcCurveY
         {
-            get => m_UsePerCountSettings ? GetConfig(m_SlotCount).ArcCurveY : m_ArcCurveY;
+            get => m_UsePerCountSettings ? GetConfig(BayCountFor(m_SlotCount)).ArcCurveY : m_ArcCurveY;
             set
             {
                 m_ArcCurveY = value;
-                if (m_UsePerCountSettings) GetConfig(m_SlotCount).ArcCurveY = value;
+                if (m_UsePerCountSettings) GetConfig(BayCountFor(m_SlotCount)).ArcCurveY = value;
                 ApplyLayout();
             }
         }
@@ -522,21 +522,20 @@ namespace PixelGame
         public int TotalBaysCount => m_SlotCount;
         public int ClosedSlotCount => 0;
 
-        /// <summary>Arka plan resminde çizili bölme sayısı (4 slotta 4, 3 ve 5 slotta 5).</summary>
+        /// <summary>İskelede hep 5 sabit bölme vardır; 5'ten fazla slot istenirse bölme sayısı slot sayısına çıkar.</summary>
         public static int BayCountFor(int slotCount)
         {
-            if (slotCount == 4) return 4;
             return Mathf.Max(5, slotCount);
         }
 
         /// <summary>
-        /// Açık slotların hangi bölmelere oturacağı:
-        /// 1: { 2 } (5 bölmeli iskelede orta)
-        /// 2: { 1, 3 } (5 bölmeli iskelede dengeli)
-        /// 3: { 1, 2, 3 } (5 bölmeli iskelede ortalanmış 3 slot, kenarlar temiz su)
-        /// 4: { 0, 1, 2, 3 } (4 bölmeli iskelede ortalanmış 4 slot, kenarlar temiz su)
-        /// 5: { 0, 1, 2, 3, 4 } (5 bölmeli iskelede 5 slot)
-        /// Engel olan kapalı slotlar kaldırılmıştır, yalnızca yerleşilebilir slotlar gösterilir.
+        /// Açık slotların 5 sabit bölmeden hangilerine oturacağı (bölmelerin konumu slot sayısına göre değişmez):
+        /// 1: { 2 } (orta)
+        /// 2: { 1, 3 }
+        /// 3: { 1, 2, 3 }
+        /// 4: { 0, 1, 3, 4 } (orta hariç hepsi)
+        /// 5: { 0, 1, 2, 3, 4 }
+        /// Kullanılmayan bölmeler boş kalır (kapalı slot görseli yok).
         /// </summary>
         public static int[] OpenBaysFor(int slotCount)
         {
@@ -545,7 +544,7 @@ namespace PixelGame
                 case 1: return new[] { 2 };
                 case 2: return new[] { 1, 3 };
                 case 3: return new[] { 1, 2, 3 };
-                case 4: return new[] { 0, 1, 2, 3 };
+                case 4: return new[] { 0, 1, 3, 4 };
             }
             int n = Mathf.Max(0, slotCount);
             var all = new int[n];
@@ -578,10 +577,10 @@ namespace PixelGame
 
         public float BaySpacingPx
         {
-            get => m_UsePerCountSettings ? GetConfig(m_SlotCount).BaySpacingPx : 174f;
+            get => m_UsePerCountSettings ? GetConfig(BayCountFor(m_SlotCount)).BaySpacingPx : 174f;
             set
             {
-                if (m_UsePerCountSettings) GetConfig(m_SlotCount).BaySpacingPx = value;
+                if (m_UsePerCountSettings) GetConfig(BayCountFor(m_SlotCount)).BaySpacingPx = value;
                 ApplyLayout();
             }
         }
@@ -1065,7 +1064,9 @@ namespace PixelGame
             int count = activeSlots.Count;
             if (count == 0) return;
 
-            MarinaSlotCountConfig cfg = m_UsePerCountSettings ? GetConfig(count) : null;
+            // 5 bölme sabit: 1-5 slotta yerleşim (aralık, kıyı ofseti, arka plan) hep 5 slot ayarlarından gelir
+            int layoutCount = BayCountFor(count);
+            MarinaSlotCountConfig cfg = m_UsePerCountSettings ? GetConfig(layoutCount) : null;
             float rowOffsetX = cfg != null ? cfg.RowOffsetX : 0.042f;
             float rowOffsetY = cfg != null ? cfg.RowOffsetY : m_OffsetY;
             float rowOffsetZ = cfg != null ? cfg.RowOffsetZ : m_OffsetZ;
@@ -1079,7 +1080,7 @@ namespace PixelGame
             else
             {
                 ApplyLegacyDockLayout(activeSlots, count, cfg);
-                UpdateBackgroundTexture(count);
+                UpdateBackgroundTexture(layoutCount);
             }
         }
 
