@@ -425,21 +425,17 @@ namespace PixelGame
         public int ActiveWorkersOut => m_ActiveWorkersOut;
 
         /// <summary>
-        /// Kullanıcı isteği: "sayılar içine blok girince değil de içinden kişiler çıkınca azalsa daha iyi durur"
-        /// Sayı yalnızca gemiden işçiler sahile çıktıkça azalır; bloklar gemiye girdiğinde değil!
+        /// Kullanıcı isteği: sayı işçi gemiden çıkınca değil, küpü alıp gemiye geri binince azalır.
+        /// (Alan adı tarihsel: artık "geri binen işçi sayısı"nı tutar.)
         /// </summary>
         public int DisplayRemainingCapacity => Mathf.Max(0, m_Capacity - m_WorkersExitedCount);
 
         /// <summary>
-        /// Gemiden bir işçi sahile zıplayıp göreve çıktığında çağrılır:
-        /// Sayıyı hemen 1 düşürür ve rozete tatlı bir punch efekti verir.
+        /// Gemiden bir işçi sahile zıplayıp göreve çıktığında çağrılır. Sayı burada düşmez (OnWorkerBoarded'da düşer).
         /// </summary>
         public void OnWorkerExited()
         {
             m_ActiveWorkersOut++;
-            m_WorkersExitedCount = Mathf.Min(m_Capacity, m_WorkersExitedCount + 1);
-            UpdateBadgeText();
-            PlayBadgePunchJuice();
         }
 
         /// <summary>
@@ -449,7 +445,9 @@ namespace PixelGame
         public void OnWorkerBoarded()
         {
             m_ActiveWorkersOut = Mathf.Max(0, m_ActiveWorkersOut - 1);
+            m_WorkersExitedCount = Mathf.Min(m_Capacity, m_WorkersExitedCount + 1);
             UpdateBadgeText();
+            PlayBadgePunchJuice();
 
             // Kullanıcı isteği: "tüm işçiler geri binince de ayrılır"
             if (IsFull && m_ActiveWorkersOut <= 0 && !m_IsDeparting)
@@ -466,8 +464,6 @@ namespace PixelGame
         public void OnWorkerMissionAborted()
         {
             m_ActiveWorkersOut = Mathf.Max(0, m_ActiveWorkersOut - 1);
-            m_WorkersExitedCount = Mathf.Max(0, m_WorkersExitedCount - 1);
-            UpdateBadgeText();
         }
 
         public void PlayBadgePunchJuice()
