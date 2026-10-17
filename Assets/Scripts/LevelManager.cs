@@ -156,7 +156,7 @@ namespace PixelGame
             }
 
             m_CurrentLevelIndex = Mathf.Clamp(index, 0, m_Levels.Count - 1);
-            Time.timeScale = 1.0f;
+            Time.timeScale = CasualHudController.NormalTimeScale;
             PixelLevelData level = m_Levels[m_CurrentLevelIndex];
             if (level != null)
             {

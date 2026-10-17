@@ -227,6 +227,10 @@ namespace PixelGame
                 if (Mathf.Abs(Vector2.Dot(rel, me.Perp)) > pitch * 0.6f) continue; // aynı şeritte değil
                 // Açılı birleşen yollarda ikisi de diğerini önde sanabilir: yalnızca biri (büyük Id) yol verir
                 if (Vector2.Dot(-rel, a.Dir) > 0f && me.Id < a.Id) continue;
+                // Durma mesafesinin içine girmişler (yollar birleşince üst üste düşebiliyorlar): kimin önde olduğu
+                // belirsiz, hepsi birbirini önde sanıp en düşük hızda birlikte sürünüyordu. Sabit sırayla çöz:
+                // küçük Id geçer, büyük Id yol verir; grup tek sıra hâlinde açılır.
+                if (ahead < stop && me.Id < a.Id) continue;
                 factor = Mathf.Min(factor, Mathf.Clamp01((ahead - stop) / Mathf.Max(1e-4f, gap - stop)));
             }
             // Hiç kimse tamamen durmasın (kilitlenme olmasın), en az ağır ağır ilerlesin

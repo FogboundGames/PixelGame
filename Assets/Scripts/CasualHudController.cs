@@ -55,6 +55,9 @@ namespace PixelGame
         [Header("🔄 Yeniden Başlat (Retry)")]
         [SerializeField] private UnityEngine.UI.Button m_RetryButton;
         [Header("⚡ 2X Hız & Süre Sistemi")]
+        [Tooltip("Normal (1x) oyun hızı. Oyuncular eski 1x'i çok yavaş buldu; 2X butonu ve oyun sonu hızlanması " +
+                 "bu değerin katı olarak çalışır (1.5 → normal 1.5, 2X butonu 3, oyun sonu 3 / 6).")]
+        [SerializeField, Range(1f, 3f)] private float m_NormalGameSpeed = 1.5f;
         [SerializeField] private UnityEngine.UI.Button m_SpeedButton;
         [SerializeField] private UnityEngine.UI.Image m_SpeedButtonImage;
         [SerializeField] private Sprite m_Speed1xSprite;
@@ -1321,6 +1324,9 @@ namespace PixelGame
             Debug.Log($"<color=#00FFAA><b>[CasualHUD]</b></color> 🎯 Oyun Sonu Hızlanması: {(active ? "AKTİF" : "KAPALI")} -> Hız: {(m_IsEndgameSpeedActive ? (m_IsSpeed2x ? "4X" : "2X") : (m_IsSpeed2x ? "2X" : "1X"))}");
         }
 
+        /// <summary>Normal (1x) oyunun Time.timeScale değeri; HUD yoksa 1.</summary>
+        public static float NormalTimeScale => Instance != null ? Mathf.Max(0.1f, Instance.m_NormalGameSpeed) : 1f;
+
         public void ApplySpeedState()
         {
             float targetScale;
@@ -1338,6 +1344,7 @@ namespace PixelGame
                 targetScale = m_IsSpeed2x ? 2.0f : 1.0f;
             }
 
+            targetScale *= Mathf.Max(0.1f, m_NormalGameSpeed);
             Time.timeScale = targetScale;
             Time.fixedDeltaTime = 0.02f * Time.timeScale;
             Debug.Log($"<color=#44FF44><b>[SpeedControl]</b></color> ⚡ Time.timeScale = {targetScale}f (Endgame: {m_IsEndgameSpeedActive}, Buton2x: {m_IsSpeed2x})");

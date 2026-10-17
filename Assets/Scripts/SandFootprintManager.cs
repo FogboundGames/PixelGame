@@ -103,9 +103,9 @@ namespace PixelGame
         {
             if (m_FootprintMaterial == null)
             {
-#if UNITY_EDITOR
-                m_FootprintMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/SandFootprint_Mat.mat");
-#endif
+                // Yönetici oyunda koddan oluşuyor; materyal Resources'tan yüklenmeli. Eskiden yalnız editörde
+                // (AssetDatabase) yükleniyordu, build'de dokusuz yedek materyale düşüp izler dikdörtgen görünüyordu.
+                m_FootprintMaterial = Resources.Load<Material>("SandFootprint_Mat");
             }
 
             if (m_FootprintMaterial == null)
