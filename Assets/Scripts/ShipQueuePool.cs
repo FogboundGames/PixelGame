@@ -298,6 +298,7 @@ namespace PixelGame
         // kaydırma yüzünden ortada kalmış) gemiyi yerine süzdürür.
         private void Update()
         {
+            if (Application.isPlaying) UpdateColumnCompaction();
             if (!Application.isPlaying || Time.unscaledTime < m_NextQueueHealTime) return;
             m_NextQueueHealTime = Time.unscaledTime + 0.5f;
             if (!gameObject.activeInHierarchy) return;
@@ -316,6 +317,66 @@ namespace PixelGame
                 if (Time.unscaledTime - since < 0.6f) continue;
                 m_MisplacedSince.Remove(s);
                 StartCoroutine(MoveBackShipToFrontSpot(s, spot, 0f));
+            }
+        }
+
+        [Header("↔️ Biten Sütunları Toparla")]
+        [Tooltip("Açıksa bir sütunun bütün gemileri bitince kalan sütunlar, o sütun sayısındaki düzenin " +
+                 "yerlerine kayar (3 sütundan biri bitince 2 sütunlu düzen gibi ortalanır).")]
+        [SerializeField] private bool m_CompactEmptyColumns = true;
+        [Tooltip("Sütunların yeni yerlerine kayma süresi (sn).")]
+        [SerializeField, Range(0.1f, 1.5f)] private float m_CompactDuration = 0.55f;
+
+        // Hâlâ gemisi olan sütunların bit maskesi; değişince sütunlar yeniden dizilir (-1: henüz hesaplanmadı)
+        private int m_ActiveColumnMask = -1;
+
+        /// <summary>
+        /// Bir sütunda bekleyen gemi kalmadıysa ve o sütuna gelecek gemi de yoksa sütun bitmiştir. Bitenler
+        /// çıkınca kalan sütunlar, (kalan sütun sayısı) sütunlu düzenin X konumlarına yumuşakça kayar.
+        /// Gemiler spotun çocuğu olduğu için spot kayınca birlikte kayarlar; sütun/sıra indeksleri değişmez.
+        /// </summary>
+        private void UpdateColumnCompaction()
+        {
+            if (!m_CompactEmptyColumns || !m_UsingLevelSequence || m_Columns <= 1 || m_Columns > 30) return;
+
+            int mask = 0;
+            for (int c = 0; c < m_Columns; c++)
+            {
+                bool hasShips = c < m_LevelSequenceLanes.Count && m_LevelSequenceLanes[c] != null && m_LevelSequenceLanes[c].Count > 0;
+                for (int r = 0; r < m_Rows && !hasShips; r++)
+                {
+                    int idx = r * m_Columns + c;
+                    ShipController w = idx < m_WaitingShips.Count ? m_WaitingShips[idx] : null;
+                    if (w != null && w.gameObject.activeInHierarchy && !w.IsDocked && !w.IsDeparting) hasShips = true;
+                }
+                if (hasShips) mask |= 1 << c;
+            }
+
+            if (mask == m_ActiveColumnMask) return;
+            bool first = m_ActiveColumnMask == -1;
+            m_ActiveColumnMask = mask;
+            if (first || mask == 0) return;   // bölüm başı düzeni zaten doğru; hepsi bittiyse kaydırmaya gerek yok
+
+            int active = 0;
+            for (int c = 0; c < m_Columns; c++) if ((mask & (1 << c)) != 0) active++;
+            ColumnLayoutPreset preset = m_UseColumnPresets ? GetPresetForColumns(active) : null;
+            float spacing = preset != null ? preset.spacingX : (m_SpacingX > 0.001f ? m_SpacingX : 1.20f);
+            float startX = -(active - 1) * spacing * 0.5f;
+
+            int slot = 0;
+            for (int c = 0; c < m_Columns; c++)
+            {
+                if ((mask & (1 << c)) == 0) continue;
+                float targetX = startX + slot * spacing;
+                slot++;
+                for (int r = 0; r < m_Rows; r++)
+                {
+                    int idx = r * m_Columns + c;
+                    if (idx >= m_QueueSpots.Count || m_QueueSpots[idx] == null) continue;
+                    Transform spot = m_QueueSpots[idx];
+                    spot.DOKill();
+                    spot.DOLocalMoveX(targetX, m_CompactDuration).SetEase(Ease.InOutCubic);
+                }
             }
         }
 
@@ -409,6 +470,7 @@ namespace PixelGame
             m_Columns = Mathf.Clamp(targetCols, 1, 8);
             m_Rows = Mathf.Clamp(targetRows, 1, 10);
             int totalNeeded = m_Columns * m_Rows;
+            m_ActiveColumnMask = -1;
 
             // Eğer sütun profilleri aktifse, bu sütun sayısına özel boyutu ve aralıkları otomatik uygula
             if (m_UseColumnPresets)
@@ -483,6 +545,7 @@ namespace PixelGame
                     float posX = startX + c * actualSpacingX;
                     float posZ = -r * actualSpacingY;
 
+                    spot.DOKill();   // önceki bölümden kalan sütun toparlama kayması yeni düzeni bozmasın
                     spot.localPosition = new Vector3(posX, 0f, posZ);
                     spot.localRotation = Quaternion.identity;
                     spot.localScale = Vector3.one;
