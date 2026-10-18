@@ -1269,6 +1269,15 @@ namespace PixelGame
                 bool useIndicator = m_UseIndicatorMeshVisual && !m_UseInnerBerthVisual && indicator != null;
                 if (indicator != null && indicator.gameObject.activeSelf != useIndicator) indicator.gameObject.SetActive(useIndicator);
 
+                // 2. Görsel Yuvarlak Kare Slot varsa eski [Slot_Berth] nesnesini devre dışı bırak
+                Transform roundedSquareTr = tr.Find("[Slot_RoundedSquare]");
+                if (roundedSquareTr != null)
+                {
+                    Transform oldBerth = tr.Find("[Slot_Berth]");
+                    if (oldBerth != null && oldBerth.gameObject.activeSelf) oldBerth.gameObject.SetActive(false);
+                    continue;
+                }
+
                 // 🛥️ Su Üstü Yanaşma Slotu (Floating Berth Slip)
                 Transform berthTr = tr.Find("[Slot_Berth]");
                 if (berthTr == null)
@@ -1506,20 +1515,8 @@ namespace PixelGame
                 UnityEngine.UI.RawImage rawImg = bgObj.GetComponent<UnityEngine.UI.RawImage>();
                 if (rawImg != null)
                 {
-                    // Slot sayısına göre uygun arka planı seç (3 slot, 4 slot veya 5 slot)
-                    Texture targetTex = null;
-                    if (count <= 3)
-                    {
-                        targetTex = m_Background3Slots != null ? m_Background3Slots : m_BackgroundAllBaysOpen;
-                    }
-                    else if (count == 4)
-                    {
-                        targetTex = m_Background4Slots != null ? m_Background4Slots : m_BackgroundAllBaysOpen;
-                    }
-                    else
-                    {
-                        targetTex = m_BackgroundAllBaysOpen != null ? m_BackgroundAllBaysOpen : m_Background3Slots;
-                    }
+                    // Her slot sayısında kumlu temiz sahil arka planı kullanılır (su ve iskeleler kaldırıldı)
+                    Texture targetTex = m_BackgroundAllBaysOpen != null ? m_BackgroundAllBaysOpen : (m_Background4Slots != null ? m_Background4Slots : m_Background3Slots);
 
                     if (targetTex != null && rawImg.texture != targetTex)
                     {
@@ -1568,15 +1565,15 @@ namespace PixelGame
 #if UNITY_EDITOR
             if (m_Background3Slots == null)
             {
-                m_Background3Slots = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Kenney/BeachBackground_3Slots.png");
+                m_Background3Slots = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Kenney/BeachBackground_Clean.png");
             }
             if (m_Background4Slots == null)
             {
-                m_Background4Slots = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Kenney/BeachBackground_4Slots.png");
+                m_Background4Slots = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Kenney/BeachBackground_Clean.png");
             }
             if (m_BackgroundAllBaysOpen == null)
             {
-                m_BackgroundAllBaysOpen = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Kenney/BeachBackground_Marina5Open.png");
+                m_BackgroundAllBaysOpen = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Kenney/BeachBackground_Clean.png");
             }
 #endif
         }

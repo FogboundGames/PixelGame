@@ -2220,6 +2220,30 @@ namespace PixelGame
             CheckAutoPlaceRemainingShips();
         }
 
+        private void DetachShipFromQueueParent(ShipController s)
+        {
+            if (s == null) return;
+            if (s.IsUiContainer)
+            {
+                // UI Konteyner: Canvas içinde tut, asla null'a (dünya uzayına) çıkarma!
+                Transform root = s.transform.parent != null ? s.transform.parent.parent : null;
+                if (root == null)
+                {
+                    Canvas c = s.GetComponentInParent<Canvas>();
+                    if (c != null) root = c.transform;
+                }
+                if (root != null)
+                {
+                    s.transform.SetParent(root, true);
+                    s.transform.SetAsLastSibling();
+                }
+            }
+            else
+            {
+                s.transform.SetParent(null, true);
+            }
+        }
+
         /// <summary>
         /// Kuyruktan tıklanan gemiyi boş bir slota göndermeyi dener.
         /// Eğer gemi başka bir gemiye bağlıysa, her ikisi birden en ön sırada olmalı ve
@@ -2260,8 +2284,8 @@ namespace PixelGame
                 ShipSlot slotB = emptySlots[1];
 
                 // Gemileri önce kuyruk ebeveyninden ayır ki arkadaki gemiler öne kayarken ebeveyn çakışması olmasın
-                ship.transform.SetParent(null, true);
-                partner.transform.SetParent(null, true);
+                DetachShipFromQueueParent(ship);
+                DetachShipFromQueueParent(partner);
 
                 // Her iki gemiyi de kuyruk sisteminden çıkar (alt alta olsalar dahi çift sıra kaydırmayı kusursuz işletir)
                 if (m_QueuePool != null)
@@ -2322,7 +2346,7 @@ namespace PixelGame
             }
 
             // Gemiyi kuyruk ebeveyninden hemen ayır ki arkadaki gemi geldiğinde çakışmasın
-            ship.transform.SetParent(null, true);
+            DetachShipFromQueueParent(ship);
 
             // Kuyruktan çıkar, arkadaki gemiyi öne kaydır ve açık denizden yenisini getir
             if (m_QueuePool != null)
@@ -2564,7 +2588,7 @@ namespace PixelGame
                         m_QueuePool.RemoveShipFromQueue(ship);
                     }
 
-                    ship.transform.SetParent(null, true);
+                    DetachShipFromQueueParent(ship);
                     ship.SailToSlot(slot, 0.35f);
                 }
 

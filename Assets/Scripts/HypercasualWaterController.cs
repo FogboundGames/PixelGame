@@ -18,6 +18,7 @@ namespace PixelGame
         public static HypercasualWaterController Instance => s_Instance;
 
         [Header("🌊 Referanslar")]
+        [SerializeField] private bool m_EnableWaterEffect = false;
         [SerializeField] private RawImage m_RawImage;
         [SerializeField] private Camera m_WorldCamera;
 
@@ -147,6 +148,12 @@ namespace PixelGame
 
         public Material EnsureMaterial()
         {
+            if (!m_EnableWaterEffect)
+            {
+                if (m_RawImage != null && m_RawImage.material != null) m_RawImage.material = null;
+                return null;
+            }
+
             if (m_RawImage == null) return null;
 
             Shader waterShader = Shader.Find("PixelGame/HypercasualWaterBackground");
@@ -169,6 +176,12 @@ namespace PixelGame
 
         private void Update()
         {
+            if (!m_EnableWaterEffect)
+            {
+                if (m_RawImage != null && m_RawImage.material != null) m_RawImage.material = null;
+                return;
+            }
+
             if (m_WaterMaterial == null)
             {
                 EnsureSetup();

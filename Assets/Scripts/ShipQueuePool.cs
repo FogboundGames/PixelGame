@@ -360,7 +360,8 @@ namespace PixelGame
             int active = 0;
             for (int c = 0; c < m_Columns; c++) if ((mask & (1 << c)) != 0) active++;
             ColumnLayoutPreset preset = m_UseColumnPresets ? GetPresetForColumns(active) : null;
-            float spacing = preset != null ? preset.spacingX : (m_SpacingX > 0.001f ? m_SpacingX : 1.20f);
+            float spacing = m_UiSpotsMode ? m_UiCurrentSpacingX
+                          : preset != null ? preset.spacingX : (m_SpacingX > 0.001f ? m_SpacingX : 1.20f);
             float startX = -(active - 1) * spacing * 0.5f;
 
             int slot = 0;
@@ -467,6 +468,9 @@ namespace PixelGame
         /// </summary>
         public void RebuildSpots(int targetCols, int targetRows)
         {
+            // UI konteyner modu: spotlar HUD_Canvas altında sabit ızgara; 3B dünya spotlarıyla değiştirilmez
+            if (TryUseUiSpots(targetCols, targetRows)) return;
+
             m_Columns = Mathf.Clamp(targetCols, 1, 8);
             m_Rows = Mathf.Clamp(targetRows, 1, 10);
             int totalNeeded = m_Columns * m_Rows;
@@ -555,6 +559,142 @@ namespace PixelGame
             }
         }
 
+        private bool m_UiSpotsMode;
+
+        /// <summary>UI spotlarında konteyner Canvas ölçeğinde (1) üretilir; 3B gemi ölçeği uygulanmaz.</summary>
+        private float SpawnScale => m_UiSpotsMode ? 1f : m_ShipScale;
+
+        [Header("📦 UI Konteyner Izgarası")]
+        [Tooltip("Sahnede tek kolon/sıra varsa kullanılan yedek aralık. Normalde aralık, ölçek ve konum sahnedeki spotlardan okunur.")]
+        [SerializeField] private Vector2 m_UiSpotSpacing = new Vector2(324f, 250f);
+
+        [System.NonSerialized] private Transform m_UiSpotsParent;
+        [System.NonSerialized] private float m_UiCurrentSpacingX = 324f;
+        [System.NonSerialized] private bool m_UiSceneLayoutCaptured;
+        [System.NonSerialized] private int m_UiSceneCols, m_UiSceneRows;
+        [System.NonSerialized] private Vector3 m_UiSceneScale;
+        [System.NonSerialized] private Vector2 m_UiSceneSizeDelta, m_UiSceneSpacing, m_UiSceneOrigin;
+
+        private static int SpotIndexOf(Transform t)
+        {
+            string n = t.name;
+            int us = n.LastIndexOf('_');
+            return us >= 0 && int.TryParse(n.Substring(us + 1), out int idx) ? idx : int.MaxValue;
+        }
+
+        /// <summary>
+        /// Kuyruk spotları Canvas altındaki RectTransform'lar ise UI konteyner modudur. Play'de spotlar bölüm
+        /// tasarımının kolon × sıra sayısına göre (ör. 3 kolon) yeniden dizilir; böylece dalga sırası şeritlere
+        /// doğru dağılır. Edit modunda sahnedeki spotlara ve konteynerlere dokunulmaz.
+        /// </summary>
+        private bool TryUseUiSpots(int targetCols = -1, int targetRows = -1)
+        {
+            if (m_UiSpotsParent == null)
+            {
+                foreach (var s in m_QueueSpots)
+                {
+                    if (s is RectTransform) { m_UiSpotsParent = s.parent; break; }
+                }
+            }
+            Transform uiParent = m_UiSpotsParent;
+            if (uiParent == null) { m_UiSpotsMode = false; return false; }
+
+            var spots = new List<RectTransform>();
+            for (int i = 0; i < uiParent.childCount; i++)
+            {
+                if (uiParent.GetChild(i) is RectTransform rt && rt.name.StartsWith("Spot_")) spots.Add(rt);
+            }
+            if (spots.Count == 0) { m_UiSpotsMode = false; return false; }
+            spots.Sort((x, y) => SpotIndexOf(x).CompareTo(SpotIndexOf(y)));
+            m_UiSpotsMode = true;
+            m_ActiveColumnMask = -1;
+
+            if (!Application.isPlaying || targetCols <= 0 || targetRows <= 0)
+            {
+                // Edit modu / bölüm bilgisi yok: sahnedeki ızgarayı olduğu gibi kullan
+                int cols = 0;
+                float firstY = spots[0].anchoredPosition.y;
+                while (cols < spots.Count && Mathf.Abs(spots[cols].anchoredPosition.y - firstY) <= 1f) cols++;
+                cols = Mathf.Max(1, cols);
+                m_Columns = cols;
+                m_Rows = Mathf.Max(1, spots.Count / cols);
+                m_QueueSpots.Clear();
+                for (int i = 0; i < m_Columns * m_Rows; i++) m_QueueSpots.Add(spots[i]);
+                return true;
+            }
+
+            // Sahnedeki ızgara (ölçek, aralık, ilk sıra) Play'de ilk çağrıda bir kez okunur; oyun sahnede
+            // görüldüğü gibi açılır. Spotlar yeniden ölçeklenmez.
+            if (!m_UiSceneLayoutCaptured)
+            {
+                int sceneCols = 0;
+                float y0 = spots[0].anchoredPosition.y;
+                while (sceneCols < spots.Count && Mathf.Abs(spots[sceneCols].anchoredPosition.y - y0) <= 1f) sceneCols++;
+                sceneCols = Mathf.Max(1, sceneCols);
+                m_UiSceneCols = sceneCols;
+                m_UiSceneRows = Mathf.Max(1, spots.Count / sceneCols);
+                m_UiSceneScale = spots[0].localScale;
+                m_UiSceneSizeDelta = spots[0].sizeDelta;
+                float sx = sceneCols > 1 ? Mathf.Abs(spots[1].anchoredPosition.x - spots[0].anchoredPosition.x) : m_UiSpotSpacing.x;
+                float sy = m_UiSceneRows > 1 ? Mathf.Abs(spots[sceneCols].anchoredPosition.y - y0) : m_UiSpotSpacing.y;
+                m_UiSceneSpacing = new Vector2(sx, sy);
+                float sumX = 0f;
+                for (int c = 0; c < sceneCols; c++) sumX += spots[c].anchoredPosition.x;
+                m_UiSceneOrigin = new Vector2(sumX / sceneCols, y0);
+                m_UiSceneLayoutCaptured = true;
+            }
+
+            m_Columns = Mathf.Clamp(targetCols, 1, 8);
+            m_Rows = Mathf.Clamp(targetRows, 1, m_UiSceneRows); // sahnede kaç sıra varsa o kadarı görünür
+            int needed = m_Columns * m_Rows;
+            RectTransform template = spots[0];
+            m_UiCurrentSpacingX = m_UiSceneSpacing.x;
+
+            // Bölüm sahnedekiyle aynı kolon sayısındaysa spotlara hiç dokunulmaz
+            bool sameAsScene = m_Columns == m_UiSceneCols && m_Rows == m_UiSceneRows && spots.Count == needed;
+
+            // Fazla spotlar (içindeki konteynerlerle birlikte) kaldırılır
+            for (int i = spots.Count - 1; i >= needed; i--)
+            {
+                spots[i].gameObject.SetActive(false);
+                Destroy(spots[i].gameObject);
+                spots.RemoveAt(i);
+            }
+            // Eksik spotlar sahnedeki spotun ayarlarıyla oluşturulur
+            while (spots.Count < needed)
+            {
+                var go = new GameObject("Spot_" + spots.Count, typeof(RectTransform));
+                var rt = (RectTransform)go.transform;
+                rt.SetParent(uiParent, false);
+                rt.anchorMin = template.anchorMin;
+                rt.anchorMax = template.anchorMax;
+                rt.pivot = template.pivot;
+                rt.sizeDelta = m_UiSceneSizeDelta;
+                spots.Add(rt);
+            }
+
+            float startX = m_UiSceneOrigin.x - (m_Columns - 1) * m_UiSceneSpacing.x * 0.5f;
+            m_QueueSpots.Clear();
+            for (int r = 0; r < m_Rows; r++)
+            {
+                for (int c = 0; c < m_Columns; c++)
+                {
+                    int idx = r * m_Columns + c;
+                    RectTransform rt = spots[idx];
+                    rt.name = "Spot_" + idx;
+                    if (!sameAsScene)
+                    {
+                        rt.DOKill();
+                        rt.anchoredPosition = new Vector2(startX + c * m_UiSceneSpacing.x, m_UiSceneOrigin.y - r * m_UiSceneSpacing.y);
+                        rt.localRotation = Quaternion.identity;
+                        rt.localScale = m_UiSceneScale;
+                    }
+                    m_QueueSpots.Add(rt);
+                }
+            }
+            return true;
+        }
+
         public void EnsureSpots()
         {
             PixelLevelData level = GetActiveLevel();
@@ -585,9 +725,13 @@ namespace PixelGame
             m_LastInitFrame = Application.isPlaying ? Time.frameCount : -1;
             m_LastInitLevel = level;
 
-            // Eski çalışan kuyruk coroutine'lerini durdur ve tüm eski gemileri/halatları sıfırla
+            // Eski çalışan kuyruk coroutine'lerini durdur ve tüm eski gemileri/halatları sıfırla.
+            // UI konteyner modunda sahnede kurulu konteynerler silinmez: Play'de de edit modundaki
+            // obje, konum ve boyutlarıyla aynen kalır; yalnızca renk/kapasite seviye verisinden atanır.
             StopAllCoroutines();
-            ClearQueue();
+            bool keepSceneContainers = TryUseUiSpots(targetCols, targetRows);
+            if (keepSceneContainers) ClearAllTethers();
+            else ClearQueue();
 
             RebuildSpots(targetCols, targetRows);
 
@@ -624,10 +768,12 @@ namespace PixelGame
             {
                 Transform spot = m_QueueSpots[i];
                 if (spot == null) continue;
+                ShipController sceneShip = keepSceneContainers ? spot.GetComponentInChildren<ShipController>(true) : null;
 
                 // Eğer özel sıra kullanılıyorsa ve tüm sıra baştan az sayıda gemiden ibaretse fazla spotları doldurma
                 if (m_UsingLevelSequence && LevelSequenceLanesExhausted() && i >= level.WagonSequence.Count)
                 {
+                    RemoveUnusedSceneShip(sceneShip);
                     continue;
                 }
 
@@ -639,6 +785,7 @@ namespace PixelGame
                     // Özel sırada bu sütunun şeridi bitti: spot boş kalsın (yedek gemi üretme)
                     if (m_UsingLevelSequence)
                     {
+                        RemoveUnusedSceneShip(sceneShip);
                         continue;
                     }
 
@@ -648,11 +795,32 @@ namespace PixelGame
                     linkId = 0;
                 }
 
+                if (sceneShip != null)
+                {
+                    // Sahnedeki konteyner yerinde kalır; sadece bu bölümün rengi ve kapasitesi verilir
+                    sceneShip.gameObject.SetActive(true);
+                    sceneShip.SetLinkedPartner(null, linkId);
+                    sceneShip.Configure(shipColor, capacity);
+                    sceneShip.SetMysteryHidden(m_LastSequenceShipHidden);
+                    m_WaitingShips[i] = sceneShip;
+                    continue;
+                }
+
                 SpawnShipAtSpot(i, shipColor, capacity, linkId, m_LastSequenceShipHidden);
             }
 
             // Tüm gemiler oluştuktan sonra bağlı olanları eşleştir ve aralarına halat/zincir çek
             RefreshLinkedShipTethers();
+        }
+
+        /// <summary>Bölümde kullanılmayan sahne konteynerini (sıra kısa kaldığında) kaldırır.</summary>
+        private void RemoveUnusedSceneShip(ShipController ship)
+        {
+            if (ship == null) return;
+            ship.transform.SetParent(null);
+            ship.gameObject.SetActive(false);
+            if (Application.isPlaying) Destroy(ship.gameObject);
+            else DestroyImmediate(ship.gameObject);
         }
 
         public void ClearQueue()
@@ -733,11 +901,11 @@ namespace PixelGame
             shipObj.name = $"Waiting_Ship_{spotIndex}";
             shipObj.transform.localPosition = Vector3.zero;
             shipObj.transform.localRotation = Quaternion.identity;
-            shipObj.transform.localScale = Vector3.one * m_ShipScale;
+            shipObj.transform.localScale = Vector3.one * SpawnScale;
 
             ShipController ship = shipObj.GetComponent<ShipController>();
             if (ship == null) ship = shipObj.AddComponent<ShipController>();
-            ship.SetBaseScale(Vector3.one * m_ShipScale);
+            ship.SetBaseScale(Vector3.one * SpawnScale);
             ship.SetLinkedPartner(null, linkId);
 
             ship.Configure(shipColor, capacity);
@@ -1250,8 +1418,8 @@ namespace PixelGame
                     {
                         backShip.transform.localPosition = Vector3.zero;
                         backShip.transform.localRotation = Quaternion.identity;
-                        backShip.transform.localScale = Vector3.one * m_ShipScale;
-                        backShip.SetBaseScale(Vector3.one * m_ShipScale);
+                        backShip.transform.localScale = Vector3.one * SpawnScale;
+                        backShip.SetBaseScale(Vector3.one * SpawnScale);
                         backShip.SetQueueAnimating(false);
                         RefreshLinkedShipTethers();
                     }
@@ -1313,11 +1481,11 @@ namespace PixelGame
             shipObj.name = $"Waiting_Ship_{spotIndex}";
             shipObj.transform.localPosition = startLocal;
             shipObj.transform.localRotation = Quaternion.identity;
-            shipObj.transform.localScale = Vector3.one * m_ShipScale;
+            shipObj.transform.localScale = Vector3.one * SpawnScale;
 
             ShipController ship = shipObj.GetComponent<ShipController>();
             if (ship == null) ship = shipObj.AddComponent<ShipController>();
-            ship.SetBaseScale(Vector3.one * m_ShipScale);
+            ship.SetBaseScale(Vector3.one * SpawnScale);
             ship.SetLinkedPartner(null, linkId);
 
             ship.Configure(shipColor, capacity);
@@ -1362,9 +1530,9 @@ namespace PixelGame
                     {
                         ship.transform.localPosition = Vector3.zero;
                         ship.transform.localRotation = Quaternion.identity;
-                        ship.transform.localScale = Vector3.one * m_ShipScale;
+                        ship.transform.localScale = Vector3.one * SpawnScale;
                         // m_ShipScale dünya ölçeği: spot ölçeğine bölünerek doğru yerel ölçek kurulur (yoksa gemi ~%35 büyük kalıyordu)
-                        ship.SetBaseScale(Vector3.one * m_ShipScale);
+                        ship.SetBaseScale(Vector3.one * SpawnScale);
                         ship.SetQueueAnimating(false);
                         RefreshLinkedShipTethers();
                     }

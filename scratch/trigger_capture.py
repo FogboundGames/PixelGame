@@ -47,10 +47,16 @@ if not unity_hwnd:
 
 print(f'Using HWND: {unity_hwnd}')
 
-# 1. Trigger Refresh
+# 1. Activate and Trigger Refresh
+print('Activating Unity window...')
+user32.ShowWindow(unity_hwnd, 9)
+user32.SetForegroundWindow(unity_hwnd)
+user32.SendMessageW(unity_hwnd, 0x0006, 1, 0)
+user32.SendMessageW(unity_hwnd, 0x0007, 0, 0)
+
 print('Triggering Assets -> Refresh (ID=40276)...')
 user32.SendMessageW(unity_hwnd, 0x0111, 40276, 0)
-time.sleep(6)
+time.sleep(10)
 
 # 2. Find Menu item
 hmenu = user32.GetMenu(unity_hwnd)
@@ -67,21 +73,23 @@ if hmenu:
 capture_id = None
 if pixel_menu:
     count = user32.GetMenuItemCount(pixel_menu)
+    print(f"Total items in PixelGame menu: {count}")
+    target_id = None
     for i in range(count):
         buf = ctypes.create_unicode_buffer(128)
         user32.GetMenuStringW(pixel_menu, i, buf, 128, 0x0400)
         cmd_id = user32.GetMenuItemID(pixel_menu, i)
         val = buf.value.encode('ascii', 'replace').decode('ascii')
-        if 'Gemi Ekran' in val:
-            capture_id = cmd_id
-            print(f'Found Capture item "{val}" ID={cmd_id}')
+        print(f"  [{i}] ID={cmd_id}: {val}")
+        if 'Cargo Container' in val or 'Complete' in val:
+            target_id = cmd_id
 
-if capture_id:
-    print(f'Sending command {capture_id}...')
-    user32.SendMessageW(unity_hwnd, 0x0111, capture_id, 0)
-    time.sleep(4)
+if target_id:
+    print(f'Sending command {target_id} (Apply Complete Cargo Container)...')
+    user32.SendMessageW(unity_hwnd, 0x0111, target_id, 0)
+    time.sleep(5)
     if os.path.exists('scratch/gameplay_view_9_16.png'):
         mtime = os.path.getmtime('scratch/gameplay_view_9_16.png')
         print(f'Screenshot scratch/gameplay_view_9_16.png modified at {time.ctime(mtime)}')
 else:
-    print('Could not find capture command ID!')
+    print('Could not find Cargo Container command ID!')

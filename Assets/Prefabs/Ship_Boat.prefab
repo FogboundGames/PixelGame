@@ -4892,8 +4892,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 2.2, y: 2.5, z: 4.2}
-  m_Center: {x: 0, y: 1, z: 0}
+  m_Size: {x: 1.04, y: 0.88, z: 0.88}
+  m_Center: {x: 0, y: 0.44, z: 0}
 --- !u!114 &9184255927706785190
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4906,6 +4906,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8db7ead6439f46049bf0c70eacbb371b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.ShipController
+  m_IsUiContainer: 0
+  m_ContainerImage: {fileID: 0}
   m_ShipColor: {r: 1, g: 0, b: 0, a: 1}
   m_ColorName: Red
   m_Capacity: 16
@@ -4914,12 +4916,12 @@ MonoBehaviour:
   m_IsDeparting: 0
   m_IsMoving: 0
   m_CurrentSlot: {fileID: 0}
-  m_DockForwardOffset: 0.28
-  m_DockHeightOffset: 0.08
+  m_DockForwardOffset: 0
+  m_DockHeightOffset: 0.02
   m_AlignSternToSlotBack: 1
-  m_SternInsetRatio: 0.1
+  m_SternInsetRatio: 0.05
   m_DockSideOffset: -0.03
-  m_EnableWaterBobbing: 1
+  m_EnableWaterBobbing: 0
   m_BobFrequency: 2.4
   m_BobHeight: 0.035
   m_RollAngle: 2
@@ -4949,22 +4951,22 @@ MonoBehaviour:
   m_BadgeCanvasObj: {fileID: 4908327233986845341}
   m_BadgeText: {fileID: 629320423862741233}
   m_BadgeUIText: {fileID: 0}
-  m_BadgeImage: {fileID: 0}
+  m_BadgeImage: {fileID: 929617318735767745}
   m_EnableFakeShadow: 1
   m_FakeShadowOffset: {x: 0.2, y: -0.3}
   m_FakeShadowSize: {x: 2.65, y: 4.9}
   m_FakeShadowColor: {r: 0.012, g: 0.045, b: 0.16, a: 0.6}
   m_FakeShadowObj: {fileID: 6676710286092978967}
   m_BadgePaintedOnRoof: 1
-  m_BadgeRoofNudge: {x: 0, y: 0.02, z: 0.5}
+  m_BadgeRoofNudge: {x: 0, y: 0, z: 0}
   m_BadgeRoofScale: 1
-  m_BadgeRoofStretch: 2.106
-  m_EnableSilhouetteShadow: 1
+  m_BadgeRoofStretch: 1
+  m_EnableSilhouetteShadow: 0
   m_SilhouetteShadowDirection: {x: 0.2, y: -0.5}
   m_SilhouetteShadowColor: {r: 0.02, g: 0.08, b: 0.22, a: 0.38}
   m_SilhouetteShadowSoftness: 0.35
   m_SilhouetteShadowMaterial: {fileID: 2100000, guid: 92ac416001e4a92f48bdce00036a2366, type: 2}
-  m_EnableChimneySmoke: 1
+  m_EnableChimneySmoke: 0
   m_ChimneyCorner: 5
   m_ChimneyLocalPos: {x: 0, y: 0.732, z: -2.193}
   m_ChimneyTransform: {fileID: 3987541023835577334}
@@ -5007,8 +5009,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4789846063374038933}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.00087770435, y: 0.0000033289912, z: 0.00379281, w: 0.99999243}
-  m_LocalPosition: {x: 0, y: -0.003907717, z: 0}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -5023,7 +5025,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4789846063374038933}
-  m_Mesh: {fileID: 4300000, guid: f73fc120e3c20d103b3e076e02eb2460, type: 2}
+  m_Mesh: {fileID: 4300000, guid: 7147f0f3f38c7cd46a81854e57a9e643, type: 2}
 --- !u!23 &8841705731060471912
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -5050,6 +5052,7 @@ MeshRenderer:
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 0}
+  - {fileID: 2100000, guid: 6f3d52fe18085f04bac4b9c267189c50, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -5098,18 +5101,19 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4908327233986845341}
-  m_LocalRotation: {x: 0.7064808, y: 0.0026842756, z: 0.0026795678, w: 0.70772207}
-  m_LocalPosition: {x: 0, y: 0, z: -0.06054574}
-  m_LocalScale: {x: 0.03269231, y: 0.06885, z: 0.03269231}
+  m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.0055, y: 0.0055, z: 0.0055}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 6494241482050758165}
   - {fileID: 2493393322063398854}
   m_Father: {fileID: 4782747103790920226}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -0.015322847, y: 2.0159311}
-  m_SizeDelta: {x: 210, y: 140}
+  m_AnchoredPosition: {x: 0, y: 0.88499993}
+  m_SizeDelta: {x: 110, y: 62}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &5367762441158416864
 Canvas:
@@ -5155,7 +5159,7 @@ MonoBehaviour:
   m_PhysicalUnit: 3
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
-  m_DynamicPixelsPerUnit: 10
+  m_DynamicPixelsPerUnit: 25
   m_PresetInfoIsWorld: 1
 --- !u!1 &6668015545456264504
 GameObject:
@@ -5286,7 +5290,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &8227756706719831579
 Transform:
   m_ObjectHideFlags: 0
@@ -5488,7 +5492,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &7172485967516708565
 Transform:
   m_ObjectHideFlags: 0
@@ -5580,7 +5584,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1129349613761773240
 Transform:
   m_ObjectHideFlags: 0
@@ -5611,7 +5615,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &3987541023835577334
 Transform:
   m_ObjectHideFlags: 0
@@ -5630,6 +5634,81 @@ Transform:
   - {fileID: 7327607953828225026}
   m_Father: {fileID: 6631975477711031494}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &8390875034538507397
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6494241482050758165}
+  - component: {fileID: 2894661077531627325}
+  - component: {fileID: 929617318735767745}
+  m_Layer: 0
+  m_Name: Badge_Pill
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &6494241482050758165
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8390875034538507397}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4351501574191975228}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 110, y: 62}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &2894661077531627325
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8390875034538507397}
+  m_CullTransparentMesh: 1
+--- !u!114 &929617318735767745
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8390875034538507397}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 21300000, guid: 3a1b37e99a5010f4aa988b2df91edeb2, type: 3}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
 --- !u!1 &9067403553619936382
 GameObject:
   m_ObjectHideFlags: 0
@@ -5665,7 +5744,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 210, y: 140}
+  m_SizeDelta: {x: 110, y: 62}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6662868313314541289
 CanvasRenderer:
@@ -5722,8 +5801,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 58
-  m_fontSizeBase: 58
+  m_fontSize: 42
+  m_fontSizeBase: 42
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18

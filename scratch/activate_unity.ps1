@@ -16,19 +16,21 @@ public class Win32Thread {
 
 $p = Get-Process -Name Unity -ErrorAction SilentlyContinue
 if ($p) {
-    foreach ($t in $p.Threads) {
-        [Win32Thread]::EnumThreadWindows($t.Id, {
-            param($hWnd, $lParam)
-            $sb = New-Object System.Text.StringBuilder 512
-            [Win32Thread]::GetWindowText($hWnd, $sb, 512)
-            $title = $sb.ToString()
-            $vis = [Win32Thread]::IsWindowVisible($hWnd)
-            if ($title.Length -gt 0) {
-                Write-Output "Thread $($t.Id) Window: '$title' Vis: $vis Hwnd: $hWnd"
-                [Win32Thread]::ShowWindow($hWnd, 9)
-                [Win32Thread]::SetForegroundWindow($hWnd)
-            }
-            return $true
-        }, [IntPtr]::Zero)
+    foreach ($proc in $p) {
+        foreach ($t in $proc.Threads) {
+            [void][Win32Thread]::EnumThreadWindows($t.Id, {
+                param($hWnd, $lParam)
+                $sb = New-Object System.Text.StringBuilder 512
+                [Win32Thread]::GetWindowText($hWnd, $sb, 512)
+                $title = $sb.ToString()
+                $vis = [Win32Thread]::IsWindowVisible($hWnd)
+                if ($title.Length -gt 0) {
+                    Write-Host "Process $($proc.Id) Thread $($t.Id) Window: '$title' Vis: $vis Hwnd: $hWnd"
+                    [Win32Thread]::ShowWindow($hWnd, 9)
+                    [Win32Thread]::SetForegroundWindow($hWnd)
+                }
+                return $true
+            }, [IntPtr]::Zero)
+        }
     }
 }

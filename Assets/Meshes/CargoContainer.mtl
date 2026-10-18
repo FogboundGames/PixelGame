@@ -1,0 +1,8 @@
+# Cargo Container Materials
+newmtl ContainerBody
+Kd 1.0 1.0 1.0
+d 1.0
+
+newmtl ContainerHardware
+Kd 0.96 0.97 0.99
+d 1.0

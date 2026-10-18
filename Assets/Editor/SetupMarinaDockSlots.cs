@@ -29,13 +29,13 @@ namespace PixelGame.Editor
             SetupMarinaSlots();
         }
 
-        [MenuItem("PixelGame/⚓ Setup Marina Lifebuoy Slots (UI Visual)")]
+        [MenuItem("PixelGame/🔲 Setup Rounded Square Dock Slots (Image 2)")]
         public static void SetupMarinaSlots()
         {
             EnsureDirectories();
 
-            Material lifebuoyMat = GetOrCreateLifebuoyMaterial();
-            Mesh lifebuoyMesh = GetOrCreateLifebuoyQuadMesh(0.56f, 0.56f);
+            Material slotMat = GetOrCreateRoundedSquareMaterial();
+            Mesh slotMesh = GetOrCreateRoundedSquareQuadMesh(0.56f, 0.56f);
 
             // Sahnede slotları bul ve güncelle
             if (!EditorSceneManager.GetActiveScene().path.Equals(ScenePath))
@@ -53,63 +53,54 @@ namespace PixelGame.Editor
                 if (layout == null) layout = parent.gameObject.AddComponent<MarinaSlotLayout>();
             }
 
-            Debug.Log($"[MarinaDock] {slots.Length} adet ShipSlot bulundu. Yeni can simidi (Lifebuoy UI) görselleri uygulanıyor...");
+            Debug.Log($"[MarinaDock] {slots.Length} adet ShipSlot bulundu. Yeni yuvarlak kare (Image 2) slot görselleri uygulanıyor...");
 
             for (int i = 0; i < slots.Length; i++)
             {
                 var slot = slots[i];
                 if (slot == null) continue;
 
-                int slotNum = slot.SlotIndex + 1; // 1-indexed (1, 2, 3, 4, 5)
+                int slotNum = slot.SlotIndex + 1;
+                slot.transform.localRotation = Quaternion.identity;
+                slot.transform.localScale = Vector3.one;
 
-                // 1. Eski IndicatorMesh veya [Marina_Berth] temizlenir / gizlenir
+                // 1. Eski nesneleri eksiksiz temizle (tüm çocukları yok et)
                 for (int c = slot.transform.childCount - 1; c >= 0; c--)
                 {
                     Transform child = slot.transform.GetChild(c);
-                    if (child.name == "[Marina_Berth]")
-                    {
-                        Undo.DestroyObjectImmediate(child.gameObject);
-                    }
-                    else if (child.name == "[Slot_Lifebuoy]")
-                    {
-                        Undo.DestroyObjectImmediate(child.gameObject);
-                    }
-                    else if (child.name != "FoamSlot")
-                    {
-                        // IndicatorMesh vb. eski nesneleri deaktive et
-                        child.gameObject.SetActive(false);
-                    }
+                    Undo.DestroyObjectImmediate(child.gameObject);
                 }
 
-                // 2. Yeni [Slot_Lifebuoy] görsel nesnesi oluştur
-                GameObject lifebuoyGo = new GameObject("[Slot_Lifebuoy]");
-                Undo.RegisterCreatedObjectUndo(lifebuoyGo, "Create Slot Lifebuoy");
-                lifebuoyGo.transform.SetParent(slot.transform, false);
+                // 2. Yeni [Slot_RoundedSquare] görsel nesnesi oluştur
+                GameObject slotGo = new GameObject("[Slot_RoundedSquare]");
+                Undo.RegisterCreatedObjectUndo(slotGo, "Create Slot Rounded Square");
+                slotGo.transform.SetParent(slot.transform, false);
 
-                // Su yüzeyinin milimetrik üstünde (Y = 0.025f), merkezde
-                lifebuoyGo.transform.localPosition = new Vector3(0f, 0.025f, 0f);
-                lifebuoyGo.transform.localRotation = Quaternion.identity;
-                lifebuoyGo.transform.localScale = Vector3.one;
+                // Zemin yüzeyinin milimetrik üstünde (Y = 0.02f), merkezde
+                slotGo.transform.localPosition = new Vector3(0f, 0.02f, 0f);
+                slotGo.transform.localRotation = Quaternion.identity;
+                slotGo.transform.localScale = Vector3.one;
 
                 // 3. MeshFilter ve MeshRenderer ekle
-                MeshFilter mf = lifebuoyGo.AddComponent<MeshFilter>();
-                mf.sharedMesh = lifebuoyMesh;
+                MeshFilter mf = slotGo.AddComponent<MeshFilter>();
+                mf.sharedMesh = slotMesh;
 
-                MeshRenderer mr = lifebuoyGo.AddComponent<MeshRenderer>();
-                mr.sharedMaterial = lifebuoyMat;
+                MeshRenderer mr = slotGo.AddComponent<MeshRenderer>();
+                mr.sharedMaterial = slotMat;
                 mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 mr.receiveShadows = false;
                 mr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
                 mr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
 
-                // Collider olmamasına dikkat et (tıklamalar ve raycast engelsiz çalışır)
-                Collider col = lifebuoyGo.GetComponent<Collider>();
+                // Collider olmamasına dikkat et (tıklamalar engelsiz çalışır)
+                Collider col = slotGo.GetComponent<Collider>();
                 if (col != null)
                 {
                     Undo.DestroyObjectImmediate(col);
                 }
 
-                Debug.Log($"[MarinaDock] WaterSlot_{slotNum} için Lifebuoy UI görseli başarıyla kuruldu.");
+                slot.EnsureIndicatorReference();
+                Debug.Log($"[MarinaDock] Slot_{slotNum} için 2. görsel tarzı yuvarlak kare slot başarıyla kuruldu.");
             }
 
             if (slots.Length > 0 && slots[0].transform.parent != null)
@@ -124,7 +115,7 @@ namespace PixelGame.Editor
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
             AssetDatabase.SaveAssets();
-            Debug.Log("[MarinaDock] Sahne kaydedildi! Yeni can simidi slotları eksiksiz güncellendi.");
+            Debug.Log("[MarinaDock] Sahne kaydedildi! Yeni yuvarlak kare slotlar (Image 2) eksiksiz güncellendi.");
         }
 
         private static void EnsureDirectories()
@@ -141,9 +132,9 @@ namespace PixelGame.Editor
             }
         }
 
-        private static Material GetOrCreateLifebuoyMaterial()
+        public static Material GetOrCreateRoundedSquareMaterial()
         {
-            string path = $"{MaterialDir}/Slot_Lifebuoy_Mat.mat";
+            string path = $"{MaterialDir}/Slot_RoundedSquare_Mat.mat";
             Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
 
             Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
@@ -153,7 +144,7 @@ namespace PixelGame.Editor
             if (mat == null)
             {
                 mat = new Material(shader);
-                mat.name = "Slot_Lifebuoy_Mat";
+                mat.name = "Slot_RoundedSquare_Mat";
                 AssetDatabase.CreateAsset(mat, path);
             }
             else
@@ -161,7 +152,7 @@ namespace PixelGame.Editor
                 mat.shader = shader;
             }
 
-            Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{TextureDir}/slot_lifebuoy.png");
+            Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{TextureDir}/slot_rounded_square.png");
             if (tex != null)
             {
                 mat.SetTexture("_BaseMap", tex);
@@ -188,14 +179,14 @@ namespace PixelGame.Editor
             return mat;
         }
 
-        private static Mesh GetOrCreateLifebuoyQuadMesh(float halfW, float halfL)
+        public static Mesh GetOrCreateRoundedSquareQuadMesh(float halfW, float halfL)
         {
-            string path = $"{MeshDir}/Slot_Lifebuoy_Quad.asset";
+            string path = $"{MeshDir}/Slot_RoundedSquare_Quad.asset";
             Mesh mesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
             if (mesh == null)
             {
                 mesh = new Mesh();
-                mesh.name = "Slot_Lifebuoy_Quad";
+                mesh.name = "Slot_RoundedSquare_Quad";
                 AssetDatabase.CreateAsset(mesh, path);
             }
             else
@@ -203,17 +194,13 @@ namespace PixelGame.Editor
                 mesh.Clear();
             }
 
-            // Slot'un yerel XZ su düzlemine tam oturan yatay Quad (Normalleri +Y yönünde yukarı bakar)
-            // -Z: Açık deniz / gemi giriş yönü (Can simidinin kulpsuz kırmızı barı)
-            // +Z: İskele / sahil tarafı (Can simidinin üst sarı kulpu)
-            // -X: Sol sarı kulp
-            // +X: Sağ sarı kulp
+            // Slot zemin düzlemine oturan yatay Quad (Normalleri +Y yönünde yukarı bakar)
             mesh.vertices = new Vector3[]
             {
-                new Vector3(-halfW, 0f, -halfL), // 0: sol-alt (açık su / giriş)
-                new Vector3( halfW, 0f, -halfL), // 1: sağ-alt (açık su / giriş)
-                new Vector3(-halfW, 0f,  halfL), // 2: sol-üst (sahil / iskele)
-                new Vector3( halfW, 0f,  halfL)  // 3: sağ-üst (sahil / iskele)
+                new Vector3(-halfW, 0f, -halfL), // 0: sol-alt
+                new Vector3( halfW, 0f, -halfL), // 1: sağ-alt
+                new Vector3(-halfW, 0f,  halfL), // 2: sol-üst
+                new Vector3( halfW, 0f,  halfL)  // 3: sağ-üst
             };
 
             mesh.uv = new Vector2[]
