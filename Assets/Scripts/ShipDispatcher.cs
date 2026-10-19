@@ -604,6 +604,39 @@ namespace PixelGame
             TriggerWaitingShipsCheck();
         }
 
+        /// <summary>
+        /// Konteyner (UI) düzeninde MarinaSlotLayout yok; sahnede sabit sayıda UI slotu duruyor. Bölümün istediği
+        /// kadarı açılır, fazlası kapatılır ve açık olanlar aynı aralıkla satırın ortasına dizilir.
+        /// Yoksa her bölüm sahnedeki tüm slotlarla (4) oynanıyordu.
+        /// </summary>
+        private void ApplyUiSlotCount(int count)
+        {
+            var uiSlots = new List<ShipSlot>();
+            foreach (var s in Object.FindObjectsByType<ShipSlot>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (s != null && s.transform is RectTransform) uiSlots.Add(s);
+            }
+            if (uiSlots.Count == 0) return;
+            uiSlots.Sort((a, b) => a.SlotIndex.CompareTo(b.SlotIndex));
+
+            count = Mathf.Clamp(count, 1, uiSlots.Count);
+            float spacing = uiSlots.Count > 1
+                ? Mathf.Abs(((RectTransform)uiSlots[1].transform).anchoredPosition.x - ((RectTransform)uiSlots[0].transform).anchoredPosition.x)
+                : 0f;
+
+            for (int i = 0; i < uiSlots.Count; i++)
+            {
+                var rt = (RectTransform)uiSlots[i].transform;
+                Vector2 p = rt.anchoredPosition;
+                p.x = (i - (count - 1) * 0.5f) * spacing;
+                rt.anchoredPosition = p;
+
+                bool active = i < count;
+                if (!active && uiSlots[i].DockedShip != null) uiSlots[i].ReleaseShip();
+                if (uiSlots[i].gameObject.activeSelf != active) uiSlots[i].gameObject.SetActive(active);
+            }
+        }
+
         public void EnsureReferences()
         {
             if (m_Generator == null)
@@ -618,6 +651,10 @@ namespace PixelGame
             if (marina != null)
             {
                 marina.SetSlotCount(targetSlots);
+            }
+            else if (Application.isPlaying)
+            {
+                ApplyUiSlotCount(targetSlots);
             }
 
             // Sadece aktif olan slotları sıralı olarak al
@@ -2098,8 +2135,40 @@ namespace PixelGame
         }
 
         /// <summary>Geminin kıyıdaki/slotundaki sahil kenarı noktası (küplerin sahildeki yürüyüşünü tamamlayıp gemiye zıpladığı yer).</summary>
+        [Tooltip("UI konteyner düzeninde denizcinin indiği nokta: pano çerçevesinin iç alt kenarından kaç küp yukarıda.")]
+        [SerializeField, Range(0f, 3f)] private float m_UiShoreInsetCubes = 0.6f;
+
+        /// <summary>
+        /// UI konteyner (HUD Canvas) düzeni: eski su kıyısı çizgisi ekranda iskelelerin altına düşüyordu;
+        /// denizciler konteynerin altına inip iskele ve pano çerçevesinin üstünden yürüyordu. Burada iniş noktası,
+        /// konteynerin ekrandaki hizasında panonun içine (çerçevenin hemen üstüne) alınır: denizci konteynerden
+        /// çerçevenin üstünden zıplayıp doğrudan panoya iner, dönüşte de oradan konteynere zıplar.
+        /// </summary>
+        private bool TryGetUiShorePoint(ShipController ship, out Vector3 point)
+        {
+            point = default;
+            Camera cam = ShipController.MainCamera != null ? ShipController.MainCamera : Camera.main;
+            if (cam == null || !TryGetOtCerceveWorldBounds(out Vector3 min, out Vector3 max, out _)) return false;
+
+            float groundZ = BeachGroundZ();
+            if (float.IsNaN(groundZ)) groundZ = min.z;
+            Ray ray = cam.ScreenPointToRay(cam.WorldToScreenPoint(ship.transform.position));
+            if (!new Plane(Vector3.back, new Vector3(0f, 0f, groundZ)).Raycast(ray, out float dist)) return false;
+            Vector3 hit = ray.GetPoint(dist);
+
+            float pitch = m_GridFrameValid ? Mathf.Max(0.05f, m_GridFrame.Pitch) : 0.3f;
+            float marginX = pitch * 1.5f;
+            point = new Vector3(Mathf.Clamp(hit.x, min.x + marginX, max.x - marginX), min.y + pitch * m_UiShoreInsetCubes, groundZ);
+            return true;
+        }
+
         public Vector3 GetShorePoint(ShipController ship)
         {
+            if (ship != null && ship.IsUiContainer && TryGetUiShorePoint(ship, out Vector3 uiShore))
+            {
+                return uiShore;
+            }
+
             if (ship != null)
             {
                 Vector3 shipPos = ship.transform.position;
@@ -2189,6 +2258,7 @@ namespace PixelGame
         /// </summary>
         public ShipSlot FindEmptySlot()
         {
+            RefreshSlotListIfStale();
             if (m_Slots == null || m_Slots.Count == 0) return null;
 
             for (int i = 0; i < m_Slots.Count; i++)
@@ -2362,8 +2432,26 @@ namespace PixelGame
         /// <summary>
         /// Sahnedeki tüm aktif ve boş yanaşma slotlarını döner.
         /// </summary>
+        /// <summary>
+        /// Slot listesi, slot kökü pasifken (ör. yükleme ekranı sırasında bölüm yüklenince) toplanırsa boş kalıyor ve
+        /// bir daha yenilenmiyordu: hiçbir gemi gönderilemiyordu. Liste boşsa ya da pasif slot içeriyorsa yeniden toplanır.
+        /// </summary>
+        private void RefreshSlotListIfStale()
+        {
+            bool stale = m_Slots == null || m_Slots.Count == 0;
+            if (!stale)
+            {
+                for (int i = 0; i < m_Slots.Count; i++)
+                {
+                    if (m_Slots[i] == null || !m_Slots[i].gameObject.activeInHierarchy) { stale = true; break; }
+                }
+            }
+            if (stale) EnsureReferences();
+        }
+
         public List<ShipSlot> GetEmptySlots()
         {
+            RefreshSlotListIfStale();
             List<ShipSlot> list = new List<ShipSlot>();
             if (m_Slots != null)
             {

@@ -263,6 +263,7 @@ namespace PixelGame
 
         private void OnDestroy()
         {
+            ClearUiFrontShip();
             if (m_ShadowMesh != null)
             {
                 if (Application.isPlaying) Destroy(m_ShadowMesh);
@@ -322,6 +323,12 @@ namespace PixelGame
             if (m_ShipA.ShipColor != m_LastColA || partnerColor != m_LastColB)
             {
                 ApplyColorsFromShips();
+            }
+
+            if (m_ShipA.IsUiContainer)
+            {
+                UpdateUiContainerTether(partner);
+                return;
             }
 
             // Halat, gemilerin sallanan gövdesine (VisualRoot: su sallanması, kaldırma, dalma) bağlanır;
@@ -391,6 +398,156 @@ namespace PixelGame
                 m_RattleIntensity = Mathf.Max(0f, m_RattleIntensity - Time.deltaTime * 3.5f);
             }
         }
+
+        /// <summary>
+        /// UI konteynerler (HUD Canvas): gemi gövdesi elipsi burada anlamsız (Canvas ölçeği çok küçük, bağlantı
+        /// noktaları konteynerin ortasına düşüp kalın şerit iki konteynerin ön yüzünü kesiyordu). Halat iki
+        /// konteynerin birbirine bakan kenarları arasında hafif sarkık çizilir ve Canvas'ın üstünde sıralanır.
+        /// </summary>
+        private void UpdateUiContainerTether(ShipController partner)
+        {
+            var rtA = (RectTransform)m_ShipA.transform;
+            Vector3 posA = rtA.TransformPoint(rtA.rect.center);
+            float boxHeight = rtA.rect.height * rtA.lossyScale.y;
+            Vector3 posB;
+            if (partner != null)
+            {
+                var rtB = (RectTransform)partner.transform;
+                posB = rtB.TransformPoint(rtB.rect.center);
+            }
+            else
+            {
+                // Partner henüz kuyrukta değil: eski düzendeki "denizden geleceği nokta" (yerel Z -2.6) Canvas'ta
+                // şeridin en arka spotunun tam ortasına düşüyor, halat oradaki ilgisiz kutuya bağlı görünüyordu.
+                // Halat o spotun altına, partnerin aşağıdan geleceği yöne uzanır.
+                posB = m_PendingAnchor.position - rtA.up * (boxHeight * UiPendingDropOfBox);
+            }
+
+            // Halat her zaman konteynerlerin (ve iskele kutularının) üstünde çizilir: Canvas'ın altındayken iskelede
+            // beyaz kutuların, kuyrukta da aradaki konteynerlerin arkasında kayboluyor, hareket anında üste
+            // sıçrıyordu. Konteyner yüzlerini olabildiğince az kesmek için kenardan kenara bağlanır.
+            Vector3 centerA = posA, centerB = posB;
+            Vector3 up = rtA.up;
+            Vector3 right = rtA.right;
+            Vector3 bulge = -up; // yatay halat aşağı sarkar
+            Vector3 delta = centerB - centerA;
+            bool vertical = partner != null
+                && Mathf.Abs(Vector3.Dot(delta, up)) > Mathf.Abs(Vector3.Dot(delta, right)) * UiVerticalLinkRatio;
+            ShipController lowerShip = null;
+            if (vertical)
+            {
+                // Üst üste bağlı konteynerler: halat üsttekinin ortasından düz iner ve alttakinin arkasına girer
+                // (alttaki konteyner halatın üstünde çizilir); ortadan giden halat alttakinin sayısını kapatıyordu.
+                lowerShip = Vector3.Dot(delta, up) < 0f ? partner : m_ShipA;
+                posA = centerA;
+                posB = centerB;
+                bulge = Vector3.zero;
+            }
+            else
+            {
+                posA = UiBoxEdgePoint(rtA, centerB);
+                if (partner != null) posB = UiBoxEdgePoint((RectTransform)partner.transform, centerA);
+            }
+
+            float width = boxHeight * UiRopeWidthOfBox;
+            m_LineRenderer.startWidth = width;
+            m_LineRenderer.endWidth = width;
+            Canvas canvas = rtA.GetComponentInParent<Canvas>();
+            if (canvas != null)
+            {
+                Canvas root = canvas.rootCanvas;
+                m_LineRenderer.sortingLayerID = root.sortingLayerID;
+                m_LineRenderer.sortingOrder = root.sortingOrder + 1;
+                SetUiFrontShip(lowerShip, root);
+            }
+            if (m_ShadowObj != null && m_ShadowObj.activeSelf) m_ShadowObj.SetActive(false);
+
+            float sag = boxHeight * UiRopeSagOfBox;
+            if (m_LineRenderer.positionCount != m_SegmentCount) m_LineRenderer.positionCount = m_SegmentCount;
+            for (int i = 0; i < m_SegmentCount; i++)
+            {
+                float t = (float)i / (m_SegmentCount - 1);
+                float sagFactor = 4f * t * (1f - t);
+                Vector3 p = Vector3.Lerp(posA, posB, t) + bulge * (sag * sagFactor);
+                if (m_RattleIntensity > 0.001f)
+                    p += (vertical ? up : right) * (Mathf.Sin(Time.time * 45f + i * 2f) * m_RattleIntensity * boxHeight * sagFactor);
+                m_LineRenderer.SetPosition(i, p);
+            }
+
+            if (m_RattleIntensity > 0f)
+                m_RattleIntensity = Mathf.Max(0f, m_RattleIntensity - Time.deltaTime * 3.5f);
+        }
+
+        /// <summary>Konteynerin görünen gövdesinin, hedef noktaya bakan kenarındaki nokta (dünya uzayında).</summary>
+        private static Vector3 UiBoxEdgePoint(RectTransform box, Vector3 towardWorld)
+        {
+            Rect r = box.rect;
+            Vector2 c = r.center;
+            Vector2 d = (Vector2)box.InverseTransformPoint(towardWorld) - c;
+            // Gövde kenarına tam bağlanınca aradaki dar boşlukta kısa bir leke kalıyordu: uç gövdenin biraz içinde
+            float hw = r.width * 0.5f * UiBoxBodyWidthOfRect * UiRopeAnchorDepth;
+            float hh = r.height * 0.5f * UiBoxBodyHeightOfRect * UiRopeAnchorDepth;
+            float k = Mathf.Max(Mathf.Abs(d.x) / Mathf.Max(1e-4f, hw), Mathf.Abs(d.y) / Mathf.Max(1e-4f, hh));
+            return box.TransformPoint(k > 1e-4f ? c + d / k : c);
+        }
+
+        // Halatın önünde çizilen (dikey bağlantıda alttaki) konteyner; iç Canvas ile sıralaması öne alınır
+        private ShipController m_UiFrontShip;
+
+        /// <summary>
+        /// Dikey bağlantıda alttaki konteyner halatın önünde çizilmeli; halat Canvas'ın bir üstünde olduğundan
+        /// konteynere kendi sıralamasını veren iç bir Canvas eklenir (tıklama için GraphicRaycaster ile).
+        /// ship = null verilirse önceki konteynerin sıralaması geri alınır.
+        /// </summary>
+        private void SetUiFrontShip(ShipController ship, Canvas root)
+        {
+            if (m_UiFrontShip == ship)
+            {
+                if (ship == null) return;
+            }
+            else
+            {
+                ClearUiFrontShip();
+                m_UiFrontShip = ship;
+                if (ship == null) return;
+            }
+
+            Canvas c = ship.GetComponent<Canvas>();
+            if (c == null)
+            {
+                c = ship.gameObject.AddComponent<Canvas>();
+                if (ship.GetComponent<UnityEngine.UI.GraphicRaycaster>() == null)
+                    ship.gameObject.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+            }
+            c.overrideSorting = true;
+            c.sortingLayerID = root.sortingLayerID;
+            c.sortingOrder = root.sortingOrder + 2;
+        }
+
+        private void ClearUiFrontShip()
+        {
+            if (m_UiFrontShip != null)
+            {
+                Canvas c = m_UiFrontShip.GetComponent<Canvas>();
+                if (c != null) c.overrideSorting = false;
+            }
+            m_UiFrontShip = null;
+        }
+
+        // Dikey bağlantı: düşey fark yatayın bu katından büyükse halat üsttekinden düz iner
+        private const float UiVerticalLinkRatio = 1.5f;
+
+        // Konteyner sprite'ında gövde, rect'in bu kadarını kaplar (kalanı şeffaf kenar/gölge)
+        private const float UiBoxBodyWidthOfRect = 0.78f;
+        private const float UiBoxBodyHeightOfRect = 0.7f;
+        // Halat ucu: gövde merkezinden kenarına giden yolun bu oranında (1 = tam kenar)
+        private const float UiRopeAnchorDepth = 0.6f;
+
+        // UI konteyner halatı: kalınlık ve sarkma, konteyner yüksekliğine oranla
+        private const float UiRopeWidthOfBox = 0.1f;
+        private const float UiRopeSagOfBox = 0.14f;
+        // Bekleyen halat: şeridin en arka spotunun kaç kutu boyu altına uzanır
+        private const float UiPendingDropOfBox = 1.3f;
 
         /// <summary>
         /// Halatın suya düşen gölgesi: her halat noktası, gemi silüet gölgesindeki gibi gemi yerel uzayında

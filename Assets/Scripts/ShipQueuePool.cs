@@ -570,6 +570,9 @@ namespace PixelGame
 
         [System.NonSerialized] private Transform m_UiSpotsParent;
         [System.NonSerialized] private float m_UiCurrentSpacingX = 324f;
+        [System.NonSerialized] private float m_UiCurrentSpacingY = 250f;
+        // Yeni UI konteyner, en arka spotun kaç sıra altından kayarak gelir
+        private const float UiSpawnFromBelowRows = 1.2f;
         [System.NonSerialized] private bool m_UiSceneLayoutCaptured;
         [System.NonSerialized] private int m_UiSceneCols, m_UiSceneRows;
         [System.NonSerialized] private Vector3 m_UiSceneScale;
@@ -602,7 +605,8 @@ namespace PixelGame
             var spots = new List<RectTransform>();
             for (int i = 0; i < uiParent.childCount; i++)
             {
-                if (uiParent.GetChild(i) is RectTransform rt && rt.name.StartsWith("Spot_")) spots.Add(rt);
+                // Kapatılmış spotlar bu karede Destroy bekliyor: aynı karede bölüm yeniden kurulursa kullanılmasın
+                if (uiParent.GetChild(i) is RectTransform rt && rt.name.StartsWith("Spot_") && rt.gameObject.activeSelf) spots.Add(rt);
             }
             if (spots.Count == 0) { m_UiSpotsMode = false; return false; }
             spots.Sort((x, y) => SpotIndexOf(x).CompareTo(SpotIndexOf(y)));
@@ -645,7 +649,8 @@ namespace PixelGame
             }
 
             m_Columns = Mathf.Clamp(targetCols, 1, 8);
-            m_Rows = Mathf.Clamp(targetRows, 1, m_UiSceneRows); // sahnede kaç sıra varsa o kadarı görünür
+            m_Rows = FitUiRows(uiParent, Mathf.Clamp(targetRows, 1, 8), out float rowSpacing);
+            m_UiCurrentSpacingY = rowSpacing;
             int needed = m_Columns * m_Rows;
             RectTransform template = spots[0];
             m_UiCurrentSpacingX = m_UiSceneSpacing.x;
@@ -685,7 +690,7 @@ namespace PixelGame
                     if (!sameAsScene)
                     {
                         rt.DOKill();
-                        rt.anchoredPosition = new Vector2(startX + c * m_UiSceneSpacing.x, m_UiSceneOrigin.y - r * m_UiSceneSpacing.y);
+                        rt.anchoredPosition = new Vector2(startX + c * m_UiSceneSpacing.x, m_UiSceneOrigin.y - r * rowSpacing);
                         rt.localRotation = Quaternion.identity;
                         rt.localScale = m_UiSceneScale;
                     }
@@ -693,6 +698,43 @@ namespace PixelGame
                 }
             }
             return true;
+        }
+
+        // Görünen sıra sayısı ekrana göre: sıra aralığı en fazla bu orana kadar sıkıştırılabilir
+        private const float UiMinRowSpacingFactor = 0.85f;
+        // Son sıranın kutusu ekranın altından bu kadar (Canvas birimi) yukarıda kalır
+        private const float UiQueueBottomMargin = 20f;
+
+        /// <summary>
+        /// Bölüm kaç sıra istiyorsa, ekrana sığdığı kadarı görünür (eskiden sahnede kaç sıra varsa — 2 — o kadardı;
+        /// uzun ekranlarda alt tarafta bir sıralık boş kum kalıyordu). Gerekirse sıra aralığı biraz sıkıştırılır;
+        /// yine sığmazsa sıra sayısı azalır ama sahnedeki sıra sayısının altına inmez.
+        /// </summary>
+        private int FitUiRows(Transform uiParent, int wanted, out float spacingY)
+        {
+            spacingY = m_UiSceneSpacing.y;
+            int minRows = Mathf.Min(wanted, m_UiSceneRows);
+            if (wanted <= minRows || m_UiSceneSpacing.y <= 0.01f) return minRows;
+
+            Canvas canvas = uiParent.GetComponentInParent<Canvas>();
+            if (canvas == null) return minRows;
+            var canvasRt = (RectTransform)canvas.rootCanvas.transform;
+            var corners = new Vector3[4];
+            canvasRt.GetWorldCorners(corners);
+            float bottom = uiParent.InverseTransformPoint(corners[0]).y + UiQueueBottomMargin;
+            float halfBox = m_UiSceneSizeDelta.y * m_UiSceneScale.y * 0.5f;
+            float available = m_UiSceneOrigin.y - halfBox - bottom; // ilk ve son sıranın merkezleri arası
+
+            for (int rows = wanted; rows > minRows; rows--)
+            {
+                float s = Mathf.Min(m_UiSceneSpacing.y, available / (rows - 1));
+                if (s >= m_UiSceneSpacing.y * UiMinRowSpacingFactor)
+                {
+                    spacingY = s;
+                    return rows;
+                }
+            }
+            return minRows;
         }
 
         public void EnsureSpots()
@@ -1476,6 +1518,14 @@ namespace PixelGame
 
             // Gemiyi arkadan (açık denizden, local Z = -2.6f) başlat
             Vector3 startLocal = new Vector3(0f, 0f, -2.6f);
+            if (m_UiSpotsMode)
+            {
+                // UI konteyner: Canvas'ta Z'nin anlamı yok, -2.6 tam spotun üstüne düşüyordu; yeni konteyner arka
+                // sırada birden beliriyor (ışınlanıyor), oradan henüz kalkmakta olanın üstüne biniyordu.
+                // Bir sıra aşağıdan (ekranın altından) kayarak gelir.
+                float spotScaleY = Mathf.Abs(spot.localScale.y) > 1e-4f ? spot.localScale.y : 1f;
+                startLocal = new Vector3(0f, -m_UiCurrentSpacingY * UiSpawnFromBelowRows / spotScaleY, 0f);
+            }
 
             GameObject shipObj = Instantiate(m_ShipPrefab, spot.TransformPoint(startLocal), spot.rotation, spot);
             shipObj.name = $"Waiting_Ship_{spotIndex}";
