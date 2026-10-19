@@ -5467,7 +5467,7 @@
   - LevelFail_Popup (active: False, pos: (0.00, 0.00, 0.00), rot: (0.00, 0.00, 0.00), scale: (1.00, 1.00, 1.00)) [CanvasRenderer, Image]
     - Fail_Card (active: True, pos: (0.00, 40.00, 0.00), rot: (0.00, 0.00, 0.00), scale: (1.00, 1.00, 1.00)) [CanvasRenderer, Image]
       - Btn_Retry_Modal (active: True, pos: (0.00, -233.24, 0.00), rot: (0.00, 0.00, 0.00), scale: (1.00, 1.00, 1.00)) [CanvasRenderer, Image, Button]
-  - TopUI (active: True, pos: (0.00, 1168.32, 0.00), rot: (0.00, 0.00, 0.00), scale: (1.00, 1.00, 1.00)) []
+  - TopUI (active: True, pos: (0.00, 960.00, 0.00), rot: (0.00, 0.00, 0.00), scale: (1.00, 1.00, 1.00)) []
     - TopBanner (active: True, pos: (0.00, -75.00, 0.00), rot: (0.00, 0.00, 0.00), scale: (1.00, 1.00, 1.00)) []
     - RetryButton (active: True, pos: (-510.00, -80.00, 0.00), rot: (0.00, 0.00, 0.00), scale: (1.10, 1.10, 1.10)) [CanvasRenderer, Image, Button, CasualUIButtonJuice]
     - SpeedButton (active: True, pos: (-395.00, -80.00, 0.00), rot: (0.00, 0.00, 0.00), scale: (1.10, 1.10, 1.10)) [CanvasRenderer, Image, Button, CasualUIButtonJuice]

@@ -19,6 +19,9 @@ namespace PixelGame.Editor
 
         static SetupContainerReferenceLayout()
         {
+            // Otomatik çalıştırma kapalı: her editör açılışında düzeni yeniden kurup Gemi sahnesini kaydediyor,
+            // elle yapılan düzenlemeleri siliyordu. Menüden (PixelGame/📦 ...) elle çalıştırılabilir.
+#if PIXELGAME_AUTO_SCENE_SETUP
             EditorApplication.delayCall += () =>
             {
                 if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;
@@ -28,6 +31,7 @@ namespace PixelGame.Editor
                     ApplyCompleteReferenceLayout();
                 }
             };
+#endif
         }
 
         [MenuItem("PixelGame/📦 Apply Complete Cargo Container & Beach Layout (UI Containers)")]
