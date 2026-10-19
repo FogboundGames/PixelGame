@@ -54,9 +54,9 @@ user32.SetForegroundWindow(unity_hwnd)
 user32.SendMessageW(unity_hwnd, 0x0006, 1, 0)
 user32.SendMessageW(unity_hwnd, 0x0007, 0, 0)
 
-print('Triggering Assets -> Refresh (ID=40276)...')
-user32.SendMessageW(unity_hwnd, 0x0111, 40276, 0)
-time.sleep(10)
+print('Triggering Assets -> Refresh (ID=40280)...')
+user32.SendMessageW(unity_hwnd, 0x0111, 40280, 0)
+time.sleep(12)
 
 # 2. Find Menu item
 hmenu = user32.GetMenu(unity_hwnd)

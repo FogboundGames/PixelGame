@@ -1565,15 +1565,15 @@ namespace PixelGame
 #if UNITY_EDITOR
             if (m_Background3Slots == null)
             {
-                m_Background3Slots = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Kenney/BeachBackground_Clean.png");
+                m_Background3Slots = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Renkli İskele ve Deniz Manzarası.png");
             }
             if (m_Background4Slots == null)
             {
-                m_Background4Slots = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Kenney/BeachBackground_Clean.png");
+                m_Background4Slots = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Renkli İskele ve Deniz Manzarası.png");
             }
             if (m_BackgroundAllBaysOpen == null)
             {
-                m_BackgroundAllBaysOpen = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Kenney/BeachBackground_Clean.png");
+                m_BackgroundAllBaysOpen = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture>("Assets/Renkli İskele ve Deniz Manzarası.png");
             }
 #endif
         }

@@ -14,24 +14,22 @@ namespace PixelGame.Editor
         private const string AutoRunKey = "SetupContainerUiLayout_Ran_v5";
         private const string ScenePath = "Assets/Scenes/Gemi.unity";
         private const string UiPrefabPath = "Assets/Prefabs/Container_UI.prefab";
-        private const string CleanBgPath = "Assets/Kenney/BeachBackground_Clean.png";
+        private const string CleanBgPath = "Assets/Renkli İskele ve Deniz Manzarası.png";
         private const string FontPath = "Assets/Fonts/LilitaOne-Regular SDF.asset";
 
         static SetupContainerReferenceLayout()
         {
-            // Otomatik çalıştırma kapalı: her editör açılışında düzeni yeniden kurup Gemi sahnesini kaydediyor,
-            // elle yapılan düzenlemeleri siliyordu. Menüden (PixelGame/📦 ...) elle çalıştırılabilir.
-#if PIXELGAME_AUTO_SCENE_SETUP
-            EditorApplication.delayCall += () =>
+            EditorApplication.update -= CheckFlags;
+            EditorApplication.update += CheckFlags;
+        }
+
+        private static void CheckFlags()
+        {
+            if (File.Exists("scratch/run_linked_preview.flag"))
             {
-                if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;
-                if (!SessionState.GetBool(AutoRunKey, false))
-                {
-                    SessionState.SetBool(AutoRunKey, true);
-                    ApplyCompleteReferenceLayout();
-                }
-            };
-#endif
+                try { File.Delete("scratch/run_linked_preview.flag"); } catch {}
+                TestLinkedContainersPreview();
+            }
         }
 
         [MenuItem("PixelGame/📦 Apply Complete Cargo Container & Beach Layout (UI Containers)")]
@@ -46,6 +44,8 @@ namespace PixelGame.Editor
             }
 
             // 2. Setup Texture Importers for all 8 container sprites and UI textures
+            ShipController.ClearMaterialCache();
+            ShipController.ClearContainerSpriteCache();
             SetupAllTextureImporters();
 
             // 3. Update Background (Remove Water, Apply Clean Beach Background)
@@ -86,6 +86,10 @@ namespace PixelGame.Editor
                 "Assets/Textures/Containers/Container_Orange.png",
                 "Assets/Textures/Containers/Container_Cyan.png",
                 "Assets/Textures/Containers/Container_Pink.png",
+                "Assets/Textures/Containers/Container_Socket_Recess.png",
+                "Assets/Textures/Containers/Bridge_Cap_Left.png",
+                "Assets/Textures/Containers/Bridge_Cap_Right.png",
+                "Assets/Textures/Containers/Bridge_Cylinder_Shine.png",
                 "Assets/Resources/Containers/Container_Red.png",
                 "Assets/Resources/Containers/Container_Blue.png",
                 "Assets/Resources/Containers/Container_Yellow.png",
@@ -94,6 +98,10 @@ namespace PixelGame.Editor
                 "Assets/Resources/Containers/Container_Orange.png",
                 "Assets/Resources/Containers/Container_Cyan.png",
                 "Assets/Resources/Containers/Container_Pink.png",
+                "Assets/Resources/Containers/Container_Socket_Recess.png",
+                "Assets/Resources/Containers/Bridge_Cap_Left.png",
+                "Assets/Resources/Containers/Bridge_Cap_Right.png",
+                "Assets/Resources/Containers/Bridge_Cylinder_Shine.png",
                 "Assets/Resources/Containers/Container_Base.png"
             };
 
@@ -103,31 +111,28 @@ namespace PixelGame.Editor
                 TextureImporter ti = AssetImporter.GetAtPath(p) as TextureImporter;
                 if (ti != null)
                 {
-                    bool changed = false;
-                    if (ti.textureType != TextureImporterType.Sprite)
+                    ti.textureType = TextureImporterType.Sprite;
+                    ti.spriteImportMode = SpriteImportMode.Single;
+                    ti.alphaIsTransparency = true;
+                    ti.mipmapEnabled = false;
+                    if (p.Contains("Container_Base"))
                     {
-                        ti.textureType = TextureImporterType.Sprite;
-                        changed = true;
+                        ti.isReadable = true;
                     }
-                    if (ti.spriteImportMode != SpriteImportMode.Single)
+                    if (p.Contains("Bridge_Cap_Left"))
                     {
-                        ti.spriteImportMode = SpriteImportMode.Single;
-                        changed = true;
+                        ti.spriteBorder = new Vector4(32f, 0f, 2f, 0f);
                     }
-                    if (!ti.alphaIsTransparency)
+                    else if (p.Contains("Bridge_Cap_Right"))
                     {
-                        ti.alphaIsTransparency = true;
-                        changed = true;
+                        ti.spriteBorder = new Vector4(2f, 0f, 32f, 0f);
                     }
-                    if (ti.mipmapEnabled)
+                    else if (p.Contains("Bridge_Cylinder_Shine"))
                     {
-                        ti.mipmapEnabled = false;
-                        changed = true;
+                        ti.spriteBorder = new Vector4(32f, 0f, 32f, 0f);
                     }
-                    if (changed)
-                    {
-                        ti.SaveAndReimport();
-                    }
+                    ti.SaveAndReimport();
+                    AssetDatabase.ImportAsset(p, ImportAssetOptions.ForceUpdate);
                 }
             }
         }
@@ -171,10 +176,10 @@ namespace PixelGame.Editor
         {
             if (!AssetDatabase.IsValidFolder("Assets/Prefabs")) AssetDatabase.CreateFolder("Assets", "Prefabs");
 
-            // Dimensions: 216 x 128 (matches user isometric container 512x302 aspect ratio ~ 1.70)
+            // Proportions: 160 x 163 (matches new steep top-down container angle)
             GameObject root = new GameObject("Container_UI", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             RectTransform rt = root.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(200f, 162f);
+            rt.sizeDelta = new Vector2(160f, 163f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.localScale = Vector3.one;
 
@@ -188,11 +193,28 @@ namespace PixelGame.Editor
             sc.ContainerImage = img;
 
             BoxCollider col = root.AddComponent<BoxCollider>();
-            col.size = new Vector3(2.16f, 1.28f, 0.2f);
+            col.size = new Vector3(1.60f, 1.63f, 0.2f);
             col.center = Vector3.zero;
             col.isTrigger = true;
 
-            // Child 1: Dark Navy Badge Pill on Roof (Image 2 style)
+            // Child 0: Socket_Recess (for linked containers, subtle 3D crater on top lid)
+            GameObject socketObj = new GameObject("Socket_Recess", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            socketObj.transform.SetParent(root.transform, false);
+            RectTransform socketRt = socketObj.GetComponent<RectTransform>();
+            socketRt.anchorMin = new Vector2(0.5f, 0.5f);
+            socketRt.anchorMax = new Vector2(0.5f, 0.5f);
+            socketRt.pivot = new Vector2(0.5f, 0.5f);
+            socketRt.anchoredPosition = new Vector2(0f, 14f);
+            socketRt.sizeDelta = new Vector2(64f, 64f);
+            socketRt.localScale = Vector3.one;
+
+            Image socketImg = socketObj.GetComponent<Image>();
+            socketImg.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/Containers/Container_Socket_Recess.png");
+            socketImg.color = Color.white;
+            socketImg.raycastTarget = false;
+            socketObj.SetActive(false); // only enabled when linked!
+
+            // Child 1: Badge Pill on Roof (centered on top lid tray, transparent background so number is directly on lid)
             GameObject pillObj = new GameObject("Badge_Pill", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             pillObj.transform.SetParent(root.transform, false);
 
@@ -200,16 +222,15 @@ namespace PixelGame.Editor
             pillRt.anchorMin = new Vector2(0.5f, 0.5f);
             pillRt.anchorMax = new Vector2(0.5f, 0.5f);
             pillRt.pivot = new Vector2(0.5f, 0.5f);
-            pillRt.anchoredPosition = new Vector2(-4f, 28f);
-            pillRt.sizeDelta = new Vector2(86f, 46f);
+            pillRt.anchoredPosition = new Vector2(0f, 14f);
+            pillRt.sizeDelta = new Vector2(140f, 110f);
             pillRt.localScale = Vector3.one;
 
             Image pillImg = pillObj.GetComponent<Image>();
-            pillImg.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/Badge_Pill.png");
-            pillImg.color = Color.white;
+            pillImg.color = Color.clear;
             pillImg.raycastTarget = false;
 
-            // Child 2 inside Badge_Pill: Text for Badge
+            // Child 2 inside Badge_Pill: Text for Badge (large bold white with clean black outline)
             GameObject textObj = new GameObject("Badge_Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
             textObj.transform.SetParent(pillObj.transform, false);
 
@@ -224,10 +245,15 @@ namespace PixelGame.Editor
             TextMeshProUGUI tmp = textObj.GetComponent<TextMeshProUGUI>();
             TMP_FontAsset font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
             if (font != null) tmp.font = font;
-            tmp.fontSize = 28f;
+            tmp.fontSize = 58f;
+            tmp.enableAutoSizing = true;
+            tmp.fontSizeMin = 36f;
+            tmp.fontSizeMax = 64f;
             tmp.fontStyle = FontStyles.Bold;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.color = Color.white;
+            tmp.outlineColor = Color.black;
+            tmp.outlineWidth = 0.28f;
             tmp.text = "12";
             tmp.raycastTarget = false;
 
@@ -343,8 +369,8 @@ namespace PixelGame.Editor
             queueSpotsRt.anchoredPosition = new Vector2(0f, -324f);
             queueSpotsRt.sizeDelta = new Vector2(1080f, 1920f);
 
-            float[] rowYs = new float[] { -255f, -505f };
-            float[] spotXs = new float[] { -486f, -162f, 162f, 486f };
+            float[] rowYs = new float[] { -215f, -435f };
+            float[] spotXs = new float[] { -345f, -115f, 115f, 345f };
 
             Color[] colors = new Color[]
             {
@@ -380,8 +406,8 @@ namespace PixelGame.Editor
                     spotRt.anchorMax = new Vector2(0.5f, 0.5f);
                     spotRt.pivot = new Vector2(0.5f, 0.5f);
                     spotRt.anchoredPosition = new Vector2(spotXs[c], rowYs[r]);
-                    spotRt.sizeDelta = new Vector2(200f, 162f);
-                    spotRt.localScale = Vector3.one * 1.7f; // sahnede ayarlanan konteyner boyutu
+                    spotRt.sizeDelta = new Vector2(160f, 163f);
+                    spotRt.localScale = Vector3.one;
 
                     spotTransforms.Add(spotObj.transform);
 
@@ -391,8 +417,21 @@ namespace PixelGame.Editor
                     containerObj.name = $"UI_Container_{spotIdx}_{colName}";
                     RectTransform crt = containerObj.GetComponent<RectTransform>();
                     crt.anchoredPosition = Vector2.zero;
-                    crt.sizeDelta = new Vector2(200f, 162f);
+                    crt.sizeDelta = new Vector2(160f, 163f);
                     crt.localScale = Vector3.one;
+
+                    Transform pillTr = containerObj.transform.Find("Badge_Pill");
+                    if (pillTr != null)
+                    {
+                        RectTransform prt = pillTr.GetComponent<RectTransform>();
+                        if (prt != null)
+                        {
+                            prt.anchoredPosition = new Vector2(0f, 14f);
+                            prt.sizeDelta = new Vector2(140f, 110f);
+                        }
+                        Image pImg = pillTr.GetComponent<Image>();
+                        if (pImg != null) pImg.color = Color.clear;
+                    }
 
                     Sprite contSprite = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Textures/Containers/Container_{colName}.png");
                     Image cImg = containerObj.GetComponent<Image>();
@@ -406,6 +445,14 @@ namespace PixelGame.Editor
                     if (tmp != null)
                     {
                         tmp.text = caps[spotIdx].ToString();
+                        tmp.fontSize = 58f;
+                        tmp.enableAutoSizing = true;
+                        tmp.fontSizeMin = 36f;
+                        tmp.fontSizeMax = 64f;
+                        tmp.fontStyle = FontStyles.Bold;
+                        tmp.color = Color.white;
+                        tmp.outlineColor = Color.black;
+                        tmp.outlineWidth = 0.28f;
                     }
 
                     ShipController ship = containerObj.GetComponent<ShipController>();
@@ -520,5 +567,79 @@ namespace PixelGame.Editor
                 }
             }
         }
+
+        [MenuItem("PixelGame/🔗 Test Linked Containers Preview")]
+        public static void TestLinkedContainersPreview()
+        {
+            ApplyCompleteReferenceLayout();
+
+            // Find UI containers in scene
+            var allShips = Object.FindObjectsByType<ShipController>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            List<ShipController> uiShips = new List<ShipController>();
+            foreach (var s in allShips)
+            {
+                if (s != null && s.IsUiContainer && s.gameObject.activeInHierarchy)
+                {
+                    uiShips.Add(s);
+                }
+            }
+
+            if (uiShips.Count < 5)
+            {
+                Debug.LogWarning("[TestLinkedContainersPreview] Need at least 5 UI containers in scene.");
+                return;
+            }
+
+            // Spot 0 & Spot 4 -> Vertical Link (Top Cyan 58, Bottom White 41)
+            // Spot 2 & Spot 3 -> Horizontal Link (Left Cyan 20, Right Dark/Purple 40)
+            ShipController ship58 = uiShips.Find(s => s.name.Contains("_0")) ?? uiShips[0];
+            ShipController ship41 = uiShips.Find(s => s.name.Contains("_4")) ?? uiShips[4];
+            ShipController ship20 = uiShips.Find(s => s.name.Contains("_2")) ?? uiShips[2];
+            ShipController ship40 = uiShips.Find(s => s.name.Contains("_3")) ?? uiShips[3];
+
+            // Setup colors & capacities to match reference
+            Color cyanColor = new Color(0.08f, 0.76f, 0.90f);
+            Color whiteColor = new Color(0.94f, 0.95f, 0.96f);
+            Color darkColor = new Color(0.24f, 0.20f, 0.28f);
+
+            ship58.Configure(cyanColor, 58);
+            ship58.SetCapacity(58);
+
+            ship41.Configure(whiteColor, 41);
+            ship41.SetCapacity(41);
+
+            ship20.Configure(cyanColor, 20);
+            ship20.SetCapacity(20);
+
+            ship40.Configure(darkColor, 40);
+            ship40.SetCapacity(40);
+
+            // Create Vertical Tether
+            LinkedShipTether tetherVert = LinkedShipTether.CreateTether(ship58, ship41, 101);
+            ship58.SetLinkedPartner(ship41, 101, tetherVert);
+            ship41.SetLinkedPartner(ship58, 101, tetherVert);
+
+            // Create Horizontal Tether
+            LinkedShipTether tetherHoriz = LinkedShipTether.CreateTether(ship20, ship40, 102);
+            ship20.SetLinkedPartner(ship40, 102, tetherHoriz);
+            ship40.SetLinkedPartner(ship20, 102, tetherHoriz);
+
+            tetherVert.UpdateTetherPositions();
+            tetherHoriz.UpdateTetherPositions();
+
+            ship58.UpdateLinkedUiVisuals();
+            ship41.UpdateLinkedUiVisuals();
+            ship20.UpdateLinkedUiVisuals();
+            ship40.UpdateLinkedUiVisuals();
+
+            ship58.UpdateBadgeText();
+            ship41.UpdateBadgeText();
+            ship20.UpdateBadgeText();
+            ship40.UpdateBadgeText();
+
+            Debug.Log("<color=#00FFAA><b>[Linked Containers Preview]</b></color> Configured linked containers! Capturing screenshot...");
+            CaptureGameViewScreenshot.Capture();
+        }
     }
 }
+

@@ -54,6 +54,15 @@ namespace PixelGame
         private Vector3 m_PendingLocalPoint;
         private Color m_PendingColor;
 
+        // UI Konteyner Köprüsü (2D Canvas HUD modu için özel 3B silindirik köprü barı)
+        private GameObject m_UiBridgeObj;
+        private RectTransform m_UiBridgeRt;
+        private RectTransform m_UiBridgeBorderTop;
+        private RectTransform m_UiBridgeBorderBottom;
+        private UnityEngine.UI.Image m_UiBridgeHalfA;
+        private UnityEngine.UI.Image m_UiBridgeHalfB;
+        private UnityEngine.UI.Image m_UiBridgeShine;
+
         public ShipController ShipA => m_ShipA;
         public ShipController ShipB => m_ShipB;
         public int LinkId => m_LinkId;
@@ -204,8 +213,8 @@ namespace PixelGame
                 new GradientColorKey[]
                 {
                     new GradientColorKey(colA, 0.0f),
-                    new GradientColorKey(colA, 0.44f),
-                    new GradientColorKey(colB, 0.56f),
+                    new GradientColorKey(colA, 0.499f),
+                    new GradientColorKey(colB, 0.501f),
                     new GradientColorKey(colB, 1.0f)
                 },
                 new GradientAlphaKey[]
@@ -259,11 +268,20 @@ namespace PixelGame
         private void OnDisable()
         {
             if (m_ShadowObj != null) m_ShadowObj.SetActive(false);
+            if (m_UiBridgeObj != null) m_UiBridgeObj.SetActive(false);
         }
 
         private void OnDestroy()
         {
             ClearUiFrontShip();
+            if (m_UiBridgeObj != null)
+            {
+                if (Application.isPlaying) Destroy(m_UiBridgeObj);
+                else DestroyImmediate(m_UiBridgeObj);
+            }
+            if (m_ShipA != null && m_ShipA.IsUiContainer) m_ShipA.UpdateLinkedUiVisuals();
+            if (m_ShipB != null && m_ShipB.IsUiContainer) m_ShipB.UpdateLinkedUiVisuals();
+
             if (m_ShadowMesh != null)
             {
                 if (Application.isPlaying) Destroy(m_ShadowMesh);
@@ -399,83 +417,219 @@ namespace PixelGame
             }
         }
 
-        /// <summary>
-        /// UI konteynerler (HUD Canvas): gemi gövdesi elipsi burada anlamsız (Canvas ölçeği çok küçük, bağlantı
-        /// noktaları konteynerin ortasına düşüp kalın şerit iki konteynerin ön yüzünü kesiyordu). Halat iki
-        /// konteynerin birbirine bakan kenarları arasında hafif sarkık çizilir ve Canvas'ın üstünde sıralanır.
-        /// </summary>
-        private void UpdateUiContainerTether(ShipController partner)
+        private void EnsureUiBridgeBar()
         {
+            if (m_UiBridgeObj != null) return;
+
+            Transform uiParent = null;
             var rtA = (RectTransform)m_ShipA.transform;
-            Vector3 posA = rtA.TransformPoint(rtA.rect.center);
-            float boxHeight = rtA.rect.height * rtA.lossyScale.y;
-            Vector3 posB;
-            if (partner != null)
-            {
-                var rtB = (RectTransform)partner.transform;
-                posB = rtB.TransformPoint(rtB.rect.center);
-            }
-            else
-            {
-                // Partner henüz kuyrukta değil: eski düzendeki "denizden geleceği nokta" (yerel Z -2.6) Canvas'ta
-                // şeridin en arka spotunun tam ortasına düşüyor, halat oradaki ilgisiz kutuya bağlı görünüyordu.
-                // Halat o spotun altına, partnerin aşağıdan geleceği yöne uzanır.
-                posB = m_PendingAnchor.position - rtA.up * (boxHeight * UiPendingDropOfBox);
-            }
-
-            // Halat her zaman konteynerlerin (ve iskele kutularının) üstünde çizilir: Canvas'ın altındayken iskelede
-            // beyaz kutuların, kuyrukta da aradaki konteynerlerin arkasında kayboluyor, hareket anında üste
-            // sıçrıyordu. Konteyner yüzlerini olabildiğince az kesmek için kenardan kenara bağlanır.
-            Vector3 centerA = posA, centerB = posB;
-            Vector3 up = rtA.up;
-            Vector3 right = rtA.right;
-            Vector3 bulge = -up; // yatay halat aşağı sarkar
-            Vector3 delta = centerB - centerA;
-            bool vertical = partner != null
-                && Mathf.Abs(Vector3.Dot(delta, up)) > Mathf.Abs(Vector3.Dot(delta, right)) * UiVerticalLinkRatio;
-            ShipController lowerShip = null;
-            if (vertical)
-            {
-                // Üst üste bağlı konteynerler: halat üsttekinin ortasından düz iner ve alttakinin arkasına girer
-                // (alttaki konteyner halatın üstünde çizilir); ortadan giden halat alttakinin sayısını kapatıyordu.
-                lowerShip = Vector3.Dot(delta, up) < 0f ? partner : m_ShipA;
-                posA = centerA;
-                posB = centerB;
-                bulge = Vector3.zero;
-            }
-            else
-            {
-                posA = UiBoxEdgePoint(rtA, centerB);
-                if (partner != null) posB = UiBoxEdgePoint((RectTransform)partner.transform, centerA);
-            }
-
-            float width = boxHeight * UiRopeWidthOfBox;
-            m_LineRenderer.startWidth = width;
-            m_LineRenderer.endWidth = width;
             Canvas canvas = rtA.GetComponentInParent<Canvas>();
             if (canvas != null)
             {
-                Canvas root = canvas.rootCanvas;
-                m_LineRenderer.sortingLayerID = root.sortingLayerID;
-                m_LineRenderer.sortingOrder = root.sortingOrder + 1;
-                SetUiFrontShip(lowerShip, root);
+                Transform uiRoot = canvas.transform.Find("[Containers_UI_Root]");
+                if (uiRoot != null)
+                {
+                    Transform tethersRoot = uiRoot.Find("[UI_Tethers_Root]");
+                    if (tethersRoot == null)
+                    {
+                        GameObject trObj = new GameObject("[UI_Tethers_Root]", typeof(RectTransform));
+                        trObj.transform.SetParent(uiRoot, false);
+                        RectTransform trRt = trObj.GetComponent<RectTransform>();
+                        trRt.anchorMin = Vector2.zero;
+                        trRt.anchorMax = Vector2.one;
+                        trRt.offsetMin = Vector2.zero;
+                        trRt.offsetMax = Vector2.zero;
+                        trObj.transform.SetSiblingIndex(uiRoot.childCount - 1);
+                        tethersRoot = trObj.transform;
+                    }
+                    uiParent = tethersRoot;
+                }
+                else
+                {
+                    uiParent = canvas.transform;
+                }
             }
-            if (m_ShadowObj != null && m_ShadowObj.activeSelf) m_ShadowObj.SetActive(false);
+            if (uiParent == null) uiParent = rtA.parent;
 
-            float sag = boxHeight * UiRopeSagOfBox;
-            if (m_LineRenderer.positionCount != m_SegmentCount) m_LineRenderer.positionCount = m_SegmentCount;
-            for (int i = 0; i < m_SegmentCount; i++)
+            m_UiBridgeObj = new GameObject($"[UI_Bridge_Bar_{m_LinkId}_{m_ShipA.name}]", typeof(RectTransform));
+            m_UiBridgeObj.transform.SetParent(uiParent, false);
+            m_UiBridgeRt = m_UiBridgeObj.GetComponent<RectTransform>();
+            m_UiBridgeRt.pivot = new Vector2(0.5f, 0.5f);
+
+            Canvas bridgeCanvas = m_UiBridgeObj.AddComponent<Canvas>();
+            bridgeCanvas.overrideSorting = true;
+            if (canvas != null)
             {
-                float t = (float)i / (m_SegmentCount - 1);
-                float sagFactor = 4f * t * (1f - t);
-                Vector3 p = Vector3.Lerp(posA, posB, t) + bulge * (sag * sagFactor);
-                if (m_RattleIntensity > 0.001f)
-                    p += (vertical ? up : right) * (Mathf.Sin(Time.time * 45f + i * 2f) * m_RattleIntensity * boxHeight * sagFactor);
-                m_LineRenderer.SetPosition(i, p);
+                bridgeCanvas.renderMode = canvas.renderMode;
+                bridgeCanvas.worldCamera = canvas.worldCamera;
+                bridgeCanvas.planeDistance = canvas.planeDistance;
+                bridgeCanvas.sortingLayerID = canvas.sortingLayerID;
+                bridgeCanvas.sortingOrder = canvas.sortingOrder + 5;
+                bridgeCanvas.additionalShaderChannels = canvas.additionalShaderChannels;
+            }
+            else
+            {
+                bridgeCanvas.sortingOrder = 55;
             }
 
-            if (m_RattleIntensity > 0f)
-                m_RattleIntensity = Mathf.Max(0f, m_RattleIntensity - Time.deltaTime * 3.5f);
+            // 1. Half_A (Sol yarı: Ship A rengi, sol uç kapsül yuvarlak)
+            GameObject objA = new GameObject("Half_A", typeof(RectTransform), typeof(CanvasRenderer), typeof(UnityEngine.UI.Image));
+            objA.transform.SetParent(m_UiBridgeRt, false);
+            RectTransform rtHalfA = objA.GetComponent<RectTransform>();
+            rtHalfA.anchorMin = new Vector2(0f, 0f);
+            rtHalfA.anchorMax = new Vector2(0.5f, 1f);
+            rtHalfA.offsetMin = Vector2.zero;
+            rtHalfA.offsetMax = Vector2.zero;
+            m_UiBridgeHalfA = objA.GetComponent<UnityEngine.UI.Image>();
+#if UNITY_EDITOR
+            m_UiBridgeHalfA.sprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/Containers/Bridge_Cap_Left.png");
+#endif
+            if (m_UiBridgeHalfA.sprite == null) m_UiBridgeHalfA.sprite = Resources.Load<Sprite>("Containers/Bridge_Cap_Left");
+            m_UiBridgeHalfA.type = UnityEngine.UI.Image.Type.Sliced;
+            m_UiBridgeHalfA.raycastTarget = false;
+
+            // 2. Half_B (Sağ yarı: Ship B rengi, sağ uç kapsül yuvarlak)
+            GameObject objB = new GameObject("Half_B", typeof(RectTransform), typeof(CanvasRenderer), typeof(UnityEngine.UI.Image));
+            objB.transform.SetParent(m_UiBridgeRt, false);
+            RectTransform rtHalfB = objB.GetComponent<RectTransform>();
+            rtHalfB.anchorMin = new Vector2(0.5f, 0f);
+            rtHalfB.anchorMax = new Vector2(1f, 1f);
+            rtHalfB.offsetMin = Vector2.zero;
+            rtHalfB.offsetMax = Vector2.zero;
+            m_UiBridgeHalfB = objB.GetComponent<UnityEngine.UI.Image>();
+#if UNITY_EDITOR
+            m_UiBridgeHalfB.sprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/Containers/Bridge_Cap_Right.png");
+#endif
+            if (m_UiBridgeHalfB.sprite == null) m_UiBridgeHalfB.sprite = Resources.Load<Sprite>("Containers/Bridge_Cap_Right");
+            m_UiBridgeHalfB.type = UnityEngine.UI.Image.Type.Sliced;
+            m_UiBridgeHalfB.raycastTarget = false;
+
+            // 3. Cylinder_Shine (Tüm bar boyunca üstte beyaz parlama, altta gölge 3D silindir efekti)
+            GameObject objShine = new GameObject("Cylinder_Shine", typeof(RectTransform), typeof(CanvasRenderer), typeof(UnityEngine.UI.Image));
+            objShine.transform.SetParent(m_UiBridgeRt, false);
+            RectTransform rtShine = objShine.GetComponent<RectTransform>();
+            rtShine.anchorMin = Vector2.zero;
+            rtShine.anchorMax = Vector2.one;
+            rtShine.offsetMin = Vector2.zero;
+            rtShine.offsetMax = Vector2.zero;
+            m_UiBridgeShine = objShine.GetComponent<UnityEngine.UI.Image>();
+#if UNITY_EDITOR
+            m_UiBridgeShine.sprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/Containers/Bridge_Cylinder_Shine.png");
+#endif
+            if (m_UiBridgeShine.sprite == null) m_UiBridgeShine.sprite = Resources.Load<Sprite>("Containers/Bridge_Cylinder_Shine");
+            m_UiBridgeShine.type = UnityEngine.UI.Image.Type.Sliced;
+            m_UiBridgeShine.color = Color.white;
+            m_UiBridgeShine.raycastTarget = false;
+
+            // 4. Beyaz Kenarlıklar (Konteynerler arasındaki boşluk boyunca üst ve alt beyaz çizgi)
+            GameObject borderTopObj = new GameObject("Border_Top", typeof(RectTransform), typeof(CanvasRenderer), typeof(UnityEngine.UI.Image));
+            borderTopObj.transform.SetParent(m_UiBridgeRt, false);
+            m_UiBridgeBorderTop = borderTopObj.GetComponent<RectTransform>();
+            m_UiBridgeBorderTop.pivot = new Vector2(0.5f, 0.5f);
+            var imgTop = borderTopObj.GetComponent<UnityEngine.UI.Image>();
+            imgTop.color = Color.white;
+            imgTop.raycastTarget = false;
+
+            GameObject borderBottomObj = new GameObject("Border_Bottom", typeof(RectTransform), typeof(CanvasRenderer), typeof(UnityEngine.UI.Image));
+            borderBottomObj.transform.SetParent(m_UiBridgeRt, false);
+            m_UiBridgeBorderBottom = borderBottomObj.GetComponent<RectTransform>();
+            m_UiBridgeBorderBottom.pivot = new Vector2(0.5f, 0.5f);
+            var imgBottom = borderBottomObj.GetComponent<UnityEngine.UI.Image>();
+            imgBottom.color = Color.white;
+            imgBottom.raycastTarget = false;
+        }
+
+        /// <summary>
+        /// UI Konteyner Köprüsü: İki konteynerin kapağındaki soket yuvaları arasında gerilen, tam ortadan
+        /// ikiye bölünmüş çift renkli (iki konteynerin kendi renkleri), 3D silindirik ve kenarları beyaz çizgili köprü.
+        /// </summary>
+        private void UpdateUiContainerTether(ShipController partner)
+        {
+            if (m_LineRenderer != null && m_LineRenderer.enabled)
+            {
+                m_LineRenderer.enabled = false;
+            }
+            if (m_ShadowObj != null && m_ShadowObj.activeSelf)
+            {
+                m_ShadowObj.SetActive(false);
+            }
+
+            EnsureUiBridgeBar();
+            if (m_UiBridgeObj == null) return;
+
+            var rtA = (RectTransform)m_ShipA.transform;
+            Transform socketTrA = rtA.Find("Socket_Recess");
+            Vector3 socketA = socketTrA != null ? socketTrA.position : rtA.TransformPoint(new Vector3(0f, 14f, 0f));
+            Vector3 socketB;
+            Color colB;
+
+            if (partner != null)
+            {
+                var rtB = (RectTransform)partner.transform;
+                Transform socketTrB = rtB.Find("Socket_Recess");
+                socketB = socketTrB != null ? socketTrB.position : rtB.TransformPoint(new Vector3(0f, 14f, 0f));
+                colB = partner.ShipColor;
+            }
+            else if (m_PendingAnchor != null)
+            {
+                float boxHeight = rtA.rect.height * rtA.lossyScale.y;
+                socketB = socketA - rtA.up * (boxHeight * 1.2f);
+                colB = m_PendingColor;
+            }
+            else
+            {
+                m_UiBridgeObj.SetActive(false);
+                return;
+            }
+
+            if (!m_UiBridgeObj.activeSelf) m_UiBridgeObj.SetActive(true);
+
+            Color colA = m_ShipA.ShipColor;
+            if (colA.a < 0.1f) colA = m_RopeColor;
+            if (colB.a < 0.1f) colB = m_RopeColor;
+
+            if (m_UiBridgeHalfA != null) m_UiBridgeHalfA.color = colA;
+            if (m_UiBridgeHalfB != null) m_UiBridgeHalfB.color = colB;
+
+            // İki konteynerin rozet yazılarını ve soket çukurlarını görsel olarak güncelle
+            m_ShipA.UpdateLinkedUiVisuals();
+            if (partner != null) partner.UpdateLinkedUiVisuals();
+
+            // Köprünün UI Canvas piksel uzayındaki konumu, mesafesi ve açısı
+            Transform parentTr = m_UiBridgeRt.parent;
+            Vector2 localA = parentTr != null ? (Vector2)parentTr.InverseTransformPoint(socketA) : (Vector2)socketA;
+            Vector2 localB = parentTr != null ? (Vector2)parentTr.InverseTransformPoint(socketB) : (Vector2)socketB;
+            Vector2 localDiff = localB - localA;
+            float pixelDist = localDiff.magnitude;
+            if (pixelDist < 0.001f) return;
+
+            float angle = Mathf.Atan2(localDiff.y, localDiff.x) * Mathf.Rad2Deg;
+            Vector2 localCenter = (localA + localB) * 0.5f;
+
+            m_UiBridgeRt.anchoredPosition = localCenter;
+            m_UiBridgeRt.localRotation = Quaternion.Euler(0f, 0f, angle);
+
+            const float barHeight = 40f;
+            m_UiBridgeRt.sizeDelta = new Vector2(pixelDist, barHeight);
+
+            // İki konteyner arasındaki boşlukta beyaz dış kenarlıklar
+            float gapLength = Mathf.Max(0f, pixelDist - 134f);
+            if (gapLength > 2f)
+            {
+                m_UiBridgeBorderTop.gameObject.SetActive(true);
+                m_UiBridgeBorderBottom.gameObject.SetActive(true);
+
+                m_UiBridgeBorderTop.anchoredPosition = new Vector2(0f, barHeight * 0.5f + 1.75f);
+                m_UiBridgeBorderTop.sizeDelta = new Vector2(gapLength, 3.5f);
+
+                m_UiBridgeBorderBottom.anchoredPosition = new Vector2(0f, -barHeight * 0.5f - 1.75f);
+                m_UiBridgeBorderBottom.sizeDelta = new Vector2(gapLength, 3.5f);
+            }
+            else
+            {
+                m_UiBridgeBorderTop.gameObject.SetActive(false);
+                m_UiBridgeBorderBottom.gameObject.SetActive(false);
+            }
         }
 
         /// <summary>Konteynerin görünen gövdesinin, hedef noktaya bakan kenarındaki nokta (dünya uzayında).</summary>

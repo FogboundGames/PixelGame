@@ -182,6 +182,11 @@ namespace PixelGame.Editor
         [MenuItem("PixelGame/📸 9:16 Ekran Görüntüsü Al (Capture Screenshot)")]
         public static void Capture()
         {
+            Capture(null);
+        }
+
+        public static void Capture(string customPath)
+        {
             if (s_IsCapturing) return;
             s_IsCapturing = true;
 
@@ -213,12 +218,13 @@ namespace PixelGame.Editor
                     screenTex.Apply();
 
                     byte[] bytes = screenTex.EncodeToPNG();
-                    string dir = Path.GetDirectoryName(OutputPath);
+                    string outPath = !string.IsNullOrEmpty(customPath) ? customPath : OutputPath;
+                    string dir = Path.GetDirectoryName(outPath);
                     if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-                    File.WriteAllBytes(OutputPath, bytes);
+                    File.WriteAllBytes(outPath, bytes);
                     Object.DestroyImmediate(screenTex);
 
-                    Debug.Log($"<color=#00FFAA><b>[Screenshot]</b></color> 9:16 Ekran görüntüsü başarıyla kaydedildi: {OutputPath}");
+                    Debug.Log($"<color=#00FFAA><b>[Screenshot]</b></color> 9:16 Ekran görüntüsü başarıyla kaydedildi: {outPath}");
                 }
                 finally
                 {

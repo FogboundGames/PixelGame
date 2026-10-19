@@ -2139,34 +2139,48 @@ namespace PixelGame
         [SerializeField, Range(0f, 3f)] private float m_UiShoreInsetCubes = 0.6f;
 
         /// <summary>
-        /// UI konteyner (HUD Canvas) düzeni: eski su kıyısı çizgisi ekranda iskelelerin altına düşüyordu;
-        /// denizciler konteynerin altına inip iskele ve pano çerçevesinin üstünden yürüyordu. Burada iniş noktası,
-        /// konteynerin ekrandaki hizasında panonun içine (çerçevenin hemen üstüne) alınır: denizci konteynerden
-        /// çerçevenin üstünden zıplayıp doğrudan panoya iner, dönüşte de oradan konteynere zıplar.
+        /// UI konteyner (HUD Canvas) düzeni: Konteynerin slotundaki 3D zemin izdüşümü (bulunduğu yer).
+        /// Denizciler hedefe giderken doğrudan buradan yürüyerek başlar, dönüşte de çerçeve kenarından
+        /// buraya zıplayarak binerler.
         /// </summary>
-        private bool TryGetUiShorePoint(ShipController ship, out Vector3 point)
+        private bool TryGetUiContainerGroundPos(ShipController ship, out Vector3 groundPos)
         {
-            point = default;
+            groundPos = default;
+            if (ship == null) return false;
+
             Camera cam = ShipController.MainCamera != null ? ShipController.MainCamera : Camera.main;
-            if (cam == null || !TryGetOtCerceveWorldBounds(out Vector3 min, out Vector3 max, out _)) return false;
+            if (cam == null) return false;
 
             float groundZ = BeachGroundZ();
-            if (float.IsNaN(groundZ)) groundZ = min.z;
-            Ray ray = cam.ScreenPointToRay(cam.WorldToScreenPoint(ship.transform.position));
-            if (!new Plane(Vector3.back, new Vector3(0f, 0f, groundZ)).Raycast(ray, out float dist)) return false;
-            Vector3 hit = ray.GetPoint(dist);
+            if (float.IsNaN(groundZ)) groundZ = m_ShoreZ;
 
-            float pitch = m_GridFrameValid ? Mathf.Max(0.05f, m_GridFrame.Pitch) : 0.3f;
-            float marginX = pitch * 1.5f;
-            point = new Vector3(Mathf.Clamp(hit.x, min.x + marginX, max.x - marginX), min.y + pitch * m_UiShoreInsetCubes, groundZ);
+            Vector3 targetPos = ship.transform.position;
+            RectTransform rt = ship.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                // Konteynerin üst kapağı/ön kenarı hizasında zemine basması için hafif yukarı (+Y) alalım
+                Vector3 topLocal = new Vector3(0f, rt.rect.height * 0.35f, 0f);
+                targetPos = rt.TransformPoint(topLocal);
+            }
+
+            Canvas canvas = rt != null ? rt.GetComponentInParent<Canvas>(true) : null;
+            Camera uiCam = (canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay && canvas.worldCamera != null) ? canvas.worldCamera : cam;
+            bool overlay = canvas != null && canvas.renderMode == RenderMode.ScreenSpaceOverlay;
+            Vector3 screen = overlay ? targetPos : uiCam.WorldToScreenPoint(targetPos);
+
+            Ray ray = cam.ScreenPointToRay(screen);
+            if (!new Plane(Vector3.back, new Vector3(0f, 0f, groundZ)).Raycast(ray, out float dist)) return false;
+
+            Vector3 hit = ray.GetPoint(dist);
+            groundPos = new Vector3(hit.x, hit.y, groundZ);
             return true;
         }
 
         public Vector3 GetShorePoint(ShipController ship)
         {
-            if (ship != null && ship.IsUiContainer && TryGetUiShorePoint(ship, out Vector3 uiShore))
+            if (ship != null && ship.IsUiContainer && TryGetUiContainerGroundPos(ship, out Vector3 uiGround))
             {
-                return uiShore;
+                return uiGround;
             }
 
             if (ship != null)
@@ -3662,8 +3676,12 @@ namespace PixelGame
                 var r = new List<Vector3>(6);
                 Vector3 P(float x, float y) => new Vector3(x, y, groundZ);
                 r.Add(P(shoreStart.x, shoreStart.y));
+                r.Add(P(shoreStart.x, fB));
                 float bx = Mathf.Clamp(shoreStart.x, fL, fR);
-                r.Add(P(bx, fB));
+                if (Mathf.Abs(bx - shoreStart.x) > 0.01f)
+                {
+                    r.Add(P(bx, fB));
+                }
                 if (side == 0) { r.Add(P(Mathf.Clamp(exitWorld.x, fL, fR), fB)); }
                 else if (side == 1) { r.Add(P(fL, fB)); r.Add(P(fL, Mathf.Clamp(exitWorld.y, fB, fT))); }
                 else if (side == 2) { r.Add(P(fR, fB)); r.Add(P(fR, Mathf.Clamp(exitWorld.y, fB, fT))); }
@@ -3791,11 +3809,15 @@ namespace PixelGame
 
             float minDist = Mathf.Min(distBottom, Mathf.Min(distLeft, Mathf.Min(distRight, distTop)));
 
+            if (shoreStart.y < pathBottomY)
+            {
+                waypoints.Add(new Vector3(shoreStart.x, pathBottomY, groundZ));
+            }
+
             if (minDist == distBottom)
             {
                 // Alttan doğrudan çerçeveye çıkış ve hedefe yöneliş
-                waypoints.Add(new Vector3(Mathf.Lerp(shoreStart.x, cubeTarget.x, 0.5f), pathBottomY, groundZ));
-                waypoints.Add(new Vector3(cubeTarget.x, pathBottomY + 0.08f, groundZ));
+                waypoints.Add(new Vector3(cubeTarget.x, pathBottomY, groundZ));
                 waypoints.Add(new Vector3(cubeTarget.x, cubeTarget.y, groundZ));
             }
             else if (minDist == distLeft)
@@ -4065,11 +4087,18 @@ namespace PixelGame
 
             GameObject runnerPrefabToUse = GetRunnerPrefab();
 
+            bool isUiContainer = ship != null && ship.IsUiContainer;
             bool entersLeft = (indexInQueue % 2 == 0);
             Vector3 deckOffset = new Vector3(entersLeft ? -0.06f : 0.06f, 0.16f, 0.02f);
             Vector3 shipDeckPos = ship.transform.position + deckOffset;
             Vector3 shorePoint = GetShorePoint(ship);
             shorePoint.z = groundPlaneZ;
+
+            // UI konteynerler için hafif sağ/sol ayrımı (ardışık gemiciler tam üst üste binmesin)
+            if (isUiContainer)
+            {
+                shorePoint.x += (entersLeft ? -0.08f : 0.08f);
+            }
 
             // Jenerik Instantiate<GameObject> burada InvalidCastException atıyordu (koşucu hiç doğmuyor,
             // rezervasyon da düşmediği için gemi slotta takılı kalıyordu). Jenerik olmayan sürümle
@@ -4077,7 +4106,8 @@ namespace PixelGame
             GameObject runner = null;
             if (runnerPrefabToUse != null)
             {
-                Object clone = Instantiate((Object)runnerPrefabToUse, shipDeckPos, Quaternion.identity);
+                Vector3 spawnPos = isUiContainer ? shorePoint : shipDeckPos;
+                Object clone = Instantiate((Object)runnerPrefabToUse, spawnPos, Quaternion.identity);
                 runner = clone as GameObject;
                 if (runner == null && clone is Component cloneComp) runner = cloneComp.gameObject;
             }
@@ -4124,6 +4154,11 @@ namespace PixelGame
             // değecek şekilde yol z'sini kameraya doğru kaydır. Ayak izleri yine zemin düzleminde kalır.
             float runnerPathZ = groundPlaneZ - RunnerGroundDepth(runner);
             shorePoint.z = runnerPathZ;
+            Vector3 containerGroundPos = shorePoint;
+            if (isUiContainer && runner != null)
+            {
+                runner.transform.position = containerGroundPos;
+            }
 
             // Koşucu karakter kesinlikle toplanan küpün / ait olduğu geminin renginde:
             Color runnerColor = targetCube != null ? targetCube.CurrentColor : ship.ShipColor;
@@ -4150,7 +4185,18 @@ namespace PixelGame
             WaddleRunner waddle = runner.GetComponent<WaddleRunner>();
             WalkingCargoVisual visual = runner.GetComponent<WalkingCargoVisual>();
             SailorRunnerVisual sailorVis = runner.GetComponent<SailorRunnerVisual>();
-            if (sailorVis != null) { sailorVis.Play(SailorRunnerVisual.StateHopDown, 0f); sailorVis.SetRingVisible(false); }
+            if (isUiContainer)
+            {
+                if (sailorVis != null)
+                {
+                    sailorVis.SetRingVisible(true);
+                    sailorVis.Play(SailorRunnerVisual.StateRunEmpty);
+                }
+            }
+            else
+            {
+                if (sailorVis != null) { sailorVis.Play(SailorRunnerVisual.StateHopDown, 0f); sailorVis.SetRingVisible(false); }
+            }
 
             // Phase 1: Hop from ship deck onto shore
             // Kullanıcı isteği: Sayılar blok girince değil, içinden kişiler/işçiler çıkınca azalsın
@@ -4158,49 +4204,65 @@ namespace PixelGame
             {
                 ship.OnWorkerExited();
             }
-            float hopDuration = Mathf.Max(0.18f, m_HopDuration);
+
             Vector3 camUp = ShipController.MainCamera != null ? ShipController.MainCamera.transform.up : Vector3.up;
-            Vector3 hopCtrl = (shipDeckPos + shorePoint) * 0.5f + camUp * m_HopArcHeight;
 
-            ShipController.SpawnWaterRipple(shipDeckPos, 0.20f, 0.6f, 0.35f);
-
-            float tHop = 0f;
-            Vector3 prevPos = shipDeckPos;
-            while (tHop < hopDuration && runner != null)
+            if (isUiContainer)
             {
-                tHop += Time.deltaTime;
-                float u = Mathf.Clamp01(tHop / hopDuration);
-                float ease = Mathf.SmoothStep(0f, 1f, u);
-                Vector3 pos = QuadraticBezier(shipDeckPos, hopCtrl, shorePoint, ease);
-                runner.transform.position = pos;
-
-                if (u > 0.2f && u < 0.85f)
+                // Kullanıcı isteği: Konteynerlar slotlara yerleştiğinde gemiciler direkt çerçeve içine doğru
+                // zıplamasın; bulundukları yerden (konteynerdan) hedeflere yürüyerek gitsinler.
+                runner.transform.position = containerGroundPos;
+                if (waddle != null) waddle.IsAirborne = false;
+                if (HypercasualFeedbackManager.Instance != null)
                 {
-                    if (waddle != null) waddle.IsAirborne = true;
-                    if (visual != null) visual.SetAirborne(Time.deltaTime);
+                    HypercasualFeedbackManager.Instance.TriggerHapticLight();
+                }
+            }
+            else
+            {
+                float hopDuration = Mathf.Max(0.18f, m_HopDuration);
+                Vector3 hopCtrl = (shipDeckPos + shorePoint) * 0.5f + camUp * m_HopArcHeight;
+
+                ShipController.SpawnWaterRipple(shipDeckPos, 0.20f, 0.6f, 0.35f);
+
+                float tHop = 0f;
+                Vector3 hopPrevPos = shipDeckPos;
+                while (tHop < hopDuration && runner != null)
+                {
+                    tHop += Time.deltaTime;
+                    float u = Mathf.Clamp01(tHop / hopDuration);
+                    float ease = Mathf.SmoothStep(0f, 1f, u);
+                    Vector3 pos = QuadraticBezier(shipDeckPos, hopCtrl, shorePoint, ease);
+                    runner.transform.position = pos;
+
+                    if (u > 0.2f && u < 0.85f)
+                    {
+                        if (waddle != null) waddle.IsAirborne = true;
+                        if (visual != null) visual.SetAirborne(Time.deltaTime);
+                    }
+
+                    Vector3 moveDir = pos - hopPrevPos;
+                    hopPrevPos = pos;
+                    if (moveDir.sqrMagnitude > 1e-5f)
+                    {
+                        motion.SteerToward(moveDir.normalized, 0f, Time.deltaTime);
+                    }
+                    yield return null;
                 }
 
-                Vector3 moveDir = pos - prevPos;
-                prevPos = pos;
-                if (moveDir.sqrMagnitude > 1e-5f)
+                if (runner == null) yield break;
+                runner.transform.position = shorePoint;
+                if (waddle != null) waddle.IsAirborne = false;
+                if (sailorVis != null)
                 {
-                    motion.SteerToward(moveDir.normalized, 0f, Time.deltaTime);
+                    sailorVis.SetRingVisible(true);
+                    StartCoroutine(RunnerLandingSquashRoutine(runner.transform, m_RunnerLandingSquash, 0.22f));
                 }
-                yield return null;
-            }
 
-            if (runner == null) yield break;
-            runner.transform.position = shorePoint;
-            if (waddle != null) waddle.IsAirborne = false;
-            if (sailorVis != null)
-            {
-                sailorVis.SetRingVisible(true);
-                StartCoroutine(RunnerLandingSquashRoutine(runner.transform, m_RunnerLandingSquash, 0.22f));
-            }
-
-            if (HypercasualFeedbackManager.Instance != null)
-            {
-                HypercasualFeedbackManager.Instance.TriggerHapticLight();
+                if (HypercasualFeedbackManager.Instance != null)
+                {
+                    HypercasualFeedbackManager.Instance.TriggerHapticLight();
+                }
             }
 
             // Phase 2: Run along OtCerceve to target container
@@ -4295,6 +4357,12 @@ namespace PixelGame
             // Phase 4: Run back along OtCerceve to shore
             List<Vector3> returnWaypoints = new List<Vector3>(forwardWaypoints);
             returnWaypoints.Reverse();
+            if (isUiContainer && returnWaypoints.Count > 1)
+            {
+                // Kullanıcı isteği: Çerçeve kenarından zıplayarak yük konteynarına binsinler.
+                // Bu nedenle geri dönüş yürüyüş yolu çerçeve kenarında (frame corridor) son bulur.
+                returnWaypoints.RemoveAt(returnWaypoints.Count - 1);
+            }
             ShoreLanePath returnPath = ShoreLanePath.BuildFilleted(returnWaypoints, runnerCornerRadius, 8);
 
             // Denizci küpü alırken yerinde durur: orta küplerde dik kalır; diğer küplerde ayara bağlı
@@ -4367,10 +4435,13 @@ namespace PixelGame
             agent.Active = false;
             m_RunnerAgents.Remove(agent);
             Vector3 shoreEnd = runner.transform.position;
-            float returnHopDuration = Mathf.Max(0.2f, m_HopDuration);
+            float returnHopDuration = isUiContainer ? Mathf.Clamp(m_HopDuration * 1.15f, 0.45f, 0.65f) : Mathf.Max(0.2f, m_HopDuration);
             if (sailorVis != null) { sailorVis.Play(SailorRunnerVisual.StateHopBoard, 0.05f); sailorVis.SetRingVisible(false); }
             float tReturnHop = 0f;
-            prevPos = shoreEnd;
+            Vector3 prevPos = shoreEnd;
+
+            Vector3 targetDeckNow = isUiContainer ? containerGroundPos : (ship != null ? ship.transform.position + deckOffset : shoreEnd);
+            float hopArc = isUiContainer ? Mathf.Max(m_HopArcHeight, 1.25f) : m_HopArcHeight;
 
             while (tReturnHop < returnHopDuration && runner != null)
             {
@@ -4379,8 +4450,7 @@ namespace PixelGame
                 float u = Mathf.Clamp01(tReturnHop / returnHopDuration);
                 float ease = 1f - (1f - u) * (1f - u);
 
-                Vector3 targetDeckNow = ship != null ? ship.transform.position + deckOffset : shoreEnd;
-                Vector3 hopReturnCtrl = (shoreEnd + targetDeckNow) * 0.5f + camUp * m_HopArcHeight;
+                Vector3 hopReturnCtrl = (shoreEnd + targetDeckNow) * 0.5f + camUp * hopArc;
                 Vector3 p = QuadraticBezier(shoreEnd, hopReturnCtrl, targetDeckNow, ease);
                 runner.transform.position = p;
 
