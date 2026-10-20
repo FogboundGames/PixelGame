@@ -346,7 +346,7 @@ namespace PixelGame.Editor
                 srt.anchorMax = new Vector2(0.5f, 0.5f);
                 srt.pivot = new Vector2(0.5f, 0.5f);
                 srt.anchoredPosition = new Vector2(colXs[i], 0f);
-                srt.sizeDelta = new Vector2(165f, 165f);
+                srt.sizeDelta = new Vector2(195f, 175f);
                 srt.localScale = Vector3.one;
 
                 Image simg = slotObj.GetComponent<Image>();

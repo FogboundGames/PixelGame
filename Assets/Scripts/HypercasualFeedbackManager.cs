@@ -107,6 +107,7 @@ namespace PixelGame
         private AudioClip m_SailClip;
         private AudioClip m_GameLaunchClip;
         private AudioClip m_ButtonClickClip;
+        private AudioClip m_BalloonPopClip;
         private int m_ActiveSailingShips = 0;
         private Coroutine m_SailFadeRoutine;
 
@@ -826,6 +827,41 @@ namespace PixelGame
             return clip;
         }
 
+        /// <summary>
+        /// Yük konteyneri dolup patladığında çalan tatlı, gevrek ve tok "pıt" balon patlama sesi.
+        /// </summary>
+        private AudioClip CreateProceduralBalloonPopClip()
+        {
+            int sampleRate = 44100;
+            float duration = 0.075f; // 75 ms tatlı, dolgun ve gevrek balon patlaması ("pıt")
+            int count = Mathf.CeilToInt(sampleRate * duration);
+            float[] samples = new float[count];
+
+            float phase = 0f;
+            var rnd = new System.Random(42);
+
+            for (int i = 0; i < count; i++)
+            {
+                float t = i / (float)sampleRate;
+                // Hızlı frekans düşüşü: 620 Hz'den 150 Hz'e (balonun gerilip pıt diye boşalması)
+                float freq = Mathf.Lerp(620f, 150f, Mathf.Pow(t / duration, 0.45f));
+                phase += 2f * Mathf.PI * freq / sampleRate;
+
+                float attack = Mathf.Clamp01(t / 0.0012f);
+                float tone = Mathf.Sin(phase);
+
+                // Minik gevrek hava/balon patlama çıtırtısı (micro air pop noise)
+                float noise = ((float)(rnd.NextDouble() * 2.0 - 1.0)) * Mathf.Exp(-t * 120f) * 0.25f;
+
+                float env = attack * Mathf.Exp(-t * 52f);
+                samples[i] = Mathf.Clamp((tone * 0.85f + noise) * env * 0.85f, -1f, 1f);
+            }
+
+            AudioClip clip = AudioClip.Create("Balloon_Pop_Pit", count, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
         #endregion
 
         #region ✨ & 💦 Görsel Partikül Sistemleri
@@ -1475,6 +1511,36 @@ namespace PixelGame
                     src.PlayOneShot(m_ButtonClickClip, m_MasterVolume * 0.80f);
                 }
             }
+        }
+
+        /// <summary>
+        /// Yük konteyneri dolup balon gibi patladığında ("pıt") çalan gevrek ASMR patlama sesi ve haptic geri bildirimi.
+        /// </summary>
+        public void PlayBalloonPopFeedback(Vector3 position, Color color)
+        {
+            // 1. Görsel parıltı (✨ Sparkle)
+            if (m_EnableSparkles && m_SparklePS != null)
+            {
+                SpawnSparkles(position, color, 14);
+            }
+
+            // 2. Gevrek ASMR balon patlaması "pıt" sesi (🔊 Procedural Balloon Pop FX)
+            if (IsSoundActive)
+            {
+                AudioSource src = m_FxSource != null ? m_FxSource : m_ChimeSource;
+                if (src != null)
+                {
+                    if (m_BalloonPopClip == null) m_BalloonPopClip = CreateProceduralBalloonPopClip();
+                    if (m_BalloonPopClip != null)
+                    {
+                        src.pitch = UnityEngine.Random.Range(0.97f, 1.05f);
+                        src.PlayOneShot(m_BalloonPopClip, m_MasterVolume * 0.95f);
+                    }
+                }
+            }
+
+            // 3. Hafif/orta tatlı titreşim
+            TriggerHapticMedium();
         }
 
         private void SpawnSparkles(Vector3 pos, Color tint, int count)

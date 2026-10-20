@@ -4503,6 +4503,7 @@ namespace PixelGame
             pathLen = returnPath.Length;
             runElapsed = 0f;
             motion.BeginRopeMotion(s, indexInQueue, cruiseSpeed, 0f, returnPath.TangentAtDistance(0f));
+            if (sailorVis != null) sailorVis.Play(SailorRunnerVisual.StateRunCarry);
 
             while (dist < pathLen && runner != null)
             {

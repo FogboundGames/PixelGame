@@ -2528,22 +2528,70 @@ namespace PixelGame
         {
             if (IsUiContainer)
             {
+                // 1. Text ve rozet hemen kaybolur (kullanıcı isteği: "sayı dolduğunda text yok olsun")
                 if (m_BadgeText != null) m_BadgeText.gameObject.SetActive(false);
+                if (m_BadgeCanvasObj != null) m_BadgeCanvasObj.SetActive(false);
+                if (m_BadgeUIText != null) m_BadgeUIText.gameObject.SetActive(false);
+                if (m_BadgeImage != null) m_BadgeImage.gameObject.SetActive(false);
+
+                Transform pill = transform.Find("Badge_Pill");
+                if (pill != null) pill.gameObject.SetActive(false);
+                Transform socket = transform.Find("Socket_Recess");
+                if (socket != null) socket.gameObject.SetActive(false);
+
+                // DOTween ile süren önceki punch/ölçek tween'lerini durdur
+                transform.DOKill(false);
+
+                // Slot referansını sakla
                 ShipSlot slotToFreeUi = m_CurrentSlot;
                 m_CurrentSlot = null;
-                if (slotToFreeUi != null) slotToFreeUi.ReleaseShip();
 
-                Vector3 startP = transform.position;
-                Vector3 endP = startP + new Vector3(-8f, 1f, 0f);
-                float depDuration = 0.45f;
+                // 2. Balon patlama animasyonu ("balon patlar gibi yok olsunlar pıt diye")
+                // Aşama 1: Gerilme / Şişme (Anticipatory balloon swell - ~0.085s)
+                Vector3 baseScale = transform.localScale;
+                if (baseScale.x <= 0.001f)
+                {
+                    baseScale = (m_UiDockedScale != Vector3.zero) ? m_UiDockedScale : Vector3.one;
+                }
+                Vector3 swellScale = new Vector3(baseScale.x * 1.20f, baseScale.y * 1.26f, baseScale.z * 1.20f);
+
+                float swellDur = 0.085f;
                 float elapsed = 0f;
-                while (elapsed < depDuration)
+                while (elapsed < swellDur)
                 {
                     elapsed += Time.deltaTime;
-                    float t = Mathf.Clamp01(elapsed / depDuration);
-                    transform.position = Vector3.Lerp(startP, endP, t * t);
+                    float t = Mathf.Clamp01(elapsed / swellDur);
+                    float st = Mathf.Sin(t * Mathf.PI * 0.5f);
+                    transform.localScale = Vector3.LerpUnclamped(baseScale, swellScale, st);
                     yield return null;
                 }
+                transform.localScale = swellScale;
+
+                // Aşama 2: "PIT!" Patlama anı (Haptic, ASMR Ses & Görsel UI Patlama Parçacıkları)
+                if (HypercasualFeedbackManager.Instance != null)
+                {
+                    HypercasualFeedbackManager.Instance.PlayBalloonPopFeedback(transform.position, m_ShipColor);
+                }
+
+                // UI Canvas üzerinde sevimli balon parçacıkları / pıt efekti
+                SpawnUiBalloonPopBurst(transform.parent, transform.localPosition, m_ShipColor);
+
+                // Slottan ayrılış: tam patlama anında slot serbest kalır, sıradaki konteyner hemen gelebilir
+                if (slotToFreeUi != null) slotToFreeUi.ReleaseShip();
+
+                // Aşama 3: Ani içe patlama ve sıfıra çekilerek yok oluş (~0.075s)
+                float popDur = 0.075f;
+                elapsed = 0f;
+                while (elapsed < popDur)
+                {
+                    elapsed += Time.deltaTime;
+                    float t = Mathf.Clamp01(elapsed / popDur);
+                    float pt = t * t * t; // Kübik hızlanarak kayboluş
+                    transform.localScale = Vector3.LerpUnclamped(swellScale, Vector3.zero, pt);
+                    yield return null;
+                }
+                transform.localScale = Vector3.zero;
+
                 OnDeparted?.Invoke(this);
                 Destroy(gameObject);
                 yield break;
@@ -2683,6 +2731,60 @@ namespace PixelGame
             OnDeparted?.Invoke(this);
             if (Application.isPlaying) Destroy(gameObject);
             else DestroyImmediate(gameObject);
+        }
+
+        /// <summary>
+        /// Yük konteyneri dolup balon gibi patladığında UI Canvas üzerinde renkli elmas parçacıklarının
+        /// dışa doğru fırlayıp kaybolduğu sevimli "pıt" patlama görsel efekti üretir.
+        /// </summary>
+        private void SpawnUiBalloonPopBurst(Transform parent, Vector3 localPos, Color containerColor)
+        {
+            if (parent == null) return;
+
+            GameObject burstObj = new GameObject("[BalloonPop_Burst_FX]", typeof(RectTransform));
+            burstObj.transform.SetParent(parent, false);
+            RectTransform burstRt = burstObj.GetComponent<RectTransform>();
+            burstRt.anchorMin = new Vector2(0.5f, 0.5f);
+            burstRt.anchorMax = new Vector2(0.5f, 0.5f);
+            burstRt.pivot = new Vector2(0.5f, 0.5f);
+            burstRt.localPosition = localPos;
+            burstRt.localScale = Vector3.one;
+
+            // 8 adet radyal balon parçacığı (küçük renkli elmas konfetiler)
+            int particleCount = 8;
+            for (int i = 0; i < particleCount; i++)
+            {
+                float angle = i * (360f / particleCount) * Mathf.Deg2Rad;
+                Vector2 dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                float flyDist = UnityEngine.Random.Range(55f, 90f);
+                Vector2 targetPos = dir * flyDist;
+
+                GameObject pObj = new GameObject($"PopBit_{i}", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                pObj.transform.SetParent(burstObj.transform, false);
+
+                RectTransform prt = pObj.GetComponent<RectTransform>();
+                prt.anchorMin = new Vector2(0.5f, 0.5f);
+                prt.anchorMax = new Vector2(0.5f, 0.5f);
+                prt.pivot = new Vector2(0.5f, 0.5f);
+                prt.anchoredPosition = dir * 10f;
+                float size = UnityEngine.Random.Range(16f, 24f);
+                prt.sizeDelta = new Vector2(size, size);
+                prt.localRotation = Quaternion.Euler(0f, 0f, 45f + i * 22.5f); // Tatlı elmas duruşu
+
+                Image pImg = pObj.GetComponent<Image>();
+                Color pColor = Color.Lerp(containerColor, Color.white, (i % 2 == 0) ? 0.30f : 0.65f);
+                pImg.color = pColor;
+                pImg.raycastTarget = false;
+
+                // Dışa patlama, küçülme ve solma
+                prt.DOAnchorPos(targetPos, 0.16f).SetEase(Ease.OutQuad);
+                prt.DOScale(Vector3.zero, 0.16f).SetEase(Ease.InQuad);
+                pImg.DOFade(0f, 0.16f).SetEase(Ease.InQuad);
+            }
+
+            // Burst kök nesnesini animasyon bitince temizle
+            if (Application.isPlaying) Destroy(burstObj, 0.22f);
+            else DestroyImmediate(burstObj);
         }
 
         /// <summary>
