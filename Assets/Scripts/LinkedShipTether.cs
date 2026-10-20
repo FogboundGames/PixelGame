@@ -572,8 +572,10 @@ namespace PixelGame
             }
             else if (m_PendingAnchor != null)
             {
+                // Partner henüz kuyrukta değil: köprü, partnerin geleceği sütunun en arka spotunun altına uzanır.
+                // Hep düz aşağı çizilince başka sütundan gelecek eş yerine alttaki konteynere bağlıymış gibi duruyordu.
                 float boxHeight = rtA.rect.height * rtA.lossyScale.y;
-                socketB = socketA - rtA.up * (boxHeight * 1.2f);
+                socketB = m_PendingAnchor.position - rtA.up * (boxHeight * 1.2f);
                 colB = m_PendingColor;
             }
             else

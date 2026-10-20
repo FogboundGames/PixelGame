@@ -1263,28 +1263,7 @@ namespace PixelGame
             Transform pillTr = transform.Find("Badge_Pill");
             if (pillTr != null)
             {
-                Canvas rootCanvas = GetComponentInParent<Canvas>();
-                Canvas pillCanvas = pillTr.GetComponent<Canvas>();
-                if (pillCanvas == null)
-                {
-                    pillCanvas = pillTr.gameObject.AddComponent<Canvas>();
-                    if (pillTr.GetComponent<UnityEngine.UI.GraphicRaycaster>() == null)
-                        pillTr.gameObject.AddComponent<UnityEngine.UI.GraphicRaycaster>();
-                }
-                pillCanvas.overrideSorting = true;
-                if (rootCanvas != null)
-                {
-                    pillCanvas.renderMode = rootCanvas.renderMode;
-                    pillCanvas.worldCamera = rootCanvas.worldCamera;
-                    pillCanvas.planeDistance = rootCanvas.planeDistance;
-                    pillCanvas.sortingLayerID = rootCanvas.sortingLayerID;
-                    pillCanvas.sortingOrder = rootCanvas.sortingOrder + 10;
-                    pillCanvas.additionalShaderChannels = rootCanvas.additionalShaderChannels;
-                }
-                else
-                {
-                    pillCanvas.sortingOrder = 60;
-                }
+                EnsureBadgeCanvasSorting();
 
                 RectTransform prt = pillTr.GetComponent<RectTransform>();
                 if (prt != null)
@@ -1316,9 +1295,49 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Bağlı (linked) konteynerlerin rozet numarasını bağlantı köprüsünden ve soketinden uzağa kaydırır,
-        /// kapağın tam ortasında 3D soket çukurunu (Socket_Recess) açar.
-        /// Bağlantı yoksa numarayı merkeze alır ve soketi kapatır.
+        /// UI Konteynerlerde rozet sayısının (Badge_Pill) halat köprülerinin (+5) de üstünde çizilmesini garantiye alır.
+        /// </summary>
+        public void EnsureBadgeCanvasSorting()
+        {
+            if (!IsUiContainer) return;
+            Transform pillTr = transform.Find("Badge_Pill");
+            if (pillTr == null) return;
+
+            Canvas rootCanvas = GetComponentInParent<Canvas>();
+            Canvas pillCanvas = pillTr.GetComponent<Canvas>();
+            if (pillCanvas == null)
+            {
+                pillCanvas = pillTr.gameObject.AddComponent<Canvas>();
+                if (pillTr.GetComponent<UnityEngine.UI.GraphicRaycaster>() == null)
+                    pillTr.gameObject.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+            }
+
+            pillCanvas.overrideSorting = true;
+            if (rootCanvas != null)
+            {
+                pillCanvas.renderMode = rootCanvas.renderMode;
+                pillCanvas.worldCamera = rootCanvas.worldCamera;
+                pillCanvas.planeDistance = rootCanvas.planeDistance;
+                pillCanvas.sortingLayerID = rootCanvas.sortingLayerID;
+                pillCanvas.sortingOrder = rootCanvas.sortingOrder + 20; // Halat köprüsünün (+5) daima üstünde
+                pillCanvas.additionalShaderChannels = rootCanvas.additionalShaderChannels;
+            }
+            else
+            {
+                pillCanvas.sortingOrder = 75;
+            }
+
+            Vector3 lp = pillTr.localPosition;
+            if (Mathf.Abs(lp.z) > 0.001f)
+            {
+                pillTr.localPosition = new Vector3(lp.x, lp.y, 0f);
+            }
+        }
+
+        /// <summary>
+        /// UI Konteynerlerde rozet sayısının ve soket çukurunun görsel durumunu günceller.
+        /// Sayılar hiçbir zaman kaymaz, daima kutunun merkezinde (0, 14) durur ve halat köprüsünün de üstünde çizilir.
+        /// Bağlılık aktifse kapağın ortasındaki 3D soket çukurunu (Socket_Recess) açar; bağlı değilse kapatır.
         /// </summary>
         public void UpdateLinkedUiVisuals()
         {
@@ -1336,58 +1355,22 @@ namespace PixelGame
             if (socketTr != null)
             {
                 socketTr.gameObject.SetActive(isLinkedActive);
+                if (socketRt != null)
+                {
+                    socketRt.anchoredPosition = new Vector2(0f, 14f);
+                    socketRt.sizeDelta = new Vector2(64f, 64f);
+                }
             }
 
-            if (prt == null) return;
-
-            if (!isLinkedActive)
+            if (prt != null)
             {
-                if (socketRt != null) socketRt.anchoredPosition = new Vector2(0f, 14f);
+                // Kullanıcı isteği: Sayılar HİÇ kaymasın, her zaman merkezde dursun ve halatların üstünde görünsün
                 prt.anchoredPosition = new Vector2(0f, 14f);
                 prt.sizeDelta = new Vector2(140f, 110f);
-                return;
             }
 
-            // Partner ile bu konteyner arasındaki yön vektörü (kendi yerel uzayında)
-            Vector3 partnerPos = m_LinkedPartner.transform.position;
-            Vector3 localDelta = transform.InverseTransformPoint(partnerPos);
-
-            if (Mathf.Abs(localDelta.x) >= Mathf.Abs(localDelta.y) * 0.85f)
-            {
-                // Yatay bağlantı
-                if (localDelta.x > 0)
-                {
-                    // Partner sağda -> Sayı SOLA kayar
-                    prt.anchoredPosition = new Vector2(-32f, 14f);
-                    prt.sizeDelta = new Vector2(80f, 100f);
-                    if (socketRt != null) socketRt.anchoredPosition = new Vector2(8f, 14f);
-                }
-                else
-                {
-                    // Partner solda -> Sayı SAĞA kayar
-                    prt.anchoredPosition = new Vector2(32f, 14f);
-                    prt.sizeDelta = new Vector2(80f, 100f);
-                    if (socketRt != null) socketRt.anchoredPosition = new Vector2(-8f, 14f);
-                }
-            }
-            else
-            {
-                // Dikey bağlantı
-                if (localDelta.y < 0)
-                {
-                    // Partner aşağıda -> Sayı YUKARI kayar
-                    prt.anchoredPosition = new Vector2(0f, 38f);
-                    prt.sizeDelta = new Vector2(130f, 70f);
-                    if (socketRt != null) socketRt.anchoredPosition = new Vector2(0f, 0f);
-                }
-                else
-                {
-                    // Partner yukarıda -> Sayı AŞAĞI kayar
-                    prt.anchoredPosition = new Vector2(0f, -16f);
-                    prt.sizeDelta = new Vector2(130f, 70f);
-                    if (socketRt != null) socketRt.anchoredPosition = new Vector2(0f, 24f);
-                }
-            }
+            // Sayının halat köprüsünün de üstünde çizilmesini garantiye al
+            EnsureBadgeCanvasSorting();
         }
 
         private void Awake()
@@ -1554,6 +1537,10 @@ namespace PixelGame
             EnsureDecoupledHierarchy();
             EnsureFakeShadow();
             m_WorkersExitedCount = m_CurrentCargo;
+            if (IsUiContainer)
+            {
+                EnsureUiContainerLayout();
+            }
             UpdateBadgeText();
             ApplyColorToShip(m_ShipColor);
         }
