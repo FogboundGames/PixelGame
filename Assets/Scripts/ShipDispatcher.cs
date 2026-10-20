@@ -3544,6 +3544,87 @@ namespace PixelGame
             fB = Mathf.Min(Mathf.Max(fB, shoreY + pitch * 0.5f), m_BoardBottomY - minGap);
         }
 
+        /// <summary>
+        /// Sahnedeki [SceneFramePreview] (PixelArtGenerator podyum/çerçevesi) sınırlarının kumsal düzlemine izdüşümü.
+        /// Denizciler bu podyumun dış ahşap bordürü (rim) boyunca yürür; ortasından çapraz geçmez.
+        /// </summary>
+        public bool TryGetSceneFramePreviewGroundRect(float groundZ, out float left, out float right, out float bottom, out float top)
+        {
+            left = right = bottom = top = 0f;
+            if (m_Generator == null)
+            {
+                m_Generator = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
+            }
+
+            Bounds b = default;
+            bool found = false;
+            if (m_Generator != null && m_Generator.TryGetSceneFramePreviewBounds(out b))
+            {
+                found = true;
+            }
+            else
+            {
+                GameObject go = GameObject.Find("[SceneFramePreview]");
+                if (go != null && go.activeInHierarchy)
+                {
+                    SpriteRenderer sr = go.GetComponent<SpriteRenderer>();
+                    if (sr != null && sr.sprite != null)
+                    {
+                        b = sr.bounds;
+                        found = true;
+                    }
+                }
+            }
+
+            if (!found) return false;
+
+            Camera cam = ShipController.MainCamera != null ? ShipController.MainCamera : Camera.main;
+            if (cam == null)
+            {
+                left = b.min.x;
+                right = b.max.x;
+                bottom = b.min.y;
+                top = b.max.y;
+                return true;
+            }
+
+            // [SceneFramePreview] köşelerini kumsal düzlemine kamera ışınıyla izdüşür:
+            Plane ground = new Plane(Vector3.back, new Vector3(0f, 0f, groundZ));
+            Vector3[] corners = new Vector3[4]
+            {
+                new Vector3(b.min.x, b.min.y, b.center.z),
+                new Vector3(b.max.x, b.min.y, b.center.z),
+                new Vector3(b.max.x, b.max.y, b.center.z),
+                new Vector3(b.min.x, b.max.y, b.center.z)
+            };
+
+            left = bottom = float.MaxValue;
+            right = top = float.MinValue;
+            for (int i = 0; i < 4; i++)
+            {
+                Vector3 screen = cam.WorldToScreenPoint(corners[i]);
+                Ray ray = cam.ScreenPointToRay(screen);
+                if (!ground.Raycast(ray, out float d)) return false;
+                Vector3 g = ray.GetPoint(d);
+                left = Mathf.Min(left, g.x);
+                right = Mathf.Max(right, g.x);
+                bottom = Mathf.Min(bottom, g.y);
+                top = Mathf.Max(top, g.y);
+            }
+
+            // Podyumun ahşap dış kenarını (rim) yürüme koridoru olarak kullanmak için hafif içe pay (0.94f)
+            float cx = (left + right) * 0.5f;
+            float cy = (bottom + top) * 0.5f;
+            float hw = (right - left) * 0.5f * 0.94f;
+            float hh = (top - bottom) * 0.5f * 0.94f;
+            left = cx - hw;
+            right = cx + hw;
+            bottom = cy - hh;
+            top = cy + hh;
+
+            return right > left && top > bottom && float.IsFinite(left) && float.IsFinite(top);
+        }
+
         private bool TryGetOtCerceveGroundRect(float groundZ, out float left, out float right, out float bottom, out float top)
         {
             left = right = bottom = top = 0f;
@@ -3580,7 +3661,19 @@ namespace PixelGame
             float groundZ = BeachGroundZ();
             if (float.IsNaN(groundZ)) groundZ = m_ShoreZ;
 
-            // OtCerceve çerçevesinin dünya koordinatları:
+            // Kullanıcı isteği: OtCerceve değil [SceneFramePreview] kullanılıyor
+            if (TryGetSceneFramePreviewGroundRect(groundZ, out float pL, out float pR, out float pB, out float pT))
+            {
+                min = new Vector3(pL, pB, groundZ);
+                max = new Vector3(pR, pT, groundZ);
+                corners[0] = new Vector3(pL, pB, groundZ);
+                corners[1] = new Vector3(pL, pT, groundZ);
+                corners[2] = new Vector3(pR, pT, groundZ);
+                corners[3] = new Vector3(pR, pB, groundZ);
+                return true;
+            }
+
+            // OtCerceve çerçevesinin dünya koordinatları (yedek fallback):
             // Küp panosunun dış sınırları etrafında temiz bir yürüme koridoru (3D kumsal düzlemi üzerinde).
             float margin = 0.32f;
             float minX = m_BoardMinX - margin;
@@ -3650,15 +3743,26 @@ namespace PixelGame
             if (!TryBuildLiveGrid(out var gridMap, out _, out _, ignoreReserved))
                 return null;
 
-            // Çerçeve: sahnedeki OtCerceve'nin (görünmese de) kumsala izdüşümü. Resim çerçeveden taşarsa o kenar
-            // resmin bir pay dışına itilir; OtCerceve yoksa resmin sınırlarından hesaplanır.
+            // Çerçeve: sahnedeki [SceneFramePreview] podyumunun (veya yedek olarak OtCerceve'nin) kumsala izdüşümü.
             EnsureBoardBounds();
             float pitch = Mathf.Max(0.05f, m_GridFrame.Pitch);
             float margin = pitch * m_RunnerFrameMarginCubes;
             float fL = m_BoardMinX - margin, fR = m_BoardMaxX + margin, fB = m_BoardBottomY - margin, fT = m_BoardTopY + margin;
-            if (m_RunnerFrameUseOtCerceve && TryGetOtCerceveGroundRect(groundZ, out float oL, out float oR, out float oB, out float oT))
+
+            // Kullanıcı isteği: "otcerceve deil [SceneFramePreview] i kullanıyoruz ona göre yap"
+            if (TryGetSceneFramePreviewGroundRect(groundZ, out float pL, out float pR, out float pB, out float pT))
             {
-                fL = Mathf.Min(oL, fL); fR = Mathf.Max(oR, fR); fB = Mathf.Min(oB, fB); fT = Mathf.Max(oT, fT);
+                fL = Mathf.Min(pL, fL);
+                fR = Mathf.Max(pR, fR);
+                fB = Mathf.Min(pB, fB);
+                fT = Mathf.Max(pT, fT);
+            }
+            else if (m_RunnerFrameUseOtCerceve && TryGetOtCerceveGroundRect(groundZ, out float oL, out float oR, out float oB, out float oT))
+            {
+                fL = Mathf.Min(oL, fL);
+                fR = Mathf.Max(oR, fR);
+                fB = Mathf.Min(oB, fB);
+                fT = Mathf.Max(oT, fT);
             }
             // Görünen kumsalın dışına (limana, ekran kenarına, iskeleye) taşma; ama küplere de yarım küpten fazla yaklaşma
             ClampRunnerFrameToSand(groundZ, pitch, ref fL, ref fR, ref fB, ref fT);

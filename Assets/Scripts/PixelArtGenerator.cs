@@ -293,6 +293,33 @@ namespace PixelGame
         public Camera WorldCamera { get => GetActiveCamera(); set => m_WorldCamera = value; }
         public bool ShowSceneFramePreview { get => m_ShowSceneFramePreview; set { m_ShowSceneFramePreview = value; EnsureWorldFramePreview(true); } }
         public bool ShowSceneBoardBackground { get => m_ShowSceneBoardBackground; set { m_ShowSceneBoardBackground = value; EnsureWorldFramePreview(true); } }
+        public Transform FramePreviewTransform => m_FramePreviewTransform;
+
+        /// <summary>
+        /// 3D dünyadaki [SceneFramePreview] podyum/çerçeve görselinin dünya uzayındaki sınırlarını (Bounds) döndürür.
+        /// </summary>
+        public bool TryGetSceneFramePreviewBounds(out Bounds bounds)
+        {
+            bounds = default;
+            if (m_FramePreviewTransform == null)
+            {
+                m_FramePreviewTransform = transform.Find("[SceneFramePreview]");
+            }
+            if (m_FramePreviewTransform == null && m_ShowSceneFramePreview)
+            {
+                EnsureWorldFramePreview(true);
+            }
+            if (m_FramePreviewTransform != null && m_FramePreviewTransform.gameObject.activeInHierarchy)
+            {
+                SpriteRenderer sr = m_FramePreviewTransform.GetComponent<SpriteRenderer>();
+                if (sr != null && sr.sprite != null)
+                {
+                    bounds = sr.bounds;
+                    return true;
+                }
+            }
+            return false;
+        }
 
         private void Awake()
         {
