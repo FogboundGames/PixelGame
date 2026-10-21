@@ -62,6 +62,12 @@ namespace PixelGame
         [SerializeField] private UnityEngine.UI.Image m_SpeedButtonImage;
         [SerializeField] private Sprite m_Speed1xSprite;
         [SerializeField] private Sprite m_Speed2xSprite;
+        [Tooltip("Hız butonundaki 1X/2X yazısı (buton arka planından ayrı). Atanmışsa sprite yerine yazı değişir.")]
+        [SerializeField] private TextMeshProUGUI m_SpeedLabel;
+        [Tooltip("1X yazısının rengi")]
+        [SerializeField] private Color m_SpeedLabelNormalColor = Color.white;
+        [Tooltip("2X açıkken yazının rengi (turuncu-sarı)")]
+        [SerializeField] private Color m_SpeedLabelActiveColor = new Color(1f, 0.72f, 0.16f, 1f);
         [Tooltip("2X butonunun kullanma süresi (dakika). Varsayılan: 15")]
         [SerializeField] private float m_Speed2xDurationMinutes = 15f;
         [Tooltip("2X süre sınırı aktif mi?")]
@@ -1364,7 +1370,7 @@ namespace PixelGame
                 m_SpeedButtonImage = m_SpeedButton.GetComponent<UnityEngine.UI.Image>();
             }
 
-            if (m_SpeedButtonImage != null)
+            if (m_SpeedLabel == null && m_SpeedButtonImage != null)
             {
                 if (m_IsSpeed2x && m_Speed2xSprite != null)
                 {
@@ -1384,8 +1390,20 @@ namespace PixelGame
                     }
                 }
             }
+            UpdateSpeedLabel();
 
             UpdateSpeedTimerVisual();
+        }
+
+        /// <summary>Buton arka planı ayrı, "1X"/"2X" yazısı ayrı (m_SpeedLabel) olduğunda yazıyı günceller.</summary>
+        private void UpdateSpeedLabel()
+        {
+            if (m_SpeedLabel == null) return;
+            m_SpeedLabel.text = m_IsSpeed2x ? "2X" : "1X";
+            bool expired = !m_IsSpeed2x && m_Speed2xTimerEnabled && m_Speed2xRemainingSeconds <= 0f;
+            Color c = m_IsSpeed2x ? m_SpeedLabelActiveColor : m_SpeedLabelNormalColor;
+            c.a *= expired ? 0.55f : 1f;
+            m_SpeedLabel.color = c;
         }
 
         public void EnsureSpeedTimerBadge()
