@@ -30,12 +30,12 @@ Material:
     m_Ints: []
     m_Floats:
     - _Depth: 0.012
-    - _InnerHalf: 0.418
-    - _InnerRadius: 0.052
+    - _InnerHalf: 0.434
+    - _InnerRadius: 0.06
     - _InnerShadowBlur: 0.03
     - _InnerShadowOffset: 0.018
     - _InnerShadowStrength: 0.22
-    - _LipWidth: 0.009
+    - _LipWidth: 0.007
     - _OuterHalf: 0.466
     - _OuterRadius: 0.09
     - _ShadowBlur: 0.016

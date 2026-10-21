@@ -15,10 +15,10 @@ Shader "PixelGame/BoardPodium"
 
         [Header(Geometri UV)]
         _OuterHalf ("Dış Yarı Boyut", Range(0.3, 0.5)) = 0.466
-        _InnerHalf ("Tuval Yarı Boyut", Range(0.2, 0.5)) = 0.418
+        _InnerHalf ("Tuval Yarı Boyut", Range(0.2, 0.5)) = 0.434
         _OuterRadius ("Dış Köşe Yarıçapı", Range(0, 0.25)) = 0.09
-        _InnerRadius ("Tuval Köşe Yarıçapı", Range(0, 0.25)) = 0.052
-        _LipWidth ("İç Eğim Genişliği", Range(0, 0.03)) = 0.009
+        _InnerRadius ("Tuval Köşe Yarıçapı", Range(0, 0.25)) = 0.06
+        _LipWidth ("İç Eğim Genişliği", Range(0, 0.03)) = 0.007
         _Depth ("Çerçeve Kalınlığı (alt)", Range(0, 0.03)) = 0.012
 
         [Header(Golgeler)]

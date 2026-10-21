@@ -4459,14 +4459,9 @@ namespace PixelGame
             }
 
             // Phase 4: Run back along OtCerceve to shore
+            // UI konteynerde yol konteynerin önündeki noktada (containerGroundPos) biter: denizci zıplamadan yürüyerek girer.
             List<Vector3> returnWaypoints = new List<Vector3>(forwardWaypoints);
             returnWaypoints.Reverse();
-            if (isUiContainer && returnWaypoints.Count > 1)
-            {
-                // Kullanıcı isteği: Çerçeve kenarından zıplayarak yük konteynarına binsinler.
-                // Bu nedenle geri dönüş yürüyüş yolu çerçeve kenarında (frame corridor) son bulur.
-                returnWaypoints.RemoveAt(returnWaypoints.Count - 1);
-            }
             ShoreLanePath returnPath = ShoreLanePath.BuildFilleted(returnWaypoints, runnerCornerRadius, 8);
 
             // Denizci küpü alırken yerinde durur: orta küplerde dik kalır; diğer küplerde ayara bağlı
@@ -4536,17 +4531,21 @@ namespace PixelGame
                 yield break;
             }
 
-            // Phase 5: Hop from shore onto ship deck
+            // Phase 5: Hop from shore onto ship deck (UI konteynerde zıplama yok: yürüyüş yolu zaten konteynerde bitti)
             agent.Active = false;
             m_RunnerAgents.Remove(agent);
             Vector3 shoreEnd = runner.transform.position;
-            float returnHopDuration = isUiContainer ? Mathf.Clamp(m_HopDuration * 1.15f, 0.45f, 0.65f) : Mathf.Max(0.2f, m_HopDuration);
-            if (sailorVis != null) { sailorVis.Play(SailorRunnerVisual.StateHopBoard, 0.05f); sailorVis.SetRingVisible(false); }
+            float returnHopDuration = isUiContainer ? 0f : Mathf.Max(0.2f, m_HopDuration);
+            if (sailorVis != null)
+            {
+                if (!isUiContainer) sailorVis.Play(SailorRunnerVisual.StateHopBoard, 0.05f);
+                sailorVis.SetRingVisible(false);
+            }
             float tReturnHop = 0f;
             Vector3 prevPos = shoreEnd;
 
-            Vector3 targetDeckNow = isUiContainer ? containerGroundPos : (ship != null ? ship.transform.position + deckOffset : shoreEnd);
-            float hopArc = isUiContainer ? Mathf.Max(m_HopArcHeight, 1.25f) : m_HopArcHeight;
+            Vector3 targetDeckNow = ship != null ? ship.transform.position + deckOffset : shoreEnd;
+            float hopArc = m_HopArcHeight;
 
             while (tReturnHop < returnHopDuration && runner != null)
             {
@@ -4595,7 +4594,7 @@ namespace PixelGame
             if (runner != null)
             {
                 // Güverteye konarken kısa ezilme, sonra içeri iner
-                if (sailorVis != null && m_RunnerLandingSquash > 0.001f)
+                if (sailorVis != null && !isUiContainer && m_RunnerLandingSquash > 0.001f)
                     yield return RunnerLandingSquashRoutine(runner.transform, m_RunnerLandingSquash, 0.12f);
             }
             if (runner != null)
