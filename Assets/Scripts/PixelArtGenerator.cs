@@ -202,20 +202,20 @@ namespace PixelGame
         [SerializeField] private Transform m_FramePreviewTransform;
 
         [Header("🎨 Çerçeve & Pano Canlı Renk Ayarları (Board Frame Colors)")]
-        [Tooltip("Çerçevenin dış podyum zemin rengi (Outer Podium)")]
-        [SerializeField] private Color m_BoardOuterColor = new Color(0.706f, 0.761f, 0.804f, 1f);
+        [Tooltip("Çerçevenin beyaz üst yüz rengi (Rim Top)")]
+        [SerializeField] private Color m_BoardOuterColor = new Color(0.965f, 0.976f, 0.992f, 1f);
 
-        [Tooltip("Çerçevenin bordür / rim rengi (Frame Rim)")]
-        [SerializeField] private Color m_BoardRimColor = new Color(0.686f, 0.745f, 0.792f, 1f);
+        [Tooltip("Çerçevenin kalınlık (alt yan duvar) ve dış kenar rengi (Side)")]
+        [SerializeField] private Color m_BoardRimColor = new Color(0.765f, 0.824f, 0.910f, 1f);
 
-        [Tooltip("Çerçeve ile podyum arasındaki derinlik çizgisi (Groove Line)")]
-        [SerializeField] private Color m_BoardGrooveColor = new Color(0.412f, 0.463f, 0.510f, 1f);
+        [Tooltip("Çerçeveden tuvale inen iç eğimin rengi (Inner Lip)")]
+        [SerializeField] private Color m_BoardGrooveColor = new Color(0.706f, 0.788f, 0.902f, 1f);
 
         [Tooltip("Oyun alanı iç tuval rengi (Canvas - Küplerin oturduğu zemin)")]
-        [SerializeField] private Color m_BoardCanvasColor = new Color(0.898f, 0.925f, 0.949f, 1f);
+        [SerializeField] private Color m_BoardCanvasColor = new Color(0.800f, 0.875f, 0.965f, 1f);
 
-        [Tooltip("Podyumun en dışındaki yumuşak sahte gölge rengi")]
-        [SerializeField] private Color m_BoardOuterShadowColor = new Color(0.078f, 0.110f, 0.149f, 1f);
+        [Tooltip("Çerçevenin altına düşen yumuşak gölge rengi (A: opaklık)")]
+        [SerializeField] private Color m_BoardOuterShadowColor = new Color(0.30f, 0.38f, 0.55f, 0.55f);
 
         [Tooltip("Çerçevenin dinamik materyali (BoardPodium_Mat)")]
         [SerializeField] private Material m_BoardPodiumMaterial;

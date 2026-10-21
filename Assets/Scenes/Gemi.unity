@@ -4534,47 +4534,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 140236791}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
---- !u!21 &141202760
-Material:
-  serializedVersion: 8
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: Ship_Tether_SharedMat
-  m_Shader: {fileID: 10753, guid: 0000000000000000f000000000000000, type: 0}
-  m_Parent: {fileID: 0}
-  m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
-  m_InvalidKeywords: []
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_LockedProperties: 
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs:
-    - _AlphaTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    m_Ints: []
-    m_Floats:
-    - PixelSnap: 0
-    - _EnableExternalAlpha: 0
-    m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _Flip: {r: 1, g: 1, b: 1, a: 1}
-    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
-  m_BuildTextureStacks: []
-  m_AllowLocking: 1
 --- !u!1 &143549811
 GameObject:
   m_ObjectHideFlags: 0
@@ -7036,7 +6995,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 141202760}
+  - {fileID: 1707555419}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -21370,11 +21329,11 @@ MonoBehaviour:
   m_ShowSceneFramePreview: 1
   m_ShowSceneBoardBackground: 1
   m_FramePreviewTransform: {fileID: 1356991843}
-  m_BoardOuterColor: {r: 0, g: 0.08490566, b: 0.1981132, a: 1}
-  m_BoardRimColor: {r: 0.57872015, g: 0.674363, b: 0.8018868, a: 1}
-  m_BoardGrooveColor: {r: 0.4313725, g: 0.45490193, b: 0.48627448, a: 1}
-  m_BoardCanvasColor: {r: 0.85711104, g: 0.9062198, b: 0.9716981, a: 1}
-  m_BoardOuterShadowColor: {r: 0.39248845, g: 0.4592382, b: 0.5660378, a: 1}
+  m_BoardOuterColor: {r: 0.965, g: 0.976, b: 0.992, a: 1}
+  m_BoardRimColor: {r: 0.765, g: 0.824, b: 0.91, a: 1}
+  m_BoardGrooveColor: {r: 0.706, g: 0.788, b: 0.902, a: 1}
+  m_BoardCanvasColor: {r: 0.8, g: 0.875, b: 0.965, a: 1}
+  m_BoardOuterShadowColor: {r: 0.3, g: 0.38, b: 0.55, a: 0.55}
   m_BoardPodiumMaterial: {fileID: 2100000, guid: 3e18f260bc724d98aa80145be9078652, type: 2}
   m_SnapGroundShadowToBoard: 1
   m_GroundShadowGap: 0.002
@@ -23392,7 +23351,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 141202760}
+  - {fileID: 1707555419}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -27592,7 +27551,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 141202760}
+  - {fileID: 1707555419}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -28488,7 +28447,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 141202760}
+  - {fileID: 1707555419}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -46161,7 +46120,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 141202760}
+  - {fileID: 1707555419}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -48400,7 +48359,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 141202760}
+  - {fileID: 1707555419}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -84315,7 +84274,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 141202760}
+  - {fileID: 1707555419}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -92100,7 +92059,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 141202760}
+  - {fileID: 1707555419}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -92519,6 +92478,47 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1705626676}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!21 &1707555419
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Ship_Tether_SharedMat
+  m_Shader: {fileID: 10753, guid: 0000000000000000f000000000000000, type: 0}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _AlphaTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - PixelSnap: 0
+    - _EnableExternalAlpha: 0
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Flip: {r: 1, g: 1, b: 1, a: 1}
+    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!1001 &1711422529
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -94074,7 +94074,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 141202760}
+  - {fileID: 1707555419}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -94401,7 +94401,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 141202760}
+  - {fileID: 1707555419}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -95534,7 +95534,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 141202760}
+  - {fileID: 1707555419}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -96926,7 +96926,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 141202760}
+  - {fileID: 1707555419}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
