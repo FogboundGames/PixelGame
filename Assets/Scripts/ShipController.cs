@@ -456,10 +456,11 @@ namespace PixelGame
         /// Görevini tamamlayan işçi güverteye inip gemiye bindiğinde (ve yok olduğunda) çağrılır:
         /// Tüm işçiler geri binmişse ve gemi dolduysa gemi kalkışa geçer.
         /// </summary>
-        public void OnWorkerBoarded()
+        /// <param name="boardedCargo">İşçinin getirdiği küp sayısı (yığın taşıyan denizcide sayı bir kerede bu kadar düşer).</param>
+        public void OnWorkerBoarded(int boardedCargo = 1)
         {
             m_ActiveWorkersOut = Mathf.Max(0, m_ActiveWorkersOut - 1);
-            m_WorkersExitedCount = Mathf.Min(m_Capacity, m_WorkersExitedCount + 1);
+            m_WorkersExitedCount = Mathf.Min(m_Capacity, m_WorkersExitedCount + Mathf.Max(1, boardedCargo));
             UpdateBadgeText();
             PlayBadgePunchJuice();
 
@@ -1210,12 +1211,72 @@ namespace PixelGame
             }
         }
 
+        private Image m_UiOutlineImage;
+        private static Sprite s_ContainerOutlineSprite;
+        // Kontur sprite'ı gövde sprite'ından her yandan 64/512 geniş (gölge taşmasın): anchor'lar o kadar dışarıda
+        private const float UiOutlinePad = 64f / 512f;
+
+        /// <summary>
+        /// Konteynerin beyaz konturu ve yumuşak gölgesi (Container_Outline). Kendi Canvas'ında, kök Canvas'tan bir sıra
+        /// geride çizilir: tüm konturlar tüm konteyner gövdelerinin ve halat köprüsünün arkasında kalır. Halatın
+        /// konteynere girdiği yerde köprü konturun üstünden geçtiği için iki konteyner ve halat tek parça görünür.
+        /// </summary>
+        private void EnsureUiOutline()
+        {
+            if (!IsUiContainer) return;
+            if (s_ContainerOutlineSprite == null)
+            {
+#if UNITY_EDITOR
+                s_ContainerOutlineSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/Containers/Container_Outline.png");
+#endif
+                if (s_ContainerOutlineSprite == null) s_ContainerOutlineSprite = Resources.Load<Sprite>("Containers/Container_Outline");
+                if (s_ContainerOutlineSprite == null) return;
+            }
+
+            if (m_UiOutlineImage == null)
+            {
+                Transform existing = transform.Find("Outline");
+                GameObject go = existing != null
+                    ? existing.gameObject
+                    : new GameObject("Outline", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                if (existing == null)
+                {
+                    go.transform.SetParent(transform, false);
+                    go.transform.SetAsFirstSibling();
+                }
+                var ort = (RectTransform)go.transform;
+                ort.anchorMin = Vector2.one * -UiOutlinePad;
+                ort.anchorMax = Vector2.one * (1f + UiOutlinePad);
+                ort.offsetMin = Vector2.zero;
+                ort.offsetMax = Vector2.zero;
+                ort.pivot = new Vector2(0.5f, 0.5f);
+                ort.localRotation = Quaternion.identity;
+                ort.localScale = Vector3.one;
+                m_UiOutlineImage = go.GetComponent<Image>();
+                m_UiOutlineImage.raycastTarget = false;
+            }
+            m_UiOutlineImage.sprite = s_ContainerOutlineSprite;
+            m_UiOutlineImage.color = Color.white;
+
+            Canvas parentCanvas = transform.parent != null ? transform.parent.GetComponentInParent<Canvas>() : null;
+            Canvas root = parentCanvas != null ? parentCanvas.rootCanvas : null;
+            Canvas oc = m_UiOutlineImage.GetComponent<Canvas>();
+            if (oc == null) oc = m_UiOutlineImage.gameObject.AddComponent<Canvas>();
+            oc.overrideSorting = true;
+            if (root != null)
+            {
+                oc.sortingLayerID = root.sortingLayerID;
+                oc.sortingOrder = root.sortingOrder - 1;
+            }
+        }
+
         /// <summary>
         /// Yeni 3D stil konteynerin üst kapak tepsisine metnin tam oturmasını ve boyutların düzgün olmasını sağlar.
         /// </summary>
         public void EnsureUiContainerLayout()
         {
             if (!IsUiContainer) return;
+            EnsureUiOutline();
             RectTransform rt = GetComponent<RectTransform>();
             if (rt != null)
             {
@@ -2269,14 +2330,16 @@ namespace PixelGame
                 // Açık mavi kilit tokaları ve mandalları (hue 0.52 - 0.68, s > 0.22f) boyanmaz, orijinal açık mavi kalır
                 if (h >= 0.52f && h <= 0.68f && s > 0.22f) { dst[i] = c; continue; }
                 float w = Mathf.Clamp01((s - 0.2f) / 0.15f); // gri/beyaz kilit çubukları ve kenar parlamaları boyanmaz
-                if (w <= 0f) { dst[i] = c; continue; }
+                // ...ama tonları hedef renge kaydırılır: kırmızı tabandan kalan pembe parlama izleri olmasın
+                Color origTinted = Color.HSVToRGB(th, s, v);
+                origTinted.a = c.a / 255f;
+                if (w <= 0f) { dst[i] = origTinted; continue; }
                 // Koyu renkte gölge çarpımla, açık renkte (beyaz vb.) farkla korunur; yoksa beyaz kutu düzleşiyordu
                 float addW = tv * tv;
                 float nv = (v * valScale) * (1f - addW) + (tv + (v - ContainerBaseValue) * 0.85f) * addW;
                 Color recol = Color.HSVToRGB(th, Mathf.Clamp01(s * satScale), Mathf.Clamp01(nv));
-                Color orig = c;
-                Color res = Color.Lerp(orig, recol, w);
-                res.a = orig.a;
+                Color res = Color.Lerp(origTinted, recol, w);
+                res.a = c.a / 255f;
                 dst[i] = res;
             }
 
@@ -2323,6 +2386,7 @@ namespace PixelGame
                     if (s != null) m_ContainerImage.sprite = s;
                     m_ContainerImage.color = Color.white;
                 }
+                EnsureUiOutline();
                 if (m_BadgeText == null) m_BadgeText = GetComponentInChildren<TextMeshProUGUI>(true);
                 if (Application.isPlaying && m_BadgeText != null && m_BadgeText.outlineWidth < 0.2f)
                 {

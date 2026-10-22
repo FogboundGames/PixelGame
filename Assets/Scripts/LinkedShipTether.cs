@@ -62,6 +62,7 @@ namespace PixelGame
         private UnityEngine.UI.Image m_UiBridgeHalfA;
         private UnityEngine.UI.Image m_UiBridgeHalfB;
         private UnityEngine.UI.Image m_UiBridgeShine;
+        private UiFilletGraphic m_UiBridgeFillets;
 
         public ShipController ShipA => m_ShipA;
         public ShipController ShipB => m_ShipB;
@@ -521,9 +522,27 @@ namespace PixelGame
             m_UiBridgeShine.color = Color.white;
             m_UiBridgeShine.raycastTarget = false;
 
-            // 4. Beyaz Kenarlıklar (Konteynerler arasındaki boşluk boyunca üst ve alt beyaz çizgi)
+            // 4. Beyaz kenarlıklar: köprü boyunca üst ve alt beyaz çizgi. Konteyner konturlarıyla aynı arka katmanda
+            // (kök Canvas'tan bir sıra geride) çizilir; konteyner gövdeleri üstlerini örttüğü için çizgiler tam
+            // konteynerin kenarında biter ve halatın konteynere girdiği yerde kontur kalmaz.
+            GameObject bordersObj = new GameObject("Borders", typeof(RectTransform));
+            bordersObj.transform.SetParent(m_UiBridgeRt, false);
+            RectTransform bordersRt = bordersObj.GetComponent<RectTransform>();
+            bordersRt.anchorMin = Vector2.zero;
+            bordersRt.anchorMax = Vector2.one;
+            bordersRt.offsetMin = Vector2.zero;
+            bordersRt.offsetMax = Vector2.zero;
+            Canvas bordersCanvas = bordersObj.AddComponent<Canvas>();
+            bordersCanvas.overrideSorting = true;
+            if (canvas != null)
+            {
+                Canvas rootCanvas = canvas.rootCanvas;
+                bordersCanvas.sortingLayerID = rootCanvas.sortingLayerID;
+                bordersCanvas.sortingOrder = rootCanvas.sortingOrder - 1;
+            }
+
             GameObject borderTopObj = new GameObject("Border_Top", typeof(RectTransform), typeof(CanvasRenderer), typeof(UnityEngine.UI.Image));
-            borderTopObj.transform.SetParent(m_UiBridgeRt, false);
+            borderTopObj.transform.SetParent(bordersRt, false);
             m_UiBridgeBorderTop = borderTopObj.GetComponent<RectTransform>();
             m_UiBridgeBorderTop.pivot = new Vector2(0.5f, 0.5f);
             var imgTop = borderTopObj.GetComponent<UnityEngine.UI.Image>();
@@ -531,12 +550,26 @@ namespace PixelGame
             imgTop.raycastTarget = false;
 
             GameObject borderBottomObj = new GameObject("Border_Bottom", typeof(RectTransform), typeof(CanvasRenderer), typeof(UnityEngine.UI.Image));
-            borderBottomObj.transform.SetParent(m_UiBridgeRt, false);
+            borderBottomObj.transform.SetParent(bordersRt, false);
             m_UiBridgeBorderBottom = borderBottomObj.GetComponent<RectTransform>();
             m_UiBridgeBorderBottom.pivot = new Vector2(0.5f, 0.5f);
             var imgBottom = borderBottomObj.GetComponent<UnityEngine.UI.Image>();
             imgBottom.color = Color.white;
             imgBottom.raycastTarget = false;
+
+            // 5. Kenar çizgisinin konteyner konturuna bağlandığı köşeleri yumuşatan yuvarlak dolgular (aynı arka katman)
+            GameObject filletsObj = new GameObject("Fillets", typeof(RectTransform), typeof(CanvasRenderer));
+            filletsObj.transform.SetParent(bordersRt, false);
+            RectTransform filletsRt = filletsObj.GetComponent<RectTransform>();
+            filletsRt.anchorMin = Vector2.zero;
+            filletsRt.anchorMax = Vector2.one;
+            filletsRt.offsetMin = Vector2.zero;
+            filletsRt.offsetMax = Vector2.zero;
+            m_UiBridgeFillets = filletsObj.AddComponent<UiFilletGraphic>();
+            m_UiBridgeFillets.color = Color.white;
+            m_UiBridgeFillets.raycastTarget = false;
+            // Kontur kalınlığı mertebesinde: köşe sivri kalmaz ama köprünün uçlarında beyaz "boğaz" oluşmaz
+            m_UiBridgeFillets.Radius = UiBridgeFilletRadius;
         }
 
         /// <summary>
@@ -614,25 +647,88 @@ namespace PixelGame
             const float barHeight = 40f;
             m_UiBridgeRt.sizeDelta = new Vector2(pixelDist, barHeight);
 
-            // İki konteyner arasındaki boşlukta beyaz dış kenarlıklar
-            float gapLength = Mathf.Max(0f, pixelDist - 134f);
-            if (gapLength > 2f)
-            {
-                m_UiBridgeBorderTop.gameObject.SetActive(true);
-                m_UiBridgeBorderBottom.gameObject.SetActive(true);
+            // Beyaz dış kenarlıklar köprünün tam boyunca: konteynerlerin içinde kalan kısımlar gövdelerin altında
+            // kaldığından görünen kısım tam iki konteynerin konturu arasındadır. Kalınlık konteyner konturuyla aynı.
+            // Eşi henüz kuyrukta olmayan (bekleyen) köprüde serbest uç yuvarlak kapaktır: çizgiler oraya kadar uzanmaz.
+            float borderLength = partner != null ? pixelDist : Mathf.Max(0f, pixelDist - barHeight * 0.5f);
+            float borderShift = partner != null ? 0f : -barHeight * 0.25f;
+            m_UiBridgeBorderTop.gameObject.SetActive(true);
+            m_UiBridgeBorderBottom.gameObject.SetActive(true);
+            m_UiBridgeBorderTop.anchoredPosition = new Vector2(borderShift, barHeight * 0.5f + UiOutlineThickness * 0.5f);
+            m_UiBridgeBorderTop.sizeDelta = new Vector2(borderLength, UiOutlineThickness);
+            m_UiBridgeBorderBottom.anchoredPosition = new Vector2(borderShift, -barHeight * 0.5f - UiOutlineThickness * 0.5f);
+            m_UiBridgeBorderBottom.sizeDelta = new Vector2(borderLength, UiOutlineThickness);
 
-                m_UiBridgeBorderTop.anchoredPosition = new Vector2(0f, barHeight * 0.5f + 1.75f);
-                m_UiBridgeBorderTop.sizeDelta = new Vector2(gapLength, 3.5f);
+            UpdateUiBridgeFillets(rtA, partner != null ? (RectTransform)partner.transform : null, pixelDist, barHeight);
+        }
 
-                m_UiBridgeBorderBottom.anchoredPosition = new Vector2(0f, -barHeight * 0.5f - 1.75f);
-                m_UiBridgeBorderBottom.sizeDelta = new Vector2(gapLength, 3.5f);
-            }
-            else
+        /// <summary>
+        /// Köprünün beyaz kenar çizgilerinin konteyner konturlarına bağlandığı dört köşeye yuvarlak dolgu koyar.
+        /// Köprü yerel uzayında A soketi (-L/2, 0), B soketi (+L/2, 0); çizgilerin dış kenarı ±(bar/2 + kontur).
+        /// </summary>
+        private void UpdateUiBridgeFillets(RectTransform boxA, RectTransform boxB, float length, float barHeight)
+        {
+            if (m_UiBridgeFillets == null) return;
+            var space = (RectTransform)m_UiBridgeFillets.transform;
+            float off = barHeight * 0.5f + UiOutlineThickness;
+            m_UiBridgeFillets.BeginCorners();
+            AddUiBoxFillets(space, boxA, new Vector2(-length * 0.5f, 0f), Vector2.right, off);
+            if (boxB != null) AddUiBoxFillets(space, boxB, new Vector2(length * 0.5f, 0f), Vector2.left, off);
+            m_UiBridgeFillets.EndCorners();
+        }
+
+        private void AddUiBoxFillets(RectTransform space, RectTransform box, Vector2 socket, Vector2 dir, float off)
+        {
+            if (box == null) return;
+            Rect r = box.rect;
+            for (int side = -1; side <= 1; side += 2)
             {
-                m_UiBridgeBorderTop.gameObject.SetActive(false);
-                m_UiBridgeBorderBottom.gameObject.SetActive(false);
+                Vector2 nSide = new Vector2(0f, side);
+                // Çizginin dış kenarı soketin hizasında konteynerin içinden başlar; konturdan çıktığı nokta köşedir
+                Vector2 oL = box.InverseTransformPoint(space.TransformPoint(socket + nSide * off));
+                Vector2 dL = box.InverseTransformVector(space.TransformVector(dir));
+                Vector2 nL = box.InverseTransformVector(space.TransformVector(nSide));
+                if (!RayExitUiOutline(r, oL, dL, out Vector2 hitL, out Vector2 tanL)) continue;
+                if (Vector2.Dot(tanL, nL) < 0f) tanL = -tanL;   // kontur kenarı köprüden uzaklaşan yöne
+                Vector2 p = space.InverseTransformPoint(box.TransformPoint(hitL));
+                Vector2 e = ((Vector2)space.InverseTransformVector(box.TransformVector(tanL))).normalized;
+                m_UiBridgeFillets.AddCorner(p, dir, e);
             }
         }
+
+        /// <summary>Konteyner konturunun dış sınırından (s_UiOutlinePoly) içeriden çıkan ışının çıkış noktası ve oradaki kenar yönü.</summary>
+        private static bool RayExitUiOutline(Rect r, Vector2 o, Vector2 d, out Vector2 hit, out Vector2 tangent)
+        {
+            hit = default;
+            tangent = default;
+            float best = float.MaxValue;
+            int n = s_UiOutlinePoly.Length;
+            for (int i = 0; i < n; i++)
+            {
+                Vector2 a = r.center + Vector2.Scale(s_UiOutlinePoly[i], r.size);
+                Vector2 b = r.center + Vector2.Scale(s_UiOutlinePoly[(i + 1) % n], r.size);
+                Vector2 sgm = b - a;
+                float den = d.x * sgm.y - d.y * sgm.x;
+                if (Mathf.Abs(den) < 1e-6f) continue;
+                Vector2 ao = a - o;
+                float t = (ao.x * sgm.y - ao.y * sgm.x) / den;
+                float u = (ao.x * d.y - ao.y * d.x) / den;
+                if (t > 0f && u >= 0f && u <= 1f && t < best)
+                {
+                    best = t;
+                    hit = o + d * t;
+                    tangent = sgm.normalized;
+                }
+            }
+            return best < float.MaxValue;
+        }
+
+        // Container_Outline beyaz konturunun dış sınırı: konteyner rect'ine oranla (merkez 0, ±0.5), saat yönünün tersine.
+        // Sprite'tan ölçüldü; konteyner görselleri değişirse yeniden üretilmeli.
+        private static readonly Vector2[] s_UiOutlinePoly =
+        {
+            new Vector2(0.4619f, 0.0186f), new Vector2(0.4619f, 0.0488f), new Vector2(0.4618f, 0.0794f), new Vector2(0.4617f, 0.1104f), new Vector2(0.4617f, 0.1423f), new Vector2(0.4607f, 0.1749f), new Vector2(0.4583f, 0.2084f), new Vector2(0.4565f, 0.2437f), new Vector2(0.4554f, 0.2816f), new Vector2(0.4514f, 0.3201f), new Vector2(0.4397f, 0.3555f), new Vector2(0.4197f, 0.3858f), new Vector2(0.3943f, 0.4118f), new Vector2(0.3651f, 0.4335f), new Vector2(0.3316f, 0.4488f), new Vector2(0.2942f, 0.4562f), new Vector2(0.2553f, 0.4579f), new Vector2(0.2182f, 0.4579f), new Vector2(0.1834f, 0.4579f), new Vector2(0.1504f, 0.4578f), new Vector2(0.1189f, 0.4577f), new Vector2(0.0885f, 0.4577f), new Vector2(0.0589f, 0.4576f), new Vector2(0.0298f, 0.4577f), new Vector2(0.0010f, 0.4578f), new Vector2(-0.0279f, 0.4577f), new Vector2(-0.0570f, 0.4576f), new Vector2(-0.0866f, 0.4577f), new Vector2(-0.1170f, 0.4577f), new Vector2(-0.1485f, 0.4578f), new Vector2(-0.1815f, 0.4579f), new Vector2(-0.2159f, 0.4573f), new Vector2(-0.2518f, 0.4553f), new Vector2(-0.2889f, 0.4514f), new Vector2(-0.3262f, 0.4441f), new Vector2(-0.3606f, 0.4305f), new Vector2(-0.3905f, 0.4099f), new Vector2(-0.4154f, 0.3838f), new Vector2(-0.4344f, 0.3530f), new Vector2(-0.4461f, 0.3178f), new Vector2(-0.4509f, 0.2801f), new Vector2(-0.4519f, 0.2425f), new Vector2(-0.4520f, 0.2066f), new Vector2(-0.4525f, 0.1728f), new Vector2(-0.4539f, 0.1406f), new Vector2(-0.4554f, 0.1095f), new Vector2(-0.4565f, 0.0789f), new Vector2(-0.4575f, 0.0486f), new Vector2(-0.4580f, 0.0186f), new Vector2(-0.4585f, -0.0117f), new Vector2(-0.4594f, -0.0422f), new Vector2(-0.4603f, -0.0734f), new Vector2(-0.4617f, -0.1058f), new Vector2(-0.4632f, -0.1394f), new Vector2(-0.4617f, -0.1734f), new Vector2(-0.4549f, -0.2065f), new Vector2(-0.4432f, -0.2380f), new Vector2(-0.4290f, -0.2690f), new Vector2(-0.4138f, -0.3000f), new Vector2(-0.3958f, -0.3296f), new Vector2(-0.3721f, -0.3544f), new Vector2(-0.3412f, -0.3710f), new Vector2(-0.3047f, -0.3787f), new Vector2(-0.2669f, -0.3812f), new Vector2(-0.2307f, -0.3816f), new Vector2(-0.1973f, -0.3826f), new Vector2(-0.1680f, -0.3895f), new Vector2(-0.1421f, -0.4036f), new Vector2(-0.1154f, -0.4157f), new Vector2(-0.0864f, -0.4201f), new Vector2(-0.0567f, -0.4171f), new Vector2(-0.0274f, -0.4074f), new Vector2(0.0011f, -0.4036f), new Vector2(0.0297f, -0.4123f), new Vector2(0.0588f, -0.4195f), new Vector2(0.0883f, -0.4196f), new Vector2(0.1161f, -0.4119f), new Vector2(0.1415f, -0.3964f), new Vector2(0.1682f, -0.3848f), new Vector2(0.1989f, -0.3817f), new Vector2(0.2327f, -0.3816f), new Vector2(0.2688f, -0.3812f), new Vector2(0.3065f, -0.3786f), new Vector2(0.3423f, -0.3701f), new Vector2(0.3724f, -0.3527f), new Vector2(0.3962f, -0.3281f), new Vector2(0.4154f, -0.2996f), new Vector2(0.4322f, -0.2697f), new Vector2(0.4471f, -0.2391f), new Vector2(0.4584f, -0.2072f), new Vector2(0.4642f, -0.1737f), new Vector2(0.4651f, -0.1394f), new Vector2(0.4637f, -0.1058f), new Vector2(0.4622f, -0.0734f), new Vector2(0.4618f, -0.0422f), new Vector2(0.4619f, -0.0117f)
+        };
 
         /// <summary>Konteynerin görünen gövdesinin, hedef noktaya bakan kenarındaki nokta (dünya uzayında).</summary>
         private static Vector3 UiBoxEdgePoint(RectTransform box, Vector3 towardWorld)
@@ -689,6 +785,11 @@ namespace PixelGame
             }
             m_UiFrontShip = null;
         }
+
+        // Beyaz kontur kalınlığı (canvas birimi): Container_Outline'daki 14 px / (512 px → 160 birim)
+        private const float UiOutlineThickness = 4.4f;
+        // Köprü çizgisi ile konteyner konturunun birleştiği köşedeki yuvarlatma yarıçapı (canvas birimi)
+        private const float UiBridgeFilletRadius = 3.5f;
 
         // Dikey bağlantı: düşey fark yatayın bu katından büyükse halat üsttekinden düz iner
         private const float UiVerticalLinkRatio = 1.5f;

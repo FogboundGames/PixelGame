@@ -20678,6 +20678,8 @@ MonoBehaviour:
   m_SailorCargoSize: 0.6
   m_SailorSizeVsCube: 1.67
   m_SailorLaunchInterval: 0.35
+  m_SailorStackSize: 5
+  m_StackNextCubeWait: 0.6
   m_SailorHatFixedColor: {r: 1, g: 1, b: 1, a: 1}
   m_RunnerFrameMarginCubes: 1.2
   m_RunnerFrameUseOtCerceve: 0
@@ -26100,7 +26102,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 1133571431}
+  - {fileID: 1965043123}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -67489,7 +67491,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 1133571431}
+  - {fileID: 1965043123}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -74986,7 +74988,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 1133571431}
+  - {fileID: 1965043123}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -76215,7 +76217,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 1133571431}
+  - {fileID: 1965043123}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -109090,7 +109092,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 1133571431}
+  - {fileID: 1965043123}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -114495,7 +114497,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 1133571431}
+  - {fileID: 1965043123}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -138184,47 +138186,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5359358813082909192, guid: 7ccc7550cab95b466b68df867b36dc49, type: 3}
   m_PrefabInstance: {fileID: 1193542431}
   m_PrefabAsset: {fileID: 0}
---- !u!21 &1133571431
-Material:
-  serializedVersion: 8
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: Ship_Tether_SharedMat
-  m_Shader: {fileID: 10753, guid: 0000000000000000f000000000000000, type: 0}
-  m_Parent: {fileID: 0}
-  m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
-  m_InvalidKeywords: []
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_LockedProperties: 
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs:
-    - _AlphaTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    m_Ints: []
-    m_Floats:
-    - PixelSnap: 0
-    - _EnableExternalAlpha: 0
-    m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _Flip: {r: 1, g: 1, b: 1, a: 1}
-    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
-  m_BuildTextureStacks: []
-  m_AllowLocking: 1
 --- !u!4 &1133760958 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5359358813082909192, guid: 7ccc7550cab95b466b68df867b36dc49, type: 3}
@@ -184096,8 +184057,8 @@ MonoBehaviour:
   m_Speed1xSprite: {fileID: 21300000, guid: aa74ae4519ce50f408e46eb517d1ce34, type: 3}
   m_Speed2xSprite: {fileID: 21300000, guid: 33b75b278d79d0c40941250c42d16e69, type: 3}
   m_SpeedLabel: {fileID: 460764476}
-  m_SpeedBgNormalSprite: {fileID: 21300000, guid: 05cfc566861fe88a5af2d5cf3731a6d3, type: 3}
-  m_SpeedBgActiveSprite: {fileID: 2561534620446350566, guid: 23a48ca1e983a4c47971fcf7eab26b89, type: 3}
+  m_SpeedLabelNormalColor: {r: 1, g: 1, b: 1, a: 1}
+  m_SpeedLabelActiveColor: {r: 1, g: 0.72, b: 0.16, a: 1}
   m_Speed2xDurationMinutes: 15
   m_Speed2xTimerEnabled: 1
   m_SpeedTimerBadge: {fileID: 0}
@@ -192707,7 +192668,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 1133571431}
+  - {fileID: 1965043123}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -209018,7 +208979,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 1133571431}
+  - {fileID: 1965043123}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -214160,7 +214121,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 1133571431}
+  - {fileID: 1965043123}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -214672,7 +214633,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 1133571431}
+  - {fileID: 1965043123}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -218067,7 +218028,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 1133571431}
+  - {fileID: 1965043123}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -221072,7 +221033,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 1133571431}
+  - {fileID: 1965043123}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -236600,6 +236561,47 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1964958902}
   m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!21 &1965043123
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Ship_Tether_SharedMat
+  m_Shader: {fileID: 10753, guid: 0000000000000000f000000000000000, type: 0}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _AlphaTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - PixelSnap: 0
+    - _EnableExternalAlpha: 0
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Flip: {r: 1, g: 1, b: 1, a: 1}
+    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!1001 &1965308767
 PrefabInstance:
   m_ObjectHideFlags: 0
