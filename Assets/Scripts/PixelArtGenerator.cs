@@ -199,6 +199,9 @@ namespace PixelGame
         [SerializeField] private bool m_ShowSceneFramePreview = true;
         [Tooltip("Çerçevenin içindeki beyaz tuval/pano zeminini Scene View'da gösterir")]
         [SerializeField] private bool m_ShowSceneBoardBackground = true;
+        [Tooltip("Açıkken sahnede elle ayarlanan [SceneFramePreview] konumu, boyutu ve görseli korunur; oyunda ve level yüklenirken " +
+                 "yeniden hesaplanıp ezilmez. Kapatınca çerçeve FixedSand alanına göre otomatik boyutlanır.")]
+        [SerializeField] private bool m_KeepSceneFrameTransform = true;
         [SerializeField] private Transform m_FramePreviewTransform;
 
         [Header("🎨 Çerçeve & Pano Canlı Renk Ayarları (Board Frame Colors)")]
@@ -2314,6 +2317,7 @@ namespace PixelGame
                 worldCenter = m_FixedSandCenter;
                 worldWidth = m_FixedSandWidth;
                 worldHeight = m_FixedSandHeight;
+                ApplySceneFrameToFixedArea(cam, ref worldCenter, ref worldWidth, ref worldHeight);
                 return true;
             }
 
@@ -2731,6 +2735,53 @@ namespace PixelGame
             #endif
         }
 
+        /// <summary>Verilen resim merkezine göre çerçevenin dünya konumu (z = m_TargetZ + 0.60, küplerin arkası).</summary>
+        private Vector3 ComputeFramePosition(Camera cam, Vector3 worldCenter)
+        {
+            float frameZ = m_TargetZ + 0.60f;
+            Vector3 framePos = new Vector3(worldCenter.x, worldCenter.y, frameZ);
+            // Kamera eğik baktığı için kameraya daha yakın duran küpler ekranda kayar: çerçeveyi, resmin merkezinden
+            // kamera bakış yönünde çerçeve düzlemine izdüşürülen noktaya koy ki ekranda resim çerçevenin tam ortasında dursun
+            if (cam != null)
+            {
+                float cubeZ = worldCenter.z + m_TargetZ;
+                if (m_CubesContainer != null && m_CubesContainer.childCount > 0) cubeZ = m_CubesContainer.GetChild(0).position.z;
+                Vector3 fwd = cam.transform.forward;
+                if (Mathf.Abs(fwd.z) > 1e-3f)
+                {
+                    float t = (frameZ - cubeZ) / fwd.z;
+                    framePos.x += fwd.x * t;
+                    framePos.y += fwd.y * t;
+                }
+            }
+            return framePos;
+        }
+
+        /// <summary>
+        /// m_KeepSceneFrameTransform açıkken sahnede büyütülen/taşınan çerçeveye göre FixedSand alanını ölçekler ve kaydırır;
+        /// böylece resim de çerçeveyle birlikte büyür ve çerçevenin ortasında kalır.
+        /// </summary>
+        private void ApplySceneFrameToFixedArea(Camera cam, ref Vector3 worldCenter, ref float worldWidth, ref float worldHeight)
+        {
+            if (!m_KeepSceneFrameTransform || !m_ShowSceneFramePreview) return;
+            if (m_FramePreviewTransform == null) m_FramePreviewTransform = transform.Find("[SceneFramePreview]");
+            if (m_FramePreviewTransform == null || !m_FramePreviewTransform.gameObject.activeInHierarchy) return;
+            SpriteRenderer sr = m_FramePreviewTransform.GetComponent<SpriteRenderer>();
+            if (sr == null || sr.sprite == null) return;
+
+            // Otomatik boyutlandırmanın vereceği ölçeğe göre sahnedeki çerçevenin büyütme oranı
+            float ppx = sr.sprite.rect.width / sr.sprite.pixelsPerUnit;
+            float autoScaleX = Mathf.Min(worldWidth, worldHeight) / Mathf.Max(0.01f, ppx);
+            float factor = Mathf.Abs(m_FramePreviewTransform.lossyScale.x) / Mathf.Max(0.0001f, autoScaleX);
+            if (factor < 0.05f) return;
+
+            Vector3 shift = m_FramePreviewTransform.position - ComputeFramePosition(cam, worldCenter);
+            worldCenter.x += shift.x;
+            worldCenter.y += shift.y;
+            worldWidth *= factor;
+            worldHeight *= factor;
+        }
+
         /// <summary>
         /// Scene View'da tasarım yaparken çerçevenin ve pano zemininin 3D dünyada
         /// tam olarak küplerin arkasında net olarak görünmesini sağlar.
@@ -2764,6 +2815,7 @@ namespace PixelGame
                 if (existing != null) m_FramePreviewTransform = existing;
             }
 
+            bool createdNow = false;
             if (m_FramePreviewTransform == null)
             {
                 // Sahnede kullanıcı sildiyse ve zorla üretim istenmediyse (örn. Update döngüsü), yeniden üretme!
@@ -2772,27 +2824,20 @@ namespace PixelGame
                 GameObject previewObj = new GameObject("[SceneFramePreview]");
                 previewObj.transform.SetParent(transform, false);
                 m_FramePreviewTransform = previewObj.transform;
+                createdNow = true;
             }
 
             m_FramePreviewTransform.gameObject.SetActive(true);
-            // Z derinliği: Küplerin (z = 0..0.5) ve koşan denizcilerin (z ≈ 0.36) TAMAMEN arkasında kalması için z = m_TargetZ + 0.60f
-            float frameZ = m_TargetZ + 0.60f;
-            Vector3 framePos = new Vector3(worldCenter.x, worldCenter.y, frameZ);
-            // Kamera eğik baktığı için kameraya daha yakın duran küpler ekranda kayar: çerçeveyi, resmin merkezinden
-            // kamera bakış yönünde çerçeve düzlemine izdüşürülen noktaya koy ki ekranda resim çerçevenin tam ortasında dursun
-            if (cam != null)
+
+            // Sahnede elle ayarlanmış çerçeve: konum/boyut/görsel olduğu gibi kalır, yalnızca renkler güncellenir
+            SpriteRenderer existingSr = m_FramePreviewTransform.GetComponent<SpriteRenderer>();
+            if (m_KeepSceneFrameTransform && !createdNow && existingSr != null && existingSr.sprite != null)
             {
-                float cubeZ = worldCenter.z + m_TargetZ;
-                if (m_CubesContainer != null && m_CubesContainer.childCount > 0) cubeZ = m_CubesContainer.GetChild(0).position.z;
-                Vector3 fwd = cam.transform.forward;
-                if (Mathf.Abs(fwd.z) > 1e-3f)
-                {
-                    float t = (frameZ - cubeZ) / fwd.z;
-                    framePos.x += fwd.x * t;
-                    framePos.y += fwd.y * t;
-                }
+                if (m_BoardPodiumMaterial != null) UpdateBoardFrameColorsLive();
+                return;
             }
-            m_FramePreviewTransform.position = framePos;
+            // Z derinliği: Küplerin (z = 0..0.5) ve koşan denizcilerin (z ≈ 0.36) TAMAMEN arkasında kalması için z = m_TargetZ + 0.60f
+            m_FramePreviewTransform.position = ComputeFramePosition(cam, worldCenter);
             m_FramePreviewTransform.rotation = Quaternion.identity;
 
             // 1. Podyum / Çerçeve Görseli (Board Podium Sprite)
