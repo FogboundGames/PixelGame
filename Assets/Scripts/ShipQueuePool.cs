@@ -183,7 +183,9 @@ namespace PixelGame
             {
                 ShipController s = ships[i];
                 if (s == null || s.IsDeparting || !s.gameObject.activeInHierarchy) continue;
-                total += Mathf.Max(0, s.Capacity - s.CurrentCargo - s.PendingCargo);
+                // Küpü henüz seçilmemiş (yığın kotası) yerler boş sayılır: o küpler panoda "kalan" sayılıyor
+                int pendingWithCube = Mathf.Max(0, s.PendingCargo - s.UnassignedQuota);
+                total += Mathf.Max(0, s.Capacity - s.CurrentCargo - pendingWithCube);
             }
             return total;
         }
@@ -1486,28 +1488,17 @@ namespace PixelGame
             if (spotIndex < 0 || spotIndex >= m_QueueSpots.Count) return;
             if (m_ShipPrefab == null) return;
 
-            // Eğer özel sıra kullanılıyorsa ve sırada başka gemi kalmadıysa:
-            if (m_UsingLevelSequence && LevelSequenceLanesExhausted())
-            {
-                int remainingCubes = ShipDispatcher.Instance != null ? ShipDispatcher.Instance.GetTotalRemainingCubes() : 0;
-                int currentShipCapacity = GetTotalCapacityOfActiveShips();
-                if (remainingCubes <= currentShipCapacity)
-                {
-                    // Seviyedeki tüm küpler mevcut gemilerce karşılanıyor, yeni gemiye gerek yok
-                    return;
-                }
-            }
-
             Color shipColor;
             int capacity;
             int linkId;
             if (!TryGetNextSequenceShip(spotIndex, out shipColor, out capacity, out linkId))
             {
-                // Bu sütunun şeridi bitti ama diğer şeritlerde hâlâ gemi var: sütun boş kalsın.
-                // Eskiden burada "ihtiyaca göre" yedek gemi doğuyordu; şeritler eşit bölünmediği için
-                // sıradaki gemiler zaten gelecekken fazladan gemi geliyordu (ör. 11 yerine 13-18 gemi).
-                // Yedek gemi yalnızca tüm sıra bitip kapasite gerçekten yetmediğinde (yukarıdaki kontrol) doğar.
-                if (m_UsingLevelSequence && !LevelSequenceLanesExhausted()) return;
+                // Bölümün elle hazırlanmış konteyner sırası varsa ona güvenilir: sütunun şeridi bitince sütun boş
+                // kalır, yedek konteyner üretilmez. Sıralar renk renk küp sayısıyla birebir hazırlanıyor (tüm bölümler
+                // LevelSolvabilityAnalyzer ile doğrulandı). Yedek üretim, kalan küp / boş kapasite sayımı kaydığında
+                // (ör. yığın taşıyan denizcinin henüz seçmediği küpler) slota konunca hemen kalkan hayalet konteynerler
+                // doğuruyordu (kuyrukta siyah 3, kahverengi 13 gibi).
+                if (m_UsingLevelSequence) return;
 
                 shipColor = GetNextNeededColor(false);
                 capacity = GetRecommendedCapacity(shipColor);

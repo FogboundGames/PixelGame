@@ -14,7 +14,7 @@ namespace PixelGame.Editor
         private const string AutoRunKey = "SetupContainerUiLayout_Ran_v5";
         private const string ScenePath = "Assets/Scenes/Gemi.unity";
         private const string UiPrefabPath = "Assets/Prefabs/Container_UI.prefab";
-        private const string CleanBgPath = "Assets/Renkli İskele ve Deniz Manzarası.png";
+        private const string CleanBgPath = "Assets/Renkli Liman İskelesi ve Deniz.png";
         private const string FontPath = "Assets/Fonts/LilitaOne-Regular SDF.asset";
 
         static SetupContainerReferenceLayout()

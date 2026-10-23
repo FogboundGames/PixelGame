@@ -947,6 +947,14 @@ namespace PixelGame
         {
             m_PendingCargo = Mathf.Max(0, m_PendingCargo - 1);
         }
+
+        // Yığın taşıyan denizci çıkarken kotası kadar yer ayırır ama yalnızca ilk küpü seçer; kalanını yolda seçer.
+        // Henüz küpü seçilmemiş bu yerler PendingCargo'da olduğu halde karşılık gelen küpler panoda "kalan" sayılır.
+        // Kapasite hesabı (ShipQueuePool.GetTotalCapacityOfActiveShips) bu yerleri boş saysın diye ayrıca tutulur.
+        private int m_UnassignedQuota;
+        public int UnassignedQuota => m_UnassignedQuota;
+        public void AddUnassignedQuota(int amount) => m_UnassignedQuota += Mathf.Max(0, amount);
+        public void ConsumeUnassignedQuota(int amount = 1) => m_UnassignedQuota = Mathf.Max(0, m_UnassignedQuota - Mathf.Max(0, amount));
         public ShipSlot CurrentSlot => m_CurrentSlot;
 
         public event Action<ShipController> OnCargoFilled;
@@ -2118,6 +2126,7 @@ namespace PixelGame
             m_Capacity = Mathf.Max(1, capacity);
             m_CurrentCargo = 0;
             m_PendingCargo = 0;
+            m_UnassignedQuota = 0;
             m_ActiveWorkersOut = 0;
             m_WorkersExitedCount = 0;
             m_ColorName = string.IsNullOrEmpty(colorName) ? ColorUtility.ToHtmlStringRGB(color) : colorName;
@@ -3147,10 +3156,10 @@ namespace PixelGame
                 rt.sizeDelta = targetSize;
             }
 
-            // Ses ve dokunsal geri bildirim:
+            // Ses ve dokunsal geri bildirim (konteyner slota inince su sıçraması efekti yok)
             if (HypercasualFeedbackManager.Instance != null)
             {
-                HypercasualFeedbackManager.Instance.PlayShipDockFeedback(transform.position);
+                HypercasualFeedbackManager.Instance.PlayShipDockFeedback(transform.position, waterSplash: false);
             }
 
             m_IsMoving = false;

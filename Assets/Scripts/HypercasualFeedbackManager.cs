@@ -1412,10 +1412,10 @@ namespace PixelGame
         /// 🔊 Tok mekanik-ahşap kilit ve su darbesi sesi çalar.
         /// 📳 Orta şiddette tok mobil titreşimi tetikler.
         /// </summary>
-        public void PlayShipDockFeedback(Vector3 position)
+        public void PlayShipDockFeedback(Vector3 position, bool waterSplash = true)
         {
-            // 1. Su Sıçraması (💦 Water Splash)
-            if (m_EnableWaterSplash && m_SplashPS != null)
+            // 1. Su Sıçraması (💦 Water Splash) — UI konteynerler slota inince istenmiyor
+            if (waterSplash && m_EnableWaterSplash && m_SplashPS != null)
             {
                 SpawnWaterSplash(position, 16);
             }
