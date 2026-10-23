@@ -1,0 +1,30 @@
+=== Inspecting Sailor Prefab: Sailor_Runner ===
+Total Renderers found: 10
+Renderer: 'LegL', Type: MeshRenderer, Path: Sailor_Runner/ModelPivot/Sailor_Runner/Root/Hips/Leg_L/LegL
+   Mat [0]: M_Skin, Color: RGBA(1.000, 0.820, 0.700, 1.000)
+   Mat [1]: M_Navy, Color: RGBA(0.100, 0.180, 0.420, 1.000)
+Renderer: 'LegR', Type: MeshRenderer, Path: Sailor_Runner/ModelPivot/Sailor_Runner/Root/Hips/Leg_R/LegR
+   Mat [0]: M_Skin, Color: RGBA(1.000, 0.820, 0.700, 1.000)
+   Mat [1]: M_Navy, Color: RGBA(0.100, 0.180, 0.420, 1.000)
+Renderer: 'ArmL', Type: MeshRenderer, Path: Sailor_Runner/ModelPivot/Sailor_Runner/Root/Hips/Spine/Arm_L/ArmL
+   Mat [0]: M_Skin, Color: RGBA(1.000, 0.820, 0.700, 1.000)
+   Mat [1]: M_Navy, Color: RGBA(0.100, 0.180, 0.420, 1.000)
+   Mat [2]: M_White, Color: RGBA(0.980, 0.980, 0.980, 1.000)
+Renderer: 'ArmR', Type: MeshRenderer, Path: Sailor_Runner/ModelPivot/Sailor_Runner/Root/Hips/Spine/Arm_R/ArmR
+   Mat [0]: M_Skin, Color: RGBA(1.000, 0.820, 0.700, 1.000)
+   Mat [1]: M_Navy, Color: RGBA(0.100, 0.180, 0.420, 1.000)
+   Mat [2]: M_White, Color: RGBA(0.980, 0.980, 0.980, 1.000)
+Renderer: 'Cap', Type: MeshRenderer, Path: Sailor_Runner/ModelPivot/Sailor_Runner/Root/Hips/Spine/Head/Cap
+   Mat [0]: M_White, Color: RGBA(0.980, 0.980, 0.980, 1.000)
+Renderer: 'Face', Type: MeshRenderer, Path: Sailor_Runner/ModelPivot/Sailor_Runner/Root/Hips/Spine/Head/Face_Ctrl/Face
+   Mat [0]: M_Black, Color: RGBA(0.120, 0.120, 0.150, 1.000)
+   Mat [1]: M_Pink, Color: RGBA(1.000, 0.480, 0.600, 1.000)
+Renderer: 'Head', Type: MeshRenderer, Path: Sailor_Runner/ModelPivot/Sailor_Runner/Root/Hips/Spine/Head/Head
+   Mat [0]: M_Skin, Color: RGBA(1.000, 0.820, 0.700, 1.000)
+Renderer: 'TeamColor_Band', Type: MeshRenderer, Path: Sailor_Runner/ModelPivot/Sailor_Runner/Root/Hips/Spine/Head/TeamColor_Band
+   Mat [0]: M_TeamColor, Color: RGBA(1.000, 0.620, 0.120, 1.000)
+Renderer: 'TeamColor_Pompom', Type: MeshRenderer, Path: Sailor_Runner/ModelPivot/Sailor_Runner/Root/Hips/Spine/Head/TeamColor_Pompom
+   Mat [0]: M_TeamColor, Color: RGBA(1.000, 0.620, 0.120, 1.000)
+Renderer: 'Torso', Type: MeshRenderer, Path: Sailor_Runner/ModelPivot/Sailor_Runner/Root/Hips/Spine/Torso
+   Mat [0]: M_Navy, Color: RGBA(0.100, 0.180, 0.420, 1.000)
+   Mat [1]: M_White, Color: RGBA(0.980, 0.980, 0.980, 1.000)

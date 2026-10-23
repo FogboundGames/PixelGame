@@ -3663,27 +3663,23 @@ namespace PixelGame
             ShipSlot partnerSlot = null;
             if (isValidDrop && IsLinked && m_LinkedPartner != null)
             {
-                // Bağlı gemi için 2. boş slot ara (candidate dışındaki en yakın boş slot)
-                float minPartnerDist = float.MaxValue;
-                if (ShipDispatcher.Instance != null && ShipDispatcher.Instance.Slots != null)
+                // Bağlı gemi için bitişik 2. boş slot ara veya tekli gemiyi kaydırarak oluştur
+                if (ShipDispatcher.Instance != null &&
+                    ShipDispatcher.Instance.TryGetOrMakeAdjacentSlotsForLinkedPair(candidate, out ShipSlot slotA, out ShipSlot slotB))
                 {
-                    foreach (var s in ShipDispatcher.Instance.Slots)
+                    if (slotA == candidate) partnerSlot = slotB;
+                    else if (slotB == candidate) partnerSlot = slotA;
+                    else
                     {
-                        if (s != null && s != candidate && s.IsEmpty)
-                        {
-                            float d = Vector3.Distance(candidate.transform.position, s.transform.position);
-                            if (d < minPartnerDist)
-                            {
-                                minPartnerDist = d;
-                                partnerSlot = s;
-                            }
-                        }
+                        float distA = Vector3.Distance(candidate.transform.position, slotA.transform.position);
+                        float distB = Vector3.Distance(candidate.transform.position, slotB.transform.position);
+                        if (distA <= distB) { candidate = slotA; partnerSlot = slotB; }
+                        else { candidate = slotB; partnerSlot = slotA; }
                     }
                 }
-
-                if (partnerSlot == null)
+                else
                 {
-                    // 2. boş slot yoksa bağlı gemiler yanaşamaz!
+                    // 2. bitişik boş slot yoksa bağlı gemiler yanaşamaz!
                     isValidDrop = false;
                     PlayWobble();
                     if (m_LinkedPartner != null) m_LinkedPartner.PlayWobble();
@@ -3707,8 +3703,24 @@ namespace PixelGame
                     }
 
                     ShipDispatcher.Instance?.NotifyShipSent();
-                    SailToSlot(candidate, m_SnapDuration);
-                    m_LinkedPartner.SailToSlot(partnerSlot, 0.35f);
+
+                    // ⚓ Halatlı gemilerin sol-sağ yön tutarlılığı
+                    ShipSlot leftSlot = (candidate.transform.position.x <= partnerSlot.transform.position.x) ? candidate : partnerSlot;
+                    ShipSlot rightSlot = (candidate.transform.position.x <= partnerSlot.transform.position.x) ? partnerSlot : candidate;
+
+                    if (Mathf.Abs(transform.position.x - m_LinkedPartner.transform.position.x) > 0.15f)
+                    {
+                        ShipController leftShip = (transform.position.x <= m_LinkedPartner.transform.position.x) ? this : m_LinkedPartner;
+                        ShipController rightShip = (transform.position.x <= m_LinkedPartner.transform.position.x) ? m_LinkedPartner : this;
+
+                        leftShip.SailToSlot(leftSlot, m_SnapDuration);
+                        rightShip.SailToSlot(rightSlot, 0.35f);
+                    }
+                    else
+                    {
+                        SailToSlot(leftSlot, m_SnapDuration);
+                        m_LinkedPartner.SailToSlot(rightSlot, 0.35f);
+                    }
                 }
                 else
                 {

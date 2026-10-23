@@ -15,12 +15,14 @@ namespace PixelGame
         {
             public int SourceId;
             public Color32 Color;
+            public Color32 Shadow;
             public Color32 Emission;
 
             public bool Equals(Key other)
             {
                 return SourceId == other.SourceId
                     && Color.r == other.Color.r && Color.g == other.Color.g && Color.b == other.Color.b && Color.a == other.Color.a
+                    && Shadow.r == other.Shadow.r && Shadow.g == other.Shadow.g && Shadow.b == other.Shadow.b && Shadow.a == other.Shadow.a
                     && Emission.r == other.Emission.r && Emission.g == other.Emission.g && Emission.b == other.Emission.b;
             }
 
@@ -32,6 +34,7 @@ namespace PixelGame
                 {
                     int h = SourceId;
                     h = h * 31 + (Color.r | (Color.g << 8) | (Color.b << 16) | (Color.a << 24));
+                    h = h * 31 + (Shadow.r | (Shadow.g << 8) | (Shadow.b << 16) | (Shadow.a << 24));
                     h = h * 31 + (Emission.r | (Emission.g << 8) | (Emission.b << 16));
                     return h;
                 }
@@ -41,6 +44,8 @@ namespace PixelGame
         private static readonly int BaseColorProp = Shader.PropertyToID("_BaseColor");
         private static readonly int ColorProp = Shader.PropertyToID("_Color");
         private static readonly int EmissionColorProp = Shader.PropertyToID("_EmissionColor");
+        private static readonly int SColorProp = Shader.PropertyToID("_SColor");
+        private static readonly int HColorProp = Shader.PropertyToID("_HColor");
 
         private static readonly Dictionary<Key, Material> s_Cache = new Dictionary<Key, Material>(64);
         // Önbellekten verilen materyal → üretildiği kaynak materyal. Renderer'da zaten önbellek materyali
@@ -60,12 +65,38 @@ namespace PixelGame
             return s_SourceOf.TryGetValue(mat, out Material src) && src != null ? src : mat;
         }
 
+        /// <summary>
+        /// Herhangi bir ana renk için çamurlaşmayan, canlı ve uyumlu karikatür/hypercasual gölge rengi üretir.
+        /// </summary>
+        public static Color ComputeCartoonShadowColor(Color baseColor)
+        {
+            Color.RGBToHSV(baseColor, out float h, out float s, out float v);
+            if (s < 0.04f)
+            {
+                // Beyaz / açık gri tonlar: temiz hava-mavisi/yumuşak gölge
+                return new Color(baseColor.r * 0.85f, baseColor.g * 0.88f, Mathf.Min(1f, baseColor.b * 0.94f), baseColor.a);
+            }
+            // Renkli tonlar (kırmızı, sarı, yeşil, turuncu, mor vb.):
+            // Doygunluk canlı tutulur (%115), değer dengeli koyulaştırılır (%68) -> gölge çamurlaşmaz
+            float shadowS = Mathf.Clamp01(s * 1.15f);
+            float shadowV = Mathf.Clamp01(v * 0.68f);
+            Color shadow = Color.HSVToRGB(h, shadowS, shadowV);
+            shadow.a = baseColor.a;
+            return shadow;
+        }
+
         public static Material Get(Material source, Color color, Color emission)
+        {
+            Color shadow = ComputeCartoonShadowColor(color);
+            return GetWithCustomShadow(source, color, shadow, emission);
+        }
+
+        public static Material GetWithCustomShadow(Material source, Color color, Color shadow, Color emission)
         {
             source = ResolveSource(source);
             if (source == null) return null;
 
-            var key = new Key { SourceId = source.GetInstanceID(), Color = color, Emission = emission };
+            var key = new Key { SourceId = source.GetInstanceID(), Color = color, Shadow = shadow, Emission = emission };
             if (s_Cache.TryGetValue(key, out Material mat) && mat != null)
                 return mat;
 
@@ -73,6 +104,8 @@ namespace PixelGame
             if (mat.HasProperty(BaseColorProp)) mat.SetColor(BaseColorProp, color);
             if (mat.HasProperty(ColorProp)) mat.SetColor(ColorProp, color);
             if (mat.HasProperty(EmissionColorProp)) mat.SetColor(EmissionColorProp, emission);
+            if (mat.HasProperty(SColorProp)) mat.SetColor(SColorProp, shadow);
+            if (mat.HasProperty(HColorProp)) mat.SetColor(HColorProp, Color.white);
 
             // Koşucu / karakter materyalleri (M_*) kesinlikle mat olmalı: şapka ve gövdede parlaklık / glint noktası olmasın
             if (source.name.StartsWith("M_", System.StringComparison.Ordinal))

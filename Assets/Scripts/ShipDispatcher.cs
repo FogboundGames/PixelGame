@@ -135,6 +135,31 @@ namespace PixelGame
         [Tooltip("Denizcinin şapka alt şeridi için sabit ayırt edici renk (şapkanın üst kubbesi, ponponu ve tişörtü toplanacak küpün renginde olurken alt şerit bu renkte [varsayılan beyaz] kalarak denizci şapkası formunu belirginleştirir).")]
         [SerializeField] private Color m_SailorHatFixedColor = Color.white;
         public Color SailorHatFixedColor { get => m_SailorHatFixedColor; set => m_SailorHatFixedColor = value; }
+
+        [Header("Denizci Renk Ayarları (Hypercasual)")]
+        [Tooltip("Denizcinin sevimli hypercasual şeftali ten rengi.")]
+        [SerializeField] private Color m_SailorSkinColor = new Color(1.0f, 0.82f, 0.70f, 1.0f);
+        public Color SailorSkinColor { get => m_SailorSkinColor; set => m_SailorSkinColor = value; }
+
+        [Tooltip("Denizcinin ten rengi için sıcak mercan gölgesi (gölgede çamurlaşma veya morarma olmaması için).")]
+        [SerializeField] private Color m_SailorSkinShadowColor = new Color(0.94f, 0.68f, 0.56f, 1.0f);
+        public Color SailorSkinShadowColor { get => m_SailorSkinShadowColor; set => m_SailorSkinShadowColor = value; }
+
+        [Tooltip("Denizcinin tişörtü ve şapka alt şeridi için temiz, parlak beyaz.")]
+        [SerializeField] private Color m_SailorWhiteColor = new Color(0.98f, 0.98f, 0.98f, 1.0f);
+        public Color SailorWhiteColor { get => m_SailorWhiteColor; set => m_SailorWhiteColor = value; }
+
+        [Tooltip("Denizcinin şortu için kontrast lacivert renk.")]
+        [SerializeField] private Color m_SailorNavyColor = new Color(0.10f, 0.18f, 0.42f, 1.0f);
+        public Color SailorNavyColor { get => m_SailorNavyColor; set => m_SailorNavyColor = value; }
+
+        [Tooltip("Denizcinin ayakkabıları ve gözleri için koyu antrasit renk.")]
+        [SerializeField] private Color m_SailorShoeColor = new Color(0.12f, 0.12f, 0.15f, 1.0f);
+        public Color SailorShoeColor { get => m_SailorShoeColor; set => m_SailorShoeColor = value; }
+
+        [Tooltip("Denizcinin yanaklarındaki sevimli pembe allık.")]
+        [SerializeField] private Color m_SailorBlushColor = new Color(1.0f, 0.48f, 0.60f, 1.0f);
+        public Color SailorBlushColor { get => m_SailorBlushColor; set => m_SailorBlushColor = value; }
         [Tooltip("Koşucuların yürüdüğü çerçevenin, bölüm başındaki resmin dış küp merkezlerinden uzaklığı (küp cinsinden).")]
         [SerializeField, Min(0.5f)] private float m_RunnerFrameMarginCubes = 1.2f;
         [Tooltip("Açıksa denizci çerçevesi sahnedeki OtCerceve ile genişletilir (eski davranış). Kapalıyken her levelde resmin kendi sınırları + pay kullanılır.")]
@@ -433,7 +458,7 @@ namespace PixelGame
         {
             if (m_BoardBoundsInitialized && !forceRefresh) return;
 
-            if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (m_Generator == null) m_Generator = PixelArtGenerator.Instance;
             PixelCube[] allCubes = null;
             if (m_Generator != null && m_Generator.CubesContainer != null)
             {
@@ -595,10 +620,11 @@ namespace PixelGame
             UpdateDeadlockCheck();
 
             // 2. Otomatik Yerleştirme & 2X Turbo Kontrolü
-            if (!m_IsAutoPlacing && !m_LevelEndPending && !m_IsLevelFailed && m_EnableAutoPlaceAndTurbo)
+            if (!m_IsAutoPlacing && !m_LevelEndPending && !m_IsLevelFailed && m_EnableAutoPlaceAndTurbo && m_PlayerSentShipCount > 0)
             {
                 m_AutoPlaceCheckTimer += Time.unscaledDeltaTime;
-                if (m_AutoPlaceCheckTimer >= 0.25f)
+                float interval = (m_QueuePool != null && m_QueuePool.HasNoMoreFutureShips()) ? 0.35f : 1.0f;
+                if (m_AutoPlaceCheckTimer >= interval)
                 {
                     m_AutoPlaceCheckTimer = 0f;
                     CheckAutoPlaceRemainingShips();
@@ -701,7 +727,7 @@ namespace PixelGame
         {
             if (m_Generator == null)
             {
-                m_Generator = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
+                m_Generator = PixelArtGenerator.Instance;
             }
 
             PixelLevelData level = m_Generator != null ? m_Generator.ActiveLevelData : null;
@@ -808,7 +834,7 @@ namespace PixelGame
 
         public void EnsurePaletteInitialized()
         {
-            if (m_Generator == null) m_Generator = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (m_Generator == null) m_Generator = PixelArtGenerator.Instance;
             PixelLevelData level = m_Generator != null ? m_Generator.ActiveLevelData : null;
             if (level == null && LevelManager.Instance != null) level = LevelManager.Instance.CurrentLevel;
 
@@ -1018,67 +1044,12 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Verilen renkle eşleşen, henüz patlatılmamış/rezerve edilmemiş ve DIŞTA olan (dış havaya temas eden) küpleri döner.
+        /// Verilen renkle eşleşen, henüz patlatılmamış/rezerve edilmemiş ve DIŞTA olan (en dış katmandaki) küpleri döner.
+        /// CollectionOrder kuralıyla her zaman en dıştan en içe, en açık ve en yakın olanlar önceliklidir.
         /// </summary>
         public List<PixelCube> GetExposedMatchingCubes(Color shipColor)
         {
-            List<PixelCube> result = new List<PixelCube>();
-
-            if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
-            if (m_Generator == null || m_Generator.CubesContainer == null) return result;
-
-            var allCubes = PixelCube.ActiveCubes;
-            if (allCubes == null || allCubes.Count == 0) return result;
-
-            s_ReservedCubes.RemoveWhere(c => c == null || c.IsPopped || !c.gameObject.activeSelf);
-
-            Dictionary<(int, int), PixelCube> gridMap = new Dictionary<(int, int), PixelCube>(allCubes.Count);
-            int minX = int.MaxValue, maxX = int.MinValue;
-            int minY = int.MaxValue, maxY = int.MinValue;
-
-            for (int i = 0; i < allCubes.Count; i++)
-            {
-                PixelCube c = allCubes[i];
-                // Rezerve küpler de (koşucusu yolda, henüz alınmadı) panoda durur: önü gerçekten açılmayan küpe denizci yollanmaz
-                if (c != null && !c.IsPopped && c.gameObject.activeSelf)
-                {
-                    gridMap[(c.GridX, c.GridY)] = c;
-                    if (c.GridX < minX) minX = c.GridX;
-                    if (c.GridX > maxX) maxX = c.GridX;
-                    if (c.GridY < minY) minY = c.GridY;
-                    if (c.GridY > maxY) maxY = c.GridY;
-                }
-            }
-
-            if (gridMap.Count == 0) return result;
-
-            HashSet<(int, int)> outsideAir = CalculateOutsideAir(gridMap, minX, maxX, minY, maxY);
-
-            foreach (var kvp in gridMap)
-            {
-                PixelCube cube = kvp.Value;
-                if (cube == null || s_ReservedCubes.Contains(cube)) continue;
-                if (cube.IsMystery) continue;
-
-                if (ColorsMatch(cube.CurrentColor, shipColor) || ColorsMatch(cube.OriginalColor, shipColor))
-                {
-                    int x = cube.GridX;
-                    int y = cube.GridY;
-                    bool touchesAir = outsideAir.Contains((x - 1, y)) ||
-                                      outsideAir.Contains((x + 1, y)) ||
-                                      outsideAir.Contains((x, y - 1)) ||
-                                      outsideAir.Contains((x, y + 1));
-
-                    if (touchesAir)
-                    {
-                        result.Add(cube);
-                    }
-                }
-            }
-
-            // Şu an gerçekten açık olan küplerin hepsi: en alt sıra önce, aynı sırada soldan sağa
-            result.Sort((a, b) => a.GridY != b.GridY ? a.GridY.CompareTo(b.GridY) : a.GridX.CompareTo(b.GridX));
-            return result;
+            return GetNextCollectibleBlocks(shipColor);
         }
 
         public bool HasExposedMatchingCube(Color shipColor)
@@ -1457,7 +1428,7 @@ namespace PixelGame
         /// <summary>Kumsal zemin düzleminin dünya z'si; zemin yoksa NaN.</summary>
         public float BeachGroundZ()
         {
-            if (m_BeachGround == null) m_BeachGround = UnityEngine.Object.FindFirstObjectByType<UpperBeachGround>();
+            if (m_BeachGround == null) m_BeachGround = UpperBeachGround.Instance;
             return m_BeachGround != null ? m_BeachGround.GroundWorldZ : float.NaN;
         }
 
@@ -2313,7 +2284,7 @@ namespace PixelGame
             outsideAir = null;
             minY = 0;
 
-            if (m_Generator == null) m_Generator = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (m_Generator == null) m_Generator = PixelArtGenerator.Instance;
             if (m_Generator == null || m_Generator.CubesContainer == null) return false;
 
             var allCubes = PixelCube.ActiveCubes;
@@ -2338,7 +2309,7 @@ namespace PixelGame
         private bool EnsureGridFrame()
         {
             if (m_GridFrameValid) return true;
-            if (m_Generator == null) m_Generator = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (m_Generator == null) m_Generator = PixelArtGenerator.Instance;
             if (m_Generator == null || m_Generator.CubesContainer == null) return false;
 
             // Patlamış küpler yerinde durur, ama yürüyerek ayrılanlar yerini terk etmiştir:
@@ -2453,9 +2424,15 @@ namespace PixelGame
                     return false;
                 }
 
-                // İki slotu tahsis et ve iki gemiyi birlikte gönder
-                ShipSlot slotA = emptySlots[0];
-                ShipSlot slotB = emptySlots[1];
+                // İki bitişik slot tahsis et veya ortada kalan tekli gemiyi kaydırarak yan yana iki slot oluştur
+                if (!TryGetOrMakeAdjacentSlotsForLinkedPair(null, out ShipSlot slotA, out ShipSlot slotB))
+                {
+                    ship.PlayDenialFeedback();
+                    if (partner != null) partner.PlayDenialFeedback();
+                    if (ship.Tether != null) ship.Tether.Rattle();
+                    TriggerFullSlotsAlertFeedback();
+                    return false;
+                }
 
                 // Gemileri önce kuyruk ebeveyninden ayır ki arkadaki gemiler öne kayarken ebeveyn çakışması olmasın
                 DetachShipFromQueueParent(ship);
@@ -2569,6 +2546,261 @@ namespace PixelGame
                 }
             }
             return list;
+        }
+
+        /// <summary>
+        /// 2'li bağlı gemi için yanaşacak yan yana (bitişik) iki slot bulur.
+        /// Eğer yan yana iki boş slot halihazırda varsa doğrudan onları döner.
+        /// Eğer boş slotlar arada tekli bir gemi kaldığı için birbirinden ayrıysa (örn: Slot 0 boş, Slot 1 tekli, Slot 2 boş),
+        /// ortada kalan tekli gemiyi boş slota doğru 1 slot kaydırır; böylece 2'li gemiler yan yana yerleşir ve
+        /// halat/köprü ortadaki geminin üzerinden geçmez.
+        /// </summary>
+        public bool TryGetOrMakeAdjacentSlotsForLinkedPair(ShipSlot preferredSlot, out ShipSlot slotA, out ShipSlot slotB)
+        {
+            slotA = null;
+            slotB = null;
+
+            RefreshSlotListIfStale();
+            if (m_Slots == null || m_Slots.Count < 2) return false;
+
+            // Aktif slotları soldan sağa sıralı olarak filtrele
+            List<ShipSlot> activeSlots = new List<ShipSlot>();
+            for (int i = 0; i < m_Slots.Count; i++)
+            {
+                var s = m_Slots[i];
+                if (s != null && s.gameObject.activeInHierarchy) activeSlots.Add(s);
+            }
+            if (activeSlots.Count < 2) return false;
+
+            activeSlots.Sort((a, b) =>
+            {
+                if (a.SlotIndex != b.SlotIndex) return a.SlotIndex.CompareTo(b.SlotIndex);
+                return a.transform.position.x.CompareTo(b.transform.position.x);
+            });
+
+            // Boş slot sayısı 2'den azsa bağlı gemi yerleşemez
+            int emptyCount = 0;
+            for (int i = 0; i < activeSlots.Count; i++)
+            {
+                if (activeSlots[i].IsEmpty) emptyCount++;
+            }
+            if (emptyCount < 2) return false;
+
+            // 1. Halihazırda yan yana (bitişik) boş olan slot çifti var mı?
+            List<(ShipSlot sA, ShipSlot sB)> directPairs = new List<(ShipSlot, ShipSlot)>();
+            for (int i = 0; i < activeSlots.Count - 1; i++)
+            {
+                ShipSlot s1 = activeSlots[i];
+                ShipSlot s2 = activeSlots[i + 1];
+                if (s1 != null && s2 != null && s1.IsEmpty && s2.IsEmpty)
+                {
+                    directPairs.Add((s1, s2));
+                }
+            }
+
+            if (directPairs.Count > 0)
+            {
+                var chosen = directPairs[0];
+                if (preferredSlot != null)
+                {
+                    float bestDist = float.MaxValue;
+                    for (int i = 0; i < directPairs.Count; i++)
+                    {
+                        var pair = directPairs[i];
+                        if (pair.sA == preferredSlot || pair.sB == preferredSlot)
+                        {
+                            chosen = pair;
+                            break;
+                        }
+                        float d1 = Vector3.Distance(preferredSlot.transform.position, pair.sA.transform.position);
+                        float d2 = Vector3.Distance(preferredSlot.transform.position, pair.sB.transform.position);
+                        float minD = Mathf.Min(d1, d2);
+                        if (minD < bestDist)
+                        {
+                            bestDist = minD;
+                            chosen = pair;
+                        }
+                    }
+                }
+
+                slotA = chosen.sA;
+                slotB = chosen.sB;
+                return true;
+            }
+
+            // 2. Yan yana boş slot yok; arada tekli gemi(ler) kalmış.
+            // Tekli gemiyi 1 slot kaydırarak 2 bitişik boş slot oluşturabilir miyiz?
+            if (TryFindShiftSolution(activeSlots, preferredSlot, out List<(ShipController ship, ShipSlot targetSlot)> shifts, out slotA, out slotB))
+            {
+                // Kaydırmaları hemen işlet
+                if (shifts != null && shifts.Count > 0)
+                {
+                    for (int s = 0; s < shifts.Count; s++)
+                    {
+                        var shift = shifts[s];
+                        if (shift.ship != null && shift.targetSlot != null)
+                        {
+                            // Tekli gemiyi yeni boş slota tatlı bir zıplama/kayma süresiyle (0.22s) geçir
+                            shift.ship.SailToSlot(shift.targetSlot, 0.22f);
+                        }
+                    }
+                }
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool TryFindShiftSolution(
+            List<ShipSlot> activeSlots,
+            ShipSlot preferredSlot,
+            out List<(ShipController ship, ShipSlot targetSlot)> shifts,
+            out ShipSlot slotA,
+            out ShipSlot slotB)
+        {
+            shifts = new List<(ShipController, ShipSlot)>();
+            slotA = null;
+            slotB = null;
+
+            int n = activeSlots.Count;
+            ShipController[] currentOccupants = new ShipController[n];
+            for (int i = 0; i < n; i++)
+            {
+                currentOccupants[i] = activeSlots[i].DockedShip;
+            }
+
+            // Aşama 1: TEK BİR TEKLİ GEMİYİ 1 SLOT KAYDIRARAK ÇÖZME (1-shift)
+            int bestShiftShipIndex = -1;
+            int bestShiftTargetIndex = -1;
+            int bestResultEmptyIndexA = -1;
+            int bestResultEmptyIndexB = -1;
+            float bestScore = float.MaxValue;
+
+            for (int i = 0; i < n; i++)
+            {
+                ShipController docked = currentOccupants[i];
+                if (docked == null) continue;
+                if (docked.IsLinked || docked.IsDeparting) continue; // Yalnızca tekli ve ayrılmayan gemiler kaydırılabilir
+
+                // i'deki gemi sola (i - 1) kaysın
+                if (i - 1 >= 0 && currentOccupants[i - 1] == null)
+                {
+                    if (i + 1 < n && currentOccupants[i + 1] == null)
+                    {
+                        // (i, i + 1) boş olur
+                        float score = CalculateShiftScore(activeSlots, i, i - 1, i, i + 1, preferredSlot);
+                        if (score < bestScore)
+                        {
+                            bestScore = score;
+                            bestShiftShipIndex = i;
+                            bestShiftTargetIndex = i - 1;
+                            bestResultEmptyIndexA = i;
+                            bestResultEmptyIndexB = i + 1;
+                        }
+                    }
+                }
+
+                // i'deki gemi sağa (i + 1) kaysın
+                if (i + 1 < n && currentOccupants[i + 1] == null)
+                {
+                    if (i - 1 >= 0 && currentOccupants[i - 1] == null)
+                    {
+                        // (i - 1, i) boş olur
+                        float score = CalculateShiftScore(activeSlots, i, i + 1, i - 1, i, preferredSlot);
+                        if (score < bestScore)
+                        {
+                            bestScore = score;
+                            bestShiftShipIndex = i;
+                            bestShiftTargetIndex = i + 1;
+                            bestResultEmptyIndexA = i - 1;
+                            bestResultEmptyIndexB = i;
+                        }
+                    }
+                }
+            }
+
+            if (bestShiftShipIndex >= 0)
+            {
+                shifts.Add((currentOccupants[bestShiftShipIndex], activeSlots[bestShiftTargetIndex]));
+                slotA = activeSlots[bestResultEmptyIndexA];
+                slotB = activeSlots[bestResultEmptyIndexB];
+                return true;
+            }
+
+            // Aşama 2: Gerekirse 2 TEKLİ GEMİYİ SIKIŞTIRARAK (2-shift) ÇÖZME
+            int[] dirCandidates = new int[] { -1, 1 };
+            for (int i = 0; i < n; i++)
+            {
+                ShipController ship1 = currentOccupants[i];
+                if (ship1 == null || ship1.IsLinked || ship1.IsDeparting) continue;
+
+                foreach (int d1 in dirCandidates)
+                {
+                    int t1 = i + d1;
+                    if (t1 < 0 || t1 >= n || currentOccupants[t1] != null) continue;
+
+                    currentOccupants[i] = null;
+                    currentOccupants[t1] = ship1;
+
+                    for (int j = 0; j < n; j++)
+                    {
+                        if (j == t1) continue;
+                        ShipController ship2 = currentOccupants[j];
+                        if (ship2 == null || ship2.IsLinked || ship2.IsDeparting) continue;
+
+                        foreach (int d2 in dirCandidates)
+                        {
+                            int t2 = j + d2;
+                            if (t2 < 0 || t2 >= n || currentOccupants[t2] != null) continue;
+
+                            currentOccupants[j] = null;
+                            currentOccupants[t2] = ship2;
+
+                            for (int k = 0; k < n - 1; k++)
+                            {
+                                if (currentOccupants[k] == null && currentOccupants[k + 1] == null)
+                                {
+                                    shifts.Add((ship1, activeSlots[t1]));
+                                    shifts.Add((ship2, activeSlots[t2]));
+                                    slotA = activeSlots[k];
+                                    slotB = activeSlots[k + 1];
+                                    return true;
+                                }
+                            }
+
+                            currentOccupants[t2] = null;
+                            currentOccupants[j] = ship2;
+                        }
+                    }
+
+                    currentOccupants[t1] = null;
+                    currentOccupants[i] = ship1;
+                }
+            }
+
+            return false;
+        }
+
+        private float CalculateShiftScore(List<ShipSlot> activeSlots, int fromIndex, int toIndex, int emptyA, int emptyB, ShipSlot preferredSlot)
+        {
+            float score = 0f;
+            if (preferredSlot != null)
+            {
+                bool hasPreferred = (activeSlots[emptyA] == preferredSlot || activeSlots[emptyB] == preferredSlot);
+                if (hasPreferred) score -= 100f;
+                else
+                {
+                    float d1 = Vector3.Distance(preferredSlot.transform.position, activeSlots[emptyA].transform.position);
+                    float d2 = Vector3.Distance(preferredSlot.transform.position, activeSlots[emptyB].transform.position);
+                    score += Mathf.Min(d1, d2);
+                }
+            }
+            else
+            {
+                score += emptyA * 0.5f;
+                if (toIndex < fromIndex) score -= 0.2f;
+            }
+            return score;
         }
 
         /// <summary>
@@ -2805,7 +3037,7 @@ namespace PixelGame
         public List<Color> GetExposedLevelColors()
         {
             List<Color> exposedColors = new List<Color>();
-            if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (m_Generator == null) m_Generator = PixelArtGenerator.Instance;
             if (m_Generator == null || m_Generator.CubesContainer == null) return exposedColors;
 
             var allCubes = PixelCube.ActiveCubes;
@@ -2891,7 +3123,7 @@ namespace PixelGame
                 }
             }
 
-            if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (m_Generator == null) m_Generator = PixelArtGenerator.Instance;
 
             if (m_Generator != null && m_Generator.CubesContainer != null)
             {
@@ -3070,8 +3302,20 @@ namespace PixelGame
                 return;
             }
 
+            // ⚡ Performans / Akıcılık:
+            // Eğer havada taşınan kargo varsa, gemilerden biri küp çekiyorsa veya gemilerden biri hareket halindeyse,
+            // oyun akışı devam etmektedir ve deadlock kesinlikle oluşamaz.
+            // Bu anlarda her frame ağır BFS flood-fill ve bellek tahsisatı yapan CheckDeadlockCondition'ı çalıştırma!
+            if (m_ActiveCargoFlightCount > 0 || (m_ActiveExtractingShips != null && m_ActiveExtractingShips.Count > 0) || IsAnyShipMoving())
+            {
+                m_DeadlockTimer = 0f;
+                m_DeadlockCheckIntervalTimer = 0f;
+                m_CachedDeadlockCondition = false;
+                return;
+            }
+
             m_DeadlockCheckIntervalTimer += Time.unscaledDeltaTime;
-            if (m_DeadlockCheckIntervalTimer >= 0.15f)
+            if (m_DeadlockCheckIntervalTimer >= 0.5f)
             {
                 m_DeadlockCheckIntervalTimer = 0f;
                 m_CachedDeadlockCondition = CheckDeadlockCondition();
@@ -3105,7 +3349,7 @@ namespace PixelGame
 
         private bool HasAnyDockedShipExposedCube(List<ShipSlot> slots)
         {
-            if (m_Generator == null) m_Generator = Object.FindFirstObjectByType<PixelArtGenerator>();
+            if (m_Generator == null) m_Generator = PixelArtGenerator.Instance;
             if (m_Generator == null || m_Generator.CubesContainer == null) return false;
 
             var activeCubes = PixelCube.ActiveCubes;
@@ -3659,7 +3903,7 @@ namespace PixelGame
             left = right = bottom = top = 0f;
             if (m_Generator == null)
             {
-                m_Generator = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
+                m_Generator = PixelArtGenerator.Instance;
             }
 
             Bounds b = default;
@@ -4078,45 +4322,110 @@ namespace PixelGame
         {
             if (runner == null) return;
 
-            // Takım rengi parçaları (TeamColor_*) varsa yalnızca onlar boyanır; karakterin geri kalanı kendi renginde kalır
-            bool hasTeamParts = false;
-            foreach (var r in runner.GetComponentsInChildren<Renderer>(true))
+            // Koşucunun denizci olup olmadığını tespit et (SailorRunnerVisual bileşeni veya M_* denizci materyalleri)
+            bool isSailor = runner.GetComponent<SailorRunnerVisual>() != null;
+            if (!isSailor)
             {
-                if (r != null && r.name.StartsWith("TeamColor", System.StringComparison.Ordinal)) { hasTeamParts = true; break; }
-            }
-            if (hasTeamParts)
-            {
-                // Denizci: Toplanacak küpün rengi ağırlıklı olsun diye şapkanın üst kısmı (Cap) ve ponpon küp renginde;
-                // şapkanın alt şeridi (Band) ise sabit ayırt edici renkte (beyaz) boyanır.
                 foreach (var r in runner.GetComponentsInChildren<Renderer>(true))
                 {
                     if (r == null) continue;
+                    if (r.name.StartsWith("TeamColor", System.StringComparison.Ordinal) ||
+                        r.name.IndexOf("Cap", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        isSailor = true;
+                        break;
+                    }
+                    var sm = r.sharedMaterials;
+                    for (int m = 0; m < sm.Length; m++)
+                    {
+                        if (sm[m] != null && sm[m].name.StartsWith("M_", System.StringComparison.Ordinal))
+                        {
+                            isSailor = true;
+                            break;
+                        }
+                    }
+                    if (isSailor) break;
+                }
+            }
+
+            if (isSailor)
+            {
+                // Denizci: Hypercasual stilinde tatlı, sıcak bir ten rengi, net ayırt edici kıyafet detayları ve
+                // toplanan küple (%100 aynı renkte) şapka / ponpon / tişört çizgileri.
+                foreach (var r in runner.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (r == null) continue;
+                    if (r.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
+
                     if (r.name.IndexOf("Band", System.StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        // Şapkanın alt kısmı: sabit beyaz şerit
-                        SharedColorMaterialCache.Apply(r, m_SailorHatFixedColor, Color.black);
+                        // Şapkanın alt şeridi: temiz beyaz denizci şeridi
+                        SharedColorMaterialCache.Apply(r, m_SailorWhiteColor, Color.black);
                     }
                     else if (r.name.IndexOf("Cap", System.StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        // Şapkanın üst kısmı: toplanacak küpün rengi (kahverengi, sarı vb. baskın renk)
+                        // Şapkanın üst kubbesi: toplanan küpün / ait olunan geminin rengi
                         SharedColorMaterialCache.Apply(r, color, Color.black);
                     }
-                    else if (r.name.StartsWith("TeamColor", System.StringComparison.Ordinal))
+                    else if (r.name.IndexOf("Pompom", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                             r.name.StartsWith("TeamColor", System.StringComparison.Ordinal))
                     {
-                        // Ponpon ve diğer takım parçaları: toplanacak küpün rengi
+                        // Şapka ponponu ve diğer takım rengi parçaları: toplanan küpün rengi
                         SharedColorMaterialCache.Apply(r, color, Color.black);
                     }
-                    else if (r.name == "Torso" || r.name == "ArmL" || r.name == "ArmR")
+                    else
                     {
-                        // Tişört çizgileri (lacivert slotlar) takım renginde; şort ve ayakkabı lacivert kalır
+                        // Çoklu alt materyallere sahip parçalar (Gövde, kollar, bacaklar, yüz, kafa)
                         Material[] mats = r.sharedMaterials;
                         bool changed = false;
                         for (int m = 0; m < mats.Length; m++)
                         {
                             Material src = SharedColorMaterialCache.ResolveSource(mats[m]);
-                            if (src != null && src.name.StartsWith("M_Navy", System.StringComparison.Ordinal))
+                            if (src == null) continue;
+                            string sName = src.name;
+
+                            if (sName.StartsWith("M_Skin", System.StringComparison.Ordinal))
                             {
+                                // Yüz, boyun, el ve bacak ten rengi: sevimli ve sıcak hypercasual şeftali tonu
+                                mats[m] = SharedColorMaterialCache.GetWithCustomShadow(src, m_SailorSkinColor, m_SailorSkinShadowColor, Color.black);
+                                changed = true;
+                            }
+                            else if (sName.StartsWith("M_TeamColor", System.StringComparison.Ordinal))
+                            {
+                                // Takım rengi yuvaları: toplanan küpün rengi
                                 mats[m] = SharedColorMaterialCache.Get(src, color, Color.black);
+                                changed = true;
+                            }
+                            else if (sName.StartsWith("M_Navy", System.StringComparison.Ordinal))
+                            {
+                                // Tişört çizgileri ve yaka toplanacak küpün renginde (böylece üst beden küpü temsil eder);
+                                // Bacaklardaki şort ise klasik lacivert kalır (kontrast ve ayırt edici detay).
+                                if (r.name == "Torso" || r.name == "ArmL" || r.name == "ArmR")
+                                {
+                                    mats[m] = SharedColorMaterialCache.Get(src, color, Color.black);
+                                }
+                                else
+                                {
+                                    mats[m] = SharedColorMaterialCache.Get(src, m_SailorNavyColor, Color.black);
+                                }
+                                changed = true;
+                            }
+                            else if (sName.StartsWith("M_White", System.StringComparison.Ordinal))
+                            {
+                                // Canlı, temiz beyaz tişört ve detaylar
+                                mats[m] = SharedColorMaterialCache.Get(src, m_SailorWhiteColor, Color.black);
+                                changed = true;
+                            }
+                            else if (sName.StartsWith("M_Black", System.StringComparison.Ordinal))
+                            {
+                                // Ayakkabılar ve gözler için temiz koyu antrasit
+                                mats[m] = SharedColorMaterialCache.Get(src, m_SailorShoeColor, Color.black);
+                                changed = true;
+                            }
+                            else if (sName.StartsWith("M_Pink", System.StringComparison.Ordinal))
+                            {
+                                // Yanaklardaki sevimli pembe allık
+                                mats[m] = SharedColorMaterialCache.Get(src, m_SailorBlushColor, Color.black);
                                 changed = true;
                             }
                         }
@@ -4126,6 +4435,7 @@ namespace PixelGame
             }
             else
             {
+                // Standart küp koşucuları için tüm gövde toplanan küp renginde
                 foreach (var r in runner.GetComponentsInChildren<Renderer>(true))
                 {
                     if (r == null) continue;
@@ -4134,7 +4444,7 @@ namespace PixelGame
                 }
             }
 
-            // Kullanıcı isteği: Şapkadaki ve karakterdeki tüm parlaklıkları / specular ve matcap glint'lerini kesinlikle sıfırla
+            // Karakterdeki ve şapkadaki tüm specular ve glint parlaklıklarını sıfırla (temiz mat görünüm)
             foreach (var r in runner.GetComponentsInChildren<Renderer>(true))
             {
                 if (r == null) continue;
@@ -4362,7 +4672,7 @@ namespace PixelGame
         /// dış, eşitlikte sol). Yalnızca dışarıya erişimi olan, kimseye ayrılmamış, gizemli olmayan küpler döner;
         /// rezerve edilmiş küpler tahtada durduğu için erişimi ve sıra uçlarını belirlemeye devam eder. Boşsa beklenir.
         /// </summary>
-        public List<PixelCube> GetNextCollectibleBlocks(Color color)
+        public List<PixelCube> GetNextCollectibleBlocks(Color color, (int, int)? refCell = null)
         {
             var result = new List<PixelCube>();
             var all = PixelCube.ActiveCubes;
@@ -4381,7 +4691,7 @@ namespace PixelGame
                 PixelCube c = present[cell];
                 if (s_ReservedCubes.Contains(c) || c.IsMystery) return false;
                 return ColorsMatch(c.CurrentColor, color) || ColorsMatch(c.OriginalColor, color);
-            });
+            }, refCell);
             for (int i = 0; i < cells.Count; i++) result.Add(present[cells[i]]);
             return result;
         }
@@ -4396,10 +4706,10 @@ namespace PixelGame
             return claim != null && claim.Ship != null && !claim.Ship.CanAcceptMore;
         }
 
-        /// <summary>Bu renkte, verilen hücreye atlama sınırı içinde kimseye ayrılmamış erişilebilir küp var mı?</summary>
+        /// <summary>Bu renkte, verilen hücreye atlama sınırı içinde kimseye ayrılmamış erişilebilir en dış küp var mı?</summary>
         private bool HasNearbyCollectible(Color color, (int, int) from)
         {
-            var list = GetNextCollectibleBlocks(color);
+            var list = GetNextCollectibleBlocks(color, from);
             for (int i = 0; i < list.Count; i++)
             {
                 PixelCube c = list[i];
@@ -4880,7 +5190,7 @@ namespace PixelGame
             for (int i = runner.transform.childCount - 1; i >= 0; i--)
             {
                 Transform ch = runner.transform.GetChild(i);
-                if (ch != null && ch.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                if (ch != null && ch.name.IndexOf("Shadow", System.StringComparison.OrdinalIgnoreCase) >= 0 && !ch.name.StartsWith("Sailor_"))
                 {
                     ch.gameObject.SetActive(false);
                     Destroy(ch.gameObject);
@@ -4916,8 +5226,11 @@ namespace PixelGame
             // Koşucu karakter kesinlikle toplanan küpün / ait olduğu geminin renginde:
             Color runnerColor = targetCube != null ? targetCube.CurrentColor : ship.ShipColor;
             ApplyColorToRunner(runner, runnerColor);
-            // SailorRunnerVisual sailorSetup = runner.GetComponent<SailorRunnerVisual>();
-            // if (sailorSetup != null) sailorSetup.SetupTeamRing(runnerColor, groundPlaneZ); // Kullanıcı isteği: Renkli ayak altı halkası kaldırıldı
+            SailorRunnerVisual sailorSetup = runner.GetComponent<SailorRunnerVisual>();
+            if (sailorSetup != null)
+            {
+                sailorSetup.SetupFakeShadow(groundPlaneZ);
+            }
 
             PixelCube pc = runner.GetComponent<PixelCube>();
             if (pc != null)

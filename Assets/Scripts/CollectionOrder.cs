@@ -4,25 +4,32 @@ using System.Collections.Generic;
 namespace PixelGame
 {
     /// <summary>
-    /// Küp toplama sırası: "önce en alt ve en dış, en son en üst ve en iç".
+    /// Küp toplama sırası: "Her zaman en dıştan en içe doğru, en açık ve en yakın olanlar".
+    /// 
+    /// 1. Topolojik Katmanlama (Topological Peeling Layers):
+    ///    - Katman 0: Modelin en dış silüet çeperindeki küpler (dış havaya ilk temas edenler).
+    ///    - Katman 1: Katman 0 soyulduktan sonra açılan iç çeper.
+    ///    - Katman 2: Daha içteki çekirdek küpler...
+    ///    Gemiciler bu renkte Katman 0'da küp varken KESİNLİKLE Katman 1 veya daha içteki küplere gitmez.
+    ///    Böylece asla modelin içine tünel kazıp dıştakileri arkada bırakmazlar; her zaman en dıştan en içe toplanır.
     ///
-    /// İki ayrı kavram:
-    /// 1. Erişilebilirlik — küpün dört komşusundan (sol, sağ, üst, alt) en az biri tahtanın dışına bağlı boşluktaysa
-    ///    küp alınabilir. Dış boşluk, tahtanın çevresinden 4 yönlü flood fill ile bulunur; kapalı iç boşluklar dış
-    ///    boşluk sayılmaz. Çapraz komşuluk sayılmaz.
-    /// 2. Öncelik — erişilebilir adaylar arasında sıra:
-    ///    a) En alt sıra önce (ızgarada GridY küçüldükçe aşağı; dünya y'si de azalır).
-    ///    b) Aynı sırada en dıştaki önce: o sıradaki küplerin (her renk) sol ve sağ ucuna olan uzaklığın küçüğü.
-    ///    c) Eşitlikte (iki uca eşit uzak) sol taraf önce, sonra GridX artan. Böylece sonuç her çalıştırmada aynıdır;
-    ///       sözlük sırasına, nesne bulunma sırasına veya animasyon zamanlamasına bağlı değildir.
+    /// 2. Açıklık Derecesi (Exposure / Openness):
+    ///    - 4 yönlü kardinal ve 8 yönlü diyagonal dış hava komşulukları hesaplanır.
+    ///    - Köşeler, uçlar ve dışa doğru çıkıntılı olan (dış havaya en çok yüzü bakan) küpler önceliklidir.
     ///
-    /// Bağımlılık: tahtada fiziksel olarak duran her küp (rezerve edilmiş olsa da) hem erişimi hem sıranın uçlarını
-    /// belirler. Bir küp kaldırılınca liste baştan hesaplanır: önündeki dış/alt küp gidince içteki/üstteki küp
-    /// erişilebilir olur ve listeye ancak o zaman girer.
+    /// 3. En Yakınlık (Proximity):
+    ///    - Referans hücresi (denizcinin o anki konumu) verildiğinde, en dış katmandaki küpler arasından
+    ///      denizciye en yakın olanı seçilir.
+    ///    - Başlangıçta sahile/iskeleye (alt kenara) en yakın dış küpler önce alınır.
     /// </summary>
     public static class CollectionOrder
     {
-        private static readonly (int, int)[] s_Dirs = { (0, -1), (-1, 0), (1, 0), (0, 1) };
+        private static readonly (int, int)[] s_Dirs4 = { (0, -1), (-1, 0), (1, 0), (0, 1) };
+        private static readonly (int, int)[] s_DirsDiag = { (-1, -1), (-1, 1), (1, -1), (1, 1) };
+
+        private static int s_CachedOccupiedCount = -1;
+        private static int s_CachedOccupiedHash = 0;
+        private static Dictionary<(int, int), int> s_CachedPeelingLayers = null;
 
         /// <summary>
         /// Tahtanın dışına bağlı boş hücreler (sınır kutusu her yandan 1 hücre genişletilerek 4 yönlü flood fill).
@@ -49,7 +56,7 @@ namespace PixelGame
             while (queue.Count > 0)
             {
                 var cur = queue.Dequeue();
-                foreach (var d in s_Dirs)
+                foreach (var d in s_Dirs4)
                 {
                     var n = (cur.Item1 + d.Item1, cur.Item2 + d.Item2);
                     if (n.Item1 < minX || n.Item1 > maxX || n.Item2 < minY || n.Item2 > maxY) continue;
@@ -63,49 +70,169 @@ namespace PixelGame
 
         public static bool IsAccessible(HashSet<(int, int)> outsideAir, int x, int y)
         {
+            if (outsideAir == null) return false;
             return outsideAir.Contains((x - 1, y)) || outsideAir.Contains((x + 1, y)) ||
                    outsideAir.Contains((x, y - 1)) || outsideAir.Contains((x, y + 1));
         }
 
         /// <summary>
-        /// Sıradaki toplanabilir küpler, öncelik sırasıyla. <paramref name="occupied"/>: tahtada fiziksel olarak duran
-        /// tüm hücreler (renk fark etmez). <paramref name="isCandidate"/>: bu hücre aranan renkte mi ve henüz kimseye
-        /// ayrılmamış mı. Erişilemeyen adaylar dönmez; aday yoksa liste boştur (işçi beklemeli).
+        /// Hücrenin dış açıklık derecesini hesaplar (4 yönlü kardinal * 3 + 4 yönlü diyagonal).
+        /// Köşe ve çıkıntılarda değer daha yüksektir.
         /// </summary>
-        public static List<(int, int)> GetNextCollectibleCells(ICollection<(int, int)> occupied, Func<(int, int), bool> isCandidate)
+        public static int GetOpenness(HashSet<(int, int)> air, int x, int y)
+        {
+            if (air == null) return 0;
+            int card = 0;
+            for (int i = 0; i < s_Dirs4.Length; i++)
+                if (air.Contains((x + s_Dirs4[i].Item1, y + s_Dirs4[i].Item2))) card++;
+
+            int diag = 0;
+            for (int i = 0; i < s_DirsDiag.Length; i++)
+                if (air.Contains((x + s_DirsDiag[i].Item1, y + s_DirsDiag[i].Item2))) diag++;
+
+            return card * 3 + diag;
+        }
+
+        /// <summary>
+        /// Tüm tahta için topolojik soyma katmanlarını (peeling layers) hesaplar.
+        /// Katman 0: En dış çevre / silüet.
+        /// Katman 1: Katman 0 alındıktan sonra açılan çevre...
+        /// </summary>
+        public static Dictionary<(int, int), int> ComputePeelingLayers(ICollection<(int, int)> allCubes)
+        {
+            var layers = new Dictionary<(int, int), int>(allCubes.Count);
+            if (allCubes == null || allCubes.Count == 0) return layers;
+
+            var remaining = new HashSet<(int, int)>(allCubes);
+            int currentLayer = 0;
+
+            while (remaining.Count > 0)
+            {
+                var air = ComputeOutsideAir(remaining);
+                var shell = new List<(int, int)>();
+
+                foreach (var c in remaining)
+                {
+                    if (IsAccessible(air, c.Item1, c.Item2))
+                    {
+                        shell.Add(c);
+                    }
+                }
+
+                if (shell.Count == 0)
+                {
+                    // Dış hava teması kalmayan iç izole adacıklar
+                    foreach (var c in remaining)
+                    {
+                        layers[c] = currentLayer;
+                    }
+                    break;
+                }
+
+                for (int i = 0; i < shell.Count; i++)
+                {
+                    var c = shell[i];
+                    layers[c] = currentLayer;
+                    remaining.Remove(c);
+                }
+
+                currentLayer++;
+            }
+
+            return layers;
+        }
+
+        private static Dictionary<(int, int), int> GetOrComputePeelingLayers(ICollection<(int, int)> occupied)
+        {
+            int count = occupied.Count;
+            int hash = 17;
+            int iter = 0;
+            foreach (var c in occupied)
+            {
+                hash = unchecked(hash * 31 + c.Item1 * 397 ^ c.Item2);
+                if (++iter > 30) break; // İlk 30 hücre ile hızlı hash parmak izi
+            }
+
+            if (s_CachedPeelingLayers != null && s_CachedOccupiedCount == count && s_CachedOccupiedHash == hash)
+            {
+                return s_CachedPeelingLayers;
+            }
+
+            s_CachedPeelingLayers = ComputePeelingLayers(occupied);
+            s_CachedOccupiedCount = count;
+            s_CachedOccupiedHash = hash;
+            return s_CachedPeelingLayers;
+        }
+
+        /// <summary>
+        /// Sıradaki toplanabilir küpleri "her zaman en dıştan en içe doğru, en açık ve en yakın" kuralıyla döner.
+        /// <paramref name="occupied"/>: tahtada fiziksel olarak duran tüm hücreler.
+        /// <paramref name="isCandidate"/>: bu hücre aranan renkte mi ve henüz kimseye ayrılmamış mı.
+        /// <paramref name="refCell"/>: isteğe bağlı referans hücresi (ör. denizcinin bulunduğu hücre).
+        /// </summary>
+        public static List<(int, int)> GetNextCollectibleCells(
+            ICollection<(int, int)> occupied, 
+            Func<(int, int), bool> isCandidate,
+            (int, int)? refCell = null)
         {
             var result = new List<(int, int)>();
             if (occupied == null || occupied.Count == 0) return result;
 
             var air = ComputeOutsideAir(occupied);
+            var layers = GetOrComputePeelingLayers(occupied);
 
-            // Sıra uçları: her satırda duran küplerin (her renk) en sol ve en sağ hücresi
-            var rowMin = new Dictionary<int, int>();
-            var rowMax = new Dictionary<int, int>();
-            foreach (var c in occupied)
-            {
-                if (!rowMin.TryGetValue(c.Item2, out int mn) || c.Item1 < mn) rowMin[c.Item2] = c.Item1;
-                if (!rowMax.TryGetValue(c.Item2, out int mx) || c.Item1 > mx) rowMax[c.Item2] = c.Item1;
-            }
+            // 1. Dış havaya erişimi olan ve aday şartını sağlayan tüm küpleri topla
+            var candidates = new List<(int, int)>();
+            int minLayer = int.MaxValue;
 
             foreach (var c in occupied)
             {
                 if (!isCandidate(c)) continue;
                 if (!IsAccessible(air, c.Item1, c.Item2)) continue;
-                result.Add(c);
+
+                int layer = layers.TryGetValue(c, out int lyr) ? lyr : 0;
+                if (layer < minLayer) minLayer = layer;
+                candidates.Add(c);
             }
 
+            if (candidates.Count == 0) return result;
+
+            // 2. KULLANICI KURALI: "Her zaman en dıştan en içe doğru toplayacaklar"
+            // Sadece mevcut en dış katmanda (minLayer) olan adayları filtrele.
+            // Dıştakiler bitmeden iç katmandakiler ASLA listeye dahil edilmez!
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                var c = candidates[i];
+                int layer = layers.TryGetValue(c, out int lyr) ? lyr : 0;
+                if (layer == minLayer)
+                {
+                    result.Add(c);
+                }
+            }
+
+            // 3. Sıralama: En yakın ve en açık olanlar
             result.Sort((a, b) =>
             {
-                if (a.Item2 != b.Item2) return a.Item2.CompareTo(b.Item2);                 // a) en alt sıra önce
-                int da = Math.Min(a.Item1 - rowMin[a.Item2], rowMax[a.Item2] - a.Item1);
-                int db = Math.Min(b.Item1 - rowMin[b.Item2], rowMax[b.Item2] - b.Item1);
-                if (da != db) return da.CompareTo(db);                                    // b) en dıştaki önce
-                bool aLeft = a.Item1 - rowMin[a.Item2] <= rowMax[a.Item2] - a.Item1;
-                bool bLeft = b.Item1 - rowMin[b.Item2] <= rowMax[b.Item2] - b.Item1;
-                if (aLeft != bLeft) return aLeft ? -1 : 1;                                // c) eşitlikte sol önce
+                // a) Referans hücreye (denizcinin konumuna) en yakın olan önce
+                if (refCell.HasValue)
+                {
+                    int distA = Math.Abs(a.Item1 - refCell.Value.Item1) + Math.Abs(a.Item2 - refCell.Value.Item2);
+                    int distB = Math.Abs(b.Item1 - refCell.Value.Item1) + Math.Abs(b.Item2 - refCell.Value.Item2);
+                    if (distA != distB) return distA.CompareTo(distB);
+                }
+
+                // b) Açıklık derecesi: Dış havaya en çok yüzü açık olan (köşeler/çıkıntılar) önce
+                int openA = GetOpenness(air, a.Item1, a.Item2);
+                int openB = GetOpenness(air, b.Item1, b.Item2);
+                if (openA != openB) return openB.CompareTo(openA); // büyük olan önce
+
+                // c) İskele/kıyı önceliği (y değeri küçük olan sahile ve gemilere daha yakındır)
+                if (a.Item2 != b.Item2) return a.Item2.CompareTo(b.Item2);
+
+                // d) Belirlilik (soldan sağa)
                 return a.Item1.CompareTo(b.Item1);
             });
+
             return result;
         }
     }

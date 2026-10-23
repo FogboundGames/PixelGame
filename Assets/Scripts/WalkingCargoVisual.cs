@@ -100,7 +100,7 @@ namespace PixelGame
 
         private static GameObject ResolveCubePrefab()
         {
-            PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
+            PixelArtGenerator gen = PixelArtGenerator.Instance;
             if (gen != null && gen.CubePrefab != null) return gen.CubePrefab;
 
 #if UNITY_EDITOR
@@ -123,7 +123,7 @@ namespace PixelGame
         /// </summary>
         private static Quaternion ResolveCubeTilt()
         {
-            PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
+            PixelArtGenerator gen = PixelArtGenerator.Instance;
             float tilt = gen != null ? gen.CubeFrontTiltAngle : 25f;
             return Quaternion.Euler(tilt, 0f, 0f);
         }

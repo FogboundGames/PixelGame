@@ -62,6 +62,13 @@ user32.AttachThreadInput(cur_thread, target_thread, False)
 
 time.sleep(1)
 
+dll_path = 'Library/ScriptAssemblies/Assembly-CSharp.dll'
+prev_mtime = os.path.getmtime(dll_path) if os.path.exists(dll_path) else 0
+
+# Send Assets -> Refresh command (ID=40280)
+user32.SendMessageW(unity_hwnd, 0x0111, 40280, 0)
+print('Sent WM_COMMAND 40280 (Assets -> Refresh)')
+
 # Send Ctrl+R
 VK_CONTROL = 0x11
 VK_R = 0x52
@@ -73,11 +80,13 @@ user32.keybd_event(VK_R, 0, 2, 0)
 time.sleep(0.1)
 user32.keybd_event(VK_CONTROL, 0, 2, 0)
 
-print('Dispatched Ctrl+R with full foreground focus.')
-for i in range(15):
+print(f'Dispatched Ctrl+R (prev mtime: {time.ctime(prev_mtime)}). Waiting for recompile...')
+for i in range(20):
     time.sleep(1)
-    mtime = os.path.getmtime('Library/ScriptAssemblies/Assembly-CSharp.dll')
-    print(f'[{i}] Assembly-CSharp.dll mtime: {time.ctime(mtime)}')
-    if mtime > 1791395000: # recent
-        print('Compilation detected!')
-        break
+    if os.path.exists(dll_path):
+        mtime = os.path.getmtime(dll_path)
+        if mtime > prev_mtime:
+            print(f'[{i}] Compilation detected! New mtime: {time.ctime(mtime)}')
+            break
+    print(f'[{i}] Waiting...')
+

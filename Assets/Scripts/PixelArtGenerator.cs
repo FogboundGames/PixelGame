@@ -27,6 +27,17 @@ namespace PixelGame
     [AddComponentMenu("PixelGame/Pixel Art Generator")]
     public class PixelArtGenerator : MonoBehaviour
     {
+        private static PixelArtGenerator s_Instance;
+        public static PixelArtGenerator Instance
+        {
+            get
+            {
+                if (s_Instance == null)
+                    s_Instance = Object.FindFirstObjectByType<PixelArtGenerator>();
+                return s_Instance;
+            }
+        }
+
         [Header("📦 Prefab & Hedefler")]
         [Tooltip("Oluşturulacak küp prefabı (MainCube.prefab)")]
         [SerializeField] private GameObject m_CubePrefab;
@@ -326,6 +337,7 @@ namespace PixelGame
 
         private void Awake()
         {
+            s_Instance = this;
             EnsureInteractionComponents();
             if (m_EnableCubeShadows) ApplyShadowsToAllExistingCubes();
             if (!m_EnableBoardShadow) EnsureBoardShadowDisabled();
@@ -335,6 +347,7 @@ namespace PixelGame
 
         private void OnEnable()
         {
+            s_Instance = this;
             EnsureInteractionComponents();
             if (CubesContainer != null && CubesContainer.childCount > 0)
             {
@@ -347,6 +360,11 @@ namespace PixelGame
                 EditorApplication.delayCall += EnsureScenePreviewInEditor;
             }
             #endif
+        }
+
+        private void OnDisable()
+        {
+            if (s_Instance == this) s_Instance = null;
         }
 
         #if UNITY_EDITOR

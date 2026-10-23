@@ -50,15 +50,37 @@ namespace PixelGame
             ? m_GroundQuad.transform.position.z
             : transform.TransformPoint(m_Center).z;
 
+        private static UpperBeachGround s_Instance;
+        public static UpperBeachGround Instance
+        {
+            get
+            {
+                if (s_Instance == null)
+                    s_Instance = UnityEngine.Object.FindFirstObjectByType<UpperBeachGround>();
+                return s_Instance;
+            }
+        }
+
         public float TiltX
         {
             get => m_TiltX;
             set { m_TiltX = value; UpdateGroundTransform(); }
         }
 
+        private void Awake()
+        {
+            s_Instance = this;
+        }
+
         private void OnEnable()
         {
+            s_Instance = this;
             EnsureGround();
+        }
+
+        private void OnDisable()
+        {
+            if (s_Instance == this) s_Instance = null;
         }
 
         private void Start()

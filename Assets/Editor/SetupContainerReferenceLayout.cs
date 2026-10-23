@@ -329,7 +329,7 @@ namespace PixelGame.Editor
             slotsRowRt.anchorMin = new Vector2(0.5f, 0.5f);
             slotsRowRt.anchorMax = new Vector2(0.5f, 0.5f);
             slotsRowRt.pivot = new Vector2(0.5f, 0.5f);
-            slotsRowRt.anchoredPosition = new Vector2(0f, -205f);
+            slotsRowRt.anchoredPosition = new Vector2(0f, -342f);
             slotsRowRt.sizeDelta = new Vector2(1080f, 200f);
 
             Sprite slotSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/Marina/slot_rounded_square.png");
@@ -366,7 +366,7 @@ namespace PixelGame.Editor
             queueSpotsRt.anchorMin = new Vector2(0.5f, 0.5f);
             queueSpotsRt.anchorMax = new Vector2(0.5f, 0.5f);
             queueSpotsRt.pivot = new Vector2(0.5f, 0.5f);
-            queueSpotsRt.anchoredPosition = new Vector2(0f, -324f);
+            queueSpotsRt.anchoredPosition = new Vector2(0f, -359f);
             queueSpotsRt.sizeDelta = new Vector2(1080f, 1920f);
 
             float[] rowYs = new float[] { -215f, -435f };

@@ -180,7 +180,7 @@ namespace PixelGame
 
         public void EnsureShadowReferences()
         {
-            PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
+            PixelArtGenerator gen = PixelArtGenerator.Instance;
             bool enableShadows = gen != null && gen.EnableCubeShadows;
 
             if (!enableShadows)
@@ -764,7 +764,7 @@ namespace PixelGame
             if (m_CubeCollider == null) m_CubeCollider = GetComponent<Collider>();
             if (m_CubeCollider != null) m_CubeCollider.enabled = false;
             EnsureShadowReferences();
-            PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
+            PixelArtGenerator gen = PixelArtGenerator.Instance;
             if (m_ShadowObject != null && gen != null && gen.EnableCubeShadows)
             {
                 m_ShadowObject.SetActive(true);
@@ -865,8 +865,8 @@ namespace PixelGame
             // Toplu koparmada (kargo treni) çağıran taraf bunu tek seferde yapar.
             if (Application.isPlaying && regenerateContourShadow)
             {
-                PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
-                if (gen != null) gen.RegenerateContourShadowFromLiveCubeState();
+                PixelArtGenerator gen = PixelArtGenerator.Instance;
+                if (gen != null && gen.EnableFigureContourShadow) gen.RegenerateContourShadowFromLiveCubeState();
             }
         }
 

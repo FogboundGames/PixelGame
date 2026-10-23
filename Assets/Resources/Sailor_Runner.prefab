@@ -88,6 +88,12 @@ MonoBehaviour:
   m_RingDiameter: 1.05
   m_RingAlpha: 0.6
   m_TiltTowardsCamera: 36
+  m_EnableFakeShadow: 1
+  m_ShadowWidth: 1.35
+  m_ShadowHeight: 0.72
+  m_ShadowOffsetY: -0.08
+  m_ShadowAlpha: 0.75
+  m_ShadowColor: {r: 0.02, g: 0.04, b: 0.1, a: 0.75}
 --- !u!1001 &1178437165868292222
 PrefabInstance:
   m_ObjectHideFlags: 0

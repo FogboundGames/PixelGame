@@ -137,6 +137,7 @@ namespace PixelGame
         public void SetRingVisible(bool visible)
         {
             if (m_Ring != null) m_Ring.enabled = visible && m_EnableTeamRing;
+            SetShadowVisible(visible);
         }
 
         private void FollowRing()
@@ -151,6 +152,167 @@ namespace PixelGame
             float size = m_RingDiameter * unit;
             Vector3 ps = transform.lossyScale;
             m_Ring.transform.localScale = new Vector3(size / Mathf.Max(1e-4f, ps.x), size / Mathf.Max(1e-4f, ps.y), 1f);
+        }
+
+        [Header("🌑 Gölge (Ayak altı fake shadow)")]
+        [Tooltip("Gemicilerin altında belirgin, yumuşak fake gölge.")]
+        [SerializeField] private bool m_EnableFakeShadow = true;
+        [Tooltip("Gölgenin genişliği (model birimi; panodaki küp boyutu ile orantılı).")]
+        [SerializeField] private float m_ShadowWidth = 1.35f;
+        [Tooltip("Gölgenin yüksekliği/derinliği (model birimi).")]
+        [SerializeField] private float m_ShadowHeight = 0.72f;
+        [Tooltip("Gölgenin dikey (Y) ofseti: ayakların tam altına oturması için.")]
+        [SerializeField] private float m_ShadowOffsetY = -0.08f;
+        [SerializeField, Range(0f, 1f)] private float m_ShadowAlpha = 0.75f;
+        [SerializeField] private Color m_ShadowColor = new Color(0.02f, 0.04f, 0.10f, 0.75f);
+
+        private SpriteRenderer m_ShadowRenderer;
+        private bool m_ShadowVisible = true;
+        private static Sprite s_ShadowSprite;
+
+        public bool EnableFakeShadow
+        {
+            get => m_EnableFakeShadow;
+            set
+            {
+                m_EnableFakeShadow = value;
+                if (m_ShadowRenderer != null) m_ShadowRenderer.enabled = value && m_ShadowVisible;
+            }
+        }
+
+        public float ShadowWidth { get => m_ShadowWidth; set => m_ShadowWidth = value; }
+        public float ShadowHeight { get => m_ShadowHeight; set => m_ShadowHeight = value; }
+        public float ShadowAlpha { get => m_ShadowAlpha; set { m_ShadowAlpha = value; UpdateShadowColor(); } }
+        public float ShadowOffsetY { get => m_ShadowOffsetY; set => m_ShadowOffsetY = value; }
+
+        private void UpdateShadowColor()
+        {
+            if (m_ShadowRenderer != null)
+            {
+                Color c = m_ShadowColor;
+                c.a = m_ShadowAlpha;
+                m_ShadowRenderer.color = c;
+            }
+        }
+
+        public void SetupFakeShadow(float groundZ)
+        {
+            if (float.IsFinite(groundZ)) m_GroundZ = groundZ;
+            else EnsureGroundZ();
+            EnsureShadowObject();
+            FollowShadow();
+        }
+
+        private void EnsureGroundZ()
+        {
+            if (float.IsFinite(m_GroundZ)) return;
+            var beach = UpperBeachGround.Instance;
+            if (beach != null) m_GroundZ = beach.GroundWorldZ;
+        }
+
+        public void SetShadowVisible(bool visible)
+        {
+            m_ShadowVisible = visible;
+            if (m_ShadowRenderer != null)
+            {
+                m_ShadowRenderer.enabled = visible && m_EnableFakeShadow;
+            }
+        }
+
+        private void EnsureShadowObject()
+        {
+            if (!m_EnableFakeShadow)
+            {
+                if (m_ShadowRenderer != null)
+                {
+                    m_ShadowRenderer.enabled = false;
+                    if (m_ShadowRenderer.gameObject != null) Destroy(m_ShadowRenderer.gameObject);
+                    m_ShadowRenderer = null;
+                }
+                return;
+            }
+
+            if (m_ShadowRenderer == null)
+            {
+                Transform existing = transform.Find("Sailor_FakeShadow");
+                if (existing != null)
+                {
+                    m_ShadowRenderer = existing.GetComponent<SpriteRenderer>();
+                }
+
+                if (m_ShadowRenderer == null)
+                {
+                    var go = new GameObject("Sailor_FakeShadow");
+                    go.transform.SetParent(transform, false);
+                    m_ShadowRenderer = go.AddComponent<SpriteRenderer>();
+                }
+
+                m_ShadowRenderer.sprite = GetShadowSprite();
+                m_ShadowRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                m_ShadowRenderer.receiveShadows = false;
+                m_ShadowRenderer.sortingLayerName = "Default";
+                m_ShadowRenderer.sortingOrder = 5; // Sahil zemininden kesinlikle önde, ayakların altında
+            }
+
+            UpdateShadowColor();
+            m_ShadowRenderer.enabled = m_EnableFakeShadow && m_ShadowVisible;
+        }
+
+        private void FollowShadow()
+        {
+            if (m_ShadowRenderer == null || !m_EnableFakeShadow || !m_ShadowVisible) return;
+            float unit = m_ModelPivot != null ? m_ModelPivot.lossyScale.x : transform.lossyScale.x;
+            Vector3 p = transform.position;
+            p.y += m_ShadowOffsetY * unit;
+
+            EnsureGroundZ();
+            // Zemin düzleminin hemen önünde (kameraya doğru -Z), dönmeden, XY'de yatık
+            if (float.IsFinite(m_GroundZ)) p.z = m_GroundZ - unit * 0.02f;
+            else p.z = transform.position.z - unit * 0.02f;
+
+            m_ShadowRenderer.transform.position = p;
+            m_ShadowRenderer.transform.rotation = Quaternion.identity;
+            float sizeX = m_ShadowWidth * unit;
+            float sizeY = m_ShadowHeight * unit;
+            Vector3 ps = transform.lossyScale;
+            m_ShadowRenderer.transform.localScale = new Vector3(sizeX / Mathf.Max(1e-4f, ps.x), sizeY / Mathf.Max(1e-4f, ps.y), 1f);
+        }
+
+        private static Sprite GetShadowSprite()
+        {
+            if (s_ShadowSprite != null) return s_ShadowSprite;
+
+            const int n = 128;
+            var tex = new Texture2D(n, n, TextureFormat.RGBA32, false)
+            {
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear
+            };
+            var px = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+            {
+                for (int x = 0; x < n; x++)
+                {
+                    float dx = (x + 0.5f) / n * 2f - 1f;
+                    float dy = (y + 0.5f) / n * 2f - 1f;
+                    float r = Mathf.Sqrt(dx * dx + dy * dy);
+                    // Merkezde (r <= 0.35) belirgin gölge, dışarıya doğru (0.35..1.0) yumuşak karesel falloff
+                    float a;
+                    if (r <= 0.35f) a = 1f;
+                    else if (r >= 1.0f) a = 0f;
+                    else
+                    {
+                        float t = (r - 0.35f) / 0.65f;
+                        float smooth = Mathf.SmoothStep(1f, 0f, t);
+                        a = smooth * smooth;
+                    }
+                    px[y * n + x] = new Color32(255, 255, 255, (byte)(a * 255f));
+                }
+            }
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+            s_ShadowSprite = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), n);
+            return s_ShadowSprite;
         }
 
         private static Sprite GetRingSprite()
@@ -195,6 +357,11 @@ namespace PixelGame
             {
                 var existingRing = transform.Find("TeamRing");
                 if (existingRing != null) Destroy(existingRing.gameObject);
+            }
+
+            if (m_EnableFakeShadow)
+            {
+                EnsureShadowObject();
             }
         }
 
@@ -334,6 +501,7 @@ namespace PixelGame
             ApplyFacing(m_HasFacingOverride ? 1f : (1f - Mathf.Exp(-dt * m_TurnRate)));
             FollowSocket();
             FollowRing();
+            FollowShadow();
 
             // Yürüme durumlarında ayak kaymasın: klip hızını yumuşatılmış yürüme hızına eşle
             m_SmoothSpeed = Mathf.Lerp(m_SmoothSpeed, vel.magnitude / unit, 1f - Mathf.Exp(-dt / 0.2f));
