@@ -53117,8 +53117,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d66ccf7c7e67b84428e7084545d3ad0f, type: 2}
   - {fileID: 11400000, guid: 039a0a38966148bf8abb6ac904cef660, type: 2}
   - {fileID: 11400000, guid: 6ad794273a33b074f88f6d442c991d66, type: 2}
-  m_CurrentLevelIndex: 25
-  m_StartFromSelectedLevelInEditor: 1
+  m_CurrentLevelIndex: 0
+  m_StartFromSelectedLevelInEditor: 0
   m_Generator: {fileID: 488206653}
 --- !u!114 &488206652
 MonoBehaviour:
@@ -53153,7 +53153,7 @@ MonoBehaviour:
   m_SourceSprite: {fileID: 0}
   m_TargetFrameRect: {fileID: 0}
   m_WorldCamera: {fileID: 2076594660}
-  m_ActiveLevelData: {fileID: 11400000, guid: 0e6d05ea3ef0c4c53afac04b018601b6, type: 2}
+  m_ActiveLevelData: {fileID: 11400000, guid: f0e790c49316baaa880d3e341f85a2c6, type: 2}
   m_UseNativeResolution: 1
   m_GridResolution: {x: 24, y: 24}
   m_SamplingMode: 0
@@ -181807,7 +181807,7 @@ MonoBehaviour:
   m_SpeedLabel: {fileID: 460764476}
   m_SpeedLabelNormalColor: {r: 1, g: 1, b: 1, a: 1}
   m_SpeedLabelActiveColor: {r: 1, g: 0.72, b: 0.16, a: 1}
-  m_Speed2xDurationMinutes: 15
+  m_Speed2xDurationMinutes: 30
   m_Speed2xTimerEnabled: 1
   m_SpeedTimerBadge: {fileID: 0}
   m_SpeedTimerText: {fileID: 0}

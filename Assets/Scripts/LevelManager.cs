@@ -20,7 +20,8 @@ namespace PixelGame
         // daha eskiyse oyuncu bir kerelik 1. bölümden başlar ve 2X süresi ilk kurulumdaki tam süreye döner
         // (ses, titreşim, coin vb. ayarlar korunur).
         // 1: level sırası ve kuyrukları yeniden düzenlendi (2026-10-17).
-        private const int ProgressResetVersion = 1;
+        // 2: kullanıcı isteğiyle oyun 1. bölümden sıfırlandı ve 30dk 2X süresi hazırlandı.
+        private const int ProgressResetVersion = 2;
         private const string ProgressVersionPrefKey = "PixelGame_ProgressVersion";
 
         [Header("📋 Bölüm Sırası (Tek Doğruluk Kaynağı)")]
@@ -38,7 +39,7 @@ namespace PixelGame
 
         [Header("🎮 Editör Test Ayarları")]
         [Tooltip("İşaretliyse Editörde Play'e basıldığında PlayerPrefs yok sayılır ve doğrudan seçili olan 'Current Level Index' bölümü başlar.")]
-        [SerializeField] private bool m_StartFromSelectedLevelInEditor = true;
+        [SerializeField] private bool m_StartFromSelectedLevelInEditor = false;
 
         [Header("⚙️ Jeneratör Referansı")]
         [SerializeField] private PixelArtGenerator m_Generator;
@@ -91,6 +92,7 @@ namespace PixelGame
             PlayerPrefs.DeleteKey(ProgressPrefKey);
             PlayerPrefs.DeleteKey(CasualHudController.Speed2xRemainingPrefKey);
             PlayerPrefs.DeleteKey(CasualHudController.Speed2xInitializedPrefKey);
+            PlayerPrefs.DeleteKey(CasualHudController.Speed2xDurationTargetPrefKey);
             PlayerPrefs.SetInt(ProgressVersionPrefKey, ProgressResetVersion);
             PlayerPrefs.Save();
             Debug.Log($"<color=#00FFAA><b>[LevelManager]</b></color> İlerleme sürümü {ProgressResetVersion}: bölüm ilerlemesi ve 2X süresi sıfırlandı.");

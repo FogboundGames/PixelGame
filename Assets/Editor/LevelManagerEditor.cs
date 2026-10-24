@@ -8,6 +8,9 @@ namespace PixelGame.Editor
     public class LevelManagerEditor : UnityEditor.Editor
     {
         private const string ProgressPrefKey = "PixelGame_CurrentLevelIndex";
+        private const string Speed2xRemainingPrefKey = "PixelGame_Speed2xRemainingSeconds";
+        private const string Speed2xInitializedPrefKey = "PixelGame_Speed2xInitialized";
+        private const string Speed2xDurationTargetPrefKey = "PixelGame_Speed2xDurationMinutes";
 
         public override void OnInspectorGUI()
         {
@@ -119,17 +122,37 @@ namespace PixelGame.Editor
             serializedObject.ApplyModifiedProperties();
         }
 
+        [InitializeOnLoadMethod]
+        private static void AutoResetOnceOnCompile()
+        {
+            if (PlayerPrefs.GetInt("PixelGame_EditorResetOnce_V2", 0) == 0)
+            {
+                PlayerPrefs.DeleteKey(ProgressPrefKey);
+                PlayerPrefs.DeleteKey(Speed2xRemainingPrefKey);
+                PlayerPrefs.DeleteKey(Speed2xInitializedPrefKey);
+                PlayerPrefs.DeleteKey(Speed2xDurationTargetPrefKey);
+                PlayerPrefs.SetInt("PixelGame_EditorResetOnce_V2", 1);
+                PlayerPrefs.Save();
+                var lm = Object.FindFirstObjectByType<LevelManager>();
+                if (lm != null) lm.ResetProgress();
+                Debug.Log("<color=#00FFAA><b>[LevelManager]</b></color> 🌟 Oyun sıfırlandı: Level 1 (Elma) ve 30dk 2X süresi hazırlandı.");
+            }
+        }
+
         [MenuItem("PixelGame/🎮 Bölüm Yönetimi/🗑️ Kayıtlı İlerlemeyi Sıfırla (Reset PlayerPrefs)")]
         public static void ResetPlayerPrefsProgress()
         {
             PlayerPrefs.DeleteKey(ProgressPrefKey);
+            PlayerPrefs.DeleteKey(Speed2xRemainingPrefKey);
+            PlayerPrefs.DeleteKey(Speed2xInitializedPrefKey);
+            PlayerPrefs.DeleteKey(Speed2xDurationTargetPrefKey);
             PlayerPrefs.Save();
             var lm = Object.FindFirstObjectByType<LevelManager>();
             if (lm != null)
             {
                 lm.ResetProgress();
             }
-            Debug.Log("<color=#00FFAA><b>[LevelManager]</b></color> Kayıtlı bölüm sıfırlandı.");
+            Debug.Log("<color=#00FFAA><b>[LevelManager]</b></color> Kayıtlı bölüm ve 2X süresi sıfırlandı. 1. bölümden başlayacak.");
         }
     }
 }

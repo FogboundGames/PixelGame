@@ -68,19 +68,20 @@ namespace PixelGame
         [SerializeField] private Color m_SpeedLabelNormalColor = Color.white;
         [Tooltip("2X açıkken yazının rengi (turuncu-sarı)")]
         [SerializeField] private Color m_SpeedLabelActiveColor = new Color(1f, 0.72f, 0.16f, 1f);
-        [Tooltip("2X butonunun kullanma süresi (dakika). Varsayılan: 15")]
-        [SerializeField] private float m_Speed2xDurationMinutes = 15f;
+        [Tooltip("2X butonunun kullanma süresi (dakika). Varsayılan: 30")]
+        [SerializeField] private float m_Speed2xDurationMinutes = 30f;
         [Tooltip("2X süre sınırı aktif mi?")]
         [SerializeField] private bool m_Speed2xTimerEnabled = true;
         [SerializeField] private GameObject m_SpeedTimerBadge;
         [SerializeField] private TextMeshProUGUI m_SpeedTimerText;
         private bool m_IsSpeed2x = false;
         private bool m_IsEndgameSpeedActive = false;
-        private float m_Speed2xRemainingSeconds = 900f;
+        private float m_Speed2xRemainingSeconds = 1800f;
         private float m_TimerSaveCooldown = 0f;
 
-        internal const string Speed2xRemainingPrefKey = "PixelGame_Speed2xRemainingSeconds";
-        internal const string Speed2xInitializedPrefKey = "PixelGame_Speed2xInitialized";
+        public const string Speed2xRemainingPrefKey = "PixelGame_Speed2xRemainingSeconds";
+        public const string Speed2xInitializedPrefKey = "PixelGame_Speed2xInitialized";
+        public const string Speed2xDurationTargetPrefKey = "PixelGame_Speed2xDurationMinutes";
 
         [Header("🧪 Başlangıç Değerleri")]
         [SerializeField] private int m_StartingLives = 3;
@@ -168,6 +169,7 @@ namespace PixelGame
         private void Awake()
         {
             Instance = this;
+            if (m_Speed2xDurationMinutes < 30f) m_Speed2xDurationMinutes = 30f;
             m_IsSpeed2x = false;
             m_IsEndgameSpeedActive = false;
             Time.timeScale = 1.0f;
@@ -236,7 +238,7 @@ namespace PixelGame
                         ApplySpeedState();
                         UpdateSpeedVisual();
                         SaveSpeedTimer();
-                        Debug.Log("<color=#FFAA00><b>[CasualHUD]</b></color> ⏳ 2X butonunun 15 dakikalık süresi doldu! Hız normale döndürüldü.");
+                        Debug.Log($"<color=#FFAA00><b>[CasualHUD]</b></color> ⏳ 2X butonunun {m_Speed2xDurationMinutes} dakikalık süresi doldu! Hız normale döndürüldü.");
                     }
 
                     m_TimerSaveCooldown += Time.unscaledDeltaTime;
@@ -1260,14 +1262,27 @@ namespace PixelGame
 
         public void InitializeSpeedTimer()
         {
+            float targetDuration = m_Speed2xDurationMinutes;
+            float savedTarget = PlayerPrefs.GetFloat(Speed2xDurationTargetPrefKey, 0f);
+
             if (PlayerPrefs.GetInt(Speed2xInitializedPrefKey, 0) == 1)
             {
-                m_Speed2xRemainingSeconds = PlayerPrefs.GetFloat(Speed2xRemainingPrefKey, m_Speed2xDurationMinutes * 60f);
+                m_Speed2xRemainingSeconds = PlayerPrefs.GetFloat(Speed2xRemainingPrefKey, targetDuration * 60f);
+
+                // Eğer hedef süre daha önce kaydedilmemiş veya 30dk'dan az ise, süreyi 30 dakikaya yükselt
+                if (savedTarget < targetDuration)
+                {
+                    m_Speed2xRemainingSeconds = targetDuration * 60f;
+                    PlayerPrefs.SetFloat(Speed2xDurationTargetPrefKey, targetDuration);
+                    PlayerPrefs.SetFloat(Speed2xRemainingPrefKey, m_Speed2xRemainingSeconds);
+                    PlayerPrefs.Save();
+                }
             }
             else
             {
-                m_Speed2xRemainingSeconds = m_Speed2xDurationMinutes * 60f;
+                m_Speed2xRemainingSeconds = targetDuration * 60f;
                 PlayerPrefs.SetInt(Speed2xInitializedPrefKey, 1);
+                PlayerPrefs.SetFloat(Speed2xDurationTargetPrefKey, targetDuration);
                 PlayerPrefs.SetFloat(Speed2xRemainingPrefKey, m_Speed2xRemainingSeconds);
                 PlayerPrefs.Save();
             }
@@ -1287,7 +1302,7 @@ namespace PixelGame
 
             if (!m_IsSpeed2x && m_Speed2xTimerEnabled && m_Speed2xRemainingSeconds <= 0f)
             {
-                Debug.Log("<color=#FFAA00><b>[CasualHUD]</b></color> ⚠️ 2X kullanma süresi bitmiş! (15 dakika doldu)");
+                Debug.Log($"<color=#FFAA00><b>[CasualHUD]</b></color> ⚠️ 2X kullanma süresi bitmiş! ({m_Speed2xDurationMinutes} dakika doldu)");
                 if (m_SpeedButton != null)
                 {
                     m_SpeedButton.transform.DOComplete();
@@ -1496,7 +1511,7 @@ namespace PixelGame
             PlayerPrefs.Save();
         }
 
-        [ContextMenu("🔄 2X Süresini Yenile (15 Dakika)")]
+        [ContextMenu("🔄 2X Süresini Yenile (30 Dakika)")]
         public void RefillSpeed2xTimerContext()
         {
             RefillSpeed2xTimer(m_Speed2xDurationMinutes);
