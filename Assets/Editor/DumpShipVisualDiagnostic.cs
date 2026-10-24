@@ -26,6 +26,7 @@ namespace PixelGame.Editor
             for (int i = 0; i < Mathf.Min(ships.Length, 3); i++)
             {
                 var s = ships[i];
+                if (s == null || s.IsUiContainer) continue;
                 Debug.Log($"Ship [{s.name}] active={s.gameObject.activeSelf}, pos={s.transform.position}, scale={s.transform.localScale}");
                 var vr = s.transform.Find("[VisualRoot]");
                 if (vr == null)

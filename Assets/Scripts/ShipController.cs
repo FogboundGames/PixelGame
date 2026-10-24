@@ -1232,6 +1232,9 @@ namespace PixelGame
         private void EnsureUiOutline()
         {
             if (!IsUiContainer) return;
+#if UNITY_EDITOR
+            if (UnityEditor.PrefabUtility.IsPartOfPrefabAsset(gameObject)) return;
+#endif
             if (s_ContainerOutlineSprite == null)
             {
 #if UNITY_EDITOR

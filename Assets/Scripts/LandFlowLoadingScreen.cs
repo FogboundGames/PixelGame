@@ -44,6 +44,8 @@ namespace PixelGame
         [SerializeField] private float m_FogboundFadeDuration = 0.45f;
         [Tooltip("Açık: oyun içi Fogbound intro'su gösterilir. Kapalı: logo yalnız Unity splash'te görünür.")]
         [SerializeField] private bool m_ShowFogboundIntro = false;
+        [Tooltip("Açık: açılışta tam ekran resimli Land Flow yükleme ekranı gösterilir. Kapalı: Unity + Fogbound açılışından sonra doğrudan oyun başlar.")]
+        [SerializeField] private bool m_ShowBootLoadingScreen = false;
 
         [Header("🌊 Land Flow Yükleme Ekranı Görselleri")]
         [Tooltip("Tam ekran Land Flow yükleme ekranı arka plan görseli")]
@@ -149,8 +151,11 @@ namespace PixelGame
             LoadSpritesIfNeeded();
             BuildUI();
 
-            // Oyun ilk açıldığında doğrudan Fogbound intro ile başla (ekran flaş yapmasın)
-            if (!s_BootShown)
+            // Oyun ilk açıldığında:
+            // Kullanıcı talebi: Giriş ekranındaki Land Flow resimli görsel kaldırıldı.
+            // Yalnızca Unity + Fogbound açılışı gösterilir ve doğrudan sahne açılır.
+            // Seviye geçişleri ve oyun içi diğer tüm durumlar (restart, level change) aynen korunur.
+            if (!s_BootShown && m_ShowBootLoadingScreen)
             {
                 s_BootShown = true;
                 // Açılışta resimli splash stili
@@ -173,7 +178,8 @@ namespace PixelGame
             }
             else
             {
-                // Oyun ortasında sonradan oluştuysa gizli başla
+                s_BootShown = true;
+                // Açılış görseli kapalı veya oyun ortasında: gizli başla, doğrudan oyun sahnesi açılsın
                 m_CanvasGroup.alpha = 0f;
                 m_CanvasGroup.blocksRaycasts = false;
                 m_CanvasGroup.interactable = false;
@@ -187,8 +193,8 @@ namespace PixelGame
 
         private void Start()
         {
-            // Oyun açılışında Fogbound intro -> Land Flow loading ekranı akışı
-            if (m_IsVisible && m_ActiveLoadingRoutine == null)
+            // Oyun açılışında gerekiyorsa loading ekranı akışı
+            if (m_IsVisible && m_ShowBootLoadingScreen && m_ActiveLoadingRoutine == null)
             {
                 StartCoroutine(InitialBootSequenceRoutine());
             }

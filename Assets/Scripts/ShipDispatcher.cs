@@ -2215,13 +2215,20 @@ namespace PixelGame
             float groundZ = BeachGroundZ();
             if (float.IsNaN(groundZ)) groundZ = m_ShoreZ;
 
-            Vector3 targetPos = ship.transform.position;
+            // Eğer konteyner slota bağlıysa veya slota kayma/yerleşme halindeyse, hedef slotun pozisyonunu baz al.
+            // Bu sayede kayma animasyonu sırasında da varış noktası güncel hedef slotta sabit kalır.
+            Transform targetAnchor = (ship.CurrentSlot != null) ? ship.CurrentSlot.transform : ship.transform;
+            Vector3 baseWorldPos = targetAnchor.position;
+
+            Vector3 targetPos = baseWorldPos;
             RectTransform rt = ship.GetComponent<RectTransform>();
             if (rt != null)
             {
                 // Konteynerin üst kapağı/ön kenarı hizasında zemine basması için hafif yukarı (+Y) alalım
                 Vector3 topLocal = new Vector3(0f, rt.rect.height * 0.35f, 0f);
-                targetPos = rt.TransformPoint(topLocal);
+                Vector3 topWorld = rt.TransformPoint(topLocal);
+                Vector3 offset = topWorld - ship.transform.position;
+                targetPos = baseWorldPos + offset;
             }
 
             Canvas canvas = rt != null ? rt.GetComponentInParent<Canvas>(true) : null;
@@ -2246,7 +2253,7 @@ namespace PixelGame
 
             if (ship != null)
             {
-                Vector3 shipPos = ship.transform.position;
+                Vector3 shipPos = (ship.CurrentSlot != null) ? ship.CurrentSlot.transform.position : ship.transform.position;
                 IList<Vector2> shoreline = (m_Shoreline != null && m_Shoreline.Count >= 2 && Mathf.Abs(m_Shoreline[m_Shoreline.Count / 2].y - s_DefaultShoreline[0].y) <= 0.25f)
                     ? (IList<Vector2>)m_Shoreline
                     : s_DefaultShoreline;
@@ -2724,6 +2731,88 @@ namespace PixelGame
                 shifts.Add((currentOccupants[bestShiftShipIndex], activeSlots[bestShiftTargetIndex]));
                 slotA = activeSlots[bestResultEmptyIndexA];
                 slotB = activeSlots[bestResultEmptyIndexB];
+                return true;
+            }
+
+            // Aşama 1.5: 2'Lİ BAĞLI BİR GEMİ ÇİFTİNİ 1 SLOT KAYDIRARAK ÇÖZME (Linked Pair Shift)
+            // Örn: [Boş 0] [BağlıA 1] [BağlıB 2] [Boş 3] durumunda;
+            // Bağlı gemiler sola kayarsa [BağlıA 0] [BağlıB 1] olur ve [Boş 2] [Boş 3] yan yana açılarak 
+            // yeni gelecek 2'li bağlı gemiye yer açılır.
+            int bestLinkedShiftPairIndex = -1;
+            int bestLinkedShiftDirection = 0; // -1: sola, +1: sağa
+            int bestLinkedEmptyA = -1;
+            int bestLinkedEmptyB = -1;
+            float bestLinkedScore = float.MaxValue;
+
+            for (int i = 0; i < n - 1; i++)
+            {
+                ShipController shipA = currentOccupants[i];
+                ShipController shipB = currentOccupants[i + 1];
+
+                if (shipA == null || shipB == null) continue;
+                if (!shipA.IsLinked || !shipB.IsLinked) continue;
+                if (shipA.IsDeparting || shipB.IsDeparting) continue;
+                if (shipA.LinkedPartner != shipB && shipA.LinkId != shipB.LinkId) continue;
+
+                // 1) Sola kayma (i'deki shipA i-1'e, i+1'deki shipB i'ye)
+                if (i - 1 >= 0 && currentOccupants[i - 1] == null)
+                {
+                    // Sağında boş slot kalırsa (i + 1) ve (i + 2) yan yana boş slot çifti oluşturur!
+                    if (i + 2 < n && currentOccupants[i + 2] == null)
+                    {
+                        float score = CalculateShiftScore(activeSlots, i, i - 1, i + 1, i + 2, preferredSlot);
+                        score -= 5f; // Sola toparlanma önceliği (kullanıcı tercihi)
+                        if (score < bestLinkedScore)
+                        {
+                            bestLinkedScore = score;
+                            bestLinkedShiftPairIndex = i;
+                            bestLinkedShiftDirection = -1;
+                            bestLinkedEmptyA = i + 1;
+                            bestLinkedEmptyB = i + 2;
+                        }
+                    }
+                }
+
+                // 2) Sağa kayma (i+1'deki shipB i+2'ye, i'deki shipA i+1'e)
+                if (i + 2 < n && currentOccupants[i + 2] == null)
+                {
+                    // Solunda boş slot kalırsa (i - 1) ve (i) yan yana boş slot çifti oluşturur!
+                    if (i - 1 >= 0 && currentOccupants[i - 1] == null)
+                    {
+                        float score = CalculateShiftScore(activeSlots, i + 1, i + 2, i - 1, i, preferredSlot);
+                        if (score < bestLinkedScore)
+                        {
+                            bestLinkedScore = score;
+                            bestLinkedShiftPairIndex = i;
+                            bestLinkedShiftDirection = 1;
+                            bestLinkedEmptyA = i - 1;
+                            bestLinkedEmptyB = i;
+                        }
+                    }
+                }
+            }
+
+            if (bestLinkedShiftPairIndex >= 0)
+            {
+                int p = bestLinkedShiftPairIndex;
+                ShipController shipA = currentOccupants[p];
+                ShipController shipB = currentOccupants[p + 1];
+
+                if (bestLinkedShiftDirection < 0)
+                {
+                    // Sola kayış: önce soldaki shipA p-1'e geçer (p boşalır), sonra shipB p'ye geçer
+                    shifts.Add((shipA, activeSlots[p - 1]));
+                    shifts.Add((shipB, activeSlots[p]));
+                }
+                else
+                {
+                    // Sağa kayış: önce sağdaki shipB p+2'ye geçer (p+1 boşalır), sonra shipA p+1'e geçer
+                    shifts.Add((shipB, activeSlots[p + 2]));
+                    shifts.Add((shipA, activeSlots[p + 1]));
+                }
+
+                slotA = activeSlots[bestLinkedEmptyA];
+                slotB = activeSlots[bestLinkedEmptyB];
                 return true;
             }
 
@@ -5559,21 +5648,35 @@ namespace PixelGame
 
             // Phase 4: Run back along OtCerceve to shore
             // UI konteynerde yol konteynerin önündeki noktada (containerGroundPos) biter: denizci zıplamadan yürüyerek girer.
-            List<Vector3> returnWaypoints = new List<Vector3>(forwardWaypoints);
-            returnWaypoints.Reverse();
-            if (pickedCubes.Count > 1 && runner != null)
+            // Konteyner saha içinde yana kaymışsa (ör. linked konteyner yerleşimi için sağa/sola açılmışsa)
+            // koşucunun dönüş rotası geminin GÜNCEL slot/kıyı noktasına göre kurulur.
+            Vector3 currentShorePoint = GetShorePoint(ship);
+            currentShorePoint.z = runnerPathZ;
+            if (isUiContainer)
             {
-                // Birden çok küp toplayan denizci son küpten kıyıya en kısa yoldan dönünce, iki yön neredeyse eşitken
-                // panonun etrafında tam tur atmış oluyordu (gidişte sağdan, dönüşte soldan). Bulunduğu yerden çerçeveye
-                // çık, mümkünse geldiği yönün tersine (geldiği yoldan) kıyının hizasına yürü, oradan konteynere in.
+                currentShorePoint.x += (entersLeft ? -0.08f : 0.08f);
+            }
+
+            bool containerShifted = Mathf.Abs(currentShorePoint.x - shorePoint.x) > 0.04f;
+
+            List<Vector3> returnWaypoints;
+            if ((pickedCubes.Count > 1 || containerShifted) && runner != null)
+            {
+                // Birden çok küp toplayan veya konteyneri yana kaymış olan denizci:
+                // Bulunduğu yerden çerçeveye çık, çerçeve boyunca geminin GÜNCEL kıyı/slot hizasına yürü, oradan konteynere in.
                 Vector3 here = runner.transform.position;
                 here.z = runnerPathZ;
                 GetRunnerFrameRect(runnerPathZ, out float bfL, out float bfR, out float bfB, out float bfT);
                 List<Vector3> backOut = ExitToFrame(here, forwardWaypoints, bfL, bfR, bfB, bfT);
-                Vector3 shoreOnGround = new Vector3(shorePoint.x, shorePoint.y, runnerPathZ);
+                Vector3 shoreOnGround = new Vector3(currentShorePoint.x, currentShorePoint.y, runnerPathZ);
                 List<Vector3> round = PerimeterRoute(backOut[backOut.Count - 1], shoreOnGround, 0, bfL, bfR, bfB, bfT, runnerPathZ, -outboundFrameDir);
                 round.Add(shoreOnGround);
                 returnWaypoints = JoinRunnerLegs(backOut, round);
+            }
+            else
+            {
+                returnWaypoints = new List<Vector3>(forwardWaypoints);
+                returnWaypoints.Reverse();
             }
             ShoreLanePath returnPath = ShoreLanePath.BuildFilleted(returnWaypoints, runnerCornerRadius, 8);
 
@@ -5648,6 +5751,40 @@ namespace PixelGame
             agent.Active = false;
             m_RunnerAgents.Remove(agent);
             Vector3 shoreEnd = runner.transform.position;
+
+            // UI Konteyner için güvenlik: Eğer koşucu dönüş yolundayken konteyner son anda kaymışsa,
+            // koşucu konteynerin güncel önüne kadar pürüzsüzce adımlayarak gitsin (eski slotta kalıp yanlış konteynere binmesin).
+            if (isUiContainer && runner != null && ship != null)
+            {
+                Vector3 finalShorePoint = GetShorePoint(ship);
+                finalShorePoint.z = runnerPathZ;
+                finalShorePoint.x += (entersLeft ? -0.08f : 0.08f);
+
+                float lateralGap = Mathf.Abs(runner.transform.position.x - finalShorePoint.x);
+                if (lateralGap > 0.05f)
+                {
+                    Vector3 walkStart = runner.transform.position;
+                    Vector3 walkEnd = new Vector3(finalShorePoint.x, finalShorePoint.y, runnerPathZ);
+                    float walkSpeed = Mathf.Max(2.4f, cruiseSpeed);
+                    float walkDuration = Mathf.Clamp(lateralGap / walkSpeed, 0.10f, 0.40f);
+                    float tWalk = 0f;
+                    Vector3 walkDir = (walkEnd - walkStart).normalized;
+                    if (walkDir.sqrMagnitude > 1e-4f) motion.SteerToward(walkDir, 0f, 0.02f);
+                    if (sailorVis != null) sailorVis.Play(SailorRunnerVisual.StateRunCarry);
+
+                    while (tWalk < walkDuration && runner != null)
+                    {
+                        float dt = Time.deltaTime;
+                        tWalk += dt;
+                        float u = Mathf.Clamp01(tWalk / walkDuration);
+                        runner.transform.position = Vector3.Lerp(walkStart, walkEnd, Mathf.SmoothStep(0f, 1f, u));
+                        yield return null;
+                    }
+                    if (runner != null) runner.transform.position = walkEnd;
+                    shoreEnd = runner != null ? runner.transform.position : walkEnd;
+                }
+            }
+
             float returnHopDuration = isUiContainer ? 0f : Mathf.Max(0.2f, m_HopDuration);
             if (sailorVis != null)
             {
@@ -5657,7 +5794,7 @@ namespace PixelGame
             float tReturnHop = 0f;
             Vector3 prevPos = shoreEnd;
 
-            Vector3 targetDeckNow = ship != null ? ship.transform.position + deckOffset : shoreEnd;
+            Vector3 targetDeckNow = ship != null ? ((ship.CurrentSlot != null) ? ship.CurrentSlot.transform.position : ship.transform.position) + deckOffset : shoreEnd;
             float hopArc = m_HopArcHeight;
 
             while (tReturnHop < returnHopDuration && runner != null)

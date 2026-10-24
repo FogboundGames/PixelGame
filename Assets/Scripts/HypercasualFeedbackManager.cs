@@ -903,13 +903,28 @@ namespace PixelGame
         {
             if (ps == null) return;
 
-            if (m_SparkleMaterial == null)
+            if (m_SparkleMaterial == null || m_SparkleMaterial.shader == null || m_SparkleMaterial.shader.name != "PixelGame/SoftSparkle")
             {
-                Shader sh = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+                Shader sh = Shader.Find("PixelGame/SoftSparkle");
+                if (sh == null) sh = Shader.Find("Universal Render Pipeline/Particles/Unlit");
                 if (sh == null) sh = Shader.Find("Sprites/Default");
                 m_SparkleMaterial = new Material(sh);
                 m_SparkleMaterial.name = "Sparkle_Particle_Mat";
-                m_SparkleMaterial.mainTexture = CreateSparkleTexture();
+
+                // URP Particles/Unlit şeffaflık & additive blending ayarları (opak blok oluşmasını engeller)
+                if (m_SparkleMaterial.HasProperty("_Surface")) m_SparkleMaterial.SetFloat("_Surface", 1f);
+                if (m_SparkleMaterial.HasProperty("_Blend")) m_SparkleMaterial.SetFloat("_Blend", 1f);
+                if (m_SparkleMaterial.HasProperty("_SrcBlend")) m_SparkleMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                if (m_SparkleMaterial.HasProperty("_DstBlend")) m_SparkleMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.One);
+                if (m_SparkleMaterial.HasProperty("_ZWrite")) m_SparkleMaterial.SetInt("_ZWrite", 0);
+                m_SparkleMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                m_SparkleMaterial.EnableKeyword("_BLENDMODE_ADD");
+                m_SparkleMaterial.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+
+                Texture2D tex = CreateSparkleTexture();
+                if (m_SparkleMaterial.HasProperty("_BaseMap")) m_SparkleMaterial.SetTexture("_BaseMap", tex);
+                if (m_SparkleMaterial.HasProperty("_MainTex")) m_SparkleMaterial.SetTexture("_MainTex", tex);
+                m_SparkleMaterial.mainTexture = tex;
             }
 
             var renderer = ps.GetComponent<ParticleSystemRenderer>();
@@ -923,11 +938,35 @@ namespace PixelGame
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.startSpeed = 0f;
             main.maxParticles = 500;
-            main.startLifetime = 0.38f;
-            main.gravityModifier = -0.10f; // Hafif yukarı yükselir
+            main.startLifetime = 0.36f;
+            main.gravityModifier = -0.05f; // Çok hafif ve zarifçe yukarı süzülür
 
             var emission = ps.emission;
             emission.enabled = false;
+
+            // Boyut animasyonu: Doğarken minik başlar, %25'te parlar, sonra yumuşakça küçülerek yok olur
+            var sizeOverLifetime = ps.sizeOverLifetime;
+            sizeOverLifetime.enabled = true;
+            AnimationCurve sizeCurve = new AnimationCurve();
+            sizeCurve.AddKey(new Keyframe(0f, 0.25f, 0f, 3.0f));
+            sizeCurve.AddKey(new Keyframe(0.25f, 1.0f, 0.5f, -0.6f));
+            sizeCurve.AddKey(new Keyframe(1.0f, 0.0f, -1.2f, 0f));
+            sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1.0f, sizeCurve);
+
+            // Renk ve şeffaflık animasyonu: Pürüzsüz açılıp pürüzsüz söner
+            var colorOverLifetime = ps.colorOverLifetime;
+            colorOverLifetime.enabled = true;
+            Gradient grad = new Gradient();
+            grad.SetKeys(
+                new GradientColorKey[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                new GradientAlphaKey[] {
+                    new GradientAlphaKey(0f, 0f),
+                    new GradientAlphaKey(0.95f, 0.20f),
+                    new GradientAlphaKey(0.70f, 0.65f),
+                    new GradientAlphaKey(0f, 1.0f)
+                }
+            );
+            colorOverLifetime.color = new ParticleSystem.MinMaxGradient(grad);
         }
 
         private void SetupSplashSystem(ParticleSystem ps)
@@ -980,17 +1019,19 @@ namespace PixelGame
                 {
                     float dx = Mathf.Abs((x - center) / center);
                     float dy = Mathf.Abs((y - center) / center);
-
-                    // 4-noktalı ışıltılı yıldız şekli
-                    float starCross = Mathf.Pow(Mathf.Clamp01(1f - dx), 4f) * Mathf.Pow(Mathf.Clamp01(1f - dy), 0.7f) +
-                                      Mathf.Pow(Mathf.Clamp01(1f - dy), 4f) * Mathf.Pow(Mathf.Clamp01(1f - dx), 0.7f);
                     float dist = Mathf.Sqrt(dx * dx + dy * dy);
-                    float core = Mathf.Clamp01(1f - dist * 1.8f);
+
+                    // Yumuşak merkez halesi
+                    float core = Mathf.Clamp01(1f - dist * 2.0f);
                     core = core * core;
 
-                    float alpha = Mathf.Clamp01(starCross * 0.75f + core * 0.85f);
-                    byte aByte = (byte)(alpha * 255f);
-                    pixels[y * size + x] = new Color32(255, 255, 255, aByte);
+                    // 4-noktalı ince yıldız parıltı ışınları
+                    float starCross = Mathf.Pow(Mathf.Clamp01(1f - dx * 1.8f), 1.5f) * Mathf.Pow(Mathf.Clamp01(1f - dy * 7.5f), 2.0f) +
+                                      Mathf.Pow(Mathf.Clamp01(1f - dy * 1.8f), 1.5f) * Mathf.Pow(Mathf.Clamp01(1f - dx * 7.5f), 2.0f);
+
+                    float intensity = Mathf.Clamp01(starCross * 1.2f + core * 0.9f);
+                    byte val = (byte)(intensity * 255f);
+                    pixels[y * size + x] = new Color32(255, 255, 255, val);
                 }
             }
 
@@ -1238,10 +1279,10 @@ namespace PixelGame
         /// </summary>
         public void PlayCubeBoardFeedback(Vector3 position, Color cubeColor, int cargoIndex, bool isShipFull = false)
         {
-            // 1. Görsel Parıltı (✨ Sparkle)
+            // 1. Görsel Parıltı (✨ Sparkle: Çok hafif ve zarif mikro ışıltı)
             if (m_EnableSparkles && m_SparklePS != null)
             {
-                SpawnSparkles(position, cubeColor, isShipFull ? 18 : 8);
+                SpawnSparkles(position, cubeColor, isShipFull ? 8 : 3);
             }
 
             // 2. Melodik Tatmin Edici Ses (🔊 Chime / ShipFull)
@@ -1548,16 +1589,20 @@ namespace PixelGame
             if (m_SparklePS == null) return;
 
             ParticleSystem.EmitParams emit = new ParticleSystem.EmitParams();
-            Color sparkleColor = Color.Lerp(tint, new Color(1f, 0.96f, 0.65f, 1f), 0.45f);
+            // Çok hafif, parlak, tatlı pastel ışıltı tonu (%75 beyaz/altın parıltı, %25 küpün rengi)
+            Color sparkleColor = Color.Lerp(tint, new Color(1f, 0.98f, 0.85f, 1f), 0.75f);
+            sparkleColor.a = 0.90f;
 
             for (int i = 0; i < count; i++)
             {
-                Vector2 rCircle = UnityEngine.Random.insideUnitCircle * 0.16f;
-                emit.position = pos + new Vector3(rCircle.x, rCircle.y + 0.05f, -0.05f);
-                emit.velocity = new Vector3(rCircle.x * 1.4f, UnityEngine.Random.Range(0.4f, 0.9f), -0.2f);
+                Vector2 rCircle = UnityEngine.Random.insideUnitCircle * 0.10f;
+                // Konteynerin ağzından hafifçe öne ve yukarı
+                emit.position = pos + new Vector3(rCircle.x, rCircle.y + 0.04f, -0.06f);
+                emit.velocity = new Vector3(rCircle.x * 0.6f, UnityEngine.Random.Range(0.16f, 0.36f), -0.06f);
                 emit.startColor = sparkleColor;
-                emit.startSize = UnityEngine.Random.Range(0.12f, 0.20f);
-                emit.startLifetime = UnityEngine.Random.Range(0.28f, 0.42f);
+                // Çok hafif ve zarif mikro boyut (kaba dev bloklar yerine kibar ışıltı)
+                emit.startSize = UnityEngine.Random.Range(0.040f, 0.075f);
+                emit.startLifetime = UnityEngine.Random.Range(0.28f, 0.40f);
                 emit.rotation = UnityEngine.Random.Range(0f, 360f);
 
                 m_SparklePS.Emit(emit, 1);

@@ -142401,6 +142401,7 @@ MonoBehaviour:
   m_FogboundDisplayDuration: 1.2
   m_FogboundFadeDuration: 0.45
   m_ShowFogboundIntro: 0
+  m_ShowBootLoadingScreen: 0
   m_FullscreenSplashSprite: {fileID: 0}
   m_LoadingBadgeSprite: {fileID: 0}
   m_Font: {fileID: 0}
