@@ -119,16 +119,13 @@ namespace PixelGame
         [Tooltip("Bir denizcinin tek seferde tek tek gezip topladığı küp sayısı. 1 = her küpe ayrı denizci (eski davranış). " +
                  "Son denizci kalan kadarını taşır (ör. 12 → 5 + 5 + 2). Konteynerdeki sayı denizci dönünce bir kerede düşer.")]
         [SerializeField, Range(1, 12)] private int m_SailorStackSize = 5;
-        [Tooltip("Görevi dolmamış denizci, sıradaki küp toplama sırasına göre açılana kadar son küpün yanında bekler. " +
-                 "Bu süre (sn) boyunca hiçbir küp açılmazsa elindekilerle döner (oyun kilitlenmesin; konteyner kalan küpler için " +
-                 "yeni denizci gönderir). O renkten alınacak küp hiç kalmadıysa beklemeden döner.")]
-        [SerializeField, Min(0f)] private float m_StackMaxWait = 4f;
+        [Tooltip("Görevi dolmamış denizcinin sıradaki küp için bekleme süresi (0 = beklemeden direkt elindekiyle döner, boşa çıkan kontenjana yeni gemici gönderilir).")]
+        [SerializeField, Min(0f)] private float m_StackMaxWait = 0f;
         [Tooltip("Denizcinin yığına ekleyeceği sıradaki küp, bir önceki küpüne en fazla bu kadar hücre (yatay+dikey) uzakta " +
                  "olabilir. Daha uzaktaki küpler ona verilmez (panonun öbür ucuna gitmesin); onları sonraki denizciler alır.")]
         [SerializeField, Min(1)] private int m_StackMaxJumpCells = 4;
-        [Tooltip("Konteynerin son denizcileri yakında küp bulamazsa uzaktaki küpe gitmeden önce bu kadar (sn) bekler: " +
-                 "yanındaki küpler alınınca arkası açılır. Süre dolarsa bulunduğu yere en yakın boştaki küpe gider.")]
-        [SerializeField, Min(0f)] private float m_StackFarJumpDelay = 1.5f;
+        [Tooltip("Konteynerin son denizcileri yakında küp bulamazsa uzaktaki küpe gitmeden önceki bekleme süresi (0 = beklemez).")]
+        [SerializeField, Min(0f)] private float m_StackFarJumpDelay = 0f;
         [Tooltip("Başka denizcinin yürüdüğü küpe bu denizci en az bu kadar hücre daha yakınsa küp ona geçer (öbürü yeni küp arar).")]
         [SerializeField, Min(1)] private int m_StackStealMarginCells = 2;
         public int SailorStackSize { get => m_SailorStackSize; set => m_SailorStackSize = Mathf.Clamp(value, 1, 12); }
@@ -578,6 +575,8 @@ namespace PixelGame
 
         private void SanitizeSettings()
         {
+            m_StackMaxWait = 0f;
+            m_StackFarJumpDelay = 0f;
             if (m_HopArcHeight < 0.20f) m_HopArcHeight = 1.25f;
             if (m_HopDuration < 0.20f) m_HopDuration = 0.48f;
             // 2.4 fazla hızlı, 1.4 ağır çekim gibi bulundu; varsayılan 2.0. Inspector'dan ayarlanabilsin diye
@@ -1189,32 +1188,65 @@ namespace PixelGame
 
             try
             {
-                while (ship != null && ship.CanAcceptMore)
+                while (ship != null && !ship.IsDeparting)
                 {
-                    // Açıktaki tüm uygun küpler (kapasite kadar) bir kerede ayrılır; koşucular
-                    // m_RunnerLaunchInterval arayla tek tek çıkar, dönmeleri beklenmez.
-                    // Koşucular tek tek gönderilir: her seferinde panonun o anki hâline bakılır, bir küp alınıp
-                    // arkası açıldığı anda sıradaki denizci oraya gider (önden hesap yok)
-                    if (!TryLaunchRope(ship, out float boardClearTime, m_UseReversedShipRunners ? 1 : int.MaxValue))
+                    // 1. Gemi yeni yük kabul edebildiği ve dışta uygun küp olduğu sürece gemici fırlat
+                    while (ship != null && ship.CanAcceptMore && !ship.IsDeparting)
                     {
-                        // Dışta bu renkten şu an açık küp yok!
-                        // Seviyede bu renkten hala içeride (ortada) kilitli küp var mı kontrol et
-                        int totalRemaining = GetRemainingCountForColor(ship.ShipColor);
-                        if (totalRemaining == 0)
+                        if (!TryLaunchRope(ship, out float boardClearTime, m_UseReversedShipRunners ? 1 : int.MaxValue))
                         {
-                            // Seviyedeki bu renge ait TÜM küpler zaten toplanmış, gemi daha fazla küp alamaz -> Kalkış yap
-                            yield return new WaitForSeconds(0.35f);
-                            // Yolda hâlâ küp veya dışarıda işçi varsa kalkma
-                            while (ship != null && (ship.HasPendingCargo || ship.ActiveWorkersOut > 0)) yield return null;
+                            break; // Şu an dışta açık küp yok
+                        }
+
+                        while (ship != null && Time.time < boardClearTime) yield return null;
+                        TriggerWaitingShipsCheck();
+                    }
+
+                    // 2. Seviyede bu renkten hiç küp kalmadıysa:
+                    int totalRemaining = GetRemainingCountForColor(ship.ShipColor);
+                    if (totalRemaining == 0)
+                    {
+                        yield return new WaitForSeconds(0.2f);
+                        while (ship != null && (ship.HasPendingCargo || ship.ActiveWorkersOut > 0)) yield return null;
+                        if (ship != null && !ship.IsDeparting)
+                        {
+                            ship.DepartAndFreeSlot();
+                        }
+                        break;
+                    }
+
+                    // 3. Kapasite durumu:
+                    if (!ship.CanAcceptMore)
+                    {
+                        // Gemiye ait tüm kapasite şu an yoldaki gemicilere ayrılmış durumda.
+                        // Yoldaki işçilerin dönmesini bekle; ANCAK bir işçi yoldayken alamadığı kotayı bırakırsa
+                        // (boşa çıkınca), ship.CanAcceptMore tekrar true olur ve döngü HEMEN yeni gemici gönderir!
+                        while (ship != null && !ship.CanAcceptMore && (ship.HasPendingCargo || ship.ActiveWorkersOut > 0))
+                        {
+                            yield return null;
+                        }
+
+                        // Eğer bir işçi kotayı bıraktı ve yer açıldıysa hemen yeni gemici gönder!
+                        if (ship != null && ship.CanAcceptMore)
+                        {
+                            continue;
+                        }
+
+                        // Tüm işçiler döndü ve gemi tamamen dolduysa kalkış yap:
+                        if (ship != null && ship.IsFull && ship.ActiveWorkersOut <= 0 && !ship.IsDeparting)
+                        {
+                            yield return new WaitForSeconds(0.2f);
                             if (ship != null && !ship.IsDeparting)
                             {
                                 ship.DepartAndFreeSlot();
                             }
                             break;
                         }
-
-                        // İçeride hâlâ bu renkten küp var ama şu an dışları kapalı (iç katmandalar).
-                        // Eğer yolda koşan koşucular varsa, onlar dıştaki küpleri aldıkça arkadaki küpler açılır.
+                    }
+                    else
+                    {
+                        // ship.CanAcceptMore == true ama TryLaunchRope false döndü (şu an açık küp yok).
+                        // Yoldaki gemiciler küp aldıkça arkadaki küpler açılabilir veya başka gemiler küp açabilir:
                         if (ship.HasPendingCargo || m_ActiveCargoFlightCount > 0)
                         {
                             bool newCubeExposed = false;
@@ -1225,45 +1257,32 @@ namespace PixelGame
                                     newCubeExposed = true;
                                     break;
                                 }
-                                yield return new WaitForSeconds(0.08f);
+                                yield return new WaitForSeconds(0.05f);
                             }
 
                             if (newCubeExposed)
                             {
-                                continue; // Dış katman soyulup yeni küp açıldı; sıradaki koşucuları hemen gönder!
+                                continue; // Yeni küp açıldı; hemen sıradaki gemiciyi gönder!
                             }
                         }
 
-                        // Açılan yeni küp kalmadı ve yolda koşan da yok; başka bir gemi dış katmanı açana kadar bekle
-                        break;
-                    }
-
-                    // Bir sonraki tren ancak bu trenin fırlatılması tamamlanınca (m_RunnerLaunchInterval * reserved) kurulur
-                    while (ship != null && Time.time < boardClearTime) yield return null;
-
-                    // Tren panodan ayrılınca veya yeni küpler açılınca bekleyen diğer gemileri de tetikle
-                    TriggerWaitingShipsCheck();
-                }
-
-                // Gemi dolduysa kalkış yap — ama önce yoldaki son küpler insin ve tüm işçiler binsin.
-                if (ship != null && !ship.IsDeparting)
-                {
-                    while (ship != null && (ship.HasPendingCargo || ship.ActiveWorkersOut > 0)) yield return null;
-
-                    if (ship != null && ship.IsFull && ship.ActiveWorkersOut <= 0 && !ship.IsDeparting)
-                    {
-                        yield return new WaitForSeconds(0.2f);
-                        if (ship != null && !ship.IsDeparting)
+                        // Açılacak yeni küp yok ve yolda işçi de kalmadı:
+                        while (ship != null && (ship.HasPendingCargo || ship.ActiveWorkersOut > 0)) yield return null;
+                        if (ship != null && ship.IsFull && ship.ActiveWorkersOut <= 0 && !ship.IsDeparting)
                         {
-                            ship.DepartAndFreeSlot();
+                            yield return new WaitForSeconds(0.2f);
+                            if (ship != null && !ship.IsDeparting)
+                            {
+                                ship.DepartAndFreeSlot();
+                            }
                         }
+                        break;
                     }
                 }
             }
             finally
             {
-                // Gemi bu arada yok edilmiş olsa bile (Unity'de ship == null) referansı listeden çıkar;
-                // aksi halde liste hiç boşalmaz ve CheckDeadlockCondition bir daha asla fail vermez.
+                // Gemi bu arada yok edilmiş olsa bile referansı listeden çıkar
                 m_ActiveExtractingShips.Remove(ship);
             }
 
@@ -5532,13 +5551,9 @@ namespace PixelGame
                 targetHandedOver = false;
                 if (runner == null) break;
 
-                // Sıradaki hedef: bu denizciye toplama sırasıyla ayrılmış küp (en alt, en dış). Yürüme mesafesi seçimi
-                // etkilemez; yalnızca seçilen küpe giden rotayı belirler. Ayrılmış küp yoksa yeni küp açılana kadar
-                // son küpün yanında bekler; açılan küpler aynı renkte bekleyen denizcilere çıkış sırasıyla dağıtılır.
+                // Sıradaki hedef: bu denizciye toplama sırasıyla ayrılmış küp (en alt, en dış).
                 PixelCube nextCube = null;
-                float waited = 0f;
-                bool idle = false;
-                while (claim != null && runner != null && ship != null && !ship.IsDeparting)
+                if (claim != null && runner != null && ship != null && !ship.IsDeparting)
                 {
                     AllocateStackClaims();
                     while (nextCube == null && claim.Targets.Count > 0)
@@ -5550,19 +5565,9 @@ namespace PixelGame
                         claim.Unassigned++;
                         ship.AddUnassignedQuota(1);
                     }
-                    if (nextCube != null || claim.Unassigned <= 0) break;
-                    // Bu renkten kimseye ayrılmamış küp hiç kalmadıysa devam yok; uzun süre açılmıyorsa da dön.
-                    // Açık küp var ama hepsi uzaktaysa (atlama sınırının ötesinde) beklemek anlamsız: elindekiyle döner
-                    if (GetRemainingCountForColor(ship.ShipColor) == 0 || waited >= m_StackMaxWait) break;
-                    if (!JumpLimitRelaxed(claim) && HasExposedMatchingCube(ship.ShipColor) && !HasNearbyCollectible(ship.ShipColor, claim.Last)) break;
-                    // Yakınında açılabilecek küp de yoksa beklemek boşuna: elindekiyle döner (sonraki denizci uzaktakini alır)
-                    if (!JumpLimitRelaxed(claim) && !HasHiddenNearby(ship.ShipColor, claim.Last, GetNextCollectibleBlocks(ship.ShipColor))) break;
-                    if (claim.WaitingSince < 0f) claim.WaitingSince = Time.time;
-                    if (!idle && sailorVis != null) { sailorVis.Play(SailorRunnerVisual.StateIdle); idle = true; }
-                    agent.Moving = false;
-                    waited += 0.1f;
-                    yield return new WaitForSeconds(0.1f);
                 }
+                // Kullanıcı kuralı: Panoda bekleme yapılmasın! Sıradaki küp o an hemen açık değilse
+                // beklemeden elindekiyle DİREKT DÖNSÜN; boşa çıkan kontenjan için gemiden yeni gemici gönderilsin.
                 if (nextCube == null || runner == null) break;
 
                 // Sıradaki küp yakınsa boş hücrelerden doğrudan yürü (çerçeveye çıkıp geri girmesin); değilse
@@ -5643,6 +5648,8 @@ namespace PixelGame
                 for (int q = 0; q < unused; q++) ship.ReleaseCargoReservation();
                 m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - unused);
                 quota = pickedCubes.Count;
+                // Boşa çıkan kontenjanı hemen değerlendir: bekleyen gemileri ve sıradaki gemicileri HEMEN tetikle!
+                TriggerWaitingShipsCheck();
             }
             ReleaseStackClaim(claim);   // görev doldu ya da bırakıldı: kayıt kapanır (tam doluysa bırakılacak bir şey yoktur)
 
@@ -5685,9 +5692,10 @@ namespace PixelGame
             if (sailorVis != null && runner != null)
             {
                 float pickupTime = sailorVis.GetClipLength(SailorRunnerVisual.StatePickup);
+                float maxWait = m_SailorTurnWhilePickingUp ? pickupTime : Mathf.Min(0.12f, pickupTime * 0.3f);
                 Vector3 backDir = returnPath.TangentAtDistance(0f);
                 float tPick = 0f;
-                while (tPick < pickupTime && runner != null)
+                while (tPick < maxWait && runner != null)
                 {
                     tPick += Time.deltaTime;
                     if (!isMiddlePickup && m_SailorTurnWhilePickingUp && tPick > pickupTime * 0.45f)
