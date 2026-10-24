@@ -86,6 +86,14 @@ namespace PixelGame
             }
         }
 
+        [Header("🔊 Hazır Ses Klipleri (boş bırakılırsa üretilen ses çalar)")]
+        [Tooltip("Konteyner/gemi slota yerleşince bunlardan rastgele biri çalar.")]
+        [SerializeField] private AudioClip[] m_DockSoundClips;
+        [Range(0f, 1f)] [SerializeField] private float m_DockSoundVolume = 0.8f;
+        [Tooltip("Denizci panodan küp alınca bunlardan rastgele biri çalar.")]
+        [SerializeField] private AudioClip[] m_PickupSoundClips;
+        [Range(0f, 1f)] [SerializeField] private float m_PickupSoundVolume = 0.6f;
+
         [Header("📳 Mobil Titreşim (Haptics)")]
         [SerializeField] private bool m_EnableHaptics = true;
         [SerializeField] private bool m_HapticsOnlyOnMobile = true;
@@ -1257,6 +1265,16 @@ namespace PixelGame
         {
             AudioSource src = m_LiftoffSource != null ? m_LiftoffSource : m_ChimeSource;
             if (src == null) return;
+
+            AudioClip pickupClip = PickRandomClip(m_PickupSoundClips);
+            if (pickupClip != null)
+            {
+                // Aynı klip art arda çalınca makineli tüfek gibi olmasın: hafif perde çeşitlemesi
+                src.pitch = 1.0f + (index % 6) * 0.02f + UnityEngine.Random.Range(-0.04f, 0.04f);
+                src.PlayOneShot(pickupClip, m_MasterVolume * m_PickupSoundVolume);
+                return;
+            }
+
             if (m_LiftoffClip == null) m_LiftoffClip = CreateProceduralLiftoffClip();
             if (m_LiftoffClip == null) return;
 
@@ -1265,6 +1283,12 @@ namespace PixelGame
             src.pitch = pitch;
             // Hafif, gevrek ve tatmin edici hypercasual kum kalkış sesi:
             src.PlayOneShot(m_LiftoffClip, m_MasterVolume * 0.65f);
+        }
+
+        private static AudioClip PickRandomClip(AudioClip[] clips)
+        {
+            if (clips == null || clips.Length == 0) return null;
+            return clips[UnityEngine.Random.Range(0, clips.Length)];
         }
 
         private float m_LastBoardingSoundTime = -1f;
@@ -1464,11 +1488,20 @@ namespace PixelGame
             // 2. Tok İskele Kilit Darbesi Sesi (🔊 Dock Snap & Thud)
             if (IsSoundActive && m_FxSource != null)
             {
-                if (m_DockClip == null) m_DockClip = CreateProceduralDockClip();
-                if (m_DockClip != null)
+                AudioClip dockClip = PickRandomClip(m_DockSoundClips);
+                if (dockClip != null)
                 {
-                    m_FxSource.pitch = UnityEngine.Random.Range(0.97f, 1.03f);
-                    m_FxSource.PlayOneShot(m_DockClip, m_MasterVolume * 0.95f);
+                    m_FxSource.pitch = UnityEngine.Random.Range(0.95f, 1.05f);
+                    m_FxSource.PlayOneShot(dockClip, m_MasterVolume * m_DockSoundVolume);
+                }
+                else
+                {
+                    if (m_DockClip == null) m_DockClip = CreateProceduralDockClip();
+                    if (m_DockClip != null)
+                    {
+                        m_FxSource.pitch = UnityEngine.Random.Range(0.97f, 1.03f);
+                        m_FxSource.PlayOneShot(m_DockClip, m_MasterVolume * 0.95f);
+                    }
                 }
             }
 

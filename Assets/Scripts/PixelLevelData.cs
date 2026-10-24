@@ -335,11 +335,12 @@ namespace PixelGame
                  "görsel kullanılır; buraya bir sprite sürüklersen bu bölüme özel olur.")]
         [SerializeField] private Sprite m_SlotSprite;
 
-        [Tooltip("Ray üzerinde aynı anda kaç vagon doldurulabilir. Aynı anda kaç renge " +
-                 "çalışılabileceğini belirler; bölümün zorluğunu en çok bu ayar etkiler. " +
-                 "1 verilirse tek vagonlu, çok daha kısıtlayıcı bir bölüm olur.")]
-        [Range(1, 8)]
-        [SerializeField] private int m_SlotCount = 5;
+        /// <summary>Her bölümde slot sayısı sabit; bölüm başına ayarlanmaz.</summary>
+        public const int FixedSlotCount = 5;
+
+        // Eski bölüm dosyalarındaki değer okunmaz (SlotCount her zaman FixedSlotCount döner)
+        [HideInInspector]
+        [SerializeField] private int m_SlotCount = FixedSlotCount;
 
         [Tooltip("Havuzda yan yana kaç kamyon beklesin")]
         [Range(1, 8)]
@@ -615,7 +616,7 @@ namespace PixelGame
         }
 
         public Sprite SlotSprite { get => m_SlotSprite; set => m_SlotSprite = value; }
-        public int SlotCount { get => m_SlotCount; set => m_SlotCount = Mathf.Max(1, value); }
+        public int SlotCount { get => FixedSlotCount; set { } }
         public int PoolColumns { get => m_PoolColumns; set => m_PoolColumns = Mathf.Max(1, value); }
         public int PoolRows { get => m_PoolRows; set => m_PoolRows = Mathf.Max(1, value); }
         public bool DisableAutoPlaceTurbo { get => m_DisableAutoPlaceTurbo; set => m_DisableAutoPlaceTurbo = value; }

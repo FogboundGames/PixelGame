@@ -2416,6 +2416,38 @@ namespace PixelGame
         }
 
         /// <summary>
+        /// ⚓ Halatlı gemilerin sol-sağ yön tutarlılığı:
+        /// Gemiler yan yana duruyorsa, oyuncu sağdaki veya soldaki gemiye tıklasa dahi
+        /// her zaman soldaki gemi soldaki slota, sağdaki gemi sağdaki slota yanaşmalıdır.
+        /// Böylece sağdaki gemiye basıldığında gemiler birbirlerinin önünü kesmez,
+        /// halat ters dönmez ve sol-sağ oryantasyonu daima korunur.
+        /// </summary>
+        private static void SailLinkedPairToSlots(ShipController ship, ShipController partner, ShipSlot slotA, ShipSlot slotB, float customDuration = -1f)
+        {
+            ShipSlot leftSlot = (slotA.transform.position.x <= slotB.transform.position.x) ? slotA : slotB;
+            ShipSlot rightSlot = (slotA.transform.position.x <= slotB.transform.position.x) ? slotB : slotA;
+
+            ShipController first = ship, second = partner;
+            if (Mathf.Abs(ship.transform.position.x - partner.transform.position.x) > 0.15f)
+            {
+                first = (ship.transform.position.x <= partner.transform.position.x) ? ship : partner;
+                second = (first == ship) ? partner : ship;
+            }
+            // Alt alta (aynı sütun / tandem) bağlı gemilerde tıklanan gemi ilk slota, partneri ikinci slota gider
+
+            if (customDuration > 0f)
+            {
+                first.SailToSlot(leftSlot, customDuration);
+                second.SailToSlot(rightSlot, customDuration);
+            }
+            else
+            {
+                first.SailToSlot(leftSlot);
+                second.SailToSlot(rightSlot);
+            }
+        }
+
+        /// <summary>
         /// Kuyruktan tıklanan gemiyi boş bir slota göndermeyi dener.
         /// Eğer gemi başka bir gemiye bağlıysa, her ikisi birden en ön sırada olmalı ve
         /// sahilde en az 2 boş slot bulunmalıdır; ikisi birlikte hareket eder.
@@ -2472,28 +2504,7 @@ namespace PixelGame
 
                 m_PlayerSentShipCount++;
 
-                // ⚓ Halatlı gemilerin sol-sağ yön tutarlılığı:
-                // Gemiler yan yana duruyorsa, oyuncu sağdaki veya soldaki gemiye tıklasa dahi
-                // her zaman soldaki gemi soldaki slota, sağdaki gemi sağdaki slota yanaşmalıdır.
-                // Böylece sağdaki gemiye basıldığında gemiler birbirlerinin önünü kesmez,
-                // halat ters dönmez ve sol-sağ oryantasyonu daima korunur.
-                ShipSlot leftSlot = (slotA.transform.position.x <= slotB.transform.position.x) ? slotA : slotB;
-                ShipSlot rightSlot = (slotA.transform.position.x <= slotB.transform.position.x) ? slotB : slotA;
-
-                if (Mathf.Abs(ship.transform.position.x - partner.transform.position.x) > 0.15f)
-                {
-                    ShipController leftShip = (ship.transform.position.x <= partner.transform.position.x) ? ship : partner;
-                    ShipController rightShip = (ship.transform.position.x <= partner.transform.position.x) ? partner : ship;
-
-                    leftShip.SailToSlot(leftSlot);
-                    rightShip.SailToSlot(rightSlot);
-                }
-                else
-                {
-                    // Alt alta (aynı sütun / tandem) bağlı gemilerde tıklanan gemi ilk slota, partneri ikinci slota gider
-                    ship.SailToSlot(leftSlot);
-                    partner.SailToSlot(rightSlot);
-                }
+                SailLinkedPairToSlots(ship, partner, slotA, slotB);
                 return true;
             }
 
@@ -2939,120 +2950,10 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Seviyenin kesin olarak "oyun sonu" aşamasında olup olmadığını denetler:
-        /// 1. Gelecekte spawn olacak başka gemi yok.
-        /// 2. Tahtada gizemli (açılmamış soru işaretli) küp kalmamış.
-        /// 3. Bekleyen tüm gemiler tahtadaki kalan renklere uygundur ("uygun gemiler").
-        /// 4. Tahtada kalan tüm küplerin renkleri, bekleyen gemiler (+ slotlardaki boş kapasite) ile tamamen karşılanabiliyor.
-        /// </summary>
-        private bool IsEndOfGameWithSuitableShips(List<ShipController> waitingShips, List<ShipSlot> emptySlots)
-        {
-            if (waitingShips == null || waitingShips.Count == 0) return false;
-            if (emptySlots == null || emptySlots.Count < waitingShips.Count) return false;
-
-            // Tahtada kalan (henüz toplanmamış/rezerve edilmemiş) küpleri renk bazında say
-            var remainingByColor = new Dictionary<Color, int>();
-            int totalRemaining = 0;
-            var activeCubes = PixelCube.ActiveCubes;
-            if (activeCubes != null)
-            {
-                for (int i = 0; i < activeCubes.Count; i++)
-                {
-                    PixelCube c = activeCubes[i];
-                    if (c != null && !c.IsPopped && c.gameObject.activeSelf && !c.IsLeaving && !s_ReservedCubes.Contains(c))
-                    {
-                        // Eğer henüz açılmamış soru işaretli küp varsa oyun sonu olamaz
-                        if (c.IsMystery) return false;
-
-                        Color col = c.CurrentColor;
-                        remainingByColor.TryGetValue(col, out int count);
-                        remainingByColor[col] = count + 1;
-                        totalRemaining++;
-                    }
-                }
-            }
-
-            // Eğer tahtada hiç küp kalmadıysa otomatik yerleştirmeye gerek yok
-            if (totalRemaining == 0) return false;
-
-            // Slotlarda halihazırda yanaşmış ve daha fazla küp alabilecek gemilerin kapasitesi
-            var capacityByColor = new Dictionary<Color, int>();
-            if (m_Slots != null)
-            {
-                for (int i = 0; i < m_Slots.Count; i++)
-                {
-                    var slot = m_Slots[i];
-                    if (slot != null && !slot.IsEmpty && slot.DockedShip != null)
-                    {
-                        ShipController docked = slot.DockedShip;
-                        if (!docked.IsDeparting && docked.CanAcceptMore)
-                        {
-                            capacityByColor.TryGetValue(docked.ShipColor, out int cap);
-                            capacityByColor[docked.ShipColor] = cap + docked.RemainingCapacity;
-                        }
-                    }
-                }
-            }
-
-            // Bekleyen gemilerin her biri tahtada kalan bir renkle eşleşmeli ("uygun gemiler")
-            for (int i = 0; i < waitingShips.Count; i++)
-            {
-                ShipController ship = waitingShips[i];
-                if (ship == null) return false;
-
-                bool matchesAnyRemaining = false;
-                foreach (var col in remainingByColor.Keys)
-                {
-                    if (ColorsMatch(ship.ShipColor, col))
-                    {
-                        matchesAnyRemaining = true;
-                        break;
-                    }
-                }
-
-                if (!matchesAnyRemaining)
-                {
-                    // Bu gemi tahtada kalan hiçbir renkle eşleşmiyor; uygun gemi değil!
-                    return false;
-                }
-
-                capacityByColor.TryGetValue(ship.ShipColor, out int cap);
-                capacityByColor[ship.ShipColor] = cap + ship.RemainingCapacity;
-            }
-
-            // Tahtada kalan TÜM renklerin toplam küp sayısı, bu gemilerin kapasiteleriyle tamamen çözülebiliyor mu?
-            foreach (var kvp in remainingByColor)
-            {
-                Color cubeColor = kvp.Key;
-                int neededCount = kvp.Value;
-
-                int availableCap = 0;
-                foreach (var capKvp in capacityByColor)
-                {
-                    if (ColorsMatch(capKvp.Key, cubeColor))
-                    {
-                        availableCap += capKvp.Value;
-                    }
-                }
-
-                if (availableCap < neededCount)
-                {
-                    // Bu rengi bitirecek yeterli gemi kapasitesi henüz yok! Oyun sonu değil.
-                    return false;
-                }
-            }
-
-            // Tüm kontroller geçti: Bu uygun gemiler yerleştiğinde seviyedeki TÜM küpler toplanacak ve oyun bitecek!
-            return true;
-        }
-
-        /// <summary>
-        /// Kalan gemilerin boş slotlara sığıp sığmadığını ve seviyeyi tamamen bitirecek
-        /// "oyun sonu" durumu olup olmadığını kontrol eder.
-        /// Kural: SADECE oyun sonu durumunda (gelecek başka gemi kalmamış, bekleyen tüm gemiler
-        /// boş slotlara sığıyor ve tahtada kalan tüm küpleri bitirecek uygun gemiler olduğunda)
-        /// gemiler otomatik yerleştirilir ve 2X turbo hıza geçilir.
-        /// Oyun ortasında veya küpler normal gemilere geçerken ASLA 2x hızlanma yapılmaz.
+        /// Oyun sonu otomatik yerleştirme: gelecek başka gemi kalmamışsa ve kuyrukta bekleyen tüm gemiler
+        /// boş slotlara sığıyorsa hepsi otomatik yerleştirilir ve oyun sonu hızlanması açılır.
+        /// Slotlarda gemi olması engel değildir (kullanıcı kuralı: slotları dolduracak kadar gemi kaldıysa çek).
+        /// Oyun ortasında (sırada gelecek gemi varken) ASLA hızlanma yapılmaz.
         /// </summary>
         public void CheckAutoPlaceRemainingShips()
         {
@@ -3084,19 +2985,19 @@ namespace PixelGame
             List<ShipSlot> emptySlots = GetEmptySlots();
             int emptyCount = emptySlots.Count;
 
-            // Bekleyen tüm gemiler kalan boş slotlara sığabilmeli
+            // Bekleyen tüm gemiler kalan boş slotlara sığabilmeli. Kapasite/renk hesabı yapılmaz: slottaki
+            // geminin kotası denizcilere önceden ayrıldığı için (CanAcceptMore = false) kapasitesi sayılmıyor,
+            // hesap "yetmiyor" deyip slotta tek gemi varken bile oyun sonu yerleştirmeyi hiç başlatmıyordu.
+            // Gelecek gemi yokken bekleyenlerin hepsi zaten yerleşmek zorunda.
             if (waitingCount > emptyCount) return;
 
-            // Sadece ve sadece GERÇEK OYUN SONU ve UYGUN GEMİLER durumunda 2X otomatik yerleştirme yap:
-            if (!IsEndOfGameWithSuitableShips(waitingShips, emptySlots)) return;
-
-            StartCoroutine(AutoPlaceRemainingShipsRoutine(waitingShips, emptySlots));
+            StartCoroutine(AutoPlaceRemainingShipsRoutine(waitingShips));
         }
 
-        private IEnumerator AutoPlaceRemainingShipsRoutine(List<ShipController> shipsToPlace, List<ShipSlot> targetSlots)
+        private IEnumerator AutoPlaceRemainingShipsRoutine(List<ShipController> shipsToPlace)
         {
             m_IsAutoPlacing = true;
-            Debug.Log($"<color=#00FFAA><b>[ShipDispatcher]</b></color> ⚡ Otomatik Yerleştirme Devrede! Kalan {shipsToPlace.Count} gemi {targetSlots.Count} boş slota yerleştiriliyor.");
+            Debug.Log($"<color=#00FFAA><b>[ShipDispatcher]</b></color> ⚡ Otomatik Yerleştirme Devrede! Kalan {shipsToPlace.Count} gemi boş slotlara yerleştiriliyor.");
 
             // ⚡ Kullanıcı Kuralı: 2X butonu açıkken oyun sonunda sıradaki tüm gemiler için yerleşecek yer varsa 4X hız,
             // 2X butonu kapalıysa 2X hızında hemen yerleşsin
@@ -3105,24 +3006,42 @@ namespace PixelGame
                 CasualHudController.Instance.SetEndgameSpeedActive(true);
             }
 
-            // Gemileri sırayla, tatlı bir aralıkla (0.10s) boş slotlara yolla
+            // Slotlarda gemi varken boş slotlar bitişik olmayabilir: halatlı çiftler önce, yan yana iki slota
+            // (gerekirse slottaki tekli gemi kaydırılarak) yerleşir; yoksa çift uzak slotlara bölünüyordu.
+            var placed = new HashSet<ShipController>();
             for (int i = 0; i < shipsToPlace.Count; i++)
             {
-                if (i >= targetSlots.Count) break;
-
                 ShipController ship = shipsToPlace[i];
-                ShipSlot slot = targetSlots[i];
+                if (ship == null || placed.Contains(ship) || !ship.IsLinked) continue;
+                ShipController partner = ship.LinkedPartner;
+                if (partner == null || !TryGetOrMakeAdjacentSlotsForLinkedPair(null, out ShipSlot slotA, out ShipSlot slotB)) continue;
 
-                if (ship != null && slot != null && slot.IsEmpty)
+                placed.Add(ship);
+                placed.Add(partner);
+                DetachShipFromQueueParent(ship);
+                DetachShipFromQueueParent(partner);
+                if (m_QueuePool != null) m_QueuePool.OnLinkedShipsDispatched(ship, partner);
+                SailLinkedPairToSlots(ship, partner, slotA, slotB, 0.35f);
+
+                yield return new WaitForSeconds(0.10f);
+            }
+
+            // Kalan tekli gemileri sırayla, tatlı bir aralıkla (0.10s) boş slotlara yolla
+            for (int i = 0; i < shipsToPlace.Count; i++)
+            {
+                ShipController ship = shipsToPlace[i];
+                if (ship == null || placed.Contains(ship) || ship.IsDocked) continue;
+
+                ShipSlot slot = FindEmptySlot();
+                if (slot == null) break;
+
+                if (m_QueuePool != null)
                 {
-                    if (m_QueuePool != null)
-                    {
-                        m_QueuePool.RemoveShipFromQueue(ship);
-                    }
-
-                    DetachShipFromQueueParent(ship);
-                    ship.SailToSlot(slot, 0.35f);
+                    m_QueuePool.RemoveShipFromQueue(ship);
                 }
+
+                DetachShipFromQueueParent(ship);
+                ship.SailToSlot(slot, 0.35f);
 
                 yield return new WaitForSeconds(0.10f);
             }

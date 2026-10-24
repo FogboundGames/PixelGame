@@ -100,16 +100,15 @@ namespace PixelGame.Editor
         }
 
         // ---- Zorluk ön ayarları ---------------------------------------------
-        // Zorluğu belirleyen asıl şey slot sayısı: az slot = aynı anda daha az renk
-        // toplanabilir = daha çok planlama. (Zorluk formülündeki slotFactor = 4/slots
-        // de bu mantığı kullanıyor.)
+        // Slot sayısı her bölümde sabit (PixelLevelData.FixedSlotCount); zorluk gemi kapasitesiyle ayarlanır.
         private static (int slots, int capacity, string blurb) Preset(Difficulty d)
         {
+            int slots = PixelLevelData.FixedSlotCount;
             switch (d)
             {
-                case Difficulty.Kolay: return (5, 16, "5 yanaşma yeri — oyuncu rahatça istediği rengi toplar.");
-                case Difficulty.Zor:   return (3, 12, "3 yanaşma yeri, küçük gemiler — sıra planlaması gerekir.");
-                default:               return (4, 14, "4 yanaşma yeri — dengeli, standart tempo.");
+                case Difficulty.Kolay: return (slots, 16, "Büyük gemiler — oyuncu rahatça istediği rengi toplar.");
+                case Difficulty.Zor:   return (slots, 12, "Küçük gemiler — sıra planlaması gerekir.");
+                default:               return (slots, 14, "Orta boy gemiler — dengeli, standart tempo.");
             }
         }
 
