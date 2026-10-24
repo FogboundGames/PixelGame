@@ -2416,104 +2416,70 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// ⚓ Halatlı gemilerin sol-sağ yön tutarlılığı:
-        /// Gemiler yan yana duruyorsa, oyuncu sağdaki veya soldaki gemiye tıklasa dahi
-        /// her zaman soldaki gemi soldaki slota, sağdaki gemi sağdaki slota yanaşmalıdır.
-        /// Böylece sağdaki gemiye basıldığında gemiler birbirlerinin önünü kesmez,
-        /// halat ters dönmez ve sol-sağ oryantasyonu daima korunur.
+        /// ⚓ Halatlı grubun sol-sağ yön tutarlılığı:
+        /// Üyeler soldan sağa (alt alta olanlarda öndeki önce) sıralanıp soldan sağa slotlara yanaşır.
+        /// Oyuncu hangi üyeye tıklarsa tıklasın gemiler birbirlerinin önünü kesmez, halatlar kesişmez.
         /// </summary>
-        private static void SailLinkedPairToSlots(ShipController ship, ShipController partner, ShipSlot slotA, ShipSlot slotB, float customDuration = -1f)
+        private void SailLinkedGroupToSlots(IReadOnlyList<ShipController> members, List<ShipSlot> slots, float customDuration = -1f)
         {
-            ShipSlot leftSlot = (slotA.transform.position.x <= slotB.transform.position.x) ? slotA : slotB;
-            ShipSlot rightSlot = (slotA.transform.position.x <= slotB.transform.position.x) ? slotB : slotA;
+            List<ShipController> ordered = m_QueuePool != null ? m_QueuePool.OrderLinkGroup(members) : new List<ShipController>(members);
+            var orderedSlots = new List<ShipSlot>(slots);
+            orderedSlots.Sort((a, b) => a.transform.position.x.CompareTo(b.transform.position.x));
 
-            ShipController first = ship, second = partner;
-            if (Mathf.Abs(ship.transform.position.x - partner.transform.position.x) > 0.15f)
+            for (int i = 0; i < ordered.Count && i < orderedSlots.Count; i++)
             {
-                first = (ship.transform.position.x <= partner.transform.position.x) ? ship : partner;
-                second = (first == ship) ? partner : ship;
-            }
-            // Alt alta (aynı sütun / tandem) bağlı gemilerde tıklanan gemi ilk slota, partneri ikinci slota gider
-
-            if (customDuration > 0f)
-            {
-                first.SailToSlot(leftSlot, customDuration);
-                second.SailToSlot(rightSlot, customDuration);
-            }
-            else
-            {
-                first.SailToSlot(leftSlot);
-                second.SailToSlot(rightSlot);
+                if (customDuration > 0f) ordered[i].SailToSlot(orderedSlots[i], customDuration);
+                else ordered[i].SailToSlot(orderedSlots[i]);
             }
         }
 
         /// <summary>
         /// Kuyruktan tıklanan gemiyi boş bir slota göndermeyi dener.
-        /// Eğer gemi başka bir gemiye bağlıysa, her ikisi birden en ön sırada olmalı ve
-        /// sahilde en az 2 boş slot bulunmalıdır; ikisi birlikte hareket eder.
+        /// Gemi halatlı bir gruptaysa (2–4 gemi) grubun bütün üyeleri kuyrukta ve önü açık olmalı,
+        /// sahilde grup boyu kadar bitişik slot bulunmalıdır; hepsi birlikte hareket eder.
         /// </summary>
-        public bool TrySendShipFromQueue(ShipController ship)
+        /// <param name="preferredSlot">Sürükle-bırakta bırakılan slot: grup için ona en yakın bitişik slotlar seçilir.</param>
+        public bool TrySendShipFromQueue(ShipController ship, ShipSlot preferredSlot = null)
         {
             if (m_IsAutoPlacing || m_IsLevelFailed) return false;
             if (ship == null || ship.IsDocked || ship.IsMoving || ship.IsDeparting || ship.IsQueueAnimating) return false;
 
-            // 1. 🔗 Bağlı Gemi Kontrolü
-            if (ship.IsLinked)
+            // 1. 🔗 Halatlı Grup Kontrolü (üyelerin hepsi gelmemişse tek başına da gönderilemez)
+            if (ship.LinkId > 0)
             {
-                ShipController partner = ship.LinkedPartner;
-
-                // Partner de en ön sırada mı?
-                if (partner == null || !ship.CanDispatchLinked() || partner.IsQueueAnimating)
+                if (!ship.CanDispatchLinked())
                 {
-                    ship.PlayWobble();
-                    if (partner != null) partner.PlayWobble();
-                    if (ship.Tether != null) ship.Tether.Rattle();
+                    foreach (var m in ship.LinkGroup) if (m != null) m.PlayWobble();
+                    if (!ship.IsLinked) ship.PlayWobble();
+                    ship.RattleTethers();
                     return false;
                 }
 
-                // 2 slotluk boş yer var mı? (Kural: 2 slot kaplayacaklar, 2 slotluk yer yoksa tıklanmaz)
+                var members = new List<ShipController>(ship.LinkGroup);
+
+                // Grup boyu kadar boş yer var mı? (Kural: N gemi N slot kaplar, yer yoksa tıklanmaz)
                 List<ShipSlot> emptySlots = GetEmptySlots();
-                if (emptySlots == null || emptySlots.Count < 2)
+                if (emptySlots == null || emptySlots.Count < members.Count ||
+                    !TryGetOrMakeAdjacentSlots(members.Count, preferredSlot, out List<ShipSlot> groupSlots))
                 {
-                    ship.PlayDenialFeedback();
-                    if (partner != null) partner.PlayDenialFeedback();
-                    if (ship.Tether != null) ship.Tether.Rattle();
-                    TriggerFullSlotsAlertFeedback();
-                    return false;
-                }
-
-                // İki bitişik slot tahsis et veya ortada kalan tekli gemiyi kaydırarak yan yana iki slot oluştur
-                if (!TryGetOrMakeAdjacentSlotsForLinkedPair(null, out ShipSlot slotA, out ShipSlot slotB))
-                {
-                    ship.PlayDenialFeedback();
-                    if (partner != null) partner.PlayDenialFeedback();
-                    if (ship.Tether != null) ship.Tether.Rattle();
+                    ship.PlayLinkGroupDenial();
                     TriggerFullSlotsAlertFeedback();
                     return false;
                 }
 
                 // Gemileri önce kuyruk ebeveyninden ayır ki arkadaki gemiler öne kayarken ebeveyn çakışması olmasın
-                DetachShipFromQueueParent(ship);
-                DetachShipFromQueueParent(partner);
+                foreach (var m in members) DetachShipFromQueueParent(m);
 
-                // Her iki gemiyi de kuyruk sisteminden çıkar (alt alta olsalar dahi çift sıra kaydırmayı kusursuz işletir)
+                // Hepsini kuyruk sisteminden çıkar (alt alta olsalar dahi çok sıralı kaydırmayı işletir)
                 if (m_QueuePool != null)
                 {
-                    m_QueuePool.OnLinkedShipsDispatched(ship, partner);
+                    m_QueuePool.OnLinkedGroupDispatched(members);
                 }
 
                 m_PlayerSentShipCount++;
 
-                SailLinkedPairToSlots(ship, partner, slotA, slotB);
+                SailLinkedGroupToSlots(members, groupSlots);
                 return true;
-            }
-
-            // 1b. Bağlı gemi ama partneri henüz kuyruğa gelmedi: tek başına gönderilemez
-            if (ship.LinkId > 0)
-            {
-                ship.PlayWobble();
-                if (ship.Tether != null) ship.Tether.Rattle();
-                return false;
             }
 
             // 2. Normal Tekil Gemi Kontrolü
@@ -2592,6 +2558,150 @@ namespace PixelGame
         /// ortada kalan tekli gemiyi boş slota doğru 1 slot kaydırır; böylece 2'li gemiler yan yana yerleşir ve
         /// halat/köprü ortadaki geminin üzerinden geçmez.
         /// </summary>
+        /// <summary>
+        /// Halatlı grup için <paramref name="count"/> bitişik slot bulur. Yoksa slottaki tekli gemileri ve halatlı grup
+        /// bloklarını iki yana toplayarak açar (ikili halatta önce eski, denenmiş çözüm denenir).
+        /// </summary>
+        public bool TryGetOrMakeAdjacentSlots(int count, ShipSlot preferredSlot, out List<ShipSlot> slots)
+        {
+            slots = null;
+            if (count <= 1)
+            {
+                ShipSlot single = FindEmptySlot();
+                if (single == null) return false;
+                slots = new List<ShipSlot> { single };
+                return true;
+            }
+            // İkili halatta önce eski, denenmiş çözüm (tek kaydırma tercihleri); olmazsa genel toplama
+            if (count == 2 && TryGetOrMakeAdjacentSlotsForLinkedPair(preferredSlot, out ShipSlot a, out ShipSlot b))
+            {
+                slots = new List<ShipSlot> { a, b };
+                return true;
+            }
+
+            List<ShipSlot> activeSlots = new List<ShipSlot>();
+            foreach (var sl in m_Slots)
+                if (sl != null && sl.gameObject.activeInHierarchy) activeSlots.Add(sl);
+            activeSlots.Sort((x, y) =>
+            {
+                if (x.SlotIndex != y.SlotIndex) return x.SlotIndex.CompareTo(y.SlotIndex);
+                return x.transform.position.x.CompareTo(y.transform.position.x);
+            });
+            return TryRepackForAdjacentSlots(activeSlots, count, preferredSlot, out slots);
+        }
+
+        /// <summary>
+        /// Slottaki gemileri birimler halinde (tekli gemi ya da halatlı grubun bitişik bloğu, sıraları korunarak)
+        /// pencerenin iki yanına toplayıp <paramref name="count"/> bitişik boş slot açar. Boş slot sayısı yetiyorsa
+        /// her zaman bir dizilim bulunur; yalnızca kalkan/yoldaki gemiler yerinden oynatılamaz.
+        /// Örn: [boş][15][7=gri][boş] → 15 ve halatlı çift sola kayar → [15][7=gri][boş][boş].
+        /// </summary>
+        private bool TryRepackForAdjacentSlots(List<ShipSlot> activeSlots, int count, ShipSlot preferredSlot, out List<ShipSlot> slots)
+        {
+            slots = null;
+            int n = activeSlots.Count;
+            if (n < count) return false;
+
+            // 1. Birimler: (başlangıç slotu, boyu, oynatılabilir mi)
+            var units = new List<(int start, int size, bool movable)>();
+            for (int i = 0; i < n;)
+            {
+                ShipSlot slot = activeSlots[i];
+                if (slot.IsEmpty) { i++; continue; }
+                ShipController ship = slot.DockedShip;
+                int size = 1;
+                bool movable = ship != null && !ship.IsDeparting && !ship.IsMoving;
+                if (ship != null && ship.LinkId > 0)
+                {
+                    while (i + size < n && activeSlots[i + size].DockedShip != null && activeSlots[i + size].DockedShip.LinkId == ship.LinkId)
+                    {
+                        ShipController m = activeSlots[i + size].DockedShip;
+                        if (m.IsDeparting || m.IsMoving) movable = false;
+                        size++;
+                    }
+                }
+                units.Add((i, size, movable));
+                i += size;
+            }
+
+            // 2. Her pencere için: merkezinin solundaki birimler sola, sağındakiler sağa yaslanır (yalnızca gerektiği kadar)
+            int bestW = -1;
+            float bestCost = float.MaxValue;
+            int[] bestTargets = null;
+            for (int w = 0; w + count <= n; w++)
+            {
+                var targets = new int[units.Count];
+                bool ok = true;
+                int center2 = 2 * w + count;
+                int limit = w;
+                for (int u = units.Count - 1; u >= 0 && ok; u--)
+                {
+                    if (2 * units[u].start + units[u].size > center2) continue;
+                    int t = Mathf.Min(units[u].start, limit - units[u].size);
+                    if (t < 0) ok = false;
+                    targets[u] = t;
+                    limit = t;
+                }
+                limit = w + count;
+                for (int u = 0; u < units.Count && ok; u++)
+                {
+                    if (2 * units[u].start + units[u].size <= center2) continue;
+                    int t = Mathf.Max(units[u].start, limit);
+                    if (t + units[u].size > n) ok = false;
+                    targets[u] = t;
+                    limit = t + units[u].size;
+                }
+                if (!ok) continue;
+
+                float cost = 0f;
+                for (int u = 0; u < units.Count && ok; u++)
+                {
+                    int d = Mathf.Abs(targets[u] - units[u].start);
+                    if (d > 0 && !units[u].movable) ok = false;
+                    cost += d * units[u].size + (d > 0 ? 10f : 0f); // az birim oynasın, kısa kaysın
+                }
+                if (!ok) continue;
+                if (preferredSlot != null)
+                {
+                    int pi = activeSlots.IndexOf(preferredSlot);
+                    if (pi >= 0) cost += Mathf.Abs(pi - (w + (count - 1) * 0.5f)) * 0.1f;
+                }
+                else
+                {
+                    cost += w * 0.01f; // eşitlikte sola toparlan
+                }
+                if (cost < bestCost)
+                {
+                    bestCost = cost;
+                    bestW = w;
+                    bestTargets = targets;
+                }
+            }
+            if (bestW < 0) return false;
+
+            // 3. Kaydırmalar: sola gidenler soldan, sağa gidenler sağdan işlenir (hedef slot önceden boşalmış olur)
+            var order = new List<int>();
+            for (int u = 0; u < units.Count; u++) if (bestTargets[u] < units[u].start) order.Add(u);
+            for (int u = units.Count - 1; u >= 0; u--) if (bestTargets[u] > units[u].start) order.Add(u);
+            foreach (int u in order)
+            {
+                int shift = bestTargets[u] - units[u].start;
+                var ships = new List<ShipController>();
+                for (int k = 0; k < units[u].size; k++) ships.Add(activeSlots[units[u].start + k].DockedShip);
+                if (shift > 0) ships.Reverse();
+                foreach (var ship in ships)
+                {
+                    if (ship == null) continue;
+                    int from = activeSlots.IndexOf(ship.CurrentSlot);
+                    if (from < 0) continue;
+                    ship.SailToSlot(activeSlots[from + shift], 0.22f);
+                }
+            }
+
+            slots = activeSlots.GetRange(bestW, count);
+            return true;
+        }
+
         public bool TryGetOrMakeAdjacentSlotsForLinkedPair(ShipSlot preferredSlot, out ShipSlot slotA, out ShipSlot slotB)
         {
             slotA = null;
@@ -2783,6 +2893,7 @@ namespace PixelGame
                 if (!shipA.IsLinked || !shipB.IsLinked) continue;
                 if (shipA.IsDeparting || shipB.IsDeparting) continue;
                 if (shipA.LinkedPartner != shipB && shipA.LinkId != shipB.LinkId) continue;
+                if (shipA.LinkGroupSize != 2) continue;
 
                 // 1) Sola kayma (i'deki shipA i-1'e, i+1'deki shipB i'ye)
                 if (i - 1 >= 0 && currentOccupants[i - 1] == null)
@@ -3006,22 +3117,23 @@ namespace PixelGame
                 CasualHudController.Instance.SetEndgameSpeedActive(true);
             }
 
-            // Slotlarda gemi varken boş slotlar bitişik olmayabilir: halatlı çiftler önce, yan yana iki slota
-            // (gerekirse slottaki tekli gemi kaydırılarak) yerleşir; yoksa çift uzak slotlara bölünüyordu.
+            // Slotlarda gemi varken boş slotlar bitişik olmayabilir: halatlı gruplar önce, grup boyu kadar yan yana
+            // slota (gerekirse slottaki tekli gemi kaydırılarak) yerleşir; yoksa grup uzak slotlara bölünüyordu.
             var placed = new HashSet<ShipController>();
             for (int i = 0; i < shipsToPlace.Count; i++)
             {
                 ShipController ship = shipsToPlace[i];
-                if (ship == null || placed.Contains(ship) || !ship.IsLinked) continue;
-                ShipController partner = ship.LinkedPartner;
-                if (partner == null || !TryGetOrMakeAdjacentSlotsForLinkedPair(null, out ShipSlot slotA, out ShipSlot slotB)) continue;
+                if (ship == null || placed.Contains(ship) || !ship.IsLinkGroupComplete) continue;
+                var members = new List<ShipController>(ship.LinkGroup);
+                if (!TryGetOrMakeAdjacentSlots(members.Count, null, out List<ShipSlot> groupSlots)) continue;
 
-                placed.Add(ship);
-                placed.Add(partner);
-                DetachShipFromQueueParent(ship);
-                DetachShipFromQueueParent(partner);
-                if (m_QueuePool != null) m_QueuePool.OnLinkedShipsDispatched(ship, partner);
-                SailLinkedPairToSlots(ship, partner, slotA, slotB, 0.35f);
+                foreach (var m in members)
+                {
+                    placed.Add(m);
+                    DetachShipFromQueueParent(m);
+                }
+                if (m_QueuePool != null) m_QueuePool.OnLinkedGroupDispatched(members);
+                SailLinkedGroupToSlots(members, groupSlots, 0.35f);
 
                 yield return new WaitForSeconds(0.10f);
             }
@@ -3030,7 +3142,8 @@ namespace PixelGame
             for (int i = 0; i < shipsToPlace.Count; i++)
             {
                 ShipController ship = shipsToPlace[i];
-                if (ship == null || placed.Contains(ship) || ship.IsDocked) continue;
+                // Yan yana yer bulamayan halatlı grup üyesi tek başına yerleştirilmez
+                if (ship == null || placed.Contains(ship) || ship.IsDocked || ship.LinkId > 0) continue;
 
                 ShipSlot slot = FindEmptySlot();
                 if (slot == null) break;
@@ -3582,11 +3695,12 @@ namespace PixelGame
             {
                 var ship = waiting[i];
                 if (ship == null || ship.IsDocked || ship.IsMoving || ship.IsDeparting) continue;
-                if (ship.IsLinked)
+                if (ship.LinkId > 0)
                 {
-                    if (ship.LinkedPartner != null && ship.CanDispatchLinked() && emptySlots >= 2) return true;
+                    // Grubun bütün üyeleri gelmemişse gönderilemez; gelmişse grup boyu kadar boş slot gerekir
+                    if (ship.CanDispatchLinked() && emptySlots >= ship.LinkGroup.Count) return true;
                 }
-                else if (ship.LinkId == 0 && m_QueuePool.IsFrontRow(ship)) // partneri gelmemiş bağlı gemi gönderilemez
+                else if (m_QueuePool.IsFrontRow(ship))
                 {
                     return true;
                 }
@@ -4699,7 +4813,7 @@ namespace PixelGame
         /// dış, eşitlikte sol). Yalnızca dışarıya erişimi olan, kimseye ayrılmamış, gizemli olmayan küpler döner;
         /// rezerve edilmiş küpler tahtada durduğu için erişimi ve sıra uçlarını belirlemeye devam eder. Boşsa beklenir.
         /// </summary>
-        public List<PixelCube> GetNextCollectibleBlocks(Color color, (int, int)? refCell = null)
+        public List<PixelCube> GetNextCollectibleBlocks(Color color)
         {
             var result = new List<PixelCube>();
             var all = PixelCube.ActiveCubes;
@@ -4718,7 +4832,7 @@ namespace PixelGame
                 PixelCube c = present[cell];
                 if (s_ReservedCubes.Contains(c) || c.IsMystery) return false;
                 return ColorsMatch(c.CurrentColor, color) || ColorsMatch(c.OriginalColor, color);
-            }, refCell);
+            });
             for (int i = 0; i < cells.Count; i++) result.Add(present[cells[i]]);
             return result;
         }
@@ -4736,7 +4850,7 @@ namespace PixelGame
         /// <summary>Bu renkte, verilen hücreye atlama sınırı içinde kimseye ayrılmamış erişilebilir en dış küp var mı?</summary>
         private bool HasNearbyCollectible(Color color, (int, int) from)
         {
-            var list = GetNextCollectibleBlocks(color, from);
+            var list = GetNextCollectibleBlocks(color);
             for (int i = 0; i < list.Count; i++)
             {
                 PixelCube c = list[i];
@@ -5611,10 +5725,9 @@ namespace PixelGame
             if (sailorVis != null && runner != null)
             {
                 float pickupTime = sailorVis.GetClipLength(SailorRunnerVisual.StatePickup);
-                float maxWait = m_SailorTurnWhilePickingUp ? pickupTime : Mathf.Min(0.12f, pickupTime * 0.3f);
                 Vector3 backDir = returnPath.TangentAtDistance(0f);
                 float tPick = 0f;
-                while (tPick < maxWait && runner != null)
+                while (tPick < pickupTime && runner != null)
                 {
                     tPick += Time.deltaTime;
                     if (!isMiddlePickup && m_SailorTurnWhilePickingUp && tPick > pickupTime * 0.45f)

@@ -59,7 +59,7 @@ namespace PixelGame
         public int paletteIndex = 0;
         public string label = "Vagon";
 
-        [Tooltip("Eğer bu gemi başka bir gemiye bağlıysa her ikisi aynı pozitif ID'yi taşır (örn: 1, 2, 3...). 0 = Bağımsız gemi.")]
+        [Tooltip("Halatlı gruptaki 2–4 geminin hepsi aynı pozitif ID'yi taşır (örn: 1, 2, 3...). 0 = Bağımsız gemi.")]
         public int linkId = 0;
 
         [Tooltip("Gizli gemi: Kuyrukta en ön sıraya gelene kadar rengi ve kapasite yazısı '?' desenli örtüyle saklanır.")]
@@ -337,6 +337,9 @@ namespace PixelGame
 
         /// <summary>Her bölümde slot sayısı sabit; bölüm başına ayarlanmaz.</summary>
         public const int FixedSlotCount = 5;
+
+        /// <summary>Bir halatla bağlanabilecek en fazla gemi sayısı.</summary>
+        public const int MaxLinkGroupSize = 4;
 
         // Eski bölüm dosyalarındaki değer okunmaz (SlotCount her zaman FixedSlotCount döner)
         [HideInInspector]
@@ -1060,29 +1063,47 @@ namespace PixelGame
             m_UseCustomWagonSequence = true;
         }
 
-        public void LinkWagons(int indexA, int indexB)
+        /// <summary>Verilen halata bağlı gemi sayısı.</summary>
+        public int GetLinkGroupCount(int linkId)
         {
-            if (m_WagonSequence == null) return;
-            if (indexA < 0 || indexA >= m_WagonSequence.Count) return;
-            if (indexB < 0 || indexB >= m_WagonSequence.Count) return;
-            if (indexA == indexB) return;
-
-            var wagonA = m_WagonSequence[indexA];
-            var wagonB = m_WagonSequence[indexB];
-            if (wagonA == null || wagonB == null) return;
-
-            // Varsa eski bağları temizle
-            UnlinkWagon(indexA);
-            UnlinkWagon(indexB);
-
-            int newLinkId = GetNextAvailableLinkId();
-            wagonA.linkId = newLinkId;
-            wagonB.linkId = newLinkId;
-            m_UseCustomWagonSequence = true;
+            if (m_WagonSequence == null || linkId <= 0) return 0;
+            int n = 0;
+            foreach (var w in m_WagonSequence) if (w != null && w.linkId == linkId) n++;
+            return n;
         }
 
         /// <summary>
-        /// Verilen indeksteki geminin bağını ve partnerinin bağını koparır (linkId = 0).
+        /// İki gemiyi aynı halata bağlar. Biri zaten bir gruptaysa diğeri o gruba katılır; ikisi farklı gruplardaysa
+        /// gruplar birleşir. Toplam en fazla <see cref="MaxLinkGroupSize"/> gemi olabilir, aşılırsa false döner.
+        /// </summary>
+        public bool LinkWagons(int indexA, int indexB)
+        {
+            if (m_WagonSequence == null) return false;
+            if (indexA < 0 || indexA >= m_WagonSequence.Count) return false;
+            if (indexB < 0 || indexB >= m_WagonSequence.Count) return false;
+            if (indexA == indexB) return false;
+
+            var wagonA = m_WagonSequence[indexA];
+            var wagonB = m_WagonSequence[indexB];
+            if (wagonA == null || wagonB == null) return false;
+            if (wagonA.linkId > 0 && wagonA.linkId == wagonB.linkId) return true;
+
+            int sizeA = wagonA.linkId > 0 ? GetLinkGroupCount(wagonA.linkId) : 1;
+            int sizeB = wagonB.linkId > 0 ? GetLinkGroupCount(wagonB.linkId) : 1;
+            if (sizeA + sizeB > MaxLinkGroupSize) return false;
+
+            int targetId = wagonA.linkId > 0 ? wagonA.linkId : (wagonB.linkId > 0 ? wagonB.linkId : GetNextAvailableLinkId());
+            int mergeId = wagonB.linkId > 0 && wagonB.linkId != targetId ? wagonB.linkId : 0;
+            foreach (var w in m_WagonSequence)
+                if (w != null && mergeId > 0 && w.linkId == mergeId) w.linkId = targetId;
+            wagonA.linkId = targetId;
+            wagonB.linkId = targetId;
+            m_UseCustomWagonSequence = true;
+            return true;
+        }
+
+        /// <summary>
+        /// Verilen indeksteki gemiyi halattan çıkarır. Grupta tek gemi kalırsa onun bağı da silinir.
         /// </summary>
         public void UnlinkWagon(int index)
         {
@@ -1091,12 +1112,11 @@ namespace PixelGame
             if (target == null || target.linkId <= 0) return;
 
             int oldLinkId = target.linkId;
-            foreach (var w in m_WagonSequence)
+            target.linkId = 0;
+            if (GetLinkGroupCount(oldLinkId) < 2)
             {
-                if (w != null && w.linkId == oldLinkId)
-                {
-                    w.linkId = 0;
-                }
+                foreach (var w in m_WagonSequence)
+                    if (w != null && w.linkId == oldLinkId) w.linkId = 0;
             }
             m_UseCustomWagonSequence = true;
         }

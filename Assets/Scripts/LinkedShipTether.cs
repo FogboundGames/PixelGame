@@ -100,10 +100,19 @@ namespace PixelGame
             for (int i = 0; i < ships.Count; i++)
             {
                 ShipController s = ships[i];
-                if (s != null && s != m_ShipA && s.LinkId == m_LinkId && !s.IsDeparting && s.gameObject.activeInHierarchy)
+                // Grubun zaten bağlanmış üyeleri değil, yeni gelen üye aranır
+                if (s != null && s != m_ShipA && s.LinkId == m_LinkId && !s.IsDeparting && s.gameObject.activeInHierarchy &&
+                    !ContainsShip(m_ShipA.LinkGroup, s))
                     return s;
             }
             return null;
+        }
+
+        private static bool ContainsShip(IReadOnlyList<ShipController> group, ShipController ship)
+        {
+            for (int i = 0; i < group.Count; i++)
+                if (group[i] == ship) return true;
+            return false;
         }
 
         public static LinkedShipTether CreateTether(ShipController a, ShipController b, int linkId)
@@ -140,6 +149,8 @@ namespace PixelGame
             m_ShipA = a;
             m_ShipB = b;
             m_LinkId = linkId;
+            if (a != null) a.AddTether(this);
+            if (b != null) b.AddTether(this);
 
             EnsureLineRenderer();
             ApplyColorsFromShips();
@@ -232,9 +243,9 @@ namespace PixelGame
         {
             if (IsPending)
             {
-                // Gerçek halat kurulduysa (partner bağlandı) ya da gemi ayrıldıysa bekleyen halat biter
+                // Grubun bütün üyeleri geldiyse ya da gemi ayrıldıysa bekleyen halat biter
                 if (m_ShipA == null || !m_ShipA.gameObject.activeInHierarchy || m_ShipA.IsDeparting ||
-                    m_ShipA.LinkId != m_LinkId || m_ShipA.LinkedPartner != null)
+                    m_ShipA.LinkId != m_LinkId || m_ShipA.IsLinkGroupComplete)
                 {
                     if (Application.isPlaying) Destroy(gameObject);
                     else DestroyImmediate(gameObject);
@@ -289,14 +300,8 @@ namespace PixelGame
                 else DestroyImmediate(m_ShadowMesh);
             }
 
-            if (m_ShipA != null && m_ShipA.Tether == this)
-            {
-                m_ShipA.SetTether(null);
-            }
-            if (m_ShipB != null && m_ShipB.Tether == this)
-            {
-                m_ShipB.SetTether(null);
-            }
+            if (m_ShipA != null) m_ShipA.RemoveTether(this);
+            if (m_ShipB != null) m_ShipB.RemoveTether(this);
         }
 
         /// <summary>

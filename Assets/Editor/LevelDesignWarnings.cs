@@ -131,16 +131,35 @@ namespace PixelGame.Editor
                 }
                 foreach (var kv in byLink)
                 {
-                    if (kv.Value.Count != 2)
+                    if (kv.Value.Count < 2 || kv.Value.Count > PixelLevelData.MaxLinkGroupSize)
                     {
-                        list.Add(new Warning(MessageType.Error, $"Halat #{kv.Key}: {kv.Value.Count} gemi bağlı (2 olmalı)."));
+                        list.Add(new Warning(MessageType.Error, $"Halat #{kv.Key}: {kv.Value.Count} gemi bağlı (2–{PixelLevelData.MaxLinkGroupSize} olmalı)."));
                         continue;
                     }
-                    int a = kv.Value[0], b = kv.Value[1];
-                    bool sideBySide = b == a + 1 && a / cols == b / cols;
-                    bool stackedInPool = b == a + cols && b < poolSize;
-                    if (!sideBySide && !stackedInPool)
-                        list.Add(new Warning(MessageType.Warning, $"Halat #{kv.Key} (#{a + 1} ↔ #{b + 1}) yan yana ya da havuzda üst üste değil — ortağı geç gelirse ilk gemi halatsız gönderilebilir."));
+                    // Her üye gruptan en az bir gemiyle yan yana ya da havuzda üst üste olmalı (grup tek parça)
+                    var members = kv.Value;
+                    var reached = new HashSet<int> { members[0] };
+                    bool grew = true;
+                    while (grew)
+                    {
+                        grew = false;
+                        foreach (int m in members)
+                        {
+                            if (reached.Contains(m)) continue;
+                            foreach (int r in reached)
+                            {
+                                int a = Mathf.Min(m, r), b = Mathf.Max(m, r);
+                                bool sideBySide = b == a + 1 && a / cols == b / cols;
+                                bool stackedInPool = b == a + cols && b < poolSize;
+                                if (sideBySide || stackedInPool) { reached.Add(m); grew = true; break; }
+                            }
+                        }
+                    }
+                    if (reached.Count < members.Count)
+                    {
+                        string ids = string.Join(" ↔ ", members.ConvertAll(i => $"#{i + 1}"));
+                        list.Add(new Warning(MessageType.Warning, $"Halat #{kv.Key} ({ids}) yan yana ya da havuzda üst üste değil — geç gelen üye beklenirken diğerleri kuyrukta takılı kalır."));
+                    }
                 }
             }
 

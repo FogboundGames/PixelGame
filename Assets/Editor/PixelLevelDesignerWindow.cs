@@ -2219,17 +2219,18 @@ namespace PixelGame.Editor
                 m_GenLinkPercent = DrawPercentSliderRow("🔗 Halat %", "Gemilerin yaklaşık bu kadarı halatla bağlanır (iki gemi bir halat). Bütün sıraya yayılır: yan yana çiftler her dalgada, üst üste çiftler oyun başındaki havuzda.", m_GenLinkPercent, 0, 60);
                 m_GenHiddenPercent = DrawPercentSliderRow("❓ Gizli %", "Gemilerin yaklaşık bu kadarı gizli ('?') olur. En ön sıradakiler ve halatlılar gizlenmez.", m_GenHiddenPercent, 0, 60);
 
-                int linkPairsNow = 0, hiddenNow = 0;
+                var linkIdsNow = new HashSet<int>();
+                int hiddenNow = 0;
                 if (m_SelectedLevel.WagonSequence != null)
                 {
                     foreach (var w in m_SelectedLevel.WagonSequence)
                     {
                         if (w == null) continue;
-                        if (w.linkId > 0) linkPairsNow++;
+                        if (w.linkId > 0) linkIdsNow.Add(w.linkId);
                         if (w.isHidden) hiddenNow++;
                     }
                 }
-                EditorGUILayout.LabelField($"Şu an: {linkPairsNow / 2} halat · {hiddenNow} gizli gemi", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField($"Şu an: {linkIdsNow.Count} halat · {hiddenNow} gizli gemi", EditorStyles.miniLabel);
 
                 EditorGUILayout.Space(4);
                 GUI.backgroundColor = new Color(0.8f, 0.65f, 1f);
@@ -2445,7 +2446,7 @@ namespace PixelGame.Editor
             }
             else if (m_SelectedSlotForLink >= 0)
             {
-                EditorGUILayout.HelpBox($"🔗 Slot #{m_SelectedSlotForLink + 1} bağlamak için seçildi! Bağlamak istediğiniz 2. geminin '🔗 ile Bağla' butonuna tıklayın (İptal için aynı butona tekrar basın).", MessageType.Info);
+                EditorGUILayout.HelpBox($"🔗 Slot #{m_SelectedSlotForLink + 1} bağlamak için seçildi! Bağlamak istediğiniz geminin '🔗 ile Bağla' butonuna tıklayın. Halatlı bir gemiyi seçtiyseniz tıkladığınız gemi o gruba katılır (en fazla {PixelLevelData.MaxLinkGroupSize} gemi). İptal için aynı butona tekrar basın.", MessageType.Info);
             }
 
             EditorGUILayout.EndVertical();
@@ -2781,17 +2782,58 @@ namespace PixelGame.Editor
 
                 EditorGUILayout.EndHorizontal();
 
-                // 3.5. 🔗 Bağla / Birleştir Butonu
+                // 3.5. 🔗 Bağla / Gruba Ekle (bir halata en fazla PixelLevelData.MaxLinkGroupSize gemi)
                 EditorGUILayout.BeginHorizontal();
                 bool isLinked = (wagon.linkId > 0);
                 bool isLinkSelected = (m_SelectedSlotForLink == slotIndex);
+                int groupCount = isLinked ? m_SelectedLevel.GetLinkGroupCount(wagon.linkId) : 1;
+                var selectedWagon = m_SelectedSlotForLink >= 0 && m_SelectedSlotForLink < m_SelectedLevel.WagonSequence.Count
+                    ? m_SelectedLevel.WagonSequence[m_SelectedSlotForLink] : null;
+                bool sameGroupAsSelected = selectedWagon != null && isLinked && selectedWagon.linkId == wagon.linkId;
 
-                if (isLinked)
+                if (isLinkSelected)
                 {
-                    GUI.backgroundColor = new Color(0.2f, 0.85f, 0.95f);
-                    GUILayout.Label($"🔗 Bağ #{wagon.linkId}", EditorStyles.miniBoldLabel, GUILayout.Height(17));
+                    GUI.backgroundColor = new Color(1f, 0.85f, 0.2f);
+                    if (GUILayout.Button("⭐ Seçildi (İptal)", EditorStyles.miniButton, GUILayout.Height(17)))
+                    {
+                        m_SelectedSlotForLink = -1;
+                    }
+                    GUI.backgroundColor = Color.white;
+                }
+                else if (m_SelectedSlotForLink != -1 && !sameGroupAsSelected)
+                {
+                    GUI.backgroundColor = new Color(0.35f, 0.95f, 0.45f);
+                    if (GUILayout.Button($"🔗 #{m_SelectedSlotForLink + 1} ile Bağla", EditorStyles.miniButton, GUILayout.Height(17)))
+                    {
+                        Undo.RecordObject(m_SelectedLevel, "Link Wagons");
+                        if (m_SelectedLevel.LinkWagons(m_SelectedSlotForLink, slotIndex))
+                        {
+                            m_SelectedLevel.UseCustomWagonSequence = true;
+                            EditorUtility.SetDirty(m_SelectedLevel);
+                            NotifyLiveSceneUpdate();
+                        }
+                        else
+                        {
+                            ShowNotification(new GUIContent($"Bir halata en fazla {PixelLevelData.MaxLinkGroupSize} gemi bağlanabilir"));
+                        }
+                        m_SelectedSlotForLink = -1;
+                    }
+                    GUI.backgroundColor = Color.white;
+                }
+                else if (isLinked)
+                {
+                    GUILayout.Label($"🔗 #{wagon.linkId} · {groupCount}'li", EditorStyles.miniBoldLabel, GUILayout.Height(17));
+                    if (groupCount < PixelLevelData.MaxLinkGroupSize)
+                    {
+                        GUI.backgroundColor = new Color(0.35f, 0.95f, 0.45f);
+                        if (GUILayout.Button(new GUIContent("+", "Bu halata bir gemi daha ekle (sonra eklenecek gemiye tıkla)"), EditorStyles.miniButton, GUILayout.Width(20), GUILayout.Height(16)))
+                        {
+                            m_SelectedSlotForLink = slotIndex;
+                            m_SelectedSlotForSwap = -1;
+                        }
+                    }
                     GUI.backgroundColor = new Color(1f, 0.4f, 0.4f);
-                    if (GUILayout.Button(new GUIContent("✕", "Bağlantıyı kopar"), EditorStyles.miniButton, GUILayout.Width(20), GUILayout.Height(16)))
+                    if (GUILayout.Button(new GUIContent("✕", "Bu gemiyi halattan çıkar"), EditorStyles.miniButton, GUILayout.Width(20), GUILayout.Height(16)))
                     {
                         Undo.RecordObject(m_SelectedLevel, "Unlink Wagon");
                         m_SelectedLevel.UnlinkWagon(slotIndex);
@@ -2803,36 +2845,10 @@ namespace PixelGame.Editor
                 }
                 else
                 {
-                    if (isLinkSelected)
+                    if (GUILayout.Button(new GUIContent("🔗 Bağla", "Başka bir gemiyle bağlamak için tıkla"), EditorStyles.miniButton, GUILayout.Height(17)))
                     {
-                        GUI.backgroundColor = new Color(1f, 0.85f, 0.2f);
-                        if (GUILayout.Button("⭐ Seçildi (İptal)", EditorStyles.miniButton, GUILayout.Height(17)))
-                        {
-                            m_SelectedSlotForLink = -1;
-                        }
-                        GUI.backgroundColor = Color.white;
-                    }
-                    else if (m_SelectedSlotForLink != -1)
-                    {
-                        GUI.backgroundColor = new Color(0.35f, 0.95f, 0.45f);
-                        if (GUILayout.Button($"🔗 #{m_SelectedSlotForLink + 1} ile Bağla", EditorStyles.miniButton, GUILayout.Height(17)))
-                        {
-                            Undo.RecordObject(m_SelectedLevel, "Link Wagons");
-                            m_SelectedLevel.LinkWagons(m_SelectedSlotForLink, slotIndex);
-                            m_SelectedSlotForLink = -1;
-                            m_SelectedLevel.UseCustomWagonSequence = true;
-                            EditorUtility.SetDirty(m_SelectedLevel);
-                            NotifyLiveSceneUpdate();
-                        }
-                        GUI.backgroundColor = Color.white;
-                    }
-                    else
-                    {
-                        if (GUILayout.Button(new GUIContent("🔗 Bağla", "Başka bir gemiyle bağlamak için tıkla"), EditorStyles.miniButton, GUILayout.Height(17)))
-                        {
-                            m_SelectedSlotForLink = slotIndex;
-                            m_SelectedSlotForSwap = -1;
-                        }
+                        m_SelectedSlotForLink = slotIndex;
+                        m_SelectedSlotForSwap = -1;
                     }
                 }
                 EditorGUILayout.EndHorizontal();

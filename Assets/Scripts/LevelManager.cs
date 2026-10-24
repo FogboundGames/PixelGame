@@ -219,7 +219,8 @@ namespace PixelGame
         public void NextLevel()
         {
             if (m_Levels.Count == 0) return;
-            int next = (m_CurrentLevelIndex + 1) % m_Levels.Count;
+            // Son bölüm bitince başa sarmaz: son bölüm yeniden oynanır
+            int next = Mathf.Min(m_CurrentLevelIndex + 1, m_Levels.Count - 1);
             LoadLevel(next);
         }
 

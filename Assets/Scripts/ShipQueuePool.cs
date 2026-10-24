@@ -99,6 +99,8 @@ namespace PixelGame
         // (i % sütunSayısı). şeride düşer; her sütun yalnız kendi şeridinden beslenir.
         // Böylece tasarımda hangi sütundaysa gemi oyunda da o sütuna gelir.
         private List<Queue<WagonSequenceEntry>> m_LevelSequenceLanes = new List<Queue<WagonSequenceEntry>>();
+        // linkId → bölüm verisinde o halata bağlı gemi sayısı (2–4)
+        private readonly Dictionary<int, int> m_LinkGroupSizes = new Dictionary<int, int>();
         private bool m_UsingLevelSequence = false;
 
         public int Capacity => m_Columns * m_Rows;
@@ -787,6 +789,7 @@ namespace PixelGame
 
             // 1. Seviyede tanımlı özel gemi sırası var mı kontrol et
             m_LevelSequenceLanes.Clear();
+            m_LinkGroupSizes.Clear();
             if (level != null && level.UseCustomWagonSequence && level.WagonSequence != null && level.WagonSequence.Count > 0)
             {
                 m_UsingLevelSequence = true;
@@ -799,6 +802,11 @@ namespace PixelGame
                     {
                         m_LevelSequenceLanes[li % laneCount].Enqueue(entry);
                         li++;
+                        if (entry.linkId > 0)
+                        {
+                            m_LinkGroupSizes.TryGetValue(entry.linkId, out int n);
+                            m_LinkGroupSizes[entry.linkId] = n + 1;
+                        }
                     }
                 }
                 Debug.Log($"<color=#00FFAA><b>[ShipQueuePool]</b></color> 🚢 Seviye özel gemi sırası devrede: {li} adet gemi {laneCount} şeride dağıtıldı.");
@@ -843,7 +851,7 @@ namespace PixelGame
                 {
                     // Sahnedeki konteyner yerinde kalır; sadece bu bölümün rengi ve kapasitesi verilir
                     sceneShip.gameObject.SetActive(true);
-                    sceneShip.SetLinkedPartner(null, linkId);
+                    sceneShip.SetLinkId(linkId, GetLinkGroupSize(linkId));
                     sceneShip.Configure(shipColor, capacity);
                     sceneShip.SetMysteryHidden(m_LastSequenceShipHidden);
                     m_WaitingShips[i] = sceneShip;
@@ -950,7 +958,7 @@ namespace PixelGame
             ShipController ship = shipObj.GetComponent<ShipController>();
             if (ship == null) ship = shipObj.AddComponent<ShipController>();
             ship.SetBaseScale(Vector3.one * SpawnScale);
-            ship.SetLinkedPartner(null, linkId);
+            ship.SetLinkId(linkId, GetLinkGroupSize(linkId));
 
             ship.Configure(shipColor, capacity);
             ship.SetMysteryHidden(hidden);
@@ -983,25 +991,99 @@ namespace PixelGame
         /// Sahnedeki veya kuyruktaki tüm bağlı gemileri eşleştirir ve aralarına dinamik halat/zincir (tether) çeker.
         /// Slotlara yanaşmış gemiler dahil tüm bağlı gemilerin halatları korunur; asla gereksiz yere silinmez.
         /// </summary>
+        public int GetLinkGroupSize(int linkId)
+        {
+            if (linkId <= 0) return 0;
+            return m_LinkGroupSizes.TryGetValue(linkId, out int n) ? Mathf.Clamp(n, 2, PixelLevelData.MaxLinkGroupSize) : 2;
+        }
+
+        /// <summary>
+        /// Grup üyelerini soldan sağa sıralar (aynı sütunda alt alta olanlarda öndeki önce). Halat zinciri ve
+        /// slot ataması bu sırayı kullanır: böylece slotlarda da komşu üyeler komşu slota oturur, halatlar kesişmez.
+        /// </summary>
+        public List<ShipController> OrderLinkGroup(IEnumerable<ShipController> members)
+        {
+            var list = new List<ShipController>();
+            foreach (var m in members) if (m != null && !list.Contains(m)) list.Add(m);
+            list.Sort((a, b) =>
+            {
+                float dx = a.transform.position.x - b.transform.position.x;
+                if (Mathf.Abs(dx) > 0.15f) return dx < 0f ? -1 : 1;
+                int ia = m_WaitingShips != null ? m_WaitingShips.IndexOf(a) : -1;
+                int ib = m_WaitingShips != null ? m_WaitingShips.IndexOf(b) : -1;
+                if (ia >= 0 && ib >= 0 && ia != ib) return ia.CompareTo(ib);
+                return dx.CompareTo(0f);
+            });
+            return list;
+        }
+
         public void RefreshLinkedShipTethers()
         {
-            // 1. Sahnedeki mevcut tether objelerini kontrol et: Sadece geçersiz/kopmuş olanları temizle, geçerlileri koru!
-            LinkedShipTether[] oldTethers = UnityEngine.Object.FindObjectsByType<LinkedShipTether>(FindObjectsSortMode.None);
-            HashSet<int> activeTetherLinkIds = new HashSet<int>();
+            // 1. Sahnedeki TÜM aktif bağlı gemileri topla (kuyruk + slotlar + hareket halindekiler)
+            List<ShipController> activeShips = new List<ShipController>();
+            if (m_WaitingShips != null)
+            {
+                foreach (var s in m_WaitingShips)
+                {
+                    if (s != null && s.LinkId > 0 && s.gameObject.activeInHierarchy && !s.IsDeparting && !activeShips.Contains(s))
+                        activeShips.Add(s);
+                }
+            }
+            if (ShipDispatcher.Instance != null && ShipDispatcher.Instance.Slots != null)
+            {
+                foreach (var slot in ShipDispatcher.Instance.Slots)
+                {
+                    ShipController s = slot != null ? slot.DockedShip : null;
+                    if (s != null && s.LinkId > 0 && s.gameObject.activeInHierarchy && !s.IsDeparting && !activeShips.Contains(s))
+                        activeShips.Add(s);
+                }
+            }
+            var sceneShips = ShipController.ActiveShips;
+            for (int i = 0; i < sceneShips.Count; i++)
+            {
+                var s = sceneShips[i];
+                if (s != null && s.LinkId > 0 && s.gameObject.activeInHierarchy && !s.IsDeparting && !activeShips.Contains(s))
+                    activeShips.Add(s);
+            }
 
+            // 2. linkId'lerine göre grupla
+            var linkGroups = new Dictionary<int, List<ShipController>>();
+            foreach (var s in activeShips)
+            {
+                if (!linkGroups.TryGetValue(s.LinkId, out var list)) linkGroups[s.LinkId] = list = new List<ShipController>();
+                list.Add(s);
+            }
+
+            // 3. Mevcut halatlar: üyeleri değişmemiş gruplarınki korunur, kopmuş/eskimiş olanlar silinir
+            LinkedShipTether[] oldTethers = UnityEngine.Object.FindObjectsByType<LinkedShipTether>(FindObjectsSortMode.None);
             for (int i = oldTethers.Length - 1; i >= 0; i--)
             {
                 LinkedShipTether t = oldTethers[i];
                 if (t == null) continue;
+                if (t.IsPending)
+                {
+                    // Bekleyen halat her yenilemede yeniden kurulur: hedefi, grubun sıradaki gelecek üyesi değişebilir
+                    // (alt alta üye gelince halat hâlâ onun yerini, yani aynı sütunun altını gösteriyordu)
+                    if (t.ShipA != null) t.ShipA.RemoveTether(t);
+#if UNITY_EDITOR
+                    if (!Application.isPlaying) DestroyImmediate(t.gameObject);
+                    else Destroy(t.gameObject);
+#else
+                    Destroy(t.gameObject);
+#endif
+                    continue;
+                }
 
-                bool isValid = t.ShipA != null && t.ShipB != null &&
+                bool isValid = t.LinkId > 0 && t.ShipA != null && t.ShipB != null &&
                                t.ShipA.gameObject.activeInHierarchy && t.ShipB.gameObject.activeInHierarchy &&
                                !t.ShipA.IsDeparting && !t.ShipB.IsDeparting &&
                                t.ShipA.LinkId == t.LinkId && t.ShipB.LinkId == t.LinkId &&
-                               t.LinkId > 0;
+                               linkGroups.TryGetValue(t.LinkId, out var g) && IsSameGroup(t.ShipA.LinkGroup, g);
 
                 if (!isValid)
                 {
+                    if (t.ShipA != null) t.ShipA.RemoveTether(t);
+                    if (t.ShipB != null) t.ShipB.RemoveTether(t);
 #if UNITY_EDITOR
                     if (!Application.isPlaying) DestroyImmediate(t.gameObject);
                     else Destroy(t.gameObject);
@@ -1009,68 +1091,9 @@ namespace PixelGame
                     Destroy(t.gameObject);
 #endif
                 }
-                else
-                {
-                    activeTetherLinkIds.Add(t.LinkId);
-                    t.ShipA.SetLinkedPartner(t.ShipB, t.LinkId, t);
-                    t.ShipB.SetLinkedPartner(t.ShipA, t.LinkId, t);
-                }
             }
 
-            // 2. Sahnedeki TÜM aktif gemileri topla (kuyruk + slotlar + su üzerinde yüzenler)
-            List<ShipController> activeShips = new List<ShipController>();
-
-            // Kuyruktaki gemiler
-            if (m_WaitingShips != null)
-            {
-                foreach (var s in m_WaitingShips)
-                {
-                    if (s != null && s.LinkId > 0 && s.gameObject.activeInHierarchy && !s.IsDeparting && !activeShips.Contains(s))
-                    {
-                        activeShips.Add(s);
-                    }
-                }
-            }
-
-            // Slotlardaki yanaşmış gemiler
-            if (ShipDispatcher.Instance != null && ShipDispatcher.Instance.Slots != null)
-            {
-                foreach (var slot in ShipDispatcher.Instance.Slots)
-                {
-                    if (slot != null && slot.DockedShip != null)
-                    {
-                        ShipController s = slot.DockedShip;
-                        if (s.LinkId > 0 && s.gameObject.activeInHierarchy && !s.IsDeparting && !activeShips.Contains(s))
-                        {
-                            activeShips.Add(s);
-                        }
-                    }
-                }
-            }
-
-            // Sahnedeki diğer aktif gemiler (hareket halindekiler dahil)
-            var sceneShips = ShipController.ActiveShips;
-            for (int i = 0; i < sceneShips.Count; i++)
-            {
-                var s = sceneShips[i];
-                if (s != null && s.LinkId > 0 && s.gameObject.activeInHierarchy && !s.IsDeparting && !activeShips.Contains(s))
-                {
-                    activeShips.Add(s);
-                }
-            }
-
-            // 3. linkId'lerine göre grupla
-            Dictionary<int, List<ShipController>> linkGroups = new Dictionary<int, List<ShipController>>();
-            foreach (var s in activeShips)
-            {
-                if (!linkGroups.ContainsKey(s.LinkId))
-                {
-                    linkGroups[s.LinkId] = new List<ShipController>();
-                }
-                linkGroups[s.LinkId].Add(s);
-            }
-
-            // 4. Halatı henüz olmayan bağlı gruplar için yeni tether oluştur
+            // 4. Grubu değişenler yeniden kurulur: ortak üye listesi + komşu üyeler arasında halat zinciri
             foreach (var kvp in linkGroups)
             {
                 int linkId = kvp.Key;
@@ -1078,55 +1101,100 @@ namespace PixelGame
 
                 if (ships.Count >= 2)
                 {
-                    ShipController a = ships[0];
-                    ShipController b = ships[1];
-
-                    if (!activeTetherLinkIds.Contains(linkId))
+                    bool unchanged = IsSameGroup(ships[0].LinkGroup, ships);
+                    for (int i = 1; i < ships.Count && unchanged; i++)
+                        unchanged = ReferenceEquals(ships[i].LinkGroup, ships[0].LinkGroup);
+                    if (!unchanged)
                     {
-                        LinkedShipTether tether = LinkedShipTether.CreateTether(a, b, linkId);
-                        a.SetLinkedPartner(b, linkId, tether);
-                        b.SetLinkedPartner(a, linkId, tether);
-                        activeTetherLinkIds.Add(linkId);
-                    }
-                    else
-                    {
-                        LinkedShipTether existing = a.Tether != null ? a.Tether : b.Tether;
-                        if (a.LinkedPartner != b || a.Tether == null) a.SetLinkedPartner(b, linkId, existing);
-                        if (b.LinkedPartner != a || b.Tether == null) b.SetLinkedPartner(a, linkId, existing);
+                        List<ShipController> ordered = OrderLinkGroup(ships);
+                        foreach (var s in ordered)
+                        {
+                            s.ClearTetherRefs();
+                            s.SetLinkGroup(ordered);
+                        }
+                        // Eski halatlar 3. adımda silindi (grup eşleşmedi); zincir baştan çekilir
+                        for (int i = 0; i + 1 < ordered.Count; i++)
+                            LinkedShipTether.CreateTether(ordered[i], ordered[i + 1], linkId);
                     }
                 }
-                else if (ships.Count == 1 && ships[0].LinkedPartner == null)
+                else if (ships.Count == 1)
                 {
-                    // 5. Partner henüz doğmadı (sütun sırasında bekliyor): halat, partnerin denizden
-                    //    geleceği noktaya uzansın; yoksa partner kameraya girene kadar bağ hiç görünmüyordu.
-                    CreatePendingTetherIfPartnerQueued(ships[0], linkId);
+                    ships[0].SetLinkGroup(null);
+                }
+
+                // 5. Grubun henüz doğmamış üyesi varsa (sütun sırasında bekliyor): halat, onun denizden
+                //    geleceği noktaya uzansın; yoksa üye kameraya girene kadar bağ hiç görünmüyordu.
+                if (ships.Count < GetLinkGroupSize(linkId))
+                {
+                    CreatePendingTetherIfPartnerQueued(ships, linkId);
                 }
             }
         }
 
-        private void CreatePendingTetherIfPartnerQueued(ShipController ship, int linkId)
+        private static bool IsSameGroup(IReadOnlyList<ShipController> current, List<ShipController> members)
         {
-            if (!m_UsingLevelSequence || m_LevelSequenceLanes == null) return;
+            if (current == null || current.Count != members.Count) return false;
+            for (int i = 0; i < members.Count; i++)
+            {
+                bool found = false;
+                for (int j = 0; j < current.Count; j++)
+                    if (current[j] == members[i]) { found = true; break; }
+                if (!found) return false;
+            }
+            return true;
+        }
 
+        /// <summary>
+        /// Grubun henüz kuyruğa girmemiş sıradaki üyesinin geleceği sütunu bulur ve gruptaki o sütuna en yakın
+        /// konteynerden oraya bekleyen halat çeker.
+        /// </summary>
+        private void CreatePendingTetherIfPartnerQueued(List<ShipController> members, int linkId)
+        {
+            if (!m_UsingLevelSequence || m_LevelSequenceLanes == null || members == null || members.Count == 0) return;
+
+            // Şeritlerde yalnızca henüz doğmamış gemiler var: en önde (en erken gelecek) bekleyen üye seçilir
+            int bestLane = -1, bestDepth = int.MaxValue;
+            WagonSequenceEntry bestEntry = null;
             for (int lane = 0; lane < m_LevelSequenceLanes.Count; lane++)
             {
                 Queue<WagonSequenceEntry> q = m_LevelSequenceLanes[lane];
                 if (q == null) continue;
+                int depth = 0;
                 foreach (WagonSequenceEntry entry in q)
                 {
-                    if (entry == null || entry.linkId != linkId) continue;
-
-                    // Bu şeridin yeni gemisi, sütunun en arka spotuna denizden (yerel Z = -2.6) gelir
-                    int spawnIdx = (m_Rows - 1) * m_Columns + (lane % Mathf.Max(1, m_Columns));
-                    if (spawnIdx < 0 || spawnIdx >= m_QueueSpots.Count || m_QueueSpots[spawnIdx] == null) return;
-
-                    Vector3 spawnPoint = new Vector3(0f, 0.95f * m_ShipScale, -2.6f);
-                    // Gizli gemi doğduğunda da renk görünmez; halat yarısı nötr halat renginde kalır
-                    Color partnerColor = entry.isHidden ? new Color(0.85f, 0.65f, 0.35f, 1f) : entry.wagonColor;
-                    LinkedShipTether.CreatePendingTether(ship, linkId, m_QueueSpots[spawnIdx], spawnPoint, partnerColor);
-                    return;
+                    if (entry != null && entry.linkId == linkId)
+                    {
+                        if (depth < bestDepth) { bestDepth = depth; bestLane = lane; bestEntry = entry; }
+                        break;
+                    }
+                    depth++;
                 }
             }
+            if (bestEntry == null) return;
+
+            // Bu şeridin yeni gemisi, sütunun en arka spotuna denizden (yerel Z = -2.6) gelir
+            int spawnIdx = (m_Rows - 1) * m_Columns + (bestLane % Mathf.Max(1, m_Columns));
+            if (spawnIdx < 0 || spawnIdx >= m_QueueSpots.Count || m_QueueSpots[spawnIdx] == null) return;
+            Transform anchor = m_QueueSpots[spawnIdx];
+
+            ShipController from = members[0];
+            float bestDx = float.MaxValue;
+            foreach (var m in members)
+            {
+                if (m == null) continue;
+                float dx = Mathf.Abs(m.transform.position.x - anchor.position.x);
+                // Eşitlikte en arkadaki (gelecek üyeye en yakın) konteyner
+                if (dx < bestDx - 0.01f || (Mathf.Abs(dx - bestDx) <= 0.01f && m.transform.position.y < from.transform.position.y))
+                {
+                    bestDx = dx;
+                    from = m;
+                }
+            }
+
+            Vector3 spawnPoint = new Vector3(0f, 0.95f * m_ShipScale, -2.6f);
+            // Gizli gemi doğduğunda da renk görünmez; halat yarısı nötr halat renginde kalır
+            Color partnerColor = bestEntry.isHidden ? new Color(0.85f, 0.65f, 0.35f, 1f) : bestEntry.wagonColor;
+            LinkedShipTether.CreatePendingTether(from, linkId, anchor, spawnPoint, partnerColor);
         }
 
         public void ClearAllTethers()
@@ -1150,6 +1218,15 @@ namespace PixelGame
         /// Kuyruktaki bir geminin en ön sırada olup olmadığını kontrol eder.
         /// Eğer geminin önündeki tüm sıralar boş/ayrılmış ise bu gemi sütunun en önündeki serbest gemidir.
         /// </summary>
+        /// <summary>Geminin kuyruktaki sıra numarası (0 = en ön); kuyrukta değilse -1.</summary>
+        public int GetQueueRow(ShipController ship)
+        {
+            if (ship == null || m_WaitingShips == null || m_Columns <= 0) return -1;
+            int index = m_WaitingShips.IndexOf(ship);
+            if (index < 0 && ship.transform.parent != null) index = m_QueueSpots.IndexOf(ship.transform.parent);
+            return index < 0 ? -1 : index / m_Columns;
+        }
+
         public bool IsFrontRow(ShipController ship)
         {
             if (ship == null) return false;
@@ -1222,8 +1299,8 @@ namespace PixelGame
                     ShipController blocker = m_WaitingShips[checkIdx];
                     if (blocker != null && blocker.gameObject.activeInHierarchy && !blocker.IsDeparting && !blocker.IsDocked)
                     {
-                        // Eğer öndeki gemi bu geminin kendi bağlı partneri ise engel sayılmaz!
-                        if (ship.IsLinked && ship.LinkedPartner == blocker)
+                        // Öndeki gemi bu geminin kendi halat grubundansa engel sayılmaz!
+                        if (ship.LinkId > 0 && blocker.LinkId == ship.LinkId)
                         {
                             continue;
                         }
@@ -1243,40 +1320,35 @@ namespace PixelGame
         /// </summary>
         public void OnLinkedShipsDispatched(ShipController shipA, ShipController shipB)
         {
-            if (shipA == null && shipB == null) return;
-            if (shipA == null) { OnFrontShipDispatched(shipB); return; }
-            if (shipB == null) { OnFrontShipDispatched(shipA); return; }
+            OnLinkedGroupDispatched(new[] { shipA, shipB });
+        }
 
-            int colA = -1;
-            int colB = -1;
-
-            int idxA = m_WaitingShips != null ? m_WaitingShips.IndexOf(shipA) : -1;
-            if (idxA >= 0) colA = idxA % m_Columns;
-            else if (shipA.transform.parent != null)
+        /// <summary>
+        /// Halatlı grubun tüm üyeleri birlikte gönderildiğinde: her sütundan o sütundaki üyeler birden temizlenir
+        /// ve arkadaki gemiler öne kayar (alt alta bağlı üyeler aynı kaydırmada çıkar).
+        /// </summary>
+        public void OnLinkedGroupDispatched(IReadOnlyList<ShipController> members)
+        {
+            if (members == null) return;
+            var byColumn = new Dictionary<int, List<ShipController>>();
+            for (int i = 0; i < members.Count; i++)
             {
-                int spotIdx = m_QueueSpots.IndexOf(shipA.transform.parent);
-                if (spotIdx >= 0) colA = spotIdx % m_Columns;
+                ShipController m = members[i];
+                if (m == null) continue;
+                int col = -1;
+                int idx = m_WaitingShips != null ? m_WaitingShips.IndexOf(m) : -1;
+                if (idx >= 0) col = idx % m_Columns;
+                else if (m.transform.parent != null)
+                {
+                    int spotIdx = m_QueueSpots.IndexOf(m.transform.parent);
+                    if (spotIdx >= 0) col = spotIdx % m_Columns;
+                }
+                if (col < 0) continue;
+                if (!byColumn.TryGetValue(col, out var list)) byColumn[col] = list = new List<ShipController>();
+                list.Add(m);
             }
-
-            int idxB = m_WaitingShips != null ? m_WaitingShips.IndexOf(shipB) : -1;
-            if (idxB >= 0) colB = idxB % m_Columns;
-            else if (shipB.transform.parent != null)
-            {
-                int spotIdx = m_QueueSpots.IndexOf(shipB.transform.parent);
-                if (spotIdx >= 0) colB = spotIdx % m_Columns;
-            }
-
-            if (colA >= 0 && colB >= 0 && colA == colB)
-            {
-                // Aynı sütundalar (alt alta): iki gemiyi birden sütundan temizleyip arkadaki tüm sıraları öne kaydır
-                ShiftColumnForward(colA, shipA, shipB);
-            }
-            else
-            {
-                // Farklı sütunlardalar: Her birini kendi sütununda dispatch et
-                if (colA >= 0) ShiftColumnForward(colA, shipA);
-                if (colB >= 0) ShiftColumnForward(colB, shipB);
-            }
+            foreach (var kvp in byColumn)
+                ShiftColumnForward(kvp.Key, kvp.Value.ToArray());
         }
 
         /// <summary>
@@ -1527,7 +1599,7 @@ namespace PixelGame
             ShipController ship = shipObj.GetComponent<ShipController>();
             if (ship == null) ship = shipObj.AddComponent<ShipController>();
             ship.SetBaseScale(Vector3.one * SpawnScale);
-            ship.SetLinkedPartner(null, linkId);
+            ship.SetLinkId(linkId, GetLinkGroupSize(linkId));
 
             ship.Configure(shipColor, capacity);
             ship.SetMysteryHidden(m_LastSequenceShipHidden);

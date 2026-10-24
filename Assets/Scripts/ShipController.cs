@@ -506,63 +506,174 @@ namespace PixelGame
         private bool m_IsQueueAnimating = false;
         public bool IsQueueAnimating => m_IsQueueAnimating;
 
-        // ---------------- 🔗 Bağlı Gemi (Linked Ships) ----------------
+        // ---------------- 🔗 Bağlı Gemi Grubu (Linked Ships) ----------------
+        // Aynı linkId'yi taşıyan 2–4 gemi bir halat grubudur. Grup listesi üyeler arasında ortaktır (kendisi dahil),
+        // komşu üyeler arasında birer halat (LinkedShipTether) çizilir.
         private int m_LinkId = 0;
-        private ShipController m_LinkedPartner = null;
-        private LinkedShipTether m_Tether = null;
+        private int m_LinkGroupSize = 0; // bölüm verisindeki toplam üye sayısı (henüz doğmamışlar dahil)
+        private List<ShipController> m_LinkGroup = null;
+        private readonly List<LinkedShipTether> m_Tethers = new List<LinkedShipTether>();
 
         public int LinkId => m_LinkId;
-        public ShipController LinkedPartner => m_LinkedPartner;
-        public bool IsLinked => m_LinkId > 0 && m_LinkedPartner != null;
-        public LinkedShipTether Tether => m_Tether;
-
-        public void SetLinkedPartner(ShipController partner, int linkId, LinkedShipTether tether = null)
+        public int LinkGroupSize => Mathf.Max(m_LinkGroupSize, m_LinkGroup != null ? m_LinkGroup.Count : 0);
+        public IReadOnlyList<ShipController> LinkGroup => m_LinkGroup != null ? (IReadOnlyList<ShipController>)m_LinkGroup : System.Array.Empty<ShipController>();
+        /// <summary>Grubun kendisi dışındaki ilk üyesi (ikili halat için partner).</summary>
+        public ShipController LinkedPartner
         {
-            m_LinkedPartner = partner;
-            m_LinkId = linkId;
-            m_Tether = tether;
-            if (IsUiContainer)
+            get
             {
-                UpdateLinkedUiVisuals();
-                if (partner != null && partner.IsUiContainer)
-                {
-                    partner.UpdateLinkedUiVisuals();
-                }
+                if (m_LinkGroup == null) return null;
+                for (int i = 0; i < m_LinkGroup.Count; i++)
+                    if (m_LinkGroup[i] != null && m_LinkGroup[i] != this) return m_LinkGroup[i];
+                return null;
+            }
+        }
+        public bool IsLinked => m_LinkId > 0 && LinkedPartner != null;
+        /// <summary>Grubun bütün üyeleri sahnede mi (sonradan gelecek üye kalmadı mı)?</summary>
+        public bool IsLinkGroupComplete => IsLinked && m_LinkGroup.Count >= LinkGroupSize;
+        public LinkedShipTether Tether => m_Tethers.Count > 0 ? m_Tethers[0] : null;
+
+        /// <summary>Kuyrukta doğarken: yalnızca halat numarası ve grubun toplam boyu atanır; grup ve halatlar kuyrukta kurulur.</summary>
+        public void SetLinkId(int linkId, int groupSize = 2)
+        {
+            m_LinkId = linkId;
+            m_LinkGroupSize = linkId > 0 ? Mathf.Clamp(groupSize, 2, PixelLevelData.MaxLinkGroupSize) : 0;
+            m_LinkGroup = null;
+            m_Tethers.Clear();
+            if (IsUiContainer) UpdateLinkedUiVisuals();
+        }
+
+        public void SetLinkGroup(List<ShipController> group)
+        {
+            m_LinkGroup = group;
+            if (IsUiContainer) UpdateLinkedUiVisuals();
+        }
+
+        public void AddTether(LinkedShipTether tether)
+        {
+            if (tether != null && !m_Tethers.Contains(tether)) m_Tethers.Add(tether);
+        }
+
+        public void RemoveTether(LinkedShipTether tether) => m_Tethers.Remove(tether);
+        public void ClearTetherRefs() => m_Tethers.Clear();
+
+        public void RattleTethers()
+        {
+            for (int i = 0; i < m_Tethers.Count; i++)
+                if (m_Tethers[i] != null) m_Tethers[i].Rattle();
+        }
+
+        /// <summary>Grubun tüm üyelerine ret titreşimi ve halat sarsıntısı verir.</summary>
+        public void PlayLinkGroupDenial()
+        {
+            if (m_LinkGroup == null) { PlayDenialFeedback(); RattleTethers(); return; }
+            for (int i = 0; i < m_LinkGroup.Count; i++)
+            {
+                if (m_LinkGroup[i] == null) continue;
+                m_LinkGroup[i].PlayDenialFeedback();
+                m_LinkGroup[i].RattleTethers();
             }
         }
 
-        public void SetTether(LinkedShipTether tether)
+        /// <summary>
+        /// Eski ikili API (editör araçları): iki gemiyi tek halatlı gruba bağlar. partner null ise yalnızca halat numarası atanır.
+        /// </summary>
+        public void SetLinkedPartner(ShipController partner, int linkId, LinkedShipTether tether = null)
         {
-            m_Tether = tether;
+            if (partner == null)
+            {
+                SetLinkId(linkId, m_LinkGroupSize);
+                return;
+            }
+            var group = new List<ShipController> { this, partner };
+            m_LinkId = linkId;
+            m_LinkGroupSize = 2;
+            partner.m_LinkId = linkId;
+            partner.m_LinkGroupSize = 2;
+            AddTether(tether);
+            partner.AddTether(tether);
+            SetLinkGroup(group);
+            partner.SetLinkGroup(group);
         }
 
         /// <summary>
-        /// Geminin bağlı bir partneri var mı ve bu partner hâlâ slota yanaşık ve aktif mi?
+        /// Geminin grubunda hâlâ aktif (kalkmamış) başka üye var mı?
         /// </summary>
-        public bool HasActiveLinkedPartner =>
-            m_LinkId > 0 &&
-            m_LinkedPartner != null &&
-            m_LinkedPartner.gameObject.activeInHierarchy &&
-            !m_LinkedPartner.IsDeparting;
+        public bool HasActiveLinkedPartner
+        {
+            get
+            {
+                if (m_LinkId <= 0 || m_LinkGroup == null) return false;
+                for (int i = 0; i < m_LinkGroup.Count; i++)
+                {
+                    var m = m_LinkGroup[i];
+                    if (m != null && m != this && m.gameObject.activeInHierarchy && !m.IsDeparting) return true;
+                }
+                return false;
+            }
+        }
 
         /// <summary>
-        /// Bağlı partnerin de kalkışa hazır (tamamen dolu veya toplanacak küpü kalmamış) olup olmadığını doğrular.
+        /// Gruptaki diğer tüm üyeler de kalkışa hazır mı (tamamen dolu veya toplanacak küpü kalmamış)?
         /// </summary>
-        public bool IsLinkedPartnerReadyToDepart
+        public bool IsLinkGroupReadyToDepart
         {
             get
             {
                 if (!HasActiveLinkedPartner) return true;
-                if (m_LinkedPartner.HasPendingCargo || m_LinkedPartner.ActiveWorkersOut > 0) return false;
-                if (m_LinkedPartner.IsFull) return true;
-
-                if (ShipDispatcher.Instance != null &&
-                    ShipDispatcher.Instance.GetRemainingCountForColor(m_LinkedPartner.ShipColor) == 0)
+                for (int i = 0; i < m_LinkGroup.Count; i++)
                 {
-                    return true;
+                    var m = m_LinkGroup[i];
+                    if (m == null || m == this || !m.gameObject.activeInHierarchy || m.IsDeparting) continue;
+                    if (!m.IsDocked || m.HasPendingCargo || m.ActiveWorkersOut > 0) return false;
+                    if (m.IsFull) continue;
+                    if (ShipDispatcher.Instance != null && ShipDispatcher.Instance.GetRemainingCountForColor(m.ShipColor) == 0) continue;
+                    return false;
                 }
+                return true;
+            }
+        }
 
-                return false;
+        /// <summary>Grubu tamamen çözer: tüm halatlar kaldırılır, üyelerin bağı silinir.</summary>
+        private void BreakLinkGroup()
+        {
+            var members = m_LinkGroup != null ? new List<ShipController>(m_LinkGroup) : new List<ShipController> { this };
+            if (!members.Contains(this)) members.Add(this);
+            for (int i = 0; i < members.Count; i++)
+            {
+                var m = members[i];
+                if (m == null) continue;
+                m.DestroyOwnTethers();
+                m.m_LinkGroup = null;
+                m.m_LinkId = 0;
+                m.m_LinkGroupSize = 0;
+                if (m.IsUiContainer) m.UpdateLinkedUiVisuals();
+            }
+        }
+
+        /// <summary>Yalnızca bu gemiyi gruptan çıkarır (kalan üyeler bağlı kalır).</summary>
+        private void LeaveLinkGroup()
+        {
+            DestroyOwnTethers();
+            var group = m_LinkGroup;
+            m_LinkGroup = null;
+            m_LinkId = 0;
+            m_LinkGroupSize = 0;
+            if (group == null) return;
+            group.Remove(this);
+            for (int i = 0; i < group.Count; i++)
+                if (group[i] != null && group[i].IsUiContainer) group[i].UpdateLinkedUiVisuals();
+        }
+
+        private void DestroyOwnTethers()
+        {
+            var tethers = new List<LinkedShipTether>(m_Tethers);
+            m_Tethers.Clear();
+            for (int i = 0; i < tethers.Count; i++)
+            {
+                if (tethers[i] == null) continue;
+                if (Application.isPlaying) Destroy(tethers[i].gameObject);
+                else DestroyImmediate(tethers[i].gameObject);
             }
         }
 
@@ -582,7 +693,7 @@ namespace PixelGame
 
                 if (HasActiveLinkedPartner)
                 {
-                    return IsLinkedPartnerReadyToDepart;
+                    return IsLinkGroupReadyToDepart;
                 }
 
                 return true;
@@ -636,13 +747,15 @@ namespace PixelGame
                 ShipQueuePool pool = s_CachedQueuePool;
                 if (pool == null || pool.WaitingShips == null || !pool.WaitingShips.Contains(this)) return;
 
+                // "Arka sırada görüldü" gerçek sıra numarasına göre işaretlenir. IsFrontRow önü boş arka sırayı da ön
+                // sayıyordu: hızlı oynarken önü boşalan sütuna gelen gizli konteyner hiç "arkada" sayılmıyor, öne gelince
+                // de açılmıyordu.
+                int row = pool.GetQueueRow(this);
+                if (row < 0) return;
+                if (row > 0) m_MysterySeenInBackRow = true;
                 // Bağlı gemiler partnerinin hemen arkasından da çıkabildiği için "önü açık" ön sıra sayılır
-                bool atFront = IsLinked ? pool.IsShipUnblockedForDispatch(this) : pool.IsFrontRow(this);
-                if (!atFront)
-                {
-                    m_MysterySeenInBackRow = true;
-                    return;
-                }
+                bool atFront = row == 0 || (IsLinked && pool.IsShipUnblockedForDispatch(this));
+                if (!atFront) return;
                 reveal = m_MysterySeenInBackRow;
             }
 
@@ -895,23 +1008,30 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Bağlı gemilerin ikisinin birden en ön sırada ve serbest olup olmadığını kontrol eder.
+        /// Halat grubunun bütün üyelerinin kuyrukta, serbest ve önü açık olup olmadığını kontrol eder.
         /// </summary>
+        private bool IsAnyLinkMemberQueueAnimating()
+        {
+            if (m_LinkGroup == null) return false;
+            for (int i = 0; i < m_LinkGroup.Count; i++)
+                if (m_LinkGroup[i] != null && m_LinkGroup[i].IsQueueAnimating) return true;
+            return false;
+        }
+
         public bool CanDispatchLinked()
         {
-            if (!IsLinked) return true;
-            if (m_LinkedPartner == null) return true;
-
-            if (m_IsDocked || m_IsMoving || m_IsDeparting || m_IsQueueAnimating) return false;
-            if (m_LinkedPartner.IsDocked || m_LinkedPartner.IsMoving || m_LinkedPartner.IsDeparting || m_LinkedPartner.IsQueueAnimating) return false;
+            if (m_LinkId <= 0) return true;
+            // Grubun bütün üyeleri kuyruğa gelmeden gönderilemez
+            if (!IsLinkGroupComplete) return false;
 
             ShipQueuePool pool = ShipQueuePool.Instance != null ? ShipQueuePool.Instance : UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
-            if (pool != null)
+            for (int i = 0; i < m_LinkGroup.Count; i++)
             {
-                // Her iki geminin de çıkış yolu açık olmalı
-                // (Alt alta bağlı gemiler birbirini engellemez; yalnızca yabancı gemiler engel sayılır)
-                if (!pool.IsShipUnblockedForDispatch(this)) return false;
-                if (!pool.IsShipUnblockedForDispatch(m_LinkedPartner)) return false;
+                ShipController m = m_LinkGroup[i];
+                if (m == null) return false;
+                if (m.IsDocked || m.IsMoving || m.IsDeparting || m.IsQueueAnimating) return false;
+                // Her üyenin çıkış yolu açık olmalı (aynı gruptaki gemiler birbirini engellemez; yalnızca yabancı gemiler engel sayılır)
+                if (pool != null && !pool.IsShipUnblockedForDispatch(m)) return false;
             }
 
             return true;
@@ -1420,9 +1540,7 @@ namespace PixelGame
             Transform pillTr = transform.Find("Badge_Pill");
             RectTransform prt = pillTr != null ? pillTr.GetComponent<RectTransform>() : null;
 
-            bool isLinkedActive = m_LinkId > 0 && m_LinkedPartner != null &&
-                                  m_LinkedPartner.gameObject.activeInHierarchy &&
-                                  !m_LinkedPartner.IsDeparting && !m_IsDeparting;
+            bool isLinkedActive = HasActiveLinkedPartner && !m_IsDeparting;
 
             if (socketTr != null)
             {
@@ -2526,56 +2644,38 @@ namespace PixelGame
                 return;
             }
 
-            // 2'li bağlı gemi kuralı:
-            // Eğer gemi bağlıysa ve force == false ise, partneri de hazır (dolu) olmadan tek başına ASLA ayrılamaz!
+            // Halatlı grup kuralı:
+            // Gemi bağlıysa ve force == false ise, gruptaki diğer gemiler de hazır (dolu) olmadan tek başına ASLA ayrılamaz!
             if (!force && HasActiveLinkedPartner)
             {
-                if (!IsLinkedPartnerReadyToDepart)
+                if (!IsLinkGroupReadyToDepart)
                 {
-                    Debug.Log($"<color=#FFAA00><b>[ShipController]</b></color> ⚓ '{name}' ({ShipColor}) doldu ama bağlı partneri '{m_LinkedPartner.name}' ({m_LinkedPartner.ShipColor}) henüz dolmadı; partnerini bekliyor!");
+                    Debug.Log($"<color=#FFAA00><b>[ShipController]</b></color> ⚓ '{name}' ({ShipColor}) doldu ama halat grubundaki diğer gemiler henüz dolmadı; onları bekliyor!");
                     return;
                 }
 
-                // İkisi de hazır! Partneri de birlikte kalkışa geçir:
-                ShipController partnerToDepart = m_LinkedPartner;
-
-                // Halatı kaldır
-                if (m_Tether != null)
+                // Hepsi hazır: grubun kalanı da birlikte kalkışa geçer
+                var othersToDepart = new List<ShipController>();
+                for (int i = 0; i < m_LinkGroup.Count; i++)
                 {
-                    Destroy(m_Tether.gameObject);
-                    m_Tether = null;
-                }
-                if (partnerToDepart != null && partnerToDepart.Tether != null)
-                {
-                    Destroy(partnerToDepart.Tether.gameObject);
-                    partnerToDepart.SetTether(null);
+                    var m = m_LinkGroup[i];
+                    if (m != null && m != this && !m.IsDeparting) othersToDepart.Add(m);
                 }
 
-                m_LinkedPartner = null;
-                m_LinkId = 0;
+                BreakLinkGroup();
 
-                if (partnerToDepart != null && !partnerToDepart.IsDeparting)
+                for (int i = 0; i < othersToDepart.Count; i++)
                 {
-                    partnerToDepart.SetLinkedPartner(null, 0, null);
-                    partnerToDepart.DepartAndFreeSlot(force: true);
+                    if (othersToDepart[i] != null && !othersToDepart[i].IsDeparting)
+                        othersToDepart[i].DepartAndFreeSlot(force: true);
                 }
             }
 
             m_IsDeparting = true;
             m_EnableWaterBobbing = false;
 
-            // Halat/zincir varsa bağını kopar ve partneri serbest bırak
-            if (m_Tether != null)
-            {
-                Destroy(m_Tether.gameObject);
-                m_Tether = null;
-            }
-            if (m_LinkedPartner != null)
-            {
-                m_LinkedPartner.SetLinkedPartner(null, 0, null);
-                m_LinkedPartner = null;
-            }
-            m_LinkId = 0;
+            // Halat varsa bu gemi gruptan çıkar (zorla tek başına kalkışta kalan üyeler bağlı kalır)
+            LeaveLinkGroup();
 
             // Rozeti / texti HEMEN yok et (Kullanıcı: "textteki sayı dolduğunda text yok olsun")
             if (m_BadgeCanvasObj != null)
@@ -3751,7 +3851,7 @@ namespace PixelGame
         {
             if (CasualHudController.IsHardBannerActive) return;
             if (m_IsMoving || m_IsDeparting || m_IsQueueAnimating) return;
-            if (IsLinked && m_LinkedPartner != null && m_LinkedPartner.IsQueueAnimating) return;
+            if (IsLinked && IsAnyLinkMemberQueueAnimating()) return;
 
             // Zaten slotta yanaşmış bir gemiye tıklandıysa canlı dokunma yaylanması yap
             if (m_IsDocked)
@@ -3765,9 +3865,7 @@ namespace PixelGame
             // Bağlı gemi henüz serbest değilse uyar ve gönderme
             if (IsLinked && !CanDispatchLinked())
             {
-                PlayDenialFeedback();
-                if (m_LinkedPartner != null) m_LinkedPartner.PlayDenialFeedback();
-                if (m_Tether != null) m_Tether.Rattle();
+                PlayLinkGroupDenial();
                 return;
             }
 
@@ -3797,31 +3895,12 @@ namespace PixelGame
 
             bool isValidDrop = (candidate != null && candidate.IsEmpty && CanDockInSlot(candidate));
 
-            ShipSlot partnerSlot = null;
-            if (isValidDrop && IsLinked && m_LinkedPartner != null)
+            if (isValidDrop && m_LinkId > 0)
             {
-                // Bağlı gemi için bitişik 2. boş slot ara veya tekli gemiyi kaydırarak oluştur
-                if (ShipDispatcher.Instance != null &&
-                    ShipDispatcher.Instance.TryGetOrMakeAdjacentSlotsForLinkedPair(candidate, out ShipSlot slotA, out ShipSlot slotB))
-                {
-                    if (slotA == candidate) partnerSlot = slotB;
-                    else if (slotB == candidate) partnerSlot = slotA;
-                    else
-                    {
-                        float distA = Vector3.Distance(candidate.transform.position, slotA.transform.position);
-                        float distB = Vector3.Distance(candidate.transform.position, slotB.transform.position);
-                        if (distA <= distB) { candidate = slotA; partnerSlot = slotB; }
-                        else { candidate = slotB; partnerSlot = slotA; }
-                    }
-                }
-                else
-                {
-                    // 2. bitişik boş slot yoksa bağlı gemiler yanaşamaz!
-                    isValidDrop = false;
-                    PlayWobble();
-                    if (m_LinkedPartner != null) m_LinkedPartner.PlayWobble();
-                    if (m_Tether != null) m_Tether.Rattle();
-                }
+                // Halatlı grup: bitişik slotlar (gerekirse tekli gemi kaydırılarak) ve gönderim tıklamayla aynı yoldan yapılır
+                m_CandidateSlot = null;
+                if (ShipDispatcher.Instance != null && ShipDispatcher.Instance.TrySendShipFromQueue(this, candidate)) return;
+                isValidDrop = false;
             }
 
             if (isValidDrop)
@@ -3829,54 +3908,22 @@ namespace PixelGame
                 m_CandidateSlot = null;
 
                 ShipQueuePool queuePool = ShipQueuePool.Instance != null ? ShipQueuePool.Instance : UnityEngine.Object.FindFirstObjectByType<ShipQueuePool>();
-                if (IsLinked && m_LinkedPartner != null && partnerSlot != null)
+
+                // Kuyruk hiyerarşisinden dünya uzayına çıkar
+                transform.SetParent(null, true);
+
+                // Kuyruk kontrolü: Ön sıradan slota gönderiliyorsa kuyruk yöneticisini bilgilendir
+                if (queuePool != null && queuePool.WaitingShips != null && queuePool.WaitingShips.Contains(this))
                 {
-                    transform.SetParent(null, true);
-                    m_LinkedPartner.transform.SetParent(null, true);
-
-                    if (queuePool != null)
+                    if (queuePool.IsFrontRow(this))
                     {
-                        queuePool.OnLinkedShipsDispatched(this, m_LinkedPartner);
-                    }
-
-                    ShipDispatcher.Instance?.NotifyShipSent();
-
-                    // ⚓ Halatlı gemilerin sol-sağ yön tutarlılığı
-                    ShipSlot leftSlot = (candidate.transform.position.x <= partnerSlot.transform.position.x) ? candidate : partnerSlot;
-                    ShipSlot rightSlot = (candidate.transform.position.x <= partnerSlot.transform.position.x) ? partnerSlot : candidate;
-
-                    if (Mathf.Abs(transform.position.x - m_LinkedPartner.transform.position.x) > 0.15f)
-                    {
-                        ShipController leftShip = (transform.position.x <= m_LinkedPartner.transform.position.x) ? this : m_LinkedPartner;
-                        ShipController rightShip = (transform.position.x <= m_LinkedPartner.transform.position.x) ? m_LinkedPartner : this;
-
-                        leftShip.SailToSlot(leftSlot, m_SnapDuration);
-                        rightShip.SailToSlot(rightSlot, 0.35f);
-                    }
-                    else
-                    {
-                        SailToSlot(leftSlot, m_SnapDuration);
-                        m_LinkedPartner.SailToSlot(rightSlot, 0.35f);
+                        queuePool.OnFrontShipDispatched(this);
                     }
                 }
-                else
-                {
-                    // Kuyruk hiyerarşisinden dünya uzayına çıkar
-                    transform.SetParent(null, true);
 
-                    // Kuyruk kontrolü: Ön sıradan slota gönderiliyorsa kuyruk yöneticisini bilgilendir
-                    if (queuePool != null && queuePool.WaitingShips != null && queuePool.WaitingShips.Contains(this))
-                    {
-                        if (queuePool.IsFrontRow(this))
-                        {
-                            queuePool.OnFrontShipDispatched(this);
-                        }
-                    }
-
-                    // Mevcut Bezier SailToSlotRoutine ile hızlı, tatmin edici snap (m_SnapDuration: 0.16s)
-                    ShipDispatcher.Instance?.NotifyShipSent();
-                    SailToSlot(candidate, m_SnapDuration);
-                }
+                // Mevcut Bezier SailToSlotRoutine ile hızlı, tatmin edici snap (m_SnapDuration: 0.16s)
+                ShipDispatcher.Instance?.NotifyShipSent();
+                SailToSlot(candidate, m_SnapDuration);
             }
             else
             {
