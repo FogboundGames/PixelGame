@@ -139,6 +139,7 @@ namespace PixelGame.Editor
             Image speedImg = speedGo.GetComponent<Image>();
             Sprite speed1xSprite = LoadSprite("btn_marine_speed_1x");
             Sprite speed2xSprite = LoadSprite("btn_marine_speed_2x");
+            Sprite speed3xSprite = LoadSprite("btn_marine_speed_3x");
             if (speed1xSprite != null) speedImg.sprite = speed1xSprite;
             speedImg.preserveAspect = true;
 
@@ -154,6 +155,7 @@ namespace PixelGame.Editor
                 ctrl.SpeedButtonImage = speedImg;
                 ctrl.Speed1xSprite = speed1xSprite;
                 ctrl.Speed2xSprite = speed2xSprite;
+                ctrl.Speed3xSprite = speed3xSprite;
                 ctrl.EnsureSpeedTimerBadge();
                 EditorUtility.SetDirty(ctrl);
             }
@@ -313,6 +315,7 @@ namespace PixelGame.Editor
             Image speedImg = speedGo.GetComponent<Image>();
             Sprite speed1xSprite = LoadSprite("btn_marine_speed_1x");
             Sprite speed2xSprite = LoadSprite("btn_marine_speed_2x");
+            Sprite speed3xSprite = LoadSprite("btn_marine_speed_3x");
             if (speed1xSprite != null) speedImg.sprite = speed1xSprite;
             speedImg.preserveAspect = true;
             speedGo.AddComponent<CasualUIButtonJuice>();

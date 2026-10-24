@@ -94,6 +94,11 @@ namespace PixelGame
         [SerializeField] private AudioClip[] m_PickupSoundClips;
         [Range(0f, 1f)] [SerializeField] private float m_PickupSoundVolume = 0.6f;
 
+        [Header("📦 Konteyner Sesleri")]
+        [Tooltip("Konteyner slota yerleştiğinde çalacak tok darbe sesi (impactWood_medium_004).")]
+        [SerializeField] private AudioClip m_ContainerDockClip;
+        [Range(0f, 1f)] [SerializeField] private float m_ContainerDockVolume = 0.85f;
+
         [Header("📳 Mobil Titreşim (Haptics)")]
         [SerializeField] private bool m_EnableHaptics = true;
         [SerializeField] private bool m_HapticsOnlyOnMobile = true;
@@ -206,6 +211,17 @@ namespace PixelGame
             if (m_SailClip == null) m_SailClip = CreateProceduralSailClip();
             if (m_GameLaunchClip == null) m_GameLaunchClip = CreateProceduralGameLaunchClip();
             if (m_ButtonClickClip == null) m_ButtonClickClip = CreateProceduralButtonClickClip();
+
+            if (m_ContainerDockClip == null)
+            {
+                m_ContainerDockClip = Resources.Load<AudioClip>("impactWood_medium_004");
+#if UNITY_EDITOR
+                if (m_ContainerDockClip == null)
+                {
+                    m_ContainerDockClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Kenney/kenney_impact-sounds/Audio/impactWood_medium_004.ogg");
+                }
+#endif
+            }
         }
 
         private void OnValidate()
@@ -1485,14 +1501,36 @@ namespace PixelGame
                 SpawnWaterSplash(position, 16);
             }
 
-            // 2. Tok İskele Kilit Darbesi Sesi (🔊 Dock Snap & Thud)
+            // 2. Tok İskele / Konteyner Kilit Darbesi Sesi (🔊 Dock Snap & Metal Impact)
             if (IsSoundActive && m_FxSource != null)
             {
-                AudioClip dockClip = PickRandomClip(m_DockSoundClips);
+                AudioClip dockClip = null;
+                // UI konteynerler slota inince (waterSplash == false): ahşap/tok darbe sesi (impactWood_medium_004) çal
+                if (!waterSplash)
+                {
+                    if (m_ContainerDockClip == null)
+                    {
+                        m_ContainerDockClip = Resources.Load<AudioClip>("impactWood_medium_004");
+#if UNITY_EDITOR
+                        if (m_ContainerDockClip == null)
+                        {
+                            m_ContainerDockClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Kenney/kenney_impact-sounds/Audio/impactWood_medium_004.ogg");
+                        }
+#endif
+                    }
+                    dockClip = m_ContainerDockClip;
+                }
+
+                if (dockClip == null)
+                {
+                    dockClip = PickRandomClip(m_DockSoundClips);
+                }
+
                 if (dockClip != null)
                 {
-                    m_FxSource.pitch = UnityEngine.Random.Range(0.95f, 1.05f);
-                    m_FxSource.PlayOneShot(dockClip, m_MasterVolume * m_DockSoundVolume);
+                    m_FxSource.pitch = UnityEngine.Random.Range(0.97f, 1.03f);
+                    float volume = (!waterSplash && m_ContainerDockClip != null) ? m_ContainerDockVolume : m_DockSoundVolume;
+                    m_FxSource.PlayOneShot(dockClip, m_MasterVolume * volume);
                 }
                 else
                 {
@@ -1508,6 +1546,16 @@ namespace PixelGame
             // 3. Orta Titreşim (📳 Medium Haptic)
             TriggerHapticMedium();
         }
+
+        /// <summary>
+        /// Konteyner slota yerleştiğinde tok darbe sesini (impactWood_medium_004) çalar.
+        /// </summary>
+        public void PlayContainerDockFeedback(Vector3 position)
+        {
+            PlayShipDockFeedback(position, waterSplash: false);
+        }
+
+        public AudioClip ContainerDockClip { get => m_ContainerDockClip; set => m_ContainerDockClip = value; }
 
         /// <summary>
         /// Gemi dolup açık denize kalkış yaptığında:

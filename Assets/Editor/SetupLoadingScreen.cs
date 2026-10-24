@@ -60,7 +60,7 @@ namespace PixelGame.Editor
                     PlayerSettings.SplashScreenLogo logo = PlayerSettings.SplashScreenLogo.Create(2.0f, fogLogo);
                     PlayerSettings.SplashScreen.logos = new PlayerSettings.SplashScreenLogo[] { logo };
                     PlayerSettings.SplashScreen.show = true;
-                    PlayerSettings.SplashScreen.showUnityLogo = false;
+                    PlayerSettings.SplashScreen.showUnityLogo = true; // Fogbound + Unity logosu birlikte
                 }
                 catch (System.Exception ex)
                 {

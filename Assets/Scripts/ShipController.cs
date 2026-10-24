@@ -2809,9 +2809,19 @@ namespace PixelGame
             else DestroyImmediate(gameObject);
         }
 
+        private static readonly Color[] s_ConfettiPalette =
+        {
+            new Color(1.00f, 0.84f, 0.20f), // sarı
+            new Color(1.00f, 0.42f, 0.62f), // pembe
+            new Color(0.25f, 0.82f, 0.98f), // camgöbeği
+            new Color(0.40f, 0.90f, 0.45f), // yeşil
+            new Color(0.62f, 0.45f, 1.00f), // mor
+            Color.white
+        };
+
         /// <summary>
-        /// Yük konteyneri dolup balon gibi patladığında UI Canvas üzerinde renkli elmas parçacıklarının
-        /// dışa doğru fırlayıp kaybolduğu sevimli "pıt" patlama görsel efekti üretir.
+        /// Konteyner dolup balon gibi patladığında etrafa hafif konfeti saçılır: küçük renkli şerit/kareler
+        /// dışa (hafif yukarı) fırlar, sonra dönerek aşağı süzülüp solar.
         /// </summary>
         private void SpawnUiBalloonPopBurst(Transform parent, Vector3 localPos, Color containerColor)
         {
@@ -2819,6 +2829,7 @@ namespace PixelGame
 
             GameObject burstObj = new GameObject("[BalloonPop_Burst_FX]", typeof(RectTransform));
             burstObj.transform.SetParent(parent, false);
+            burstObj.transform.SetAsLastSibling();
             RectTransform burstRt = burstObj.GetComponent<RectTransform>();
             burstRt.anchorMin = new Vector2(0.5f, 0.5f);
             burstRt.anchorMax = new Vector2(0.5f, 0.5f);
@@ -2826,40 +2837,66 @@ namespace PixelGame
             burstRt.localPosition = localPos;
             burstRt.localScale = Vector3.one;
 
-            // 8 adet radyal balon parçacığı (küçük renkli elmas konfetiler)
-            int particleCount = 8;
-            for (int i = 0; i < particleCount; i++)
-            {
-                float angle = i * (360f / particleCount) * Mathf.Deg2Rad;
-                Vector2 dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-                float flyDist = UnityEngine.Random.Range(55f, 90f);
-                Vector2 targetPos = dir * flyDist;
+            // Komşu konteynerlerin (kendi sıralama Canvas'ları olabilir) altında kalmasın
+            Canvas fxCanvas = burstObj.AddComponent<Canvas>();
+            fxCanvas.overrideSorting = true;
+            fxCanvas.sortingOrder = 40;
 
-                GameObject pObj = new GameObject($"PopBit_{i}", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            // Konteynerin slottaki görünür boyutuna göre ölçekle
+            float k = Mathf.Max(1f, Mathf.Abs(transform.localScale.x));
+            Color baseCol = containerColor.a > 0.1f ? containerColor : Color.white;
+
+            const int pieceCount = 18;
+            const float totalDur = 0.72f;
+            for (int i = 0; i < pieceCount; i++)
+            {
+                float angle = (i + UnityEngine.Random.Range(-0.35f, 0.35f)) * (360f / pieceCount) * Mathf.Deg2Rad;
+                Vector2 dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                dir.y += 0.35f; // hafif yukarı saçılsın
+                dir.Normalize();
+
+                float burstDist = UnityEngine.Random.Range(55f, 105f) * k;
+                Vector2 burstPos = dir * burstDist;
+                Vector2 fallPos = burstPos + new Vector2(UnityEngine.Random.Range(-18f, 18f) * k, -UnityEngine.Random.Range(45f, 80f) * k);
+
+                GameObject pObj = new GameObject($"Confetti_{i}", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
                 pObj.transform.SetParent(burstObj.transform, false);
 
                 RectTransform prt = pObj.GetComponent<RectTransform>();
                 prt.anchorMin = new Vector2(0.5f, 0.5f);
                 prt.anchorMax = new Vector2(0.5f, 0.5f);
                 prt.pivot = new Vector2(0.5f, 0.5f);
-                prt.anchoredPosition = dir * 10f;
-                float size = UnityEngine.Random.Range(16f, 24f);
-                prt.sizeDelta = new Vector2(size, size);
-                prt.localRotation = Quaternion.Euler(0f, 0f, 45f + i * 22.5f); // Tatlı elmas duruşu
+                prt.anchoredPosition = dir * 12f * k;
+                // Şerit (uzun) ve kare konfetiler karışık
+                bool strip = i % 3 != 0;
+                float w = (strip ? UnityEngine.Random.Range(5f, 7f) : UnityEngine.Random.Range(7f, 9f)) * k;
+                float h = strip ? UnityEngine.Random.Range(12f, 16f) * k : w;
+                prt.sizeDelta = new Vector2(w, h);
+                prt.localRotation = Quaternion.Euler(0f, 0f, UnityEngine.Random.Range(0f, 360f));
+                prt.localScale = Vector3.one * 0.4f;
 
                 Image pImg = pObj.GetComponent<Image>();
-                Color pColor = Color.Lerp(containerColor, Color.white, (i % 2 == 0) ? 0.30f : 0.65f);
-                pImg.color = pColor;
+                Color c = (i % 3 == 0) ? Color.Lerp(baseCol, Color.white, 0.15f) : s_ConfettiPalette[UnityEngine.Random.Range(0, s_ConfettiPalette.Length)];
+                pImg.color = c;
                 pImg.raycastTarget = false;
 
-                // Dışa patlama, küçülme ve solma
-                prt.DOAnchorPos(targetPos, 0.16f).SetEase(Ease.OutQuad);
-                prt.DOScale(Vector3.zero, 0.16f).SetEase(Ease.InQuad);
-                pImg.DOFade(0f, 0.16f).SetEase(Ease.InQuad);
+                float burstDur = UnityEngine.Random.Range(0.20f, 0.26f);
+                float fallDur = totalDur - burstDur;
+                float spin = UnityEngine.Random.Range(360f, 720f) * (UnityEngine.Random.value < 0.5f ? -1f : 1f);
+
+                Sequence seq = DOTween.Sequence();
+                seq.Append(prt.DOAnchorPos(burstPos, burstDur).SetEase(Ease.OutCubic));
+                seq.Join(prt.DOScale(Vector3.one, burstDur * 0.6f).SetEase(Ease.OutBack));
+                seq.Append(prt.DOAnchorPos(fallPos, fallDur).SetEase(Ease.InQuad));
+                seq.Insert(0f, prt.DOLocalRotate(new Vector3(0f, 0f, spin), totalDur, RotateMode.FastBeyond360).SetEase(Ease.OutQuad));
+                // Düşerken kâğıt gibi yalpalasın (x ekseninde ince-kalın)
+                seq.Insert(burstDur, prt.DOScaleX(0.25f, fallDur * 0.25f).SetLoops(4, LoopType.Yoyo).SetEase(Ease.InOutSine));
+                seq.Insert(totalDur * 0.55f, pImg.DOFade(0f, totalDur * 0.45f).SetEase(Ease.InQuad));
+                seq.SetLink(pObj);
             }
 
             // Burst kök nesnesini animasyon bitince temizle
-            if (Application.isPlaying) Destroy(burstObj, 0.22f);
+            if (Application.isPlaying) Destroy(burstObj, totalDur + 0.1f);
             else DestroyImmediate(burstObj);
         }
 
@@ -3088,6 +3125,11 @@ namespace PixelGame
             float jumpArcHeight = Mathf.Abs(targetPos.y - startPos.y) * 0.28f + 0.12f;
             float xDelta = targetPos.x - startPos.x;
 
+            Vector3 prevPos = startPos;
+            Vector3 lastFxPos = startPos;
+            float trailTimer = 0f;
+            const float trailInterval = 0.042f;
+
             while (elapsed < duration)
             {
                 elapsed += Time.deltaTime;
@@ -3111,6 +3153,18 @@ namespace PixelGame
 
                 if (rt != null) rt.sizeDelta = targetSize;
 
+                // Konteyner zıplayarak giderken arkasında hafif hız çizgisi ve siluet efekti belirsin:
+                trailTimer += Time.deltaTime;
+                Vector3 moveDelta = currentPos - prevPos;
+                if (trailTimer >= trailInterval && t > 0.04f && t < 0.90f && moveDelta.sqrMagnitude > 1e-10f)
+                {
+                    trailTimer = 0f;
+                    // Siluet, konteynerin bir önceki izi noktasında doğar; yoksa tam altında kalıp görünmüyordu
+                    SpawnContainerSpeedFx(lastFxPos, moveDelta.normalized, targetSize);
+                    lastFxPos = currentPos;
+                }
+                prevPos = currentPos;
+
                 yield return null;
             }
 
@@ -3127,6 +3181,12 @@ namespace PixelGame
                 rt.pivot = new Vector2(0.5f, 0.5f);
                 rt.anchoredPosition = Vector2.zero;
                 rt.sizeDelta = targetSize; // Boyut kesinlikle korunur
+            }
+
+            // Ses ve dokunsal geri bildirim: Konteyner slota tam indiği dokunma anında tok darbe sesi (impactWood_medium_004) çalar
+            if (HypercasualFeedbackManager.Instance != null)
+            {
+                HypercasualFeedbackManager.Instance.PlayContainerDockFeedback(transform.position);
             }
 
             // "konteynarları slota yerleştirirken böyle hafif zıplar gibi yerleşsinler istiyorum"
@@ -3159,12 +3219,6 @@ namespace PixelGame
                 rt.sizeDelta = targetSize;
             }
 
-            // Ses ve dokunsal geri bildirim (konteyner slota inince su sıçraması efekti yok)
-            if (HypercasualFeedbackManager.Instance != null)
-            {
-                HypercasualFeedbackManager.Instance.PlayShipDockFeedback(transform.position, waterSplash: false);
-            }
-
             m_IsMoving = false;
             m_IsDocked = true;
 
@@ -3174,6 +3228,86 @@ namespace PixelGame
             }
 
             onComplete?.Invoke();
+        }
+
+        /// <summary>
+        /// Konteyner slota zıplayarak giderken arkasında hafif, tatlı bir hız efekti (speed lines & motion ghost) oluşturur.
+        /// Başka hiçbir oyun veya yerleşim mekaniğini etkilemez.
+        /// </summary>
+        private void SpawnContainerSpeedFx(Vector3 containerPos, Vector3 moveDir, Vector2 containerSize)
+        {
+            Transform parent = transform.parent;
+            if (parent == null) return;
+
+            int siblingIdx = Mathf.Max(0, transform.GetSiblingIndex());
+
+            // 1. Hafif Şeffaf Siluet İzi (Motion Echo / Ghost):
+            if (m_ContainerImage != null && m_ContainerImage.sprite != null)
+            {
+                GameObject ghostObj = new GameObject("[Speed_Ghost]", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                ghostObj.transform.SetParent(parent, false);
+                ghostObj.transform.SetSiblingIndex(siblingIdx);
+
+                RectTransform grt = ghostObj.GetComponent<RectTransform>();
+                grt.position = containerPos;
+                grt.localRotation = transform.localRotation;
+                grt.localScale = transform.localScale;
+                grt.sizeDelta = containerSize;
+
+                Image gImg = ghostObj.GetComponent<Image>();
+                gImg.sprite = m_ContainerImage.sprite;
+                Color col = m_ContainerImage.color;
+                gImg.color = new Color(col.r, col.g, col.b, 0.38f);
+                gImg.raycastTarget = false;
+
+                gImg.DOFade(0f, 0.22f).SetEase(Ease.OutQuad);
+                grt.DOScale(transform.localScale * 0.92f, 0.22f).SetEase(Ease.InQuad);
+
+                if (Application.isPlaying) Destroy(ghostObj, 0.26f);
+                else DestroyImmediate(ghostObj);
+            }
+
+            // 2. Zarif Hız Çizgileri (Speed Dash Lines):
+            // Ofsetler Canvas biriminde hesaplanır; dünya konumuna eklemeden önce Canvas ölçeğine çevrilir
+            // (Screen Space - Camera Canvas'ta 1 birim ≈ 0.005 dünya birimi; çevrilmezse çizgiler ekran dışına düşüyordu)
+            float toWorld = Mathf.Abs(transform.lossyScale.x);
+            Vector3 perpDir = new Vector3(-moveDir.y, moveDir.x, 0f);
+            float halfW = containerSize.x * 0.36f * toWorld;
+            float halfH = containerSize.y * 0.32f * toWorld;
+            float angle = Mathf.Atan2(moveDir.y, moveDir.x) * Mathf.Rad2Deg;
+
+            for (int i = 0; i < 2; i++)
+            {
+                float sideOffset = (i == 0 ? 1f : -1f) * UnityEngine.Random.Range(halfH * 0.20f, halfH * 0.75f);
+                Vector3 streakPos = containerPos - moveDir * halfW + perpDir * sideOffset;
+
+                GameObject streakObj = new GameObject("[Speed_Streak]", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                streakObj.transform.SetParent(parent, false);
+                streakObj.transform.SetSiblingIndex(siblingIdx);
+
+                RectTransform srt = streakObj.GetComponent<RectTransform>();
+                srt.position = streakPos;
+                srt.localRotation = Quaternion.Euler(0f, 0f, angle);
+
+                // Konteyner boyutuna göre: ince çizgiler (2-4 birim) 1.7 ölçekli konteynerin yanında görünmüyordu
+                float visualScale = Mathf.Max(1f, Mathf.Abs(transform.localScale.x));
+                float streakLen = UnityEngine.Random.Range(45f, 75f) * visualScale;
+                float streakThick = UnityEngine.Random.Range(7f, 10f) * visualScale;
+                srt.sizeDelta = new Vector2(streakLen, streakThick);
+                srt.localScale = Vector3.one;
+
+                Image sImg = streakObj.GetComponent<Image>();
+                Color baseColor = (m_ShipColor != Color.clear) ? m_ShipColor : Color.white;
+                Color tint = Color.Lerp(Color.white, baseColor, 0.6f); // açık gri zeminde seçilsin
+                sImg.color = new Color(tint.r, tint.g, tint.b, UnityEngine.Random.Range(0.75f, 0.9f));
+                sImg.raycastTarget = false;
+
+                srt.DOSizeDelta(new Vector2(streakLen * 1.35f, streakThick * 0.2f), 0.24f).SetEase(Ease.OutQuad);
+                sImg.DOFade(0f, 0.24f).SetEase(Ease.InQuad);
+
+                if (Application.isPlaying) Destroy(streakObj, 0.28f);
+                else DestroyImmediate(streakObj);
+            }
         }
 
         private IEnumerator SailToSlotRoutine(ShipSlot targetSlot, float customDuration = -1f, Action onComplete = null)

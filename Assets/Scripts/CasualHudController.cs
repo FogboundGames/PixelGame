@@ -54,26 +54,32 @@ namespace PixelGame
         [SerializeField] private Sprite m_HapticsOffSprite;
         [Header("🔄 Yeniden Başlat (Retry)")]
         [SerializeField] private UnityEngine.UI.Button m_RetryButton;
-        [Header("⚡ 2X Hız & Süre Sistemi")]
-        [Tooltip("Normal (1x) oyun hızı. Oyuncular eski 1x'i çok yavaş buldu; 2X butonu ve oyun sonu hızlanması " +
-                 "bu değerin katı olarak çalışır (1.5 → normal 1.5, 2X butonu 3, oyun sonu 3 / 6).")]
+        [Header("⚡ 1X / 2X / 3X Hız & Süre Sistemi")]
+        [Tooltip("Normal (1x) oyun hızı. Oyuncular eski 1x'i çok yavaş buldu; hız butonu ve oyun sonu hızlanması " +
+                 "bu değerin katı olarak çalışır (1.5 → normal 1.5, 2X butonu 3.0, 3X butonu 4.5).")]
         [SerializeField, Range(1f, 3f)] private float m_NormalGameSpeed = 1.5f;
         [SerializeField] private UnityEngine.UI.Button m_SpeedButton;
         [SerializeField] private UnityEngine.UI.Image m_SpeedButtonImage;
         [SerializeField] private Sprite m_Speed1xSprite;
         [SerializeField] private Sprite m_Speed2xSprite;
-        [Tooltip("Hız butonundaki 1X/2X yazısı (buton arka planından ayrı). Atanmışsa sprite yerine yazı değişir.")]
+        [SerializeField] private Sprite m_Speed3xSprite;
+        [Tooltip("Hız butonundaki 1X/2X/3X yazısı (buton arka planından ayrı). Atanmışsa sprite yerine yazı değişir.")]
         [SerializeField] private TextMeshProUGUI m_SpeedLabel;
         [Tooltip("1X yazısının rengi")]
         [SerializeField] private Color m_SpeedLabelNormalColor = Color.white;
         [Tooltip("2X açıkken yazının rengi (turuncu-sarı)")]
         [SerializeField] private Color m_SpeedLabelActiveColor = new Color(1f, 0.72f, 0.16f, 1f);
-        [Tooltip("2X butonunun kullanma süresi (dakika). Varsayılan: 30")]
+        [Tooltip("3X açıkken yazının rengi (canlı neon mercan / kırmızı)")]
+        [SerializeField] private Color m_SpeedLabelSuperColor = new Color(1f, 0.30f, 0.38f, 1f);
+        [Tooltip("Hız artırma butonlarının toplam kullanma süresi (dakika). Varsayılan: 30")]
         [SerializeField] private float m_Speed2xDurationMinutes = 30f;
-        [Tooltip("2X süre sınırı aktif mi?")]
+        [Tooltip("Hız süre sınırı aktif mi?")]
         [SerializeField] private bool m_Speed2xTimerEnabled = true;
+        [Tooltip("3X hızındayken sürenin kaç kat daha hızlı azalacağı. Örneğin 3.0f ise 1 saniyede 3 saniye süre harcanır.")]
+        [SerializeField] private float m_Speed3xDrainMultiplier = 3.0f;
         [SerializeField] private GameObject m_SpeedTimerBadge;
         [SerializeField] private TextMeshProUGUI m_SpeedTimerText;
+        [SerializeField] private int m_SpeedLevel = 1;
         private bool m_IsSpeed2x = false;
         private bool m_IsEndgameSpeedActive = false;
         private float m_Speed2xRemainingSeconds = 1800f;
@@ -147,7 +153,9 @@ namespace PixelGame
         public UnityEngine.UI.Image SpeedButtonImage { get => m_SpeedButtonImage; set => m_SpeedButtonImage = value; }
         public Sprite Speed1xSprite { get => m_Speed1xSprite; set => m_Speed1xSprite = value; }
         public Sprite Speed2xSprite { get => m_Speed2xSprite; set => m_Speed2xSprite = value; }
-        public bool IsSpeed2x => m_IsSpeed2x;
+        public Sprite Speed3xSprite { get => m_Speed3xSprite; set => m_Speed3xSprite = value; }
+        public bool IsSpeed2x => m_SpeedLevel >= 2;
+        public int SpeedLevel => m_SpeedLevel;
         public bool IsEndgameSpeedActive => m_IsEndgameSpeedActive;
         public float Speed2xRemainingSeconds => m_Speed2xRemainingSeconds;
         public float Speed2xDurationMinutes => m_Speed2xDurationMinutes;
@@ -170,6 +178,7 @@ namespace PixelGame
         {
             Instance = this;
             if (m_Speed2xDurationMinutes < 30f) m_Speed2xDurationMinutes = 30f;
+            m_SpeedLevel = 1;
             m_IsSpeed2x = false;
             m_IsEndgameSpeedActive = false;
             Time.timeScale = 1.0f;
@@ -226,19 +235,22 @@ namespace PixelGame
 
         private void Update()
         {
-            if (m_Speed2xTimerEnabled && m_IsSpeed2x)
+            if (m_Speed2xTimerEnabled && m_SpeedLevel > 1)
             {
                 if (m_Speed2xRemainingSeconds > 0f)
                 {
-                    m_Speed2xRemainingSeconds -= Time.unscaledDeltaTime;
+                    // 3X modundayken süre daha hızlı azalsın (örneğin 3 kat hızlı tüketim):
+                    float drainRate = (m_SpeedLevel == 3) ? Mathf.Max(1f, m_Speed3xDrainMultiplier) : 1.0f;
+                    m_Speed2xRemainingSeconds -= Time.unscaledDeltaTime * drainRate;
                     if (m_Speed2xRemainingSeconds <= 0f)
                     {
                         m_Speed2xRemainingSeconds = 0f;
+                        m_SpeedLevel = 1;
                         m_IsSpeed2x = false;
                         ApplySpeedState();
                         UpdateSpeedVisual();
                         SaveSpeedTimer();
-                        Debug.Log($"<color=#FFAA00><b>[CasualHUD]</b></color> ⏳ 2X butonunun {m_Speed2xDurationMinutes} dakikalık süresi doldu! Hız normale döndürüldü.");
+                        Debug.Log($"<color=#FFAA00><b>[CasualHUD]</b></color> ⏳ Hız butonunun {m_Speed2xDurationMinutes} dakikalık süresi doldu! Hız normale (1X) döndürüldü.");
                     }
 
                     m_TimerSaveCooldown += Time.unscaledDeltaTime;
@@ -285,9 +297,11 @@ namespace PixelGame
         {
             if (m_Speed1xSprite == null) m_Speed1xSprite = Resources.Load<Sprite>("btn_marine_speed_1x");
             if (m_Speed2xSprite == null) m_Speed2xSprite = Resources.Load<Sprite>("btn_marine_speed_2x");
+            if (m_Speed3xSprite == null) m_Speed3xSprite = Resources.Load<Sprite>("btn_marine_speed_3x");
 #if UNITY_EDITOR
             if (m_Speed1xSprite == null) m_Speed1xSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/CasualUI/btn_marine_speed_1x.png");
             if (m_Speed2xSprite == null) m_Speed2xSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/CasualUI/btn_marine_speed_2x.png");
+            if (m_Speed3xSprite == null) m_Speed3xSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/CasualUI/btn_marine_speed_3x.png");
 #endif
 
             if (m_SpeedButton == null)
@@ -410,6 +424,7 @@ namespace PixelGame
 
             if (m_Speed2xTimerEnabled && m_Speed2xRemainingSeconds <= 0f)
             {
+                m_SpeedLevel = 1;
                 m_IsSpeed2x = false;
             }
             ApplySpeedState();
@@ -1143,6 +1158,7 @@ namespace PixelGame
             SetEndgameSpeedActive(false);
             if (m_Speed2xTimerEnabled && m_Speed2xRemainingSeconds <= 0f)
             {
+                m_SpeedLevel = 1;
                 m_IsSpeed2x = false;
             }
             ApplySpeedState();
@@ -1291,6 +1307,8 @@ namespace PixelGame
             UpdateSpeedTimerVisual();
         }
 
+        public void ToggleSpeed() => ToggleSpeed2X();
+
         public void ToggleSpeed2X()
         {
             if (Time.frameCount == m_LastSpeedToggleFrame || (Time.unscaledTime - m_LastSpeedToggleTime < 0.2f && m_LastSpeedToggleTime > 0f))
@@ -1300,9 +1318,9 @@ namespace PixelGame
             m_LastSpeedToggleFrame = Time.frameCount;
             m_LastSpeedToggleTime = Time.unscaledTime;
 
-            if (!m_IsSpeed2x && m_Speed2xTimerEnabled && m_Speed2xRemainingSeconds <= 0f)
+            if (m_SpeedLevel == 1 && m_Speed2xTimerEnabled && m_Speed2xRemainingSeconds <= 0f)
             {
-                Debug.Log($"<color=#FFAA00><b>[CasualHUD]</b></color> ⚠️ 2X kullanma süresi bitmiş! ({m_Speed2xDurationMinutes} dakika doldu)");
+                Debug.Log($"<color=#FFAA00><b>[CasualHUD]</b></color> ⚠️ Hız artırma süresi bitmiş! ({m_Speed2xDurationMinutes} dakika doldu)");
                 if (m_SpeedButton != null)
                 {
                     m_SpeedButton.transform.DOComplete();
@@ -1312,28 +1330,64 @@ namespace PixelGame
                 return;
             }
 
-            m_IsSpeed2x = !m_IsSpeed2x;
+            // Döngü: 1X -> 2X -> 3X -> 1X
+            if (m_SpeedLevel == 1)
+            {
+                m_SpeedLevel = 2;
+            }
+            else if (m_SpeedLevel == 2)
+            {
+                if (m_Speed2xTimerEnabled && m_Speed2xRemainingSeconds <= 0f)
+                {
+                    m_SpeedLevel = 1;
+                }
+                else
+                {
+                    m_SpeedLevel = 3;
+                }
+            }
+            else
+            {
+                m_SpeedLevel = 1;
+            }
+
+            m_IsSpeed2x = (m_SpeedLevel >= 2);
             ApplySpeedState();
             UpdateSpeedVisual();
             SaveSpeedTimer();
             TriggerHaptic();
-            Debug.Log($"<color=#44FF44><b>[CasualHUD]</b></color> ⚡ Oyun Hızı: {(m_IsSpeed2x ? "2X" : "1X")} | Kalan 2X Süresi: {Mathf.CeilToInt(m_Speed2xRemainingSeconds)}s");
+
+            if (m_SpeedButton != null)
+            {
+                m_SpeedButton.transform.DOComplete();
+                m_SpeedButton.transform.DOPunchScale(Vector3.one * 0.15f, 0.2f, 8, 1f).SetUpdate(true);
+            }
+
+            Debug.Log($"<color=#44FF44><b>[CasualHUD]</b></color> ⚡ Oyun Hızı: {m_SpeedLevel}X | Kalan Hız Süresi: {Mathf.CeilToInt(m_Speed2xRemainingSeconds)}s (3X Hızlı Tüketim: {(m_SpeedLevel == 3 ? m_Speed3xDrainMultiplier : 1f)}x)");
         }
 
-        public void SetSpeed2X(bool enabled)
+        public void SetSpeedLevel(int level)
         {
-            if (enabled && m_Speed2xTimerEnabled && m_Speed2xRemainingSeconds <= 0f)
+            level = Mathf.Clamp(level, 1, 3);
+            if (level > 1 && m_Speed2xTimerEnabled && m_Speed2xRemainingSeconds <= 0f)
             {
-                enabled = false;
+                level = 1;
             }
-            m_IsSpeed2x = enabled;
+            m_SpeedLevel = level;
+            m_IsSpeed2x = (m_SpeedLevel >= 2);
             ApplySpeedState();
             UpdateSpeedVisual();
         }
 
+        public void SetSpeed2X(bool enabled)
+        {
+            SetSpeedLevel(enabled ? 2 : 1);
+        }
+
         public void SetSpeed2XVisual(bool enabled)
         {
-            m_IsSpeed2x = enabled;
+            m_SpeedLevel = enabled ? 2 : 1;
+            m_IsSpeed2x = (m_SpeedLevel >= 2);
             UpdateSpeedVisual();
         }
 
@@ -1342,7 +1396,7 @@ namespace PixelGame
             if (m_IsEndgameSpeedActive == active) return;
             m_IsEndgameSpeedActive = active;
             ApplySpeedState();
-            Debug.Log($"<color=#00FFAA><b>[CasualHUD]</b></color> 🎯 Oyun Sonu Hızlanması: {(active ? "AKTİF" : "KAPALI")} -> Hız: {(m_IsEndgameSpeedActive ? (m_IsSpeed2x ? "4X" : "2X") : (m_IsSpeed2x ? "2X" : "1X"))}");
+            Debug.Log($"<color=#00FFAA><b>[CasualHUD]</b></color> 🎯 Oyun Sonu Hızlanması: {(active ? "AKTİF" : "KAPALI")} -> Hız: {(m_IsEndgameSpeedActive ? $"{m_SpeedLevel * 2}X" : $"{m_SpeedLevel}X")}");
         }
 
         /// <summary>Normal (1x) oyunun Time.timeScale değeri; HUD yoksa 1.</summary>
@@ -1354,30 +1408,39 @@ namespace PixelGame
             if (m_IsEndgameSpeedActive)
             {
                 // Oyun sonunda sıradaki bütün gemiler için yerleşecek yer varsa:
-                // 2X butonu açıkken -> 4X hız
-                // 2X butonu kapalıysa -> 2X hızında hemen yerleşsin
-                targetScale = m_IsSpeed2x ? 4.0f : 2.0f;
+                // 1X -> 2X
+                // 2X -> 4X
+                // 3X -> 6X
+                if (m_SpeedLevel == 3) targetScale = 6.0f;
+                else if (m_SpeedLevel == 2) targetScale = 4.0f;
+                else targetScale = 2.0f;
             }
             else
             {
                 // Normal oynanış:
-                // 2X açıkken 2x, kapalıyken 1x
-                targetScale = m_IsSpeed2x ? 2.0f : 1.0f;
+                // 1X -> 1x
+                // 2X -> 2x
+                // 3X -> 3x
+                if (m_SpeedLevel == 3) targetScale = 3.0f;
+                else if (m_SpeedLevel == 2) targetScale = 2.0f;
+                else targetScale = 1.0f;
             }
 
             targetScale *= Mathf.Max(0.1f, m_NormalGameSpeed);
             Time.timeScale = targetScale;
             Time.fixedDeltaTime = 0.02f * Time.timeScale;
-            Debug.Log($"<color=#44FF44><b>[SpeedControl]</b></color> ⚡ Time.timeScale = {targetScale}f (Endgame: {m_IsEndgameSpeedActive}, Buton2x: {m_IsSpeed2x})");
+            Debug.Log($"<color=#44FF44><b>[SpeedControl]</b></color> ⚡ Time.timeScale = {targetScale}f (Endgame: {m_IsEndgameSpeedActive}, Seviye: {m_SpeedLevel}X)");
         }
 
         public void UpdateSpeedVisual()
         {
             if (m_Speed1xSprite == null) m_Speed1xSprite = Resources.Load<Sprite>("btn_marine_speed_1x");
             if (m_Speed2xSprite == null) m_Speed2xSprite = Resources.Load<Sprite>("btn_marine_speed_2x");
+            if (m_Speed3xSprite == null) m_Speed3xSprite = Resources.Load<Sprite>("btn_marine_speed_3x");
 #if UNITY_EDITOR
             if (m_Speed1xSprite == null) m_Speed1xSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/CasualUI/btn_marine_speed_1x.png");
             if (m_Speed2xSprite == null) m_Speed2xSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/CasualUI/btn_marine_speed_2x.png");
+            if (m_Speed3xSprite == null) m_Speed3xSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/CasualUI/btn_marine_speed_3x.png");
 #endif
 
             if (m_SpeedButtonImage == null && m_SpeedButton != null)
@@ -1387,12 +1450,17 @@ namespace PixelGame
 
             if (m_SpeedLabel == null && m_SpeedButtonImage != null)
             {
-                if (m_IsSpeed2x && m_Speed2xSprite != null)
+                if (m_SpeedLevel == 3 && m_Speed3xSprite != null)
+                {
+                    m_SpeedButtonImage.sprite = m_Speed3xSprite;
+                    m_SpeedButtonImage.color = Color.white;
+                }
+                else if (m_SpeedLevel == 2 && m_Speed2xSprite != null)
                 {
                     m_SpeedButtonImage.sprite = m_Speed2xSprite;
                     m_SpeedButtonImage.color = Color.white;
                 }
-                else if (!m_IsSpeed2x && m_Speed1xSprite != null)
+                else if (m_Speed1xSprite != null)
                 {
                     m_SpeedButtonImage.sprite = m_Speed1xSprite;
                     if (m_Speed2xTimerEnabled && m_Speed2xRemainingSeconds <= 0f)
@@ -1410,13 +1478,25 @@ namespace PixelGame
             UpdateSpeedTimerVisual();
         }
 
-        /// <summary>Buton arka planı ayrı, "1X"/"2X" yazısı ayrı (m_SpeedLabel) olduğunda yazıyı günceller.</summary>
+        /// <summary>Buton arka planı ayrı, "1X"/"2X"/"3X" yazısı ayrı (m_SpeedLabel) olduğunda yazıyı günceller.</summary>
         private void UpdateSpeedLabel()
         {
             if (m_SpeedLabel == null) return;
-            m_SpeedLabel.text = m_IsSpeed2x ? "2X" : "1X";
-            bool expired = !m_IsSpeed2x && m_Speed2xTimerEnabled && m_Speed2xRemainingSeconds <= 0f;
-            Color c = m_IsSpeed2x ? m_SpeedLabelActiveColor : m_SpeedLabelNormalColor;
+            m_SpeedLabel.text = m_SpeedLevel + "X";
+            bool expired = (m_SpeedLevel == 1) && m_Speed2xTimerEnabled && m_Speed2xRemainingSeconds <= 0f;
+            Color c;
+            if (m_SpeedLevel == 3)
+            {
+                c = m_SpeedLabelSuperColor;
+            }
+            else if (m_SpeedLevel == 2)
+            {
+                c = m_SpeedLabelActiveColor;
+            }
+            else
+            {
+                c = m_SpeedLabelNormalColor;
+            }
             c.a *= expired ? 0.55f : 1f;
             m_SpeedLabel.color = c;
         }
@@ -1488,7 +1568,12 @@ namespace PixelGame
             int secs = totalSecs % 60;
             string timeStr = $"{mins:00}:{secs:00}";
 
-            if (m_IsSpeed2x)
+            if (m_SpeedLevel == 3)
+            {
+                m_SpeedTimerText.text = timeStr;
+                m_SpeedTimerText.color = new Color(1.0f, 0.32f, 0.40f); // Canlı neon mercan / kırmızı
+            }
+            else if (m_SpeedLevel == 2)
             {
                 m_SpeedTimerText.text = timeStr;
                 m_SpeedTimerText.color = new Color(0.25f, 1.0f, 0.55f); // Canlı neon mint yeşili

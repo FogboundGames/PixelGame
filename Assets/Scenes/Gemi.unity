@@ -181899,13 +181899,17 @@ MonoBehaviour:
   m_SpeedButtonImage: {fileID: 1344278724}
   m_Speed1xSprite: {fileID: 21300000, guid: aa74ae4519ce50f408e46eb517d1ce34, type: 3}
   m_Speed2xSprite: {fileID: 21300000, guid: 33b75b278d79d0c40941250c42d16e69, type: 3}
+  m_Speed3xSprite: {fileID: 21300000, guid: 62e0b582b51c41879562627494fa3a95, type: 3}
   m_SpeedLabel: {fileID: 460764476}
   m_SpeedLabelNormalColor: {r: 1, g: 1, b: 1, a: 1}
   m_SpeedLabelActiveColor: {r: 1, g: 0.72, b: 0.16, a: 1}
+  m_SpeedLabelSuperColor: {r: 1, g: 0.3, b: 0.38, a: 1}
   m_Speed2xDurationMinutes: 30
   m_Speed2xTimerEnabled: 1
+  m_Speed3xDrainMultiplier: 3
   m_SpeedTimerBadge: {fileID: 0}
   m_SpeedTimerText: {fileID: 0}
+  m_SpeedLevel: 1
   m_StartingLives: 3
   m_StartingCoins: 250
   m_IsHardLevel: 1
@@ -207613,6 +207617,8 @@ MonoBehaviour:
   - {fileID: 8300000, guid: d7c9b8d0a09532ba0af3713c67b16d03, type: 3}
   - {fileID: 8300000, guid: 5610fe16b5fe5b0d296232aab859eaa2, type: 3}
   m_PickupSoundVolume: 0.3
+  m_ContainerDockClip: {fileID: 8300000, guid: 95bc00c1d141ddf5282afdf6fbeed370, type: 3}
+  m_ContainerDockVolume: 0.85
   m_EnableHaptics: 1
   m_HapticsOnlyOnMobile: 1
 --- !u!4 &1699816083
