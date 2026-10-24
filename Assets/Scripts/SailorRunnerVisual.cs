@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace PixelGame
@@ -65,6 +66,28 @@ namespace PixelGame
         private static readonly int s_HopBoard = Animator.StringToHash(ParamHopBoard);
         private static readonly int s_Carrying = Animator.StringToHash(ParamCarrying);
         private static readonly int s_MoveSpeed = Animator.StringToHash(ParamMoveSpeed);
+
+        // Animator Controller'da gerçekten olan parametreler. Sailor_Runner.controller'da hiç parametre yok (klipler
+        // CrossFade ile oynatılıyor); olmayan parametreye her karede SetFloat/SetBool yapmak Unity'nin her seferinde
+        // "Parameter does not exist" uyarısı basmasına ve kare düşmesine yol açıyordu.
+        private RuntimeAnimatorController m_ParamsController;
+        private readonly HashSet<int> m_AnimatorParams = new HashSet<int>();
+
+        private bool HasParam(int hash)
+        {
+            if (m_Animator == null) return false;
+            if (m_ParamsController != m_Animator.runtimeAnimatorController)
+            {
+                m_ParamsController = m_Animator.runtimeAnimatorController;
+                m_AnimatorParams.Clear();
+                foreach (var p in m_Animator.parameters) m_AnimatorParams.Add(p.nameHash);
+            }
+            return m_AnimatorParams.Contains(hash);
+        }
+
+        private void SetTriggerSafe(int hash) { if (HasParam(hash)) m_Animator.SetTrigger(hash); }
+        private void ResetTriggerSafe(int hash) { if (HasParam(hash)) m_Animator.ResetTrigger(hash); }
+        private void SetBoolSafe(int hash, bool value) { if (HasParam(hash)) m_Animator.SetBool(hash, value); }
 
         private Vector3 m_LastPos;
         private Vector3 m_Facing = Vector3.up;
@@ -392,26 +415,26 @@ namespace PixelGame
 
             if (state == StateHopDown)
             {
-                m_Animator.ResetTrigger(s_Pickup); m_Animator.ResetTrigger(s_HopBoard);
-                m_Animator.SetBool(s_Carrying, false);
-                m_Animator.SetTrigger(s_HopDown);
+                ResetTriggerSafe(s_Pickup); ResetTriggerSafe(s_HopBoard);
+                SetBoolSafe(s_Carrying, false);
+                SetTriggerSafe(s_HopDown);
             }
             else if (state == StatePickup)
             {
-                m_Animator.SetBool(s_Carrying, true);
-                m_Animator.SetTrigger(s_Pickup);
+                SetBoolSafe(s_Carrying, true);
+                SetTriggerSafe(s_Pickup);
             }
             else if (state == StateHopBoard)
             {
-                m_Animator.SetTrigger(s_HopBoard);
+                SetTriggerSafe(s_HopBoard);
             }
             else if (state == StateRunEmpty)
             {
-                m_Animator.SetBool(s_Carrying, false);
+                SetBoolSafe(s_Carrying, false);
             }
             else if (state == StateRunCarry)
             {
-                m_Animator.SetBool(s_Carrying, true);
+                SetBoolSafe(s_Carrying, true);
             }
 
             m_Animator.CrossFadeInFixedTime(clipState, fade);
@@ -518,7 +541,7 @@ namespace PixelGame
                     m_Animator.speed = 1f;
                 }
                 float moveSpeed = Mathf.Clamp(m_SmoothSpeed / Mathf.Max(0.1f, m_ClipReferenceSpeed), m_MoveSpeedRange.x, m_MoveSpeedRange.y);
-                m_Animator.SetFloat(s_MoveSpeed, moveSpeed);
+                if (HasParam(s_MoveSpeed)) m_Animator.SetFloat(s_MoveSpeed, moveSpeed);
             }
         }
 

@@ -166,6 +166,79 @@ namespace PixelGame
         }
 
         /// <summary>
+        /// Tahtadaki bütün erişilebilir hücreleri toplama sırasıyla döner: GetNextCollectibleCells(occupied, _ => true)
+        /// ile birebir aynı sonuç, ama sözlük/küme yerine düz dizilerle (1000+ küpte milisaniyenin altında).
+        /// Renk süzmesi çağıranda yapılır; sıra renkten bağımsızdır.
+        /// </summary>
+        public static List<(int, int)> OrderAccessibleCells(List<(int, int)> occupied)
+        {
+            var result = new List<(int, int)>();
+            if (occupied == null || occupied.Count == 0) return result;
+
+            int minX = int.MaxValue, maxX = int.MinValue, minY = int.MaxValue, maxY = int.MinValue;
+            foreach (var c in occupied)
+            {
+                if (c.Item1 < minX) minX = c.Item1;
+                if (c.Item1 > maxX) maxX = c.Item1;
+                if (c.Item2 < minY) minY = c.Item2;
+                if (c.Item2 > maxY) maxY = c.Item2;
+            }
+            // Her yandan 1 hücre genişletilmiş kutu (ComputeOutsideAir ile aynı)
+            int ox = minX - 1, oy = minY - 1;
+            int w = maxX - minX + 3, h = maxY - minY + 3;
+            var occ = new bool[w * h];
+            foreach (var c in occupied) occ[(c.Item2 - oy) * w + (c.Item1 - ox)] = true;
+
+            // Dış boşluk: köşeden 4 yönlü flood fill
+            var air = new bool[w * h];
+            var stack = new int[w * h];
+            int sp = 0;
+            air[0] = true;
+            stack[sp++] = 0;
+            while (sp > 0)
+            {
+                int cur = stack[--sp];
+                int cx = cur % w, cy = cur / w;
+                if (cx > 0) { int n = cur - 1; if (!air[n] && !occ[n]) { air[n] = true; stack[sp++] = n; } }
+                if (cx < w - 1) { int n = cur + 1; if (!air[n] && !occ[n]) { air[n] = true; stack[sp++] = n; } }
+                if (cy > 0) { int n = cur - w; if (!air[n] && !occ[n]) { air[n] = true; stack[sp++] = n; } }
+                if (cy < h - 1) { int n = cur + w; if (!air[n] && !occ[n]) { air[n] = true; stack[sp++] = n; } }
+            }
+
+            // Sıra uçları: her satırda duran küplerin (her renk) en sol ve en sağ hücresi
+            var rowMin = new int[h];
+            var rowMax = new int[h];
+            for (int y = 0; y < h; y++) { rowMin[y] = int.MaxValue; rowMax[y] = int.MinValue; }
+            foreach (var c in occupied)
+            {
+                int ry = c.Item2 - oy;
+                if (c.Item1 < rowMin[ry]) rowMin[ry] = c.Item1;
+                if (c.Item1 > rowMax[ry]) rowMax[ry] = c.Item1;
+            }
+
+            // Erişilebilir hücreler: dört komşusundan biri dış boşlukta
+            foreach (var c in occupied)
+            {
+                int i = (c.Item2 - oy) * w + (c.Item1 - ox);
+                if (air[i - 1] || air[i + 1] || air[i - w] || air[i + w]) result.Add(c);
+            }
+
+            result.Sort((a, b) =>
+            {
+                if (a.Item2 != b.Item2) return a.Item2.CompareTo(b.Item2);                 // a) en alt sıra önce
+                int ry = a.Item2 - oy;
+                int da = Math.Min(a.Item1 - rowMin[ry], rowMax[ry] - a.Item1);
+                int db = Math.Min(b.Item1 - rowMin[ry], rowMax[ry] - b.Item1);
+                if (da != db) return da.CompareTo(db);                                    // b) en dıştaki önce
+                bool aLeft = a.Item1 - rowMin[ry] <= rowMax[ry] - a.Item1;
+                bool bLeft = b.Item1 - rowMin[ry] <= rowMax[ry] - b.Item1;
+                if (aLeft != bLeft) return aLeft ? -1 : 1;                                // c) eşitlikte sol önce
+                return a.Item1.CompareTo(b.Item1);
+            });
+            return result;
+        }
+
+        /// <summary>
         /// Sıradaki toplanabilir küpler, öncelik sırasıyla. <paramref name="occupied"/>: tahtada fiziksel olarak duran
         /// tüm hücreler (renk fark etmez). <paramref name="isCandidate"/>: bu hücre aranan renkte mi ve henüz kimseye
         /// ayrılmamış mı. Erişilemeyen adaylar dönmez; aday yoksa liste boştur (işçi beklemeli).

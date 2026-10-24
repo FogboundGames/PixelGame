@@ -99,6 +99,7 @@ namespace PixelGame
                 {
                     m_GridX = px;
                     m_GridY = py;
+                    BoardVersion++;
                 }
             }
 
@@ -126,12 +127,19 @@ namespace PixelGame
         private static readonly System.Collections.Generic.List<PixelCube> s_ActiveCubes = new System.Collections.Generic.List<PixelCube>(512);
         public static System.Collections.Generic.IReadOnlyList<PixelCube> ActiveCubes => s_ActiveCubes;
 
+        /// <summary>
+        /// Tahtadaki küp kümesi (konum, alınma, etkinlik) her değiştiğinde artar. Dış boşluk ve toplama sırası
+        /// önbelleği (ShipDispatcher) bunu izler: tahta değişmedikçe 1000 küplük hesap tekrarlanmaz.
+        /// </summary>
+        public static int BoardVersion { get; private set; }
+
         private void OnEnable()
         {
             if (!s_ActiveCubes.Contains(this))
             {
                 s_ActiveCubes.Add(this);
             }
+            BoardVersion++;
             if (m_CurrentColor != Color.white || m_OriginalColor != Color.white)
             {
                 ApplyColor(m_CurrentColor != Color.white ? m_CurrentColor : m_OriginalColor);
@@ -141,11 +149,13 @@ namespace PixelGame
         private void OnDisable()
         {
             s_ActiveCubes.Remove(this);
+            BoardVersion++;
         }
 
         private void OnDestroy()
         {
             s_ActiveCubes.Remove(this);
+            BoardVersion++;
         }
 
         private static Material s_CachedShadowMaterial;
@@ -350,6 +360,7 @@ namespace PixelGame
         {
             m_GridX = x;
             m_GridY = y;
+            BoardVersion++;
             m_OriginalColor = originalColor;
             m_TrueColor = originalColor;
             m_CurrentColor = originalColor;
@@ -760,6 +771,7 @@ namespace PixelGame
             m_HomeRotation = transform.rotation;
             m_IsLeaving = true;
             m_IsPopped = true;
+            BoardVersion++;
 
             if (m_CubeCollider == null) m_CubeCollider = GetComponent<Collider>();
             if (m_CubeCollider != null) m_CubeCollider.enabled = false;
@@ -813,6 +825,7 @@ namespace PixelGame
 
         public void SetPoppedVisualState(bool popped, bool regenerateContourShadow = true)
         {
+            if (m_IsPopped != popped) BoardVersion++;
             m_IsPopped = popped;
 
             if (m_Renderer == null) m_Renderer = GetComponent<MeshRenderer>();

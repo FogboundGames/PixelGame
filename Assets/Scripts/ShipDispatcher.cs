@@ -14,6 +14,18 @@ namespace PixelGame
     [AddComponentMenu("PixelGame/Ship Dispatcher")]
     public class ShipDispatcher : MonoBehaviour
     {
+        // Profiler işaretleri (büyük bölümlerde takılmayı ölçmek için)
+        private static readonly Unity.Profiling.ProfilerMarker s_ProfTryBuildLiveGrid = new Unity.Profiling.ProfilerMarker("LF.TryBuildLiveGrid");
+        private static readonly Unity.Profiling.ProfilerMarker s_ProfGetNextCollectibleBlocks = new Unity.Profiling.ProfilerMarker("LF.GetNextCollectibleBlocks");
+        private static readonly Unity.Profiling.ProfilerMarker s_ProfAllocateStackClaims = new Unity.Profiling.ProfilerMarker("LF.AllocateStackClaims");
+        private static readonly Unity.Profiling.ProfilerMarker s_ProfGetExposedMatchingCubes = new Unity.Profiling.ProfilerMarker("LF.GetExposedMatchingCubes");
+        private static readonly Unity.Profiling.ProfilerMarker s_ProfCheckAndRevealMysteryCubes = new Unity.Profiling.ProfilerMarker("LF.CheckAndRevealMysteryCubes");
+        private static readonly Unity.Profiling.ProfilerMarker s_ProfTriggerWaitingShipsCheck = new Unity.Profiling.ProfilerMarker("LF.TriggerWaitingShipsCheck");
+        private static readonly Unity.Profiling.ProfilerMarker s_ProfTryLaunchRope = new Unity.Profiling.ProfilerMarker("LF.TryLaunchRope");
+        private static readonly Unity.Profiling.ProfilerMarker s_ProfGetRemainingCountForColor = new Unity.Profiling.ProfilerMarker("LF.GetRemainingCountForColor");
+        private static readonly Unity.Profiling.ProfilerMarker s_ProfHasHiddenNearby = new Unity.Profiling.ProfilerMarker("LF.HasHiddenNearby");
+        private static readonly Unity.Profiling.ProfilerMarker s_ProfGetExposedLevelColors = new Unity.Profiling.ProfilerMarker("LF.GetExposedLevelColors");
+
         private static ShipDispatcher s_Instance;
         public static ShipDispatcher Instance => s_Instance;
 
@@ -1048,6 +1060,7 @@ namespace PixelGame
         /// </summary>
         public List<PixelCube> GetExposedMatchingCubes(Color shipColor)
         {
+            using var _prof = s_ProfGetExposedMatchingCubes.Auto();
             return GetNextCollectibleBlocks(shipColor);
         }
 
@@ -1088,6 +1101,7 @@ namespace PixelGame
         /// </summary>
         public void CheckAndRevealMysteryCubes(bool triggerFollowUpCheck = false)
         {
+            using var _prof = s_ProfCheckAndRevealMysteryCubes.Auto();
             var allCubes = PixelCube.ActiveCubes;
             if (allCubes == null || allCubes.Count == 0) return;
 
@@ -1156,6 +1170,7 @@ namespace PixelGame
         /// </summary>
         public void TriggerWaitingShipsCheck()
         {
+            using var _prof = s_ProfTriggerWaitingShipsCheck.Auto();
             CheckAndRevealMysteryCubes(triggerFollowUpCheck: false);
 
             if (m_Slots == null || m_Slots.Count == 0) return;
@@ -1297,6 +1312,7 @@ namespace PixelGame
         /// </summary>
         private bool TryLaunchRope(ShipController ship, out float boardClearTime, int maxPerLaunch = int.MaxValue)
         {
+            using var _prof = s_ProfTryLaunchRope.Auto();
             boardClearTime = Time.time;
             if (ship == null || !ship.CanAcceptMore) return false;
             if (!TryBuildLiveGrid(out var gridMap, out var outsideAir, out int minY)) return false;
@@ -1304,26 +1320,20 @@ namespace PixelGame
 
             s_ReservedCubes.RemoveWhere(c => c == null || c.IsPopped || !c.gameObject.activeSelf);
 
-            // 1. Bu geminin rengiyle eşleşen ve henüz rezerve edilmemiş TÜM canlı küpleri topla
-            var matchingCubes = new List<PixelCube>();
-            int minX = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
-            foreach (var kvp in gridMap)
+            // 1. Bu geminin rengiyle eşleşen ve henüz rezerve edilmemiş canlı küp var mı? (renk listesi ve tahta sınırları
+            // önbellekten: bütün tahtayı her denizci çıkışında gezmek büyük bölümlerde kare düşürüyordu)
+            int minX = m_BoardCellMinX, maxX = m_BoardCellMaxX, maxY = m_BoardCellMaxY;
+            bool anyMatching = false;
+            var colorCubes = GetBoardCubesOfColor(ship.ShipColor);
+            for (int i = 0; i < colorCubes.Count; i++)
             {
-                PixelCube cube = kvp.Value;
-                int gx = kvp.Key.Item1;
-                int gy = kvp.Key.Item2;
-                if (gx < minX) minX = gx;
-                if (gx > maxX) maxX = gx;
-                if (gy > maxY) maxY = gy;
-
-                if (s_ReservedCubes.Contains(cube)) continue;
-                if (cube.IsMystery) continue;
-                if (!ColorsMatch(cube.CurrentColor, ship.ShipColor) && !ColorsMatch(cube.OriginalColor, ship.ShipColor)) continue;
-
-                matchingCubes.Add(cube);
+                PixelCube cube = colorCubes[i];
+                if (cube == null || s_ReservedCubes.Contains(cube) || cube.IsMystery) continue;
+                anyMatching = true;
+                break;
             }
 
-            if (matchingCubes.Count == 0) return false;
+            if (!anyMatching) return false;
 
             // Seçim kuralı (GetExposedMatchingCubes ile aynı): yalnızca şu an gerçekten açık küpler,
             // en alt sıra önce, aynı sırada soldan sağa.
@@ -2306,12 +2316,26 @@ namespace PixelGame
         /// Art arda gönderilen aynı renk gemiler en alt sıra rezerve edilince kenarlara değil bir üst sıraya geçsin diye.</param>
         private bool TryBuildLiveGrid(out Dictionary<(int, int), PixelCube> gridMap, out HashSet<(int, int)> outsideAir, out int minY, bool ignoreReserved = false)
         {
+            using var _prof = s_ProfTryBuildLiveGrid.Auto();
             gridMap = new Dictionary<(int, int), PixelCube>();
             outsideAir = null;
             minY = 0;
 
             if (m_Generator == null) m_Generator = PixelArtGenerator.Instance;
             if (m_Generator == null || m_Generator.CubesContainer == null) return false;
+
+            if (!ignoreReserved)
+            {
+                // Tahta değişmedikçe aynı ızgara ve dış boşluk kullanılır (çağıranlar değiştirmez, yalnızca okur)
+                EnsureBoardCache();
+                if (m_BoardPresent.Count == 0) return false;
+                if (m_BoardLiveAir == null)
+                    m_BoardLiveAir = CalculateOutsideAir(m_BoardPresent, m_BoardCellMinX, m_BoardCellMaxX, m_BoardCellMinY, m_BoardCellMaxY);
+                gridMap = m_BoardPresent;
+                outsideAir = m_BoardLiveAir;
+                minY = m_BoardCellMinY;
+                return true;
+            }
 
             var allCubes = PixelCube.ActiveCubes;
             int minX = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
@@ -3176,6 +3200,7 @@ namespace PixelGame
         /// </summary>
         public List<Color> GetExposedLevelColors()
         {
+            using var _prof = s_ProfGetExposedLevelColors.Auto();
             List<Color> exposedColors = new List<Color>();
             if (m_Generator == null) m_Generator = PixelArtGenerator.Instance;
             if (m_Generator == null || m_Generator.CubesContainer == null) return exposedColors;
@@ -3322,20 +3347,16 @@ namespace PixelGame
 
         public int GetRemainingCountForColor(Color targetColor)
         {
+            using var _prof = s_ProfGetRemainingCountForColor.Auto();
             var activeCubes = PixelCube.ActiveCubes;
             if (activeCubes != null && activeCubes.Count > 0)
             {
                 int count = 0;
-                for (int i = 0; i < activeCubes.Count; i++)
+                var colorCubes = GetBoardCubesOfColor(targetColor);
+                for (int i = 0; i < colorCubes.Count; i++)
                 {
-                    var cube = activeCubes[i];
-                    if (cube != null && !cube.IsPopped && cube.gameObject.activeSelf && !s_ReservedCubes.Contains(cube))
-                    {
-                        if (ColorsMatch(cube.CurrentColor, targetColor) || ColorsMatch(cube.OriginalColor, targetColor))
-                        {
-                            count++;
-                        }
-                    }
+                    var cube = colorCubes[i];
+                    if (cube != null && !s_ReservedCubes.Contains(cube)) count++;
                 }
                 // Tahta kuruluyken sayım kesindir: bu renk bittiyse 0 döner. (Eskiden 0'da palet sayısına
                 // düşülüyordu; renk bitince gemi "hâlâ küp var" sanıp slotta sonsuza kadar bekliyordu.)
@@ -4813,27 +4834,118 @@ namespace PixelGame
         /// dış, eşitlikte sol). Yalnızca dışarıya erişimi olan, kimseye ayrılmamış, gizemli olmayan küpler döner;
         /// rezerve edilmiş küpler tahtada durduğu için erişimi ve sıra uçlarını belirlemeye devam eder. Boşsa beklenir.
         /// </summary>
+        // Tahta analizi önbelleği: küpler değişmedikçe (PixelCube.BoardVersion) dış boşluk, toplama sırası, canlı ızgara
+        // ve renk başına küp listeleri yeniden hesaplanmaz. Hesap düz dizilerle yapılır (tuple sözlük/küme yerine):
+        // 1000+ küplük bölümlerde eski hali çağrı başına 4–9 ms sürüyor, denizci çıkışlarında kare düşürüyordu.
+        // Tahta değişince yeni nesneler oluşturulur (eskileri temizlenmez): elinde eski referans tutan rutin bozulmaz.
+        private int m_BoardCacheVersion = -1;
+        private Dictionary<(int, int), PixelCube> m_BoardPresent = new Dictionary<(int, int), PixelCube>();
+        private List<(int, int)> m_BoardOrderedCells = new List<(int, int)>();
+        private int m_BoardCellMinX, m_BoardCellMaxX, m_BoardCellMinY, m_BoardCellMaxY;
+        private HashSet<(int, int)> m_BoardLiveAir;   // TryBuildLiveGrid için, istenince kurulur
+        private readonly Dictionary<Color, List<PixelCube>> m_BoardColorCubes = new Dictionary<Color, List<PixelCube>>();
+
+        private void EnsureBoardCache()
+        {
+            if (m_BoardCacheVersion == PixelCube.BoardVersion) return;
+            m_BoardCacheVersion = PixelCube.BoardVersion;
+            m_BoardPresent = new Dictionary<(int, int), PixelCube>();
+            m_BoardLiveAir = null;
+            m_BoardColorCubes.Clear();
+            var cells = new List<(int, int)>();
+            int minX = int.MaxValue, maxX = int.MinValue, minY = int.MaxValue, maxY = int.MinValue;
+            var all = PixelCube.ActiveCubes;
+            if (all != null)
+            {
+                for (int i = 0; i < all.Count; i++)
+                {
+                    PixelCube c = all[i];
+                    if (c == null || c.IsPopped || !c.gameObject.activeSelf) continue;
+                    var key = (c.GridX, c.GridY);
+                    if (!m_BoardPresent.ContainsKey(key)) cells.Add(key);
+                    m_BoardPresent[key] = c;
+                    if (c.GridX < minX) minX = c.GridX;
+                    if (c.GridX > maxX) maxX = c.GridX;
+                    if (c.GridY < minY) minY = c.GridY;
+                    if (c.GridY > maxY) maxY = c.GridY;
+                }
+            }
+            m_BoardCellMinX = minX; m_BoardCellMaxX = maxX; m_BoardCellMinY = minY; m_BoardCellMaxY = maxY;
+            m_BoardOrderedCells = CollectionOrder.OrderAccessibleCells(cells);
+        }
+
+        /// <summary>Bu renkteki tahtadaki küpler (rezerve olanlar dahil), tahta sürümü başına bir kez hesaplanır.</summary>
+        private List<PixelCube> GetBoardCubesOfColor(Color color)
+        {
+            EnsureBoardCache();
+            if (m_BoardColorCubes.TryGetValue(color, out var list)) return list;
+            list = new List<PixelCube>();
+            int targetIdx = BeginCubeColorMatch(color);
+            foreach (var c in m_BoardPresent.Values)
+                if (c != null && CubeMatchesColor(c, color, targetIdx)) list.Add(c);
+            m_BoardColorCubes[color] = list;
+            return list;
+        }
+
+        // Küp başına orijinal rengin palet numarası (orijinal renk değişmez); palet değişince temizlenir.
+        // ColorsMatch her çağrıda iki rengi de palette arıyordu: 1000 küplük tahtada renk süzmesi 3 ms sürüyordu.
+        private readonly Dictionary<PixelCube, int> m_CubeOriginalPaletteIdx = new Dictionary<PixelCube, int>();
+        private int m_CubePaletteStamp;
+
+        /// <summary>Hedef rengin palet numarasını döner ve palet değiştiyse küp numaralarını sıfırlar.</summary>
+        private int BeginCubeColorMatch(Color color)
+        {
+            int stamp;
+            unchecked
+            {
+                stamp = s_PaletteColors.Count;
+                for (int i = 0; i < s_PaletteColors.Count; i++) stamp = stamp * 31 + s_PaletteColors[i].GetHashCode();
+            }
+            if (stamp != m_CubePaletteStamp || m_CubeOriginalPaletteIdx.Count > 8192)
+            {
+                m_CubeOriginalPaletteIdx.Clear();
+                m_CubePaletteStamp = stamp;
+            }
+            return s_PaletteColors.Count > 0 ? GetPaletteIndex(color) : -1;
+        }
+
+        /// <summary>ColorsMatch(küp.CurrentColor, renk) || ColorsMatch(küp.OriginalColor, renk) ile aynı sonuç.</summary>
+        private bool CubeMatchesColor(PixelCube c, Color color, int targetIdx)
+        {
+            if (targetIdx >= 0)
+            {
+                if (!m_CubeOriginalPaletteIdx.TryGetValue(c, out int oi))
+                {
+                    oi = GetPaletteIndex(c.OriginalColor);
+                    m_CubeOriginalPaletteIdx[c] = oi;
+                }
+                if (oi >= 0)
+                {
+                    if (oi == targetIdx) return true;
+                    if (c.CurrentColor == c.OriginalColor) return false;
+                    int ci = GetPaletteIndex(c.CurrentColor);
+                    if (ci >= 0) return ci == targetIdx;
+                }
+            }
+            return ColorsMatch(c.CurrentColor, color) || ColorsMatch(c.OriginalColor, color);
+        }
+
         public List<PixelCube> GetNextCollectibleBlocks(Color color)
         {
+            using var _prof = s_ProfGetNextCollectibleBlocks.Auto();
             var result = new List<PixelCube>();
             var all = PixelCube.ActiveCubes;
             if (all == null || all.Count == 0) return result;
 
             s_ReservedCubes.RemoveWhere(c => c == null || c.IsPopped || !c.gameObject.activeSelf);
-            var present = new Dictionary<(int, int), PixelCube>(all.Count);
-            for (int i = 0; i < all.Count; i++)
+            EnsureBoardCache();
+            int targetIdx = BeginCubeColorMatch(color);
+            for (int i = 0; i < m_BoardOrderedCells.Count; i++)
             {
-                PixelCube c = all[i];
-                if (c != null && !c.IsPopped && c.gameObject.activeSelf) present[(c.GridX, c.GridY)] = c;
+                PixelCube c = m_BoardPresent[m_BoardOrderedCells[i]];
+                if (c == null || s_ReservedCubes.Contains(c) || c.IsMystery) continue;
+                if (CubeMatchesColor(c, color, targetIdx)) result.Add(c);
             }
-
-            var cells = CollectionOrder.GetNextCollectibleCells(present.Keys, cell =>
-            {
-                PixelCube c = present[cell];
-                if (s_ReservedCubes.Contains(c) || c.IsMystery) return false;
-                return ColorsMatch(c.CurrentColor, color) || ColorsMatch(c.OriginalColor, color);
-            });
-            for (int i = 0; i < cells.Count; i++) result.Add(present[cells[i]]);
             return result;
         }
 
@@ -4944,6 +5056,7 @@ namespace PixelGame
         /// </summary>
         private void AllocateStackClaims()
         {
+            using var _prof = s_ProfAllocateStackClaims.Auto();
             if (m_StackClaims.Count == 0) return;
             m_StackClaims.Sort((a, b) => a.Serial.CompareTo(b.Serial));
 
@@ -5074,14 +5187,14 @@ namespace PixelGame
         /// </summary>
         private bool HasHiddenNearby(Color color, (int, int) from, List<PixelCube> freeList)
         {
-            var all = PixelCube.ActiveCubes;
-            if (all == null) return false;
+            using var _prof = s_ProfHasHiddenNearby.Auto();
+            var colorCubes = GetBoardCubesOfColor(color);   // tahtadaki bu renkteki küpler (önbellekten)
+            if (colorCubes.Count == 0) return false;
             var free = new HashSet<PixelCube>(freeList);
-            for (int i = 0; i < all.Count; i++)
+            for (int i = 0; i < colorCubes.Count; i++)
             {
-                PixelCube c = all[i];
-                if (c == null || c.IsPopped || !c.gameObject.activeSelf || s_ReservedCubes.Contains(c) || free.Contains(c)) continue;
-                if (!ColorsMatch(c.CurrentColor, color) && !ColorsMatch(c.OriginalColor, color)) continue;
+                PixelCube c = colorCubes[i];
+                if (c == null || s_ReservedCubes.Contains(c) || free.Contains(c)) continue;
                 if (Mathf.Abs(c.GridX - from.Item1) + Mathf.Abs(c.GridY - from.Item2) <= m_StackMaxJumpCells) return true;
             }
             return false;
