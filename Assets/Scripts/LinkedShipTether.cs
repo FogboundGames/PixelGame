@@ -119,6 +119,9 @@ namespace PixelGame
         {
             if (a == null || b == null) return null;
 
+            // Sadece oyunda: editörde kurulursa sahneye kaydedilirdi
+            if (!Application.isPlaying) return null;
+
             GameObject tetherObj = new GameObject($"Tether_Link_{linkId}_{a.name}_{b.name}");
             
             Transform parentTr = null;
@@ -425,6 +428,7 @@ namespace PixelGame
 
         private void EnsureUiBridgeBar()
         {
+            if (!Application.isPlaying) return;
             if (m_UiBridgeObj != null) return;
 
             Transform uiParent = null;

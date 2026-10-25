@@ -171,7 +171,7 @@ PlayerSettings:
   applicationIdentifier:
     Android: com.fogboundgames.pixelflow
     Standalone: com.Unity-Technologies.com.unity.template.urp-blank
-    iPhone: com.fogboundgames.pixelflow
+    iPhone: com.fogboundgames.landflow
   buildNumber:
     Standalone: 0
     VisionOS: 0

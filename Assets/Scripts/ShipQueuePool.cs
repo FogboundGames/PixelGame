@@ -1019,6 +1019,14 @@ namespace PixelGame
 
         public void RefreshLinkedShipTethers()
         {
+            // Editörde sahneye halat nesneleri eklenmez (Level Designer'da düzenleme yaparken
+            // sahneye kaydedilip kalıntı bırakmaması için halatlar sadece oyun çalışırken dinamik üretilir).
+            if (!Application.isPlaying)
+            {
+                ClearAllTethers();
+                return;
+            }
+
             // 1. Sahnedeki TÜM aktif bağlı gemileri topla (kuyruk + slotlar + hareket halindekiler)
             List<ShipController> activeShips = new List<ShipController>();
             if (m_WaitingShips != null)
@@ -1209,6 +1217,35 @@ namespace PixelGame
                     else Destroy(oldTethers[i].gameObject);
 #else
                     Destroy(oldTethers[i].gameObject);
+#endif
+                }
+            }
+
+            // Sahipsiz UI köprülerini de temizle ([UI_Tethers_Root] altındakiler)
+            GameObject uiTethersRoot = GameObject.Find("[UI_Tethers_Root]");
+            if (uiTethersRoot != null)
+            {
+                for (int i = uiTethersRoot.transform.childCount - 1; i >= 0; i--)
+                {
+                    Transform child = uiTethersRoot.transform.GetChild(i);
+#if UNITY_EDITOR
+                    if (!Application.isPlaying) DestroyImmediate(child.gameObject);
+                    else Destroy(child.gameObject);
+#else
+                    Destroy(child.gameObject);
+#endif
+                }
+            }
+
+            // Boş kalmış [SHIP_TETHERS] konteynerini de editörde temizle
+            GameObject shipTethers = GameObject.Find("[SHIP_TETHERS]");
+            if (shipTethers != null && !Application.isPlaying)
+            {
+                for (int i = shipTethers.transform.childCount - 1; i >= 0; i--)
+                {
+                    Transform child = shipTethers.transform.GetChild(i);
+#if UNITY_EDITOR
+                    DestroyImmediate(child.gameObject);
 #endif
                 }
             }
