@@ -77,3 +77,7 @@ crashlytics-build.properties
 # Otomatik oyun testi raporları (Tools/PixelGame/Otomatik Oyun Testi)
 PlaytestReports/
 denemepixel_BackUpThisFolder_ButDontShipItWithYourGame/
+
+# Unity iOS build çıktıları (Xcode projesi)
+/landflowios*/
+*_BurstDebugInformation_DoNotShip/
