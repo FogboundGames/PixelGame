@@ -93,6 +93,9 @@ namespace PixelGame
         [Tooltip("Denizci panodan küp alınca bunlardan rastgele biri çalar.")]
         [SerializeField] private AudioClip[] m_PickupSoundClips;
         [Range(0f, 1f)] [SerializeField] private float m_PickupSoundVolume = 0.6f;
+        [Tooltip("UI butonlarına basınca çalar. Boşsa Resources/Audio/ui_button_click kullanılır.")]
+        [SerializeField] private AudioClip m_ButtonSoundClip;
+        [Range(0f, 1f)] [SerializeField] private float m_ButtonSoundVolume = 0.8f;
 
         [Header("📦 Konteyner Sesleri")]
         [Tooltip("Konteyner slota yerleştiğinde çalacak tok darbe sesi (impactWood_medium_004).")]
@@ -1626,6 +1629,13 @@ namespace PixelGame
             AudioSource src = m_FxSource != null ? m_FxSource : m_ChimeSource;
             if (src != null)
             {
+                if (m_ButtonSoundClip == null) m_ButtonSoundClip = Resources.Load<AudioClip>("Audio/ui_button_click");
+                if (m_ButtonSoundClip != null)
+                {
+                    src.pitch = UnityEngine.Random.Range(0.97f, 1.03f);
+                    src.PlayOneShot(m_ButtonSoundClip, m_MasterVolume * m_ButtonSoundVolume);
+                    return;
+                }
                 if (m_ButtonClickClip == null) m_ButtonClickClip = CreateProceduralButtonClickClip();
                 if (m_ButtonClickClip != null)
                 {
