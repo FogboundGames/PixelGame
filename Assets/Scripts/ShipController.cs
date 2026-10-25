@@ -756,10 +756,18 @@ namespace PixelGame
                 // Bağlı gemiler partnerinin hemen arkasından da çıkabildiği için "önü açık" ön sıra sayılır
                 bool atFront = row == 0 || (IsLinked && pool.IsShipUnblockedForDispatch(this));
                 if (!atFront) return;
+                // Spotuna henüz varmadıysa (denizden süzülerek ya da arkadan kayarak geliyorsa) varınca açılsın
+                if (transform.localPosition.sqrMagnitude > 1f) return;
                 reveal = m_MysterySeenInBackRow;
             }
 
             if (reveal) RevealMystery();
+        }
+
+        /// <summary>Gemi kuyruğa arkadan (denizden) geldi: öne geldiğinde örtüsü açılır.</summary>
+        public void MarkMysterySeenInBackRow()
+        {
+            if (m_IsMysteryHidden) m_MysterySeenInBackRow = true;
         }
 
         public void RevealMystery()
@@ -4577,8 +4585,7 @@ namespace PixelGame
                         {
                             m_BadgeText.text = m_IsMysteryHidden ? "?" : countToShow.ToString();
                         }
-                        bool isWhiteContainer = m_ShipColor.r > 0.85f && m_ShipColor.g > 0.85f && m_ShipColor.b > 0.85f;
-                        m_BadgeText.outlineColor = isWhiteContainer ? new Color(0.62f, 0.62f, 0.65f, 1f) : Color.black;
+                        m_BadgeText.outlineColor = Color.black;
                     }
                 }
                 return;

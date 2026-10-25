@@ -15,7 +15,7 @@ MonoBehaviour:
   m_LevelName: Karpuz
   m_LevelIndex: 2
   m_DifficultyTier: 0
-  m_DifficultyManual: 1
+  m_DifficultyManual: 0
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: 9096244276ba2585a8dad54cba2bc0d9, type: 3}
   m_OriginalSourceTexture: {fileID: 0}

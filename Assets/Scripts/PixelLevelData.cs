@@ -59,7 +59,7 @@ namespace PixelGame
         public int paletteIndex = 0;
         public string label = "Vagon";
 
-        [Tooltip("Halatlı gruptaki 2–4 geminin hepsi aynı pozitif ID'yi taşır (örn: 1, 2, 3...). 0 = Bağımsız gemi.")]
+        [Tooltip("Halatla bağlı gemilerin ikisi de aynı pozitif ID'yi taşır (örn: 1, 2, 3...). 0 = Bağımsız gemi.")]
         public int linkId = 0;
 
         [Tooltip("Gizli gemi: Kuyrukta en ön sıraya gelene kadar rengi ve kapasite yazısı '?' desenli örtüyle saklanır.")]
@@ -338,8 +338,8 @@ namespace PixelGame
         /// <summary>Her bölümde slot sayısı sabit; bölüm başına ayarlanmaz.</summary>
         public const int FixedSlotCount = 5;
 
-        /// <summary>Bir halatla bağlanabilecek en fazla gemi sayısı.</summary>
-        public const int MaxLinkGroupSize = 4;
+        /// <summary>Bir halatla bağlanabilecek en fazla gemi sayısı (kod 2–4'ü destekler; tasarım kararıyla ikili halat).</summary>
+        public const int MaxLinkGroupSize = 2;
 
         // Eski bölüm dosyalarındaki değer okunmaz (SlotCount her zaman FixedSlotCount döner)
         [HideInInspector]

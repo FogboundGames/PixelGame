@@ -15,7 +15,7 @@ MonoBehaviour:
   m_LevelName: "Kaplumba\u011Fa"
   m_LevelIndex: 8
   m_DifficultyTier: 1
-  m_DifficultyManual: 1
+  m_DifficultyManual: 0
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: 5da63950986175ee996d0697cfcd2dc3, type: 3}
   m_OriginalSourceTexture: {fileID: 0}
@@ -99,7 +99,7 @@ MonoBehaviour:
     capacity: 30
     paletteIndex: 1
     label: Vagon
-    linkId: 2
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.5882353, g: 0.8235295, b: 0.3529412, a: 1}
     capacity: 20
@@ -141,7 +141,7 @@ MonoBehaviour:
     capacity: 20
     paletteIndex: 2
     label: Vagon
-    linkId: 1
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.15686275, g: 0.54901963, b: 0.27450982, a: 1}
     capacity: 10

@@ -27,6 +27,9 @@ Shader "PixelGame/BoardPodium"
         _InnerShadowOffset ("İç Gölge Kayması", Range(0, 0.05)) = 0.018
         _InnerShadowBlur ("İç Gölge Yumuşaklığı", Range(0.001, 0.08)) = 0.03
         _InnerShadowStrength ("İç Gölge Gücü", Range(0, 1)) = 0.22
+
+        [Header(Ayri Golge Katmani)]
+        [Toggle] _ShadowOnly ("Sadece Dış Gölge Çiz (çerçevenin arkasındaki gölge katmanı)", Float) = 0
     }
 
     SubShader
@@ -69,6 +72,7 @@ Shader "PixelGame/BoardPodium"
             fixed4 _OuterColor, _RimColor, _GrooveColor, _CanvasColor, _ShadowColor;
             float _OuterHalf, _InnerHalf, _OuterRadius, _InnerRadius, _LipWidth, _Depth;
             float _ShadowOffset, _ShadowBlur, _InnerShadowOffset, _InnerShadowBlur, _InnerShadowStrength;
+            float _ShadowOnly;
 
             v2f vert(appdata_t IN)
             {
@@ -104,6 +108,14 @@ Shader "PixelGame/BoardPodium"
 
                 float3 col = _ShadowColor.rgb;
                 float a = 0.0;
+
+                // Ayrı gölge katmanı: yalnızca yumuşak, yuvarlatılmış dış gölge (kayma, katmanın kendi konumuyla verilir)
+                if (_ShadowOnly > 0.5)
+                {
+                    float dOnly = sdRoundBox(p, outerB, _OuterRadius);
+                    float k = 1.0 - smoothstep(-_ShadowBlur * 0.6, _ShadowBlur, dOnly);
+                    return fixed4(_ShadowColor.rgb, _ShadowColor.a * k * k * IN.color.a);
+                }
 
                 // 1. Dış yumuşak gölge (aşağı kaymış, kalınlığı da kapsar)
                 float2 shB = outerB + float2(0.0, _Depth * 0.5);

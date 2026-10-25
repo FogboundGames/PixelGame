@@ -234,6 +234,19 @@ namespace PixelGame
         [Tooltip("Çerçevenin dinamik materyali (BoardPodium_Mat)")]
         [SerializeField] private Material m_BoardPodiumMaterial;
 
+        [Header("🌑 Çerçeve Arkası Gölge Katmanı (Frame Drop Shadow)")]
+        [Tooltip("Çerçevenin arkasına sağa-aşağı düşen ayrı, yumuşak gölge katmanı. Çerçevenin kendi gölgesi görselin " +
+                 "kenarında yer olmadığı için büyütülemiyordu; bu katmanın kendi alanı var.")]
+        [SerializeField] private bool m_EnableFrameDropShadow = true;
+        [Tooltip("Gölgenin kayması, çerçeve boyuna oranla (x: sağa, y: aşağı)")]
+        [SerializeField] private Vector2 m_FrameDropShadowOffset = new Vector2(0.022f, 0.004f);
+        [Tooltip("Gölgenin yumuşaklığı (kenar yayılması)")]
+        [SerializeField] [Range(0.002f, 0.12f)] private float m_FrameDropShadowBlur = 0.03f;
+        [Tooltip("Gölge rengi (A: opaklık)")]
+        [SerializeField] private Color m_FrameDropShadowColor = new Color(0.27f, 0.34f, 0.50f, 0.45f);
+        private Material m_FrameDropShadowMaterial;
+        private const float FrameDropShadowSpread = 1.25f;   // katmanın çerçeveden büyüklüğü (gölgenin yayılacağı alan)
+
         // Properties
         public Color BoardOuterColor { get => m_BoardOuterColor; set { m_BoardOuterColor = value; UpdateBoardFrameColorsLive(); } }
         public Color BoardRimColor { get => m_BoardRimColor; set { m_BoardRimColor = value; UpdateBoardFrameColorsLive(); } }
@@ -3071,6 +3084,81 @@ namespace PixelGame
                 m_BoardPodiumMaterial.SetColor("_CanvasColor", m_BoardCanvasColor);
                 m_BoardPodiumMaterial.SetColor("_ShadowColor", m_BoardOuterShadowColor);
             }
+
+            UpdateFrameDropShadow(sr);
+        }
+
+        /// <summary>
+        /// Çerçevenin arkasındaki gölge katmanını ([SceneFrameDropShadow]) kurar/günceller. Aynı sprite, aynı shader'ın
+        /// "sadece gölge" modu; katman çerçeveden büyük olduğu için gölge kenarda kesilmeden sağa-aşağı yayılabilir.
+        /// Sahneye kaydedilmez (her açılışta yeniden kurulur).
+        /// </summary>
+        private void UpdateFrameDropShadow(SpriteRenderer frameSr)
+        {
+            Transform existing = m_FramePreviewTransform.Find("[SceneFrameDropShadow]");
+            if (!m_EnableFrameDropShadow || frameSr.sprite == null || m_BoardPodiumMaterial == null)
+            {
+                if (existing != null) existing.gameObject.SetActive(false);
+                return;
+            }
+
+            GameObject go = existing != null ? existing.gameObject : null;
+#if UNITY_EDITOR
+            // Editörde OnValidate içinden obje/bileşen oluşturmak uyarı verir: kurulum bir sonraki editör karesine ertelenir
+            if (go == null && !Application.isPlaying)
+            {
+                if (!m_FrameDropShadowCreateQueued)
+                {
+                    m_FrameDropShadowCreateQueued = true;
+                    UnityEditor.EditorApplication.delayCall += () =>
+                    {
+                        m_FrameDropShadowCreateQueued = false;
+                        if (this != null && m_FramePreviewTransform != null && m_FramePreviewTransform.Find("[SceneFrameDropShadow]") == null)
+                            CreateFrameDropShadowObject();
+                        if (this != null) UpdateBoardFrameColorsLive();
+                    };
+                }
+                return;
+            }
+#endif
+            if (go == null) go = CreateFrameDropShadowObject();
+            go.SetActive(true);
+
+            var shadowSr = go.GetComponent<SpriteRenderer>();
+            if (shadowSr == null) shadowSr = go.AddComponent<SpriteRenderer>();
+            shadowSr.sprite = frameSr.sprite;
+            shadowSr.sortingLayerID = frameSr.sortingLayerID;
+            shadowSr.sortingOrder = frameSr.sortingOrder - 1;
+            shadowSr.color = Color.white;
+
+            if (m_FrameDropShadowMaterial == null)
+            {
+                m_FrameDropShadowMaterial = new Material(m_BoardPodiumMaterial) { name = "FrameDropShadow_Runtime", hideFlags = HideFlags.DontSave };
+            }
+            float spread = FrameDropShadowSpread;
+            m_FrameDropShadowMaterial.SetFloat("_ShadowOnly", 1f);
+            m_FrameDropShadowMaterial.SetFloat("_OuterHalf", m_BoardPodiumMaterial.GetFloat("_OuterHalf") / spread);
+            m_FrameDropShadowMaterial.SetFloat("_OuterRadius", m_BoardPodiumMaterial.GetFloat("_OuterRadius") / spread);
+            m_FrameDropShadowMaterial.SetFloat("_ShadowBlur", m_FrameDropShadowBlur / spread);
+            m_FrameDropShadowMaterial.SetColor("_ShadowColor", m_FrameDropShadowColor);
+            shadowSr.sharedMaterial = m_FrameDropShadowMaterial;
+
+            float w = frameSr.sprite.rect.width / frameSr.sprite.pixelsPerUnit;
+            float h = frameSr.sprite.rect.height / frameSr.sprite.pixelsPerUnit;
+            go.transform.localPosition = new Vector3(m_FrameDropShadowOffset.x * w, -m_FrameDropShadowOffset.y * h, 0.02f);
+            go.transform.localRotation = Quaternion.identity;
+            go.transform.localScale = new Vector3(spread, spread, 1f);
+        }
+
+        private bool m_FrameDropShadowCreateQueued;
+
+        private GameObject CreateFrameDropShadowObject()
+        {
+            var go = new GameObject("[SceneFrameDropShadow]");
+            go.hideFlags = HideFlags.DontSave;
+            go.transform.SetParent(m_FramePreviewTransform, false);
+            go.AddComponent<SpriteRenderer>();
+            return go;
         }
 
 #if UNITY_EDITOR

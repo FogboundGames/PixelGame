@@ -1475,7 +1475,7 @@ namespace PixelGame
                 for (int r = remaining.Count; r < m_Rows; r++)
                 {
                     int targetIdx = r * m_Columns + col;
-                    SpawnAndSailInNewShip(targetIdx, spawnDelay);
+                    SpawnAndSailInNewShip(targetIdx, spawnDelay, r - remaining.Count);
                     spawnDelay += 0.12f;
                 }
             }
@@ -1555,7 +1555,8 @@ namespace PixelGame
         /// daha gönderilince ikinci yeni gemi aynı spota doğup birincinin kaydının üstüne yazıyordu; birinci
         /// gemi listeden düşüp ekran dışında sonsuza kadar kalıyor, küpleri toplanamadığı için bölüm bitmiyordu.
         /// </summary>
-        private void SpawnAndSailInNewShip(int spotIndex, float delay)
+        /// <param name="orderInBatch">Aynı sütuna art arda gelen yeni gemilerin sırası (0 = en öne gidecek olan).</param>
+        private void SpawnAndSailInNewShip(int spotIndex, float delay, int orderInBatch = 0)
         {
             if (spotIndex < 0 || spotIndex >= m_QueueSpots.Count) return;
             if (m_ShipPrefab == null) return;
@@ -1586,8 +1587,14 @@ namespace PixelGame
                 // UI konteyner: Canvas'ta Z'nin anlamı yok, -2.6 tam spotun üstüne düşüyordu; yeni konteyner arka
                 // sırada birden beliriyor (ışınlanıyor), oradan henüz kalkmakta olanın üstüne biniyordu.
                 // Bir sıra aşağıdan (ekranın altından) kayarak gelir.
-                float spotScaleY = Mathf.Abs(spot.localScale.y) > 1e-4f ? spot.localScale.y : 1f;
-                startLocal = new Vector3(0f, -m_UiCurrentSpacingY * UiSpawnFromBelowRows / spotScaleY, 0f);
+                // Sütun tamamen boşalınca birden çok gemi gelir: hepsi sütunun EN ALT spotunun altından, tren gibi art arda
+                // girer. Eskiden her biri kendi spotunun altında doğuyordu: ön sıraya gidecek olan 2. ile 3. sıranın arasında
+                // belirip ötekilerin içinden geçiyordu.
+                int bottomIdx = (m_Rows - 1) * m_Columns + (spotIndex % Mathf.Max(1, m_Columns));
+                Transform bottomSpot = bottomIdx >= 0 && bottomIdx < m_QueueSpots.Count && m_QueueSpots[bottomIdx] != null ? m_QueueSpots[bottomIdx] : spot;
+                float spotScaleY = Mathf.Abs(bottomSpot.localScale.y) > 1e-4f ? bottomSpot.localScale.y : 1f;
+                Vector3 belowBottom = new Vector3(0f, -m_UiCurrentSpacingY * (UiSpawnFromBelowRows + orderInBatch) / spotScaleY, 0f);
+                startLocal = spot.InverseTransformPoint(bottomSpot.TransformPoint(belowBottom));
             }
 
             GameObject shipObj = Instantiate(m_ShipPrefab, spot.TransformPoint(startLocal), spot.rotation, spot);
@@ -1603,6 +1610,10 @@ namespace PixelGame
 
             ship.Configure(shipColor, capacity);
             ship.SetMysteryHidden(m_LastSequenceShipHidden);
+            // Oyun sırasında denizden gelen gemi "arkadan gelmiş" sayılır: sütun tamamen boşaldığında (ör. sütundaki
+            // her gemi bir halatla birlikte gidince) doğrudan ön sıraya yerleşiyor, hiç arka sırada görülmediği için
+            // gizliyse öne gelse de açılmıyordu.
+            ship.MarkMysterySeenInBackRow();
 
             while (m_WaitingShips.Count <= spotIndex)
             {

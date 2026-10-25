@@ -2446,7 +2446,8 @@ namespace PixelGame.Editor
             }
             else if (m_SelectedSlotForLink >= 0)
             {
-                EditorGUILayout.HelpBox($"🔗 Slot #{m_SelectedSlotForLink + 1} bağlamak için seçildi! Bağlamak istediğiniz geminin '🔗 ile Bağla' butonuna tıklayın. Halatlı bir gemiyi seçtiyseniz tıkladığınız gemi o gruba katılır (en fazla {PixelLevelData.MaxLinkGroupSize} gemi). İptal için aynı butona tekrar basın.", MessageType.Info);
+                string groupHint = PixelLevelData.MaxLinkGroupSize > 2 ? $" Halatlı bir gemiyi seçtiyseniz tıkladığınız gemi o gruba katılır (en fazla {PixelLevelData.MaxLinkGroupSize} gemi)." : "";
+                EditorGUILayout.HelpBox($"🔗 Slot #{m_SelectedSlotForLink + 1} bağlamak için seçildi! Bağlamak istediğiniz geminin '🔗 ile Bağla' butonuna tıklayın.{groupHint} İptal için aynı butona tekrar basın.", MessageType.Info);
             }
 
             EditorGUILayout.EndVertical();
@@ -2822,7 +2823,8 @@ namespace PixelGame.Editor
                 }
                 else if (isLinked)
                 {
-                    GUILayout.Label($"🔗 #{wagon.linkId} · {groupCount}'li", EditorStyles.miniBoldLabel, GUILayout.Height(17));
+                    string groupLabel = PixelLevelData.MaxLinkGroupSize > 2 ? $"🔗 #{wagon.linkId} · {groupCount}'li" : $"🔗 Bağ #{wagon.linkId}";
+                    GUILayout.Label(groupLabel, EditorStyles.miniBoldLabel, GUILayout.Height(17));
                     if (groupCount < PixelLevelData.MaxLinkGroupSize)
                     {
                         GUI.backgroundColor = new Color(0.35f, 0.95f, 0.45f);

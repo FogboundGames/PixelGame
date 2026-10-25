@@ -133,7 +133,8 @@ namespace PixelGame.Editor
                 {
                     if (kv.Value.Count < 2 || kv.Value.Count > PixelLevelData.MaxLinkGroupSize)
                     {
-                        list.Add(new Warning(MessageType.Error, $"Halat #{kv.Key}: {kv.Value.Count} gemi bağlı (2–{PixelLevelData.MaxLinkGroupSize} olmalı)."));
+                        string allowed = PixelLevelData.MaxLinkGroupSize == 2 ? "2" : $"2–{PixelLevelData.MaxLinkGroupSize}";
+                        list.Add(new Warning(MessageType.Error, $"Halat #{kv.Key}: {kv.Value.Count} gemi bağlı ({allowed} olmalı)."));
                         continue;
                     }
                     // Her üye gruptan en az bir gemiyle yan yana ya da havuzda üst üste olmalı (grup tek parça)

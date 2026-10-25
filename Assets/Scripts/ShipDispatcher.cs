@@ -700,6 +700,8 @@ namespace PixelGame
         /// bir çocuk görsele taşınır; yoksa yerleşen konteynerin beyaz konturu slotun altında kalıyordu. Yerleşen
         /// konteyner slotun çocuğu olduğundan slot kökünde Canvas olamaz: kök Image saydam kalır (boyut/tıklama).
         /// </summary>
+        private const float UiSlotVisualPad = 64f / 512f;
+
         private static void EnsureUiSlotBackLayer(ShipSlot slot)
         {
             var img = slot != null ? slot.GetComponent<UnityEngine.UI.Image>() : null;
@@ -712,8 +714,10 @@ namespace PixelGame
             go.transform.SetParent(slot.transform, false);
             go.transform.SetAsFirstSibling();
             var rt = (RectTransform)go.transform;
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
+            // slot_rounded_square her yandan 64/512 boşluklu (gölge sağa-aşağı taşabilsin): görsel o kadar dışarı taşırılır,
+            // slot gövdesi ekranda aynı boyutta kalır (konteyner konturu ile aynı yöntem)
+            rt.anchorMin = Vector2.one * -UiSlotVisualPad;
+            rt.anchorMax = Vector2.one * (1f + UiSlotVisualPad);
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
 

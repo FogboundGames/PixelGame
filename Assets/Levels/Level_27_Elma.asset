@@ -15,7 +15,7 @@ MonoBehaviour:
   m_LevelName: Bir
   m_LevelIndex: 1
   m_DifficultyTier: 0
-  m_DifficultyManual: 1
+  m_DifficultyManual: 0
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: 3af4c29133a5f0a9c95c3634aeae1c22, type: 3}
   m_OriginalSourceTexture: {fileID: 2800000, guid: 9335ca9c11a389b20a7b5bdc377919a9, type: 3}

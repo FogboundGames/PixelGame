@@ -15,7 +15,7 @@ MonoBehaviour:
   m_LevelName: Dondurma
   m_LevelIndex: 5
   m_DifficultyTier: 0
-  m_DifficultyManual: 1
+  m_DifficultyManual: 0
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: 292aa661d012eea4a86491fd43c66c0d, type: 3}
   m_OriginalSourceTexture: {fileID: 2800000, guid: fd59d87563944a269c0858dae5a0816d, type: 3}

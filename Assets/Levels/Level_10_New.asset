@@ -211,7 +211,7 @@ MonoBehaviour:
     capacity: 18
     paletteIndex: 3
     label: Vagon
-    linkId: 2
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.854902, g: 0.67058825, b: 0.39607847, a: 1}
     capacity: 30
