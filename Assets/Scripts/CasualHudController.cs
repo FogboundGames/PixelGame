@@ -77,6 +77,8 @@ namespace PixelGame
         [SerializeField] private bool m_Speed2xTimerEnabled = true;
         [Tooltip("3X hızındayken sürenin kaç kat daha hızlı azalacağı. Örneğin 3.0f ise 1 saniyede 3 saniye süre harcanır.")]
         [SerializeField] private float m_Speed3xDrainMultiplier = 3.0f;
+        [Tooltip("Süre bittikten kaç saat sonra tamamen yenilenir (gerçek saat; uygulama kapalıyken de sayar).")]
+        [SerializeField] private float m_Speed2xRefillHours = 12f;
         [SerializeField] private GameObject m_SpeedTimerBadge;
         [SerializeField] private TextMeshProUGUI m_SpeedTimerText;
         [SerializeField] private int m_SpeedLevel = 1;
@@ -88,6 +90,10 @@ namespace PixelGame
         public const string Speed2xRemainingPrefKey = "PixelGame_Speed2xRemainingSeconds";
         public const string Speed2xInitializedPrefKey = "PixelGame_Speed2xInitialized";
         public const string Speed2xDurationTargetPrefKey = "PixelGame_Speed2xDurationMinutes";
+        public const string Speed2xDepletedAtPrefKey = "PixelGame_Speed2xDepletedAtUtc";
+
+        private float m_RefillCheckCooldown = 0f;
+        private bool m_PendingReadyCelebration = false;
 
         [Header("🧪 Başlangıç Değerleri")]
         [SerializeField] private int m_StartingLives = 3;
@@ -247,6 +253,8 @@ namespace PixelGame
                         m_Speed2xRemainingSeconds = 0f;
                         m_SpeedLevel = 1;
                         m_IsSpeed2x = false;
+                        SetSpeedDepletedAt(System.DateTime.UtcNow);
+                        LandFlowAnalytics.Design("Speed:Depleted");
                         ApplySpeedState();
                         UpdateSpeedVisual();
                         SaveSpeedTimer();
@@ -262,7 +270,28 @@ namespace PixelGame
                 }
             }
 
+            if (IsSpeedDepleted)
+            {
+                m_RefillCheckCooldown -= Time.unscaledDeltaTime;
+                if (m_RefillCheckCooldown <= 0f)
+                {
+                    m_RefillCheckCooldown = 1f;
+                    CheckSpeedRefill(true);
+                }
+            }
+
+            if (m_PendingReadyCelebration && m_SpeedButton != null && m_SpeedButton.gameObject.activeInHierarchy)
+            {
+                m_PendingReadyCelebration = false;
+                PlaySpeedReadyCelebration();
+            }
+
             UpdateSpeedTimerVisual();
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            if (!paused) CheckSpeedRefill(true);
         }
 
         public void WireRetryButton()
@@ -1172,6 +1201,7 @@ namespace PixelGame
             }
 
             bool isFailed = (ShipDispatcher.Instance != null && ShipDispatcher.Instance.IsLevelFailed);
+            if (!isFailed) LandFlowAnalytics.Design("Level:Restart");
 
             LandFlowLoadingScreen screen = LandFlowLoadingScreen.Instance ?? LandFlowLoadingScreen.EnsureInstance();
             if (screen != null)
@@ -1304,6 +1334,7 @@ namespace PixelGame
             }
 
             EnsureSpeedTimerBadge();
+            CheckSpeedRefill(true);
             UpdateSpeedTimerVisual();
         }
 
@@ -1356,6 +1387,7 @@ namespace PixelGame
             UpdateSpeedVisual();
             SaveSpeedTimer();
             TriggerHaptic();
+            if (m_SpeedLevel > 1) LandFlowAnalytics.Design($"Speed:{m_SpeedLevel}X");
 
             if (m_SpeedButton != null)
             {
@@ -1473,6 +1505,11 @@ namespace PixelGame
                     }
                 }
             }
+            if (m_SpeedLabel != null && m_SpeedButtonImage != null)
+            {
+                // Bitik durumda griliği butonun üstündeki karanlık tarama dilimi verir; buton kendi renginde kalır
+                m_SpeedButtonImage.color = Color.white;
+            }
             UpdateSpeedLabel();
 
             UpdateSpeedTimerVisual();
@@ -1497,7 +1534,7 @@ namespace PixelGame
             {
                 c = m_SpeedLabelNormalColor;
             }
-            c.a *= expired ? 0.55f : 1f;
+            c.a *= expired ? 0.7f : 1f;
             m_SpeedLabel.color = c;
         }
 
@@ -1562,6 +1599,7 @@ namespace PixelGame
             }
 
             m_SpeedTimerBadge.SetActive(true);
+            UpdateSpeedRefillVisual();
 
             int totalSecs = Mathf.Max(0, Mathf.CeilToInt(m_Speed2xRemainingSeconds));
             int mins = totalSecs / 60;
@@ -1580,8 +1618,12 @@ namespace PixelGame
             }
             else if (m_Speed2xRemainingSeconds <= 0f)
             {
-                m_SpeedTimerText.text = "00:00";
-                m_SpeedTimerText.color = new Color(0.95f, 0.35f, 0.35f); // Süre doldu (kırmızı)
+                // Süre bitti: yenilenmeye kalan süre (mavi-gri), 1 saatin altında ss:dd yerine dk:sn
+                // Süre bitti: yenilenmeye kalan süre; 1 saatten fazlaysa "7h 59m", altındaysa "42:15"
+                int left = Mathf.Max(0, Mathf.CeilToInt((float)GetSpeedRefillSecondsLeft()));
+                int h = left / 3600, m = (left % 3600) / 60, s = left % 60;
+                m_SpeedTimerText.text = h > 0 ? $"{h}h {m:00}m" : $"{m:00}:{s:00}";
+                m_SpeedTimerText.color = new Color(0.92f, 0.95f, 1f);
             }
             else
             {
@@ -1606,11 +1648,130 @@ namespace PixelGame
         {
             float duration = minutes > 0f ? minutes : m_Speed2xDurationMinutes;
             m_Speed2xRemainingSeconds = duration * 60f;
+            PlayerPrefs.DeleteKey(Speed2xDepletedAtPrefKey);
             SaveSpeedTimer();
             UpdateSpeedVisual();
             UpdateSpeedTimerVisual();
             Debug.Log($"<color=#00FFAA><b>[CasualHUD]</b></color> ⚡ 2X süresi {duration} dakika olarak yenilendi!");
         }
+
+        #region ⏳ 2X 12 Saatlik Yenilenme
+
+        private bool IsSpeedDepleted => m_Speed2xTimerEnabled && m_Speed2xRemainingSeconds <= 0f;
+        private double SpeedRefillTotalSeconds => Mathf.Max(0.01f, m_Speed2xRefillHours) * 3600.0;
+
+        private static bool TryGetSpeedDepletedAt(out System.DateTime utc)
+        {
+            utc = default;
+            string raw = PlayerPrefs.GetString(Speed2xDepletedAtPrefKey, "");
+            if (!long.TryParse(raw, out long ticks)) return false;
+            utc = new System.DateTime(ticks, System.DateTimeKind.Utc);
+            return true;
+        }
+
+        private static void SetSpeedDepletedAt(System.DateTime utc)
+        {
+            PlayerPrefs.SetString(Speed2xDepletedAtPrefKey, utc.Ticks.ToString());
+            PlayerPrefs.Save();
+        }
+
+        /// <summary>Yenilenmeye kalan gerçek saniye (süre bitmemişse 0).</summary>
+        public double GetSpeedRefillSecondsLeft()
+        {
+            if (!IsSpeedDepleted || !TryGetSpeedDepletedAt(out System.DateTime at)) return 0.0;
+            double elapsed = (System.DateTime.UtcNow - at).TotalSeconds;
+            return System.Math.Max(0.0, SpeedRefillTotalSeconds - elapsed);
+        }
+
+        /// <summary>Süre bittiyse ve 12 saat geçtiyse havuzu doldurur. Bitiş anı hiç kaydedilmemişse (eski kayıt) şimdiden başlatır.</summary>
+        private void CheckSpeedRefill(bool celebrate)
+        {
+            if (!IsSpeedDepleted) return;
+
+            System.DateTime now = System.DateTime.UtcNow;
+            if (!TryGetSpeedDepletedAt(out System.DateTime at) || at > now)
+            {
+                // Kayıt yok ya da saat geri alınmış: sayacı şimdi başlat
+                SetSpeedDepletedAt(now);
+                return;
+            }
+
+            if ((now - at).TotalSeconds < SpeedRefillTotalSeconds) return;
+
+            PlayerPrefs.DeleteKey(Speed2xDepletedAtPrefKey);
+            RefillSpeed2xTimer(m_Speed2xDurationMinutes);
+            if (celebrate) m_PendingReadyCelebration = true;
+        }
+
+        /// <summary>Bitik durumda butonun üstünde dolan dairesel tarama ve köşedeki saat ikonu.</summary>
+        private void UpdateSpeedRefillVisual()
+        {
+            if (m_SpeedButton == null) return;
+            bool depleted = IsSpeedDepleted && m_SpeedLevel == 1;
+            // Süre bitikken renk değişmez, buton ve "1X" yazısı sadece soluklaşır
+            if (m_SpeedButtonImage != null && m_SpeedLabel != null)
+                m_SpeedButtonImage.color = depleted ? new Color(1f, 1f, 1f, 0.7f) : Color.white;
+        }
+
+        /// <summary>Süre yenilendiğinde: buton parlayıp zıplar, üstünde "READY!" yükselir.</summary>
+        private void PlaySpeedReadyCelebration()
+        {
+            if (m_SpeedButton == null) return;
+            Transform btn = m_SpeedButton.transform;
+            btn.DOComplete();
+            btn.DOPunchScale(Vector3.one * 0.35f, 0.6f, 7, 0.8f).SetUpdate(true);
+
+            if (m_SpeedButtonImage != null)
+            {
+                Color baseCol = m_SpeedButtonImage.color;
+                DOTween.Sequence().SetUpdate(true)
+                    .Append(m_SpeedButtonImage.DOColor(new Color(1f, 0.95f, 0.6f, 1f), 0.15f))
+                    .Append(m_SpeedButtonImage.DOColor(baseCol, 0.45f));
+            }
+
+            RectTransform host = btn.parent as RectTransform;
+            if (host != null)
+            {
+                var go = new GameObject("ReadyPopup", typeof(RectTransform), typeof(TextMeshProUGUI));
+                go.transform.SetParent(host, false);
+                var rt = (RectTransform)go.transform;
+                rt.sizeDelta = new Vector2(220f, 60f);
+                rt.localPosition = btn.localPosition + new Vector3(0f, ((RectTransform)btn).rect.height * 0.5f + 10f, 0f);
+                var tmp = go.GetComponent<TextMeshProUGUI>();
+                tmp.text = "READY!";
+                tmp.alignment = TextAlignmentOptions.Center;
+                tmp.fontSize = 40f;
+                tmp.fontStyle = FontStyles.Bold;
+                tmp.color = m_SpeedLabelActiveColor;
+                tmp.raycastTarget = false;
+                if (m_LevelText != null) tmp.font = m_LevelText.font;
+                tmp.outlineWidth = 0.2f;
+                tmp.outlineColor = new Color32(30, 40, 90, 255);
+                rt.localScale = Vector3.one * 0.6f;
+                DOTween.Sequence().SetUpdate(true)
+                    .Append(rt.DOScale(1.1f, 0.25f).SetEase(Ease.OutBack))
+                    .Join(rt.DOLocalMoveY(rt.localPosition.y + 26f, 1.2f).SetEase(Ease.OutCubic))
+                    .Insert(0.8f, tmp.DOFade(0f, 0.4f))
+                    .OnComplete(() => Destroy(go));
+            }
+
+            if (HypercasualFeedbackManager.Instance != null) HypercasualFeedbackManager.Instance.PlayButtonClickFeedback();
+            TriggerHaptic();
+        }
+
+        [ContextMenu("⏳ 2X Süresini Bitir (yenilenme testi)")]
+        private void DepleteSpeed2xTimerContext()
+        {
+            m_Speed2xRemainingSeconds = 0f;
+            m_SpeedLevel = 1;
+            m_IsSpeed2x = false;
+            SetSpeedDepletedAt(System.DateTime.UtcNow);
+            SaveSpeedTimer();
+            ApplySpeedState();
+            UpdateSpeedVisual();
+        }
+
+        #endregion
 
         public void SetLives(int count)
         {

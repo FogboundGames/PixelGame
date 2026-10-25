@@ -3741,6 +3741,7 @@ namespace PixelGame
             m_DeadlockTimer = 0f;
 
             Debug.Log("<color=#FF3333><b>[ShipDispatcher]</b></color> ❌ SEVİYE BAŞARISIZ! Tüm slotlar dolu ve hamle yapılamıyor.");
+            LandFlowAnalytics.LevelFail();
 
             SetTurboSpeed(false);
 
@@ -3771,6 +3772,7 @@ namespace PixelGame
         private void BeginLevelEndSequence()
         {
             m_LevelEndPending = true;
+            LandFlowAnalytics.LevelComplete();
 
             var allShips = ShipController.ActiveShips;
             HashSet<ShipController> queueShips = m_QueuePool != null
