@@ -18,11 +18,10 @@
       "hash": "30d22075093d1d35dfb0091c1c7550e9ad948577"
     },
     "com.gameanalytics.sdk": {
-      "version": "8.3.0",
+      "version": "file:com.gameanalytics.sdk",
       "depth": 0,
-      "source": "registry",
-      "dependencies": {},
-      "url": "https://packages.unity.com"
+      "source": "embedded",
+      "dependencies": {}
     },
     "com.unity.2d.sprite": {
       "version": "1.0.0",
