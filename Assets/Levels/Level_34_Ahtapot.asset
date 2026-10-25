@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_34_Ahtapot
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Ahtapot
-  m_LevelIndex: 14
+  m_LevelIndex: 25
   m_DifficultyTier: 1
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

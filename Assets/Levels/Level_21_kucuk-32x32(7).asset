@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_21_kucuk-32x32(7)
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Motif
-  m_LevelIndex: 26
+  m_LevelIndex: 19
   m_DifficultyTier: 1
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_26_Dolunay
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Dolunay
-  m_LevelIndex: 27
+  m_LevelIndex: 24
   m_DifficultyTier: 2
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

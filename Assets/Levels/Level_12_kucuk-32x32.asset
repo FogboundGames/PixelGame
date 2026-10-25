@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_12_kucuk-32x32
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Capybara
-  m_LevelIndex: 29
+  m_LevelIndex: 28
   m_DifficultyTier: 2
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

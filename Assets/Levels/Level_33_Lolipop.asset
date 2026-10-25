@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_33_Lolipop
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Lolipop
-  m_LevelIndex: 9
+  m_LevelIndex: 13
   m_DifficultyTier: 0
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

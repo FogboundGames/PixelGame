@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_13_kucuk-32x32(4)
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Ok
-  m_LevelIndex: 32
+  m_LevelIndex: 34
   m_DifficultyTier: 2
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

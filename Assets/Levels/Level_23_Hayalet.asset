@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_23_Hayalet
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Hayalet
-  m_LevelIndex: 15
+  m_LevelIndex: 18
   m_DifficultyTier: 2
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

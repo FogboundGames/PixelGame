@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_26_DenizFeneri
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: DenizFeneri
-  m_LevelIndex: 34
+  m_LevelIndex: 22
   m_DifficultyTier: 2
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

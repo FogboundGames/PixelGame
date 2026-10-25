@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_29_Yengec
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Yengec
-  m_LevelIndex: 7
+  m_LevelIndex: 8
   m_DifficultyTier: 0
   m_DifficultyManual: 0
   m_LegacyIsHardLevel: 0
