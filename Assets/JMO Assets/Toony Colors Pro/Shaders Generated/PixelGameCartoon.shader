@@ -58,8 +58,7 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 		_PlasticHighlightAngle ("Highlight Line Angle", Range(-90, 90)) = 0.0
 		_PlasticTopLight ("Top Light Boost", Range(0, 1)) = 0.25
 		_PlasticBevelAO ("Bevel Edge Darkening (AO)", Range(0, 1)) = 0.4
-		_HighlightKnee ("Light Color Compression Knee (1 = off)", Range(0.4, 1)) = 1
-		_HighlightCeiling ("Light Color Ceiling", Range(0.6, 1)) = 1
+		_WhiteBrightness ("White Cube Brightness (1 = off)", Range(0.4, 1)) = 1
 		_ProceduralBevelWidth ("Procedural Bevel Edge Width", Range(0, 0.2)) = 0.05
 		_ProceduralBevelIntensity ("Procedural Bevel Intensity", Range(0, 2)) = 0.8
 		_ProceduralBevelUVMargin ("Procedural Bevel UV Margin (mesh's own edge/rounding UV allocation)", Range(0, 0.49)) = 0.13
@@ -137,8 +136,7 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 			float _PlasticHighlightAngle;
 			float _PlasticTopLight;
 			float _PlasticBevelAO;
-			float _HighlightKnee;
-			float _HighlightCeiling;
+			float _WhiteBrightness;
 			float _ProceduralBevelWidth;
 			float _ProceduralBevelIntensity;
 			float _ProceduralBevelUVMargin;
@@ -610,16 +608,12 @@ Shader "Toony Colors Pro 2/PixelGame/Cartoon"
 
 				color = ApplyPlasticSurfaceLighting(color, albedo, normalWS, _StylizedPlasticOn, _PlasticTopLight, _PlasticBevelAO);
 
-				// Açık renkler ışıkla 1'i aşıp kırpılınca beyaz, lavanta, açık pembe aynı beyaza dönüyordu.
-				// En parlak kanalı eşikten sonra yumuşakça tavana yaklaştır; kanalların oranı (renk tonu) korunur.
-				half peak = max(color.r, max(color.g, color.b));
-				half knee = min(_HighlightKnee, _HighlightCeiling - 0.01);
-				if (knee < 0.989 && peak > knee)
-				{
-					half range = _HighlightCeiling - knee;
-					half compressed = knee + range * (1.0 - exp(-(peak - knee) / range));
-					color *= compressed / peak;
-				}
+				// Beyaz küpler ışıkla 1'i aşıp kırpılınca bütün yüzler aynı düz beyaza dönüyordu. Sadece beyaza yakın
+				// (az doygun, çok açık) albedolarda ışığı sabit oranla kıs: yüzler arasındaki gölge farkı korunur.
+				half albedoMax = max(albedo.r, max(albedo.g, albedo.b));
+				half albedoSat = (albedoMax - min(albedo.r, min(albedo.g, albedo.b))) / max(albedoMax, 1e-4);
+				half whiteness = smoothstep(0.25, 0.08, albedoSat) * smoothstep(0.55, 0.8, albedoMax);
+				color *= lerp(1.0, _WhiteBrightness, whiteness);
 
 				return half4(color, alpha);
 			}
