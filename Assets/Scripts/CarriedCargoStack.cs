@@ -61,6 +61,16 @@ namespace PixelGame
 
         public int Count => m_Cubes.Count;
 
+        /// <summary>Yığının dikey aralığını ve salınım genliğini ayarlar (Özellikle 10+ küplük dev kulelerde kulelerin yana aşırı bükülüp birbirine çarpmasını önlemek için).</summary>
+        public void ConfigureStack(float spacing = 0.94f, float snakeAmp = 0.04f, float waveAmp = 0.07f, float maxSway = 0.12f, float randomYaw = 2.5f)
+        {
+            m_Spacing = spacing;
+            m_SnakeAmplitude = snakeAmp;
+            m_WaveAmplitude = waveAmp;
+            m_MaxSway = maxSway;
+            m_RandomYaw = randomYaw;
+        }
+
         private void Awake()
         {
             // Her denizcinin yığını farklı kıvrılsın

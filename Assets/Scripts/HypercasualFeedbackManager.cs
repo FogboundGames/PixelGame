@@ -55,6 +55,52 @@ namespace PixelGame
         [SerializeField] private bool m_EnableSound = true;
         [Range(0f, 1f)] [SerializeField] private float m_MasterVolume = 0.90f;
 
+        [Header("🎙️ ASMR Kreatif Çekim Modu")]
+        [Tooltip("Açık olduğunda gemi motoru, seyir, düdük, iskele darbesi, UI buton klikleri vb. TÜM diğer sesler tamamen susturulur. SADECE gemicinin küp toplama sesi çalar.")]
+        [SerializeField] private bool m_AsmrCreativeOnlyPickupSound = false;
+
+        [Tooltip("ASMR modunda küpün gemiye yüklenme / bırakılma tınısı da çalsın mı? (Varsayılan false: SADECE gemicinin küp toplama sesi çalar).")]
+        [SerializeField] private bool m_AsmrIncludeBoardingSound = false;
+
+        [Tooltip("ASMR modunda küp toplama sesinin seviyesi (patlama ve distorsiyonu önleyen optimize edilmiş seviye).")]
+        [Range(0.1f, 1f)] [SerializeField] private float m_AsmrPickupVolume = 0.35f;
+
+        [Tooltip("ASMR modunda eski hazır sesler yerine prosedürel tını kullanılsın mı? (Varsayılan false: Eski orijinal ses kullanılır).")]
+        [SerializeField] private bool m_AsmrUsePureProceduralSound = false;
+
+        [Tooltip("Çok hızlı üst üste küp toplandığında seslerin üst üste binip patlamasını önleyen minimum aralık (sn).")]
+        [SerializeField] private float m_LiftoffSoundDebounceTime = 0.032f;
+
+        public bool AsmrCreativeOnlyPickupSound
+        {
+            get => m_AsmrCreativeOnlyPickupSound;
+            set => m_AsmrCreativeOnlyPickupSound = value;
+        }
+
+        public bool AsmrIncludeBoardingSound
+        {
+            get => m_AsmrIncludeBoardingSound;
+            set => m_AsmrIncludeBoardingSound = value;
+        }
+
+        public float AsmrPickupVolume
+        {
+            get => m_AsmrPickupVolume;
+            set => m_AsmrPickupVolume = Mathf.Clamp01(value);
+        }
+
+        public bool AsmrUsePureProceduralSound
+        {
+            get => m_AsmrUsePureProceduralSound;
+            set => m_AsmrUsePureProceduralSound = value;
+        }
+
+        public float LiftoffSoundDebounceTime
+        {
+            get => m_LiftoffSoundDebounceTime;
+            set => m_LiftoffSoundDebounceTime = Mathf.Max(0.01f, value);
+        }
+
         public bool EnableSound
         {
             get => m_EnableSound && (CasualHudController.Instance == null || CasualHudController.Instance.SoundEnabled);
@@ -110,9 +156,12 @@ namespace PixelGame
         private AudioSource m_ChimeSource;
         private AudioSource m_FxSource;
         private AudioSource m_SailSource;
-        // Küp kalkış sesi kendi kaynağında: her çalışta perdesini değiştirdiği için ortak kaynakta
-        // o an çalan binme/gemi doldu seslerinin perdesini de bozuyordu
+        // Küp kalkış sesi havuzu: Her yeni ses kendi AudioSource'unda çalar;
+        // böylece üst üste tetiklenmelerde perdenin aniden değişmesi veya önceki sesin bozulması (pitch-bend glitch) engellenir
         private AudioSource m_LiftoffSource;
+        private AudioSource[] m_LiftoffPool;
+        private int m_LiftoffPoolIndex = 0;
+        private int m_LastPickupClipIndex = -1;
         private AudioClip[] m_ChimeClips;
         private AudioClip m_ShipFullClip;
         private AudioClip m_SplashClip;
@@ -120,6 +169,10 @@ namespace PixelGame
         private AudioClip m_DepartClip;
         private AudioClip m_DenialClip;
         private AudioClip m_LiftoffClip;
+        private AudioClip m_AsmrPurePickupClip;
+        private float m_LastLiftoffSoundTime = -1f;
+        private int m_RecentLiftoffClusterCount = 0;
+        private float m_LastLiftoffClusterResetTime = -1f;
         private AudioClip m_SailClip;
         private AudioClip m_GameLaunchClip;
         private AudioClip m_ButtonClickClip;
@@ -192,6 +245,8 @@ namespace PixelGame
             m_SailSource.spatialBlend = 0f;
             m_SailSource.loop = true;
 
+            InitializeLiftoffPool();
+
             // Fazlalık AudioSource'ları temizle
             for (int i = 4; i < sources.Length; i++)
             {
@@ -211,6 +266,7 @@ namespace PixelGame
             if (m_DepartClip == null) m_DepartClip = CreateProceduralDepartClip();
             if (m_DenialClip == null) m_DenialClip = CreateProceduralDenialClip();
             if (m_LiftoffClip == null) m_LiftoffClip = CreateProceduralLiftoffClip();
+            if (m_AsmrPurePickupClip == null) m_AsmrPurePickupClip = CreateProceduralAsmrPickupClip();
             if (m_SailClip == null) m_SailClip = CreateProceduralSailClip();
             if (m_GameLaunchClip == null) m_GameLaunchClip = CreateProceduralGameLaunchClip();
             if (m_ButtonClickClip == null) m_ButtonClickClip = CreateProceduralButtonClickClip();
@@ -641,6 +697,63 @@ namespace PixelGame
         }
 
         /// <summary>
+        /// ASMR kreatif çekimleri için özel olarak formüle edilmiş, kulak tırmalamayan,
+        /// sıfır bas patlamalı (330 Hz - 460 Hz sweet spot) ve ipeksi baloncuk/kinetik puf tınısı.
+        /// Çoklu ve ardışık toplamalarda asla 'pat-pat' vurmaz, kulak okşayan melodik çıtırtı sunar.
+        /// </summary>
+        public AudioClip CreateProceduralAsmrPickupClip()
+        {
+            int sampleRate = 44100;
+            float duration = 0.065f; // 65 ms (kısa, tok, ferah ve tüy gibi hafif)
+            int count = Mathf.CeilToInt(sampleRate * duration);
+            float[] samples = new float[count];
+
+            float phase = 0f;
+            float airFilter = 0f;
+            var rnd = new System.Random(42);
+
+            for (int i = 0; i < count; i++)
+            {
+                float t = i / (float)sampleRate;
+                float progress = t / duration;
+
+                // 1. Akustik Tatlı Frekans Eğrisi (460 Hz -> 330 Hz):
+                // 300 Hz altına ASLA inmez: telefon ve kulaklıklarda pat pat vuran sub-bass boğulmasını tamamen yok eder.
+                float freq = 460f - 130f * Mathf.Pow(progress, 0.65f);
+                phase += 2f * Mathf.PI * freq / sampleRate;
+
+                // 2. Saf Sinüs Temel Ses + Sıcak 2. Harmonik (Ahşap marimba / su damlası netliği)
+                float fundamental = Mathf.Sin(phase);
+                float harmonic = Mathf.Sin(phase * 2f) * 0.14f;
+
+                // 3. İpeksi Mikro Çıtırtı / Ayrılma Fısıltısı (İlk 12 ms içinde zarif dokunuş)
+                float airTexture = 0f;
+                if (t < 0.012f)
+                {
+                    float noise = (float)(rnd.NextDouble() * 2.0 - 1.0);
+                    airFilter += (noise - airFilter) * 0.40f;
+                    float airEnv = Mathf.Sin(t / 0.012f * Mathf.PI);
+                    airTexture = airFilter * airEnv * 0.05f;
+                }
+
+                // 4. Pürüzsüz Zarf (ADSR):
+                // 3 ms sinüs atak (sıfır DC ofset, sıfır klik), ardından üstel yumuşak sönüm ve tertemiz bitiş
+                float attack = Mathf.Sin(Mathf.Clamp01(t / 0.003f) * Mathf.PI * 0.5f);
+                float decay = Mathf.Exp(-t * 52f);
+                float tailFade = Mathf.Clamp01((duration - t) / 0.008f);
+                float envelope = attack * decay * tailFade;
+
+                // Tepe genlik 0.38f ile sınırlıdır (üst üste binmelerde bile asla dijital distorsiyona/clipping'e girmez)
+                float sample = (fundamental * 0.80f + harmonic + airTexture) * envelope * 0.40f;
+                samples[i] = Mathf.Clamp(sample, -0.9f, 0.9f);
+            }
+
+            AudioClip clip = AudioClip.Create("CubePickup_ASMR_PurePuff", count, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        /// <summary>
         /// Küplerin gemiye binmek üzere yerlerinden ilk ayrılırken çıkardığı, modern hypercasual ASMR standartlarına uyarlanmış
         /// hafif, tatlı, gevrek kinetik kum sürtünmesi ve tatlı havalanma pufu sesi (soft kinetic sand crunch & puff).
         /// Asla kaba gürültü yapmaz; kadifemsi kum tanesi dokunuşu ve tatmin edici bir kalkış çıtırtısı sunar.
@@ -648,7 +761,7 @@ namespace PixelGame
         private AudioClip CreateProceduralLiftoffClip()
         {
             int sampleRate = 44100;
-            float duration = 0.105f; // 105 ms (hafif, çıtır ve ferah)
+            float duration = 0.075f; // 75 ms (hafif, çıtır ve ferah)
             int count = Mathf.CeilToInt(sampleRate * duration);
             float[] samples = new float[count];
             var rnd = new System.Random(77);
@@ -665,27 +778,27 @@ namespace PixelGame
                 // Pembe/beyaz gürültünün yumuşatılmış bant filtresi (1.8 kHz - 3.2 kHz tatlı kum fısıltısı)
                 float whiteNoise = (float)(rnd.NextDouble() * 2.0 - 1.0);
                 filterPrev += (whiteNoise - filterPrev) * 0.28f;
-                float sandGrains = filterPrev * 0.38f;
+                float sandGrains = filterPrev * 0.35f;
 
-                // 2. 💨 Havalanma Pufu ve Gövde Esintisi (Sandy Scoop Puff: 210 Hz -> 440 Hz):
-                float scoopFreq = Mathf.Lerp(210f, 440f, Mathf.Sqrt(progress));
+                // 2. 💨 Havalanma Pufu ve Gövde Esintisi (Sandy Scoop Puff: 330 Hz -> 480 Hz):
+                float scoopFreq = Mathf.Lerp(330f, 480f, Mathf.Sqrt(progress));
                 scoopPhase += 2f * Mathf.PI * scoopFreq / sampleRate;
-                float scoopTone = Mathf.Sin(scoopPhase) * 0.32f;
+                float scoopTone = Mathf.Sin(scoopPhase) * 0.30f;
 
-                // 3. 🍿 Kinetik Kum Çıtırtısı (İlk 22 ms içindeki mikro granül ayrılmaları):
+                // 3. 🍿 Kinetik Kum Çıtırtısı (İlk 16 ms içindeki mikro granül ayrılmaları):
                 float crunch = 0f;
-                if (t < 0.022f)
+                if (t < 0.016f)
                 {
-                    float microTime = t / 0.022f;
+                    float microTime = t / 0.016f;
                     float burst = Mathf.Sin(microTime * Mathf.PI * 4f);
-                    crunch = burst * burst * (1f - microTime) * ((float)rnd.NextDouble() * 0.30f);
+                    crunch = burst * burst * (1f - microTime) * ((float)rnd.NextDouble() * 0.20f);
                 }
 
-                // 4. Zarf (ADSR): Yumuşak 1.5 ms atak, ardından üstel kadife sönüm
-                float attack = Mathf.Clamp01(t / 0.0015f);
-                float envelope = attack * Mathf.Exp(-t * 38f);
+                // 4. Zarf (ADSR): Yumuşak 2 ms atak, ardından üstel kadife sönüm
+                float attack = Mathf.Clamp01(t / 0.002f);
+                float envelope = attack * Mathf.Exp(-t * 42f);
 
-                samples[i] = Mathf.Clamp((sandGrains + scoopTone + crunch) * envelope * 0.85f, -1f, 1f);
+                samples[i] = Mathf.Clamp((sandGrains * 0.6f + scoopTone + crunch * 0.5f) * envelope * 0.45f, -0.9f, 0.9f);
             }
 
             AudioClip clip = AudioClip.Create("CubeLiftoff_SandPuff", count, 1, sampleRate, false);
@@ -1280,28 +1393,130 @@ namespace PixelGame
             PlayLiftoffSound(index);
         }
 
-        private void PlayLiftoffSound(int index)
+        private void InitializeLiftoffPool()
         {
-            AudioSource src = m_LiftoffSource != null ? m_LiftoffSource : m_ChimeSource;
-            if (src == null) return;
-
-            AudioClip pickupClip = PickRandomClip(m_PickupSoundClips);
-            if (pickupClip != null)
+            if (m_LiftoffPool != null && m_LiftoffPool.Length == 4 && !System.Array.Exists(m_LiftoffPool, s => s == null))
             {
-                // Aynı klip art arda çalınca makineli tüfek gibi olmasın: hafif perde çeşitlemesi
-                src.pitch = 1.0f + (index % 6) * 0.02f + UnityEngine.Random.Range(-0.04f, 0.04f);
-                src.PlayOneShot(pickupClip, m_MasterVolume * m_PickupSoundVolume);
                 return;
             }
 
+            m_LiftoffPool = new AudioSource[4];
+            m_LiftoffPool[0] = m_LiftoffSource != null ? m_LiftoffSource : gameObject.AddComponent<AudioSource>();
+            m_LiftoffPool[0].playOnAwake = false;
+            m_LiftoffPool[0].spatialBlend = 0f;
+
+            for (int i = 1; i < 4; i++)
+            {
+                string childName = $"[LiftoffVoice_{i}]";
+                Transform child = transform.Find(childName);
+                GameObject go;
+                if (child != null)
+                {
+                    go = child.gameObject;
+                }
+                else
+                {
+                    go = new GameObject(childName);
+                    go.transform.SetParent(transform, false);
+                }
+                AudioSource src = go.GetComponent<AudioSource>();
+                if (src == null) src = go.AddComponent<AudioSource>();
+                src.playOnAwake = false;
+                src.spatialBlend = 0f;
+                m_LiftoffPool[i] = src;
+            }
+        }
+
+        private AudioSource GetNextLiftoffSource()
+        {
+            if (m_LiftoffPool == null || m_LiftoffPool.Length == 0 || m_LiftoffPool[0] == null)
+            {
+                InitializeLiftoffPool();
+            }
+
+            if (m_LiftoffPool == null || m_LiftoffPool.Length == 0)
+            {
+                return m_LiftoffSource != null ? m_LiftoffSource : m_ChimeSource;
+            }
+
+            m_LiftoffPoolIndex = (m_LiftoffPoolIndex + 1) % m_LiftoffPool.Length;
+            AudioSource src = m_LiftoffPool[m_LiftoffPoolIndex];
+            return src != null ? src : m_LiftoffSource;
+        }
+
+        private AudioClip PickNextPickupClip(AudioClip[] clips)
+        {
+            if (clips == null || clips.Length == 0) return null;
+            if (clips.Length == 1) return clips[0];
+            int pick = UnityEngine.Random.Range(0, clips.Length);
+            if (pick == m_LastPickupClipIndex)
+            {
+                pick = (pick + 1) % clips.Length;
+            }
+            m_LastPickupClipIndex = pick;
+            return clips[pick];
+        }
+
+        private void PlayLiftoffSound(int index)
+        {
+            float now = Time.time;
+
+            // Küme (cluster) takibi: Küpler seri olarak art arda toplandığında ses yoğunluğunu dengeler
+            if (now - m_LastLiftoffClusterResetTime > 0.35f)
+            {
+                m_RecentLiftoffClusterCount = 0;
+                m_LastLiftoffClusterResetTime = now;
+            }
+
+            // Üst üste binme bozukluğunu (glitch/çakışma) önleyen mikro debouncer (32 ms):
+            // Birden çok küp aynı anda veya 32 ms içinde tetiklendiğinde ses dalgalarının çakışmasını engeller
+            if (now - m_LastLiftoffSoundTime < m_LiftoffSoundDebounceTime)
+            {
+                return;
+            }
+            m_LastLiftoffSoundTime = now;
+            m_RecentLiftoffClusterCount++;
+
+            // Ses havuzundan bağımsız ses kaynağı al (önceki sesin kuyruğunu bozmaz):
+            AudioSource src = GetNextLiftoffSource();
+            if (src == null) return;
+
+            // Çoklu toplamada kulak tırmalamayan akıllı yoğunluk sönümlemesi
+            float densityDamping = Mathf.Clamp(1.0f - (m_RecentLiftoffClusterCount * 0.04f), 0.70f, 1.0f);
+
+            // 1. ESKİ ORİJİNAL SES (Kenney impactSoft) - KULLANICININ İSTEDİĞİ SES HAKİM OLSUN:
+            AudioClip pickupClip = PickNextPickupClip(m_PickupSoundClips);
+            if (pickupClip != null && (!m_AsmrCreativeOnlyPickupSound || !m_AsmrUsePureProceduralSound))
+            {
+                // Havuzdaki bağımsız AudioSource üzerinde perde ayarı:
+                // Önceki çalan seslerin perdesini veya kuyruğunu kesinlikle bozmaz, pürüzsüz doğal varyasyon sağlar
+                src.pitch = 1.0f + (index % 6) * 0.02f + UnityEngine.Random.Range(-0.02f, 0.02f);
+
+                // Ses seviyesi: Patlama ve distorsiyonu önleyen optimize seviye (aşırı yüksek 1.0 yerine 0.35 * density)
+                float vol = (m_AsmrCreativeOnlyPickupSound ? m_AsmrPickupVolume : (m_PickupSoundVolume * m_MasterVolume)) * densityDamping;
+                src.PlayOneShot(pickupClip, vol);
+                return;
+            }
+
+            // 2. Yalnızca kullanıcı açıkça prosedürel tını seçmişse ve hazır ses yoksa:
+            if (m_AsmrCreativeOnlyPickupSound && m_AsmrUsePureProceduralSound)
+            {
+                if (m_AsmrPurePickupClip == null) m_AsmrPurePickupClip = CreateProceduralAsmrPickupClip();
+                if (m_AsmrPurePickupClip != null)
+                {
+                    float[] asmrPitches = new float[] { 1.00f, 1.06f, 1.12f, 1.19f, 1.25f, 1.33f };
+                    src.pitch = asmrPitches[(m_RecentLiftoffClusterCount - 1) % asmrPitches.Length];
+                    src.PlayOneShot(m_AsmrPurePickupClip, m_AsmrPickupVolume * densityDamping);
+                    return;
+                }
+            }
+
+            // 3. Yedek Liftoff klibi
             if (m_LiftoffClip == null) m_LiftoffClip = CreateProceduralLiftoffClip();
             if (m_LiftoffClip == null) return;
 
-            // Her küp için hafif yükselen sevimli pitch skalası (1.0 -> 1.25)
-            float pitch = Mathf.Clamp(1.0f + (index % 6) * 0.045f + UnityEngine.Random.Range(-0.015f, 0.015f), 0.95f, 1.35f);
-            src.pitch = pitch;
-            // Hafif, gevrek ve tatmin edici hypercasual kum kalkış sesi:
-            src.PlayOneShot(m_LiftoffClip, m_MasterVolume * 0.65f);
+            src.pitch = Mathf.Clamp(1.0f + (index % 6) * 0.045f + UnityEngine.Random.Range(-0.015f, 0.015f), 0.95f, 1.35f);
+            src.PlayOneShot(m_LiftoffClip, 0.35f * densityDamping);
         }
 
         private static AudioClip PickRandomClip(AudioClip[] clips)
@@ -1329,6 +1544,13 @@ namespace PixelGame
             }
 
             // 2. Melodik Tatmin Edici Ses (🔊 Chime / ShipFull)
+            if (m_AsmrCreativeOnlyPickupSound && !m_AsmrIncludeBoardingSound)
+            {
+                if (isShipFull) TriggerHapticMedium();
+                else TriggerHapticLight();
+                return;
+            }
+
             if (IsSoundActive)
             {
                 AudioSource chimeSrc = m_ChimeSource != null ? m_ChimeSource : m_FxSource;
@@ -1407,6 +1629,7 @@ namespace PixelGame
         public void StartShipSailSound(Vector3 position)
         {
             m_ActiveSailingShips++;
+            if (m_AsmrCreativeOnlyPickupSound) return;
             if (!IsSoundActive || m_SailSource == null) return;
             if (m_SailClip == null) m_SailClip = CreateProceduralSailClip();
             if (m_SailClip == null) return;
@@ -1504,6 +1727,12 @@ namespace PixelGame
                 SpawnWaterSplash(position, 16);
             }
 
+            if (m_AsmrCreativeOnlyPickupSound)
+            {
+                TriggerHapticMedium();
+                return;
+            }
+
             // 2. Tok İskele / Konteyner Kilit Darbesi Sesi (🔊 Dock Snap & Metal Impact)
             if (IsSoundActive && m_FxSource != null)
             {
@@ -1555,6 +1784,7 @@ namespace PixelGame
         /// </summary>
         public void PlayContainerDockFeedback(Vector3 position)
         {
+            if (m_AsmrCreativeOnlyPickupSound) return;
             PlayShipDockFeedback(position, waterSplash: false);
         }
 
@@ -1567,6 +1797,12 @@ namespace PixelGame
         /// </summary>
         public void PlayShipDepartFeedback(Vector3 position)
         {
+            if (m_AsmrCreativeOnlyPickupSound)
+            {
+                TriggerHapticMedium();
+                return;
+            }
+
             if (IsSoundActive && m_FxSource != null)
             {
                 if (m_DepartClip == null) m_DepartClip = CreateProceduralDepartClip();
@@ -1585,6 +1821,12 @@ namespace PixelGame
         /// </summary>
         public void PlayDenialFeedback()
         {
+            if (m_AsmrCreativeOnlyPickupSound)
+            {
+                TriggerHapticWarning();
+                return;
+            }
+
             if (IsSoundActive && m_FxSource != null)
             {
                 if (m_DenialClip == null) m_DenialClip = CreateProceduralDenialClip();
@@ -1603,6 +1845,12 @@ namespace PixelGame
         /// </summary>
         public void PlayGameLaunchFeedback()
         {
+            if (m_AsmrCreativeOnlyPickupSound)
+            {
+                TriggerHapticMedium();
+                return;
+            }
+
             if (!IsSoundActive || s_LaunchSoundPlayed) return;
             s_LaunchSoundPlayed = true;
 
@@ -1625,7 +1873,7 @@ namespace PixelGame
         /// </summary>
         public void PlayButtonClickFeedback()
         {
-            if (!IsSoundActive) return;
+            if (m_AsmrCreativeOnlyPickupSound || !IsSoundActive) return;
             AudioSource src = m_FxSource != null ? m_FxSource : m_ChimeSource;
             if (src != null)
             {
@@ -1654,6 +1902,12 @@ namespace PixelGame
             if (m_EnableSparkles && m_SparklePS != null)
             {
                 SpawnSparkles(position, color, 14);
+            }
+
+            if (m_AsmrCreativeOnlyPickupSound)
+            {
+                TriggerHapticMedium();
+                return;
             }
 
             // 2. Gevrek ASMR balon patlaması "pıt" sesi (🔊 Procedural Balloon Pop FX)

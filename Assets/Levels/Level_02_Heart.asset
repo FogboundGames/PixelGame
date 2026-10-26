@@ -17,12 +17,16 @@ MonoBehaviour:
   m_DifficultyTier: 0
   m_DifficultyManual: 0
   m_LegacyIsHardLevel: 0
-  m_LevelTexture: {fileID: 2800000, guid: 61898abaffe8fb97d8aa9be0efc140ab, type: 3}
+  m_LevelTexture: {fileID: 2800000, guid: eed71a5398c180749af5a1612a001c61, type: 3}
   m_OriginalSourceTexture: {fileID: 0}
   m_LevelSprite: {fileID: 0}
   m_UseNativeResolution: 0
   m_CustomResolution: {x: 24, y: 24}
   m_ColorPalette:
+  - originalColor: {r: 1, g: 0.76470596, b: 0.90196085, a: 1}
+    targetColor: {r: 1, g: 0.76470596, b: 0.90196085, a: 1}
+    pixelCount: 323
+    label: 
   - originalColor: {r: 1, g: 0.227451, b: 0.60784316, a: 1}
     targetColor: {r: 1, g: 0.227451, b: 0.60784316, a: 1}
     pixelCount: 203
@@ -30,10 +34,6 @@ MonoBehaviour:
   - originalColor: {r: 0.7843138, g: 0.039215688, b: 0.3921569, a: 1}
     targetColor: {r: 0.7843138, g: 0.039215688, b: 0.3921569, a: 1}
     pixelCount: 50
-    label: 
-  - originalColor: {r: 1, g: 0.76470596, b: 0.90196085, a: 1}
-    targetColor: {r: 1, g: 0.76470596, b: 0.90196085, a: 1}
-    pixelCount: 5
     label: 
   m_TintColor: {r: 1, g: 1, b: 1, a: 1}
   m_HueShift: 0
@@ -58,77 +58,83 @@ MonoBehaviour:
   m_PoolColumns: 3
   m_PoolRows: 3
   m_DisableAutoPlaceTurbo: 0
-  m_TruckCapacity: 20
-  m_MinTruckCapacity: 10
+  m_TruckCapacity: 60
+  m_MinTruckCapacity: 40
   m_PeakTruckCapacity: 10
   m_UseRoundCapacities: 1
   m_RoundCapacityRatio: 0.8
   m_UseCustomWagonSequence: 1
   m_WagonSequence:
-  - wagonColor: {r: 1, g: 0.227451, b: 0.60784316, a: 1}
-    capacity: 30
+  - wagonColor: {r: 1, g: 0.76470596, b: 0.90196085, a: 1}
+    capacity: 40
     paletteIndex: 0
-    label: Vagon
-    linkId: 1
+    label: Renk #1 (1)
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.60784316, a: 1}
-    capacity: 13
-    paletteIndex: 0
-    label: Vagon
-    linkId: 1
+    capacity: 60
+    paletteIndex: 1
+    label: Renk #2 (1)
+    linkId: 0
     isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.60784316, a: 1}
-    capacity: 30
-    paletteIndex: 0
-    label: Vagon
+  - wagonColor: {r: 0.7843138, g: 0.039215688, b: 0.3921569, a: 1}
+    capacity: 50
+    paletteIndex: 2
+    label: Renk #3 (1)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.76470596, b: 0.90196085, a: 1}
-    capacity: 5
-    paletteIndex: 2
-    label: Vagon
+    capacity: 60
+    paletteIndex: 0
+    label: Renk #1 (2)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.7843138, g: 0.039215688, b: 0.3921569, a: 1}
-    capacity: 20
+  - wagonColor: {r: 1, g: 0.227451, b: 0.60784316, a: 1}
+    capacity: 53
     paletteIndex: 1
-    label: Vagon
+    label: Renk #2 (2)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.7843138, g: 0.039215688, b: 0.3921569, a: 1}
-    capacity: 30
+  - wagonColor: {r: 1, g: 0.76470596, b: 0.90196085, a: 1}
+    capacity: 40
+    paletteIndex: 0
+    label: Renk #1 (3)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 1, g: 0.227451, b: 0.60784316, a: 1}
+    capacity: 50
     paletteIndex: 1
-    label: Vagon
+    label: Renk #2 (3)
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 1, g: 0.76470596, b: 0.90196085, a: 1}
+    capacity: 33
+    paletteIndex: 0
+    label: Renk #1 (4)
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 0.227451, b: 0.60784316, a: 1}
-    capacity: 30
-    paletteIndex: 0
-    label: Vagon
+    capacity: 40
+    paletteIndex: 1
+    label: Renk #2 (4)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.60784316, a: 1}
-    capacity: 30
+  - wagonColor: {r: 1, g: 0.76470596, b: 0.90196085, a: 1}
+    capacity: 60
     paletteIndex: 0
-    label: Vagon
+    label: Renk #1 (5)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.60784316, a: 1}
-    capacity: 10
+  - wagonColor: {r: 1, g: 0.76470596, b: 0.90196085, a: 1}
+    capacity: 40
     paletteIndex: 0
-    label: Vagon
+    label: Renk #1 (6)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.60784316, a: 1}
-    capacity: 30
+  - wagonColor: {r: 1, g: 0.76470596, b: 0.90196085, a: 1}
+    capacity: 50
     paletteIndex: 0
-    label: Vagon
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 1, g: 0.227451, b: 0.60784316, a: 1}
-    capacity: 30
-    paletteIndex: 0
-    label: Vagon
+    label: Renk #1 (7)
     linkId: 0
     isHidden: 0
   m_FigureShadowTexture: {fileID: 0}

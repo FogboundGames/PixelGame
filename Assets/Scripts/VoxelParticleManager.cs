@@ -361,6 +361,8 @@ namespace PixelGame
 
         private void PlayPopSound()
         {
+            if (HypercasualFeedbackManager.Instance != null && HypercasualFeedbackManager.Instance.AsmrCreativeOnlyPickupSound) return;
+
             if (CasualHudController.Instance != null)
             {
                 CasualHudController.Instance.TriggerHaptic();
@@ -385,6 +387,8 @@ namespace PixelGame
         /// </summary>
         public void PlayGlassShatterSound(float pitch = 1.0f)
         {
+            if (HypercasualFeedbackManager.Instance != null && HypercasualFeedbackManager.Instance.AsmrCreativeOnlyPickupSound) return;
+
             if (CasualHudController.Instance != null && !CasualHudController.Instance.SoundEnabled) return;
             if (m_AudioSource == null) SetupAudio();
             if (!m_EnablePopSound || m_AudioSource == null) return;
