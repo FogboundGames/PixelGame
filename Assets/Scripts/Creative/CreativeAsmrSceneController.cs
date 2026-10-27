@@ -31,11 +31,20 @@ namespace PixelGame.Creative
     {
         [Header("🚢 Denizciler (Çoklu Gemici Desteği)")]
         [SerializeField] private List<CreativeSailorData> m_Sailors = new List<CreativeSailorData>();
-        [SerializeField] private float m_WalkSpeed = 2.4f;
+        [Tooltip("ASMR için optimize edilmiş sakin ve akıcı yürüme hızı")]
+        [SerializeField] private float m_WalkSpeed = 1.65f;
         [SerializeField] private float m_SpeedMultiplier = 1.0f;
         [Tooltip("Gemicilerin küp alma anları arasındaki mikrosaniye gecikmesi (Melodik ASMR akoru için)")]
         [SerializeField] private float m_SailorStagger = 0.08f;
         [SerializeField] private float m_GroundZ = 0.42f;
+
+        [Header("📦 Konteyner & Teslimat (Container Delivery)")]
+        [SerializeField] private Transform m_ContainerTransform;
+        [SerializeField] private TMPro.TextMeshProUGUI m_ContainerBadgeText;
+        [SerializeField] private UnityEngine.UI.Image m_ContainerImage;
+        [SerializeField] private int m_ContainerCapacity = 16;
+        [SerializeField] private float m_DeliveryDelayPerCube = 0.12f;
+        [SerializeField] private Vector3 m_ContainerDropOffset = new Vector3(0f, -0.40f, 0f);
 
         [Header("🎬 Otomatik Oynatma")]
         [SerializeField] private bool m_AutoStartOnPlay = true;
@@ -59,10 +68,16 @@ namespace PixelGame.Creative
         private Coroutine m_MasterRoutine;
         private bool m_IsPaused = false;
         private bool m_ShowHelp = true;
+        private Vector3 m_ContainerOriginalScale = Vector3.one;
 
         public List<CreativeSailorData> Sailors => m_Sailors;
         public CreativeThirdPersonCamera Camera { get => m_Camera; set => m_Camera = value; }
         public Transform CameraCenterAnchor { get => m_CameraCenterAnchor; set => m_CameraCenterAnchor = value; }
+        public Transform ContainerTransform { get => m_ContainerTransform; set => m_ContainerTransform = value; }
+        public TMPro.TextMeshProUGUI ContainerBadgeText { get => m_ContainerBadgeText; set => m_ContainerBadgeText = value; }
+        public UnityEngine.UI.Image ContainerImage { get => m_ContainerImage; set => m_ContainerImage = value; }
+        public int ContainerCapacity { get => m_ContainerCapacity; set => m_ContainerCapacity = value; }
+        public Vector3 ContainerDropOffset { get => m_ContainerDropOffset; set => m_ContainerDropOffset = value; }
 
         private void Awake()
         {
@@ -82,9 +97,31 @@ namespace PixelGame.Creative
                 m_Camera.Target = m_CameraCenterAnchor;
             }
 
+            if (m_ContainerTransform != null)
+            {
+                m_ContainerOriginalScale = m_ContainerTransform.localScale;
+            }
+            UpdateContainerBadge(0);
+
             InitSailors();
             CacheInitialCubeData();
             UpdateCameraCenterAnchor(true);
+        }
+
+        public void UpdateContainerBadge(int count)
+        {
+            if (m_ContainerBadgeText != null)
+            {
+                m_ContainerBadgeText.text = $"{count} / {m_ContainerCapacity}";
+                if (count >= m_ContainerCapacity && m_ContainerCapacity > 0)
+                {
+                    m_ContainerBadgeText.color = new Color(0.2f, 1f, 0.4f, 1f);
+                }
+                else
+                {
+                    m_ContainerBadgeText.color = Color.white;
+                }
+            }
         }
 
         private void Start()
@@ -150,8 +187,8 @@ namespace PixelGame.Creative
 
                 if (sailor.Visual != null)
                 {
-                    // Başlangıçta sağa doğru (küplere) baksın
-                    sailor.Visual.SnapFacing(Vector3.right);
+                    sailor.Visual.TiltTowardsCamera = 0f;
+                    sailor.Visual.SnapFacing(Vector3.up);
                     sailor.Visual.Play(SailorRunnerVisual.StateIdle);
                 }
 
@@ -233,7 +270,8 @@ namespace PixelGame.Creative
                     s.SailorObject.transform.position = s.InitialPosition;
                     if (s.Visual != null)
                     {
-                        s.Visual.SnapFacing(Vector3.right);
+                        s.Visual.TiltTowardsCamera = 0f;
+                        s.Visual.SnapFacing(Vector3.up);
                         s.Visual.Play(SailorRunnerVisual.StateIdle);
                     }
                 }
@@ -252,6 +290,13 @@ namespace PixelGame.Creative
                 }
             }
 
+            if (m_ContainerTransform != null)
+            {
+                m_ContainerTransform.DOKill();
+                m_ContainerTransform.localScale = m_ContainerOriginalScale;
+            }
+            UpdateContainerBadge(0);
+
             UpdateCameraCenterAnchor(true);
             StartCreativeSequence();
         }
@@ -268,10 +313,18 @@ namespace PixelGame.Creative
             {
                 if (s.Visual != null)
                 {
-                    s.Visual.SnapFacing(Vector3.right);
+                    s.Visual.TiltTowardsCamera = 0f;
+                    s.Visual.SnapFacing(Vector3.up);
                     s.Visual.Play(SailorRunnerVisual.StateIdle);
                 }
             }
+
+            // Kamera başlangıç perspektifine yumuşakça döner
+            if (m_Camera != null)
+            {
+                m_Camera.AnimateZoom(new Vector3(0f, -2.10f, -3.20f), 48f, 0.6f);
+            }
+
             yield return new WaitForSeconds(m_StartDelay);
 
             int runningCount = m_Sailors.Count;
@@ -326,26 +379,40 @@ namespace PixelGame.Creative
                 Vector3 targetPos = targetCube.transform.position;
                 targetPos.z = m_GroundZ;
 
-                // Hedef küpe doğru sağa yürü
+                // Küpün tam içine/merkezine basmak yerine, yaklaşma açısında küpün tam önünde dur
+                Vector3 startPos = sailor.SailorObject.transform.position;
+                startPos.z = m_GroundZ;
+                Vector3 toCube = targetPos - startPos;
+                toCube.z = 0f;
+                float distToCube = toCube.magnitude;
+
+                // Küpün kenarının önünde duruş mesafesi (~0.21m, küp kenarından 10cm önü)
+                float standoff = Mathf.Min(0.21f, distToCube * 0.75f);
+                Vector3 approachDir = distToCube > 1e-4f ? (toCube / distToCube) : Vector3.up;
+                Vector3 stopPos = targetPos - approachDir * standoff;
+                stopPos.z = m_GroundZ;
+
+                // Hedef küpün önüne doğru yürü
                 while (true)
                 {
                     while (m_IsPaused) yield return null;
 
                     Vector3 currentPos = sailor.SailorObject.transform.position;
-                    Vector3 toTarget = targetPos - currentPos;
+                    Vector3 toTarget = stopPos - currentPos;
                     toTarget.z = 0f;
                     float dist = toTarget.magnitude;
 
-                    if (dist <= 0.05f) break;
+                    if (dist <= 0.03f) break;
 
                     float step = m_WalkSpeed * m_SpeedMultiplier * Time.deltaTime;
                     Vector3 moveDir = toTarget / dist;
+                    sailor.Visual.SnapFacing(moveDir);
                     sailor.SailorObject.transform.position += moveDir * Mathf.Min(step, dist);
 
                     yield return null;
                 }
 
-                // Küpe dön ve alma animasyonu
+                // Küpe tam dön ve alma animasyonu
                 Vector3 pickupDir = (targetPos - sailor.SailorObject.transform.position);
                 pickupDir.z = 0f;
                 if (pickupDir.sqrMagnitude > 1e-4f)
@@ -392,12 +459,149 @@ namespace PixelGame.Creative
                 sailor.Visual.Play(SailorRunnerVisual.StateRunCarry);
             }
 
-            // Zafer duruşu: Bitişte yüzünü kameraya dönüp kutlama yap
-            sailor.Visual.SnapFacing(Vector3.down);
-            sailor.Visual.Play(SailorRunnerVisual.StateIdle);
-            sailor.SailorObject.transform.DOPunchScale(new Vector3(0.08f, 0.08f, 0.08f), 0.4f, 2, 0.5f);
+            // Eğer sahneye bir konteyner bağlanmışsa, oraya yürüyüp küpleri boşaltsın
+            if (m_ContainerTransform != null && sailor.CargoStack != null && sailor.CargoStack.Count > 0)
+            {
+                Vector3 dropTargetPos = m_ContainerTransform.position + m_ContainerDropOffset;
+                dropTargetPos.z = m_GroundZ;
+
+                // 🎥 Ezgi'nin isteği: Konteynera yaklaşırken kamera pürüzsüzce geriye ve geniş açıya çekilir
+                if (m_Camera != null)
+                {
+                    m_Camera.AnimateZoom(new Vector3(0.0f, -2.75f, -4.60f), 53f, 1.35f);
+                }
+
+                sailor.Visual.Play(SailorRunnerVisual.StateRunCarry);
+                while (true)
+                {
+                    while (m_IsPaused) yield return null;
+
+                    Vector3 cur = sailor.SailorObject.transform.position;
+                    Vector3 toDrop = dropTargetPos - cur;
+                    toDrop.z = 0f;
+                    float d = toDrop.magnitude;
+                    if (d <= 0.04f) break;
+
+                    float step = m_WalkSpeed * m_SpeedMultiplier * Time.deltaTime;
+                    Vector3 moveDir = toDrop / d;
+                    sailor.Visual.SnapFacing(moveDir);
+                    sailor.SailorObject.transform.position += moveDir * Mathf.Min(step, d);
+                    yield return null;
+                }
+
+                sailor.Visual.SnapFacing(Vector3.up);
+                sailor.Visual.Play(SailorRunnerVisual.StateIdle);
+
+                yield return StartCoroutine(DeliverCubesToContainerRoutine(sailor));
+            }
+            else
+            {
+                // Zafer duruşu: Bitişte yüzünü kameraya dönüp kutlama yap
+                sailor.Visual.SnapFacing(Vector3.down);
+                sailor.Visual.Play(SailorRunnerVisual.StateIdle);
+                sailor.SailorObject.transform.DOPunchScale(new Vector3(0.08f, 0.08f, 0.08f), 0.4f, 2, 0.5f);
+            }
 
             onComplete?.Invoke();
+        }
+
+        private IEnumerator DeliverCubesToContainerRoutine(CreativeSailorData sailor)
+        {
+            if (sailor.CargoStack == null || m_ContainerTransform == null) yield break;
+
+            int deliveredCount = 0;
+            // Konteynerin orijinal scale'ini garantiye al (önceki tween kalıntılarını sıfırla)
+            m_ContainerTransform.DOKill();
+            if (m_ContainerOriginalScale == Vector3.one || m_ContainerOriginalScale.x > 0.1f)
+            {
+                m_ContainerOriginalScale = new Vector3(0.0078f, 0.0078f, 0.0078f);
+            }
+            m_ContainerTransform.localScale = m_ContainerOriginalScale;
+            Vector3 containerTargetPos = m_ContainerTransform.position + new Vector3(0f, 0f, -0.2f);
+
+            while (sailor.CargoStack.Count > 0)
+            {
+                while (m_IsPaused) yield return null;
+
+                Transform topCube = sailor.CargoStack.PopTop();
+                if (topCube != null)
+                {
+                    topCube.SetParent(null, true);
+                    deliveredCount++;
+
+                    int cubeIndex = deliveredCount;
+                    // Konteynerin içine kavisle zıplayarak giriş (DOJump)
+                    topCube.DOJump(containerTargetPos, 0.45f, 1, 0.24f).SetEase(Ease.InQuad);
+                    topCube.DOScale(Vector3.zero, 0.24f).SetEase(Ease.InBack).OnComplete(() =>
+                    {
+                        if (topCube != null) Destroy(topCube.gameObject);
+
+                        // 🔊 ASMR Konteynere Temas Sesi (Küp tam konteynere girdiği an)
+                        if (HypercasualFeedbackManager.Instance != null)
+                        {
+                            HypercasualFeedbackManager.Instance.PlayCubeLiftoffFeedback(
+                                containerTargetPos,
+                                cubeIndex,
+                                immediate: true
+                            );
+                        }
+
+                        // 📳 Konteyner Mikro Yaylanma (Oransal Squash & Stretch: asla bozulmaz, tok ve tatlı sekme)
+                        if (m_ContainerTransform != null)
+                        {
+                            m_ContainerTransform.DOKill();
+                            m_ContainerTransform.localScale = m_ContainerOriginalScale;
+
+                            // Her küp vuruşunda dikeyde %6 basılma, enine %4 yaylanma
+                            Vector3 squashed = new Vector3(
+                                m_ContainerOriginalScale.x * 1.05f,
+                                m_ContainerOriginalScale.y * 0.94f,
+                                m_ContainerOriginalScale.z
+                            );
+
+                            m_ContainerTransform.DOScale(squashed, 0.04f).SetEase(Ease.OutQuad).OnComplete(() =>
+                            {
+                                if (m_ContainerTransform != null)
+                                {
+                                    m_ContainerTransform.DOScale(m_ContainerOriginalScale, 0.07f).SetEase(Ease.OutBack);
+                                }
+                            });
+                        }
+                    });
+
+                    UpdateContainerBadge(deliveredCount);
+                }
+
+                float timer = 0f;
+                while (timer < m_DeliveryDelayPerCube)
+                {
+                    while (m_IsPaused) yield return null;
+                    timer += Time.deltaTime;
+                    yield return null;
+                }
+            }
+
+            // 🎉 16/16 Tamamlandı: Konteyner tatlı bir kutlama sıçraması yapar + Sailor zafer pozu verir
+            if (m_ContainerTransform != null)
+            {
+                m_ContainerTransform.DOKill();
+                m_ContainerTransform.localScale = m_ContainerOriginalScale;
+                Vector3 popScale = m_ContainerOriginalScale * 1.15f;
+                m_ContainerTransform.DOScale(popScale, 0.14f).SetEase(Ease.OutBack).OnComplete(() =>
+                {
+                    if (m_ContainerTransform != null)
+                    {
+                        m_ContainerTransform.DOScale(m_ContainerOriginalScale, 0.20f).SetEase(Ease.InOutQuad);
+                    }
+                });
+            }
+
+            // 🎉 16/16 Tamamlandı: Sailor yüzünü kameraya dönüp kutlama yapar
+            sailor.Visual.SnapFacing(Vector3.down);
+            sailor.Visual.Play(SailorRunnerVisual.StateIdle);
+            sailor.SailorObject.transform.DOPunchScale(new Vector3(0.12f, 0.12f, 0.12f), 0.5f, 3, 0.5f);
+
+            yield return new WaitForSeconds(0.4f);
         }
 
         private void AddCubeVisualToStack(PixelCube sourceCube, int index, CarriedCargoStack stack, Color teamColor)
@@ -430,6 +634,7 @@ namespace PixelGame.Creative
             var vis = sailor.GetComponent<SailorRunnerVisual>();
             if (vis != null)
             {
+                vis.TiltTowardsCamera = 0f;
                 vis.SetupTeamRing(color, groundZ);
                 vis.SetRingVisible(true);
                 vis.SetupFakeShadow(groundZ);
@@ -500,15 +705,15 @@ namespace PixelGame.Creative
             };
             style.normal.textColor = Color.white;
 
-            GUILayout.BeginArea(new Rect(15, 15, 400, 185), style);
-            GUILayout.Label("🎬 <b>ASMR 3'LÜ GEMİCİ KREATİF ÇEKİMİ (SOLDAN SAĞA)</b>", GUI.skin.label);
+            GUILayout.BeginArea(new Rect(15, 15, 430, 205), style);
+            GUILayout.Label("🎬 <b>ASMR KREATİF ÇEKİMİ (THİRD PERSON + SU DAMLASI + KONTEYNER)</b>", GUI.skin.label);
             GUILayout.Space(4);
             GUILayout.Label($"• <b>[1, 2, 3]</b> Kamera Modu: {(m_Camera != null ? m_Camera.Mode.ToString() : "N/A")}");
             GUILayout.Label("• <b>[R]</b> Sahneyi Baştan Başlat (Replay)");
             GUILayout.Label($"• <b>[Space]</b> {(m_IsPaused ? "▶️ Devam Et" : "⏸️ Duraklat")}");
-            GUILayout.Label($"• <b>[ [ / ] ]</b> Hız: {m_SpeedMultiplier:F2}x");
-            GUILayout.Label("• <b>[H]</b> Bu Bilgi Kutusunu Gizle / Göster");
-            GUILayout.Label($"• <b>Yön:</b> Soldan Sağa Doğru (+X Yönünde Koşu)");
+            GUILayout.Label($"• <b>[ [ / ] ]</b> Hız Çarpanı: {m_SpeedMultiplier:F2}x (Temel: {m_WalkSpeed:F2})");
+            GUILayout.Label("• <b>[H]</b> Bu Bilgi Kutusunu Gizle / Göster (Temiz Kayıt)");
+            GUILayout.Label("• <b>Akış:</b> Su Damlası Toplama ➔ Konteynere Teslimat ➔ Kutlama");
             GUILayout.EndArea();
         }
     }

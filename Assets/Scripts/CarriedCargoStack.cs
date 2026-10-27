@@ -98,6 +98,19 @@ namespace PixelGame
             cube.DOScale(Vector3.one * unitScale, 0.2f).SetEase(Ease.OutBack).SetLink(cube.gameObject);
         }
 
+        /// <summary>Yığının en üstündeki küpü yığından çıkarır ve Transform'unu döner (Konteynere aktarım animasyonu için).</summary>
+        public Transform PopTop()
+        {
+            if (m_Cubes.Count == 0) return null;
+            int lastIdx = m_Cubes.Count - 1;
+            Transform topCube = m_Cubes[lastIdx];
+            m_Cubes.RemoveAt(lastIdx);
+            if (lastIdx < m_Yaw.Count) m_Yaw.RemoveAt(lastIdx);
+            if (lastIdx < m_Offset.Count) m_Offset.RemoveAt(lastIdx);
+            if (lastIdx < m_OffsetVel.Count) m_OffsetVel.RemoveAt(lastIdx);
+            return topCube;
+        }
+
         private void LateUpdate()
         {
             float dt = Mathf.Min(Time.deltaTime, 0.05f);
