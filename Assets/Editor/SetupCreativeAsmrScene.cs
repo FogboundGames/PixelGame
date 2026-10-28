@@ -22,6 +22,7 @@ namespace PixelGame.Editor
 
         // Konteyner Görselleri
         private const string ContainerBluePath = "Assets/Textures/Containers/Container_Blue.png";
+        private const string ContainerPureShadowPath = "Assets/Textures/Containers/Container_PureShadow.png";
         private const string BadgePillPath = "Assets/UI/Badge_Pill.png";
         private const string ContainerShadowPath = "Assets/UI/CargoContainer_Shadow.png";
         private const string ContainerSoftShadowMatPath = "Assets/Materials/SoftContainerShadow_Mat.mat";
@@ -44,8 +45,8 @@ namespace PixelGame.Editor
         public static readonly Color YellowColor = new Color(1.00f, 0.82f, 0.00f, 1f); // #FFD100 (Altın Sarısı)
         public static readonly Color BlueColor = new Color(0.00f, 0.71f, 0.95f, 1f);   // #00B5F2 (Elektrik Gökyüzü Mavisi)
 
-        // Orijinal oyun sahnesinden (Gemi.unity) birebir referans alınan orantılar:
-        private const float CellSize = 0.28f;
+        // Orijinal oyun sahnesinden (Gemi.unity) türetilen, daha kompakt ve sevimli ASMR orantıları:
+        private const float CellSize = 0.22f; // Daha küçük küpler ve gemiciler
         private const float SailorToCubeRatio = 2.4215f; // 1.45 * 1.67
 
         private static bool s_HasBuilt = false;
@@ -60,12 +61,14 @@ namespace PixelGame.Editor
         {
             if (System.IO.File.Exists("scratch/build_creative.flag"))
             {
+                if (EditorApplication.isPlaying)
+                {
+                    EditorApplication.isPlaying = false;
+                    return;
+                }
                 try { System.IO.File.Delete("scratch/build_creative.flag"); } catch {}
                 BuildAndOpenCreativeScene();
-                EditorApplication.delayCall += () =>
-                {
-                    CaptureGameViewScreenshot.Capture();
-                };
+                CaptureGameViewScreenshot.Capture();
             }
         }
 
@@ -217,9 +220,20 @@ namespace PixelGame.Editor
             GameObject feedbackGo = new GameObject("[HypercasualFeedbackManager]");
             HypercasualFeedbackManager feedback = feedbackGo.AddComponent<HypercasualFeedbackManager>();
             feedback.AsmrCreativeOnlyPickupSound = true;
-            feedback.AsmrUsePureProceduralSound = false;
-            feedback.AsmrPickupVolume = 0.35f;
+            feedback.AsmrUsePureProceduralSound = false; // Orijinal Kenney impactSoft küp sesleri hakim
+            feedback.AsmrPickupVolume = 0.50f;
+            feedback.PickupSoundVolume = 0.50f;
             feedback.LiftoffSoundDebounceTime = 0.032f;
+
+            // Orijinal oyundaki (Gemi.unity) 5 adet impactSoft küp toplama ses klibini bağla:
+            feedback.PickupSoundClips = new AudioClip[]
+            {
+                AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Kenney/kenney_impact-sounds/Audio/impactSoft_medium_000.ogg"),
+                AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Kenney/kenney_impact-sounds/Audio/impactSoft_medium_001.ogg"),
+                AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Kenney/kenney_impact-sounds/Audio/impactSoft_medium_002.ogg"),
+                AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Kenney/kenney_impact-sounds/Audio/impactSoft_medium_003.ogg"),
+                AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Kenney/kenney_impact-sounds/Audio/impactSoft_medium_004.ogg")
+            };
 
             // 8. 💧 SU DAMLASI (WATER DROP) 16 KÜP DESENİ
             // 5 sütun x 6 satır içerisinde damla formu:
@@ -257,7 +271,7 @@ namespace PixelGame.Editor
                 (2, 5)
             };
 
-            List<PixelCube> orderedCubes = new List<PixelCube>();
+            Dictionary<(int col, int row), PixelCube> cubeLookup = new Dictionary<(int col, int row), PixelCube>();
 
             for (int i = 0; i < waterDropPattern.Length; i++)
             {
@@ -334,12 +348,37 @@ namespace PixelGame.Editor
                 EditorUtility.SetDirty(cubeGo);
                 EditorUtility.SetDirty(pixelCube);
 
-                orderedCubes.Add(pixelCube);
+                cubeLookup[(c, r)] = pixelCube;
+            }
+
+            // 3 Gemici için Rotalar:
+            // 1. ORTA HERO GEMİCİ (c == 2 sütunu boyunca dümdüz yukarı, 6 küp):
+            List<PixelCube> middleCubes = new List<PixelCube>();
+            var middleCoords = new (int c, int r)[] { (2, 0), (2, 1), (2, 2), (2, 3), (2, 4), (2, 5) };
+            foreach (var coord in middleCoords)
+            {
+                if (cubeLookup.TryGetValue(coord, out var cube)) middleCubes.Add(cube);
+            }
+
+            // 2. SOL GEMİCİ (Sol taraf kavisindeki küpler, 5 küp):
+            List<PixelCube> leftCubes = new List<PixelCube>();
+            var leftCoords = new (int c, int r)[] { (1, 0), (1, 1), (0, 2), (1, 2), (1, 3) };
+            foreach (var coord in leftCoords)
+            {
+                if (cubeLookup.TryGetValue(coord, out var cube)) leftCubes.Add(cube);
+            }
+
+            // 3. SAĞ GEMİCİ (Sağ taraf kavisindeki küpler, 5 küp):
+            List<PixelCube> rightCubes = new List<PixelCube>();
+            var rightCoords = new (int c, int r)[] { (3, 0), (3, 1), (4, 2), (3, 2), (3, 3) };
+            foreach (var coord in rightCoords)
+            {
+                if (cubeLookup.TryGetValue(coord, out var cube)) rightCubes.Add(cube);
             }
 
             // 9. 📦 DÜNYA İÇİ KONTEYNER İSTASYONU (İSKELE TEPESİNDE - VARIŞ NOKTASI)
-            // Bloklardan ferahça uzakta, iskelenin en ucundaki korkuluk/deniz sınırında (Y = 2.10f) durur
-            float containerY = 2.10f;
+            // Bloklardan ferahça uzakta, iskelenin ucunda (Y = 2.45f) durur; gemiciler blokları taşıyarak bir süre yürür
+            float containerY = 2.45f;
             float containerX = 0f; // Tam merkezde
             GameObject containerRoot = new GameObject("Container_Dropoff_Station");
             containerRoot.transform.position = new Vector3(containerX, containerY, groundZ);
@@ -391,70 +430,173 @@ namespace PixelGame.Editor
             containerRt.sizeDelta = new Vector2(160f, 163f);
             containerRt.localScale = Vector3.one * 0.0078f; // ~1.25m dünya boyutu
 
-            containerRoot.AddComponent<CanvasRenderer>();
-            Image containerImg = containerRoot.AddComponent<Image>();
+            // 1. KATMAN: 🌑 Saf Konteyner Gölgesi (Container_PureShadow.png) - Beyaz kontursuz, saf yumuşak gölge
+            GameObject shadowChildGo = new GameObject("Shadow", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            shadowChildGo.transform.SetParent(containerRoot.transform, false);
+
+            float uiOutlinePad = 64f / 512f;
+            RectTransform srt = (RectTransform)shadowChildGo.transform;
+            srt.anchorMin = Vector2.one * -uiOutlinePad;
+            srt.anchorMax = Vector2.one * (1f + uiOutlinePad);
+            srt.offsetMin = Vector2.zero;
+            srt.offsetMax = Vector2.zero;
+            srt.pivot = new Vector2(0.5f, 0.5f);
+            srt.localRotation = Quaternion.identity;
+            srt.localScale = Vector3.one;
+
+            Image shadowImg = shadowChildGo.GetComponent<Image>();
+            Sprite pureShadowSprite = AssetDatabase.LoadAssetAtPath<Sprite>(ContainerPureShadowPath);
+            if (pureShadowSprite != null) shadowImg.sprite = pureShadowSprite;
+            shadowImg.color = Color.white;
+            shadowImg.raycastTarget = false;
+
+            // Mavi Body (sortingOrder = 5) arkasında çizilsin:
+            Canvas sc = shadowChildGo.AddComponent<Canvas>();
+            sc.overrideSorting = true;
+            sc.sortingOrder = 4;
+            srt.localPosition = Vector3.zero;
+
+            // 2. KATMAN: 🟦 Mavi Konteyner Gövdesi (Container_Blue.png) - Gölgenin önünde çizilir
+            GameObject bodyGo = new GameObject("Body", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            bodyGo.transform.SetParent(containerRoot.transform, false);
+
+            RectTransform brt = (RectTransform)bodyGo.transform;
+            brt.anchorMin = Vector2.zero;
+            brt.anchorMax = Vector2.one;
+            brt.offsetMin = Vector2.zero;
+            brt.offsetMax = Vector2.zero;
+            brt.pivot = new Vector2(0.5f, 0.5f);
+            brt.localRotation = Quaternion.identity;
+            brt.localScale = Vector3.one;
+
+            Image containerImg = bodyGo.GetComponent<Image>();
             Sprite containerSprite = AssetDatabase.LoadAssetAtPath<Sprite>(ContainerBluePath);
             if (containerSprite != null) containerImg.sprite = containerSprite;
             containerImg.color = Color.white;
             containerImg.raycastTarget = false;
 
-            // Konteyner temiz ve sade bırakılıyor (kullanıcı isteği: konteynerda sayı olmasına gerek yok)
-            // 10. 🏃 HERO GEMİCİ KARAKTERİ (MAVİ TAKIM)
+            // Quad sahte gölgesi kapatılır
+            contShadowGo.SetActive(false);
+
+            // 3. KATMAN: 🏷️ Konteyner Sayı Rozeti (Badge_Pill & TextMeshProUGUI)
+            // Kullanıcı isteği: "ana oyundaki gibi konteynerlar üstünde sayı olsun. her küp girince azalsın falan."
+            GameObject badgeGo = new GameObject("Badge_Pill", typeof(RectTransform));
+            badgeGo.transform.SetParent(containerRoot.transform, false);
+
+            RectTransform badgeRt = (RectTransform)badgeGo.transform;
+            badgeRt.anchorMin = new Vector2(0.5f, 0.5f);
+            badgeRt.anchorMax = new Vector2(0.5f, 0.5f);
+            badgeRt.pivot = new Vector2(0.5f, 0.5f);
+            badgeRt.anchoredPosition = new Vector2(0f, 21f);
+            badgeRt.sizeDelta = new Vector2(140f, 110f);
+
+            Canvas badgeCanvas = badgeGo.AddComponent<Canvas>();
+            badgeCanvas.overrideSorting = true;
+            badgeCanvas.sortingOrder = 10; // Body (5) üzerinde çizilsin
+
+            TextMeshProUGUI badgeTmp = badgeGo.AddComponent<TextMeshProUGUI>();
+            TMP_FontAsset lilitaFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
+            if (lilitaFont != null) badgeTmp.font = lilitaFont;
+            badgeTmp.alignment = TextAlignmentOptions.Center;
+            badgeTmp.enableAutoSizing = true;
+            badgeTmp.fontSizeMin = 36f;
+            badgeTmp.fontSizeMax = 64f;
+            badgeTmp.fontSize = 58f;
+            badgeTmp.fontStyle = FontStyles.Bold;
+            badgeTmp.color = Color.white;
+            badgeTmp.outlineWidth = 0.28f;
+            badgeTmp.outlineColor = Color.black;
+            badgeTmp.text = "16";
+            badgeTmp.raycastTarget = false;
+            // 10. 🏃 3 GEMİCİ TAKIMI (SOL, ORTA HERO, SAĞ)
+            // Kullanıcı isteği:
+            // - Tek denizci olmasın, 3 tane olsun.
+            // - Ortadakini kamera takip etsin.
+            // - Ortadaki dümdüz alırken diğerleri solu ve sağı alır.
+            // - Sonra biri soldan, biri önden, diğeri sağdan konteynere bırakır blokları!
+
             GameObject sailorPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(SailorPrefabPath);
-            GameObject sailorGo;
-            Vector3 sailorStartPos = new Vector3(0f, sailorStartY, groundZ);
-
-            if (sailorPrefab != null)
-            {
-                sailorGo = (GameObject)PrefabUtility.InstantiatePrefab(sailorPrefab);
-                sailorGo.transform.position = sailorStartPos;
-            }
-            else
-            {
-                sailorGo = new GameObject("Sailor_Hero_Blue");
-                sailorGo.transform.position = sailorStartPos;
-            }
-            sailorGo.name = "Sailor_Hero_Blue";
-            sailorGo.transform.localScale = Vector3.one * (CellSize * SailorToCubeRatio);
-
-            PrefabUtility.UnpackPrefabInstance(sailorGo, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-
-            var sailorVis = sailorGo.GetComponent<SailorRunnerVisual>();
-            if (sailorVis != null)
-            {
-                sailorVis.TiltTowardsCamera = 0f;
-                sailorVis.SnapFacing(Vector3.up);
-                sailorVis.SetupTeamRing(BlueColor, groundZ);
-                sailorVis.SetRingVisible(true);
-                sailorVis.SetupFakeShadow(groundZ);
-            }
-
             Material sailorTeamMat = AssetDatabase.LoadAssetAtPath<Material>(SailorTeamBluePath);
             Material sailorStripeMat = AssetDatabase.LoadAssetAtPath<Material>(SailorStripesBluePath);
-            ApplySailorPermanentMaterials(sailorGo, sailorTeamMat, sailorStripeMat, BlueColor);
-            EditorUtility.SetDirty(sailorGo);
 
-            var heroSailorData = new CreativeSailorData
+            float sailorScale = CellSize * SailorToCubeRatio;
+            float laneOffset = 0.36f; // Sol ve sağ koridor aralığı (başlangıçta şapkaların birbirine çarpmaması için)
+
+            Vector3 leftStartPos = new Vector3(-laneOffset, sailorStartY, groundZ);
+            Vector3 middleStartPos = new Vector3(0f, sailorStartY, groundZ);
+            Vector3 rightStartPos = new Vector3(+laneOffset, sailorStartY, groundZ);
+
+            // 1. SOL GEMİCİ: Sol taraf kavisini toplar, konteynere SOLDAN yanaşır (ferah mesafeli durur)
+            GameObject leftSailorGo = InstantiateSailorGo(sailorPrefab, "Sailor_Left_Blue", leftStartPos, sailorScale, sailorTeamMat, sailorStripeMat, BlueColor, groundZ);
+            var leftSailorData = new CreativeSailorData
             {
-                Name = "Hero_Blue",
-                SailorObject = sailorGo,
+                Name = "Sailor_Left",
+                SailorObject = leftSailorGo,
                 TeamColor = BlueColor,
-                AssignedCubes = orderedCubes,
-                Visual = sailorVis,
-                InitialPosition = sailorStartPos
+                AssignedCubes = leftCubes,
+                Visual = leftSailorGo.GetComponent<SailorRunnerVisual>(),
+                InitialPosition = leftStartPos,
+                DropOffset = new Vector3(-0.75f, -0.38f, 0f), // Konteynerin SOLUNDA ve mesafeli durur
+                FinalFacingDirection = new Vector3(0.85f, 0.52f, 0f).normalized // Konteynere sağ-yukarı bakar
             };
+
+            // 2. ORTA HERO GEMİCİ: Dümdüz yukarı c=2 sütununu toplar, ÖNDEN yanaşır (dipten değil mesafeli)
+            GameObject middleSailorGo = InstantiateSailorGo(sailorPrefab, "Sailor_Hero_Middle_Blue", middleStartPos, sailorScale, sailorTeamMat, sailorStripeMat, BlueColor, groundZ);
+            var middleSailorData = new CreativeSailorData
+            {
+                Name = "Sailor_Hero_Middle",
+                SailorObject = middleSailorGo,
+                TeamColor = BlueColor,
+                AssignedCubes = middleCubes,
+                Visual = middleSailorGo.GetComponent<SailorRunnerVisual>(),
+                InitialPosition = middleStartPos,
+                DropOffset = new Vector3(0f, -0.80f, 0f), // Konteynerin ÖNÜNDE ve mesafeli durur (dipten değil)
+                FinalFacingDirection = Vector3.up // Konteynere dik bakar
+            };
+
+            // 3. SAĞ GEMİCİ: Sağ taraf kavisini toplar, konteynere SAĞDAN yanaşır (ferah mesafeli durur)
+            GameObject rightSailorGo = InstantiateSailorGo(sailorPrefab, "Sailor_Right_Blue", rightStartPos, sailorScale, sailorTeamMat, sailorStripeMat, BlueColor, groundZ);
+            var rightSailorData = new CreativeSailorData
+            {
+                Name = "Sailor_Right",
+                SailorObject = rightSailorGo,
+                TeamColor = BlueColor,
+                AssignedCubes = rightCubes,
+                Visual = rightSailorGo.GetComponent<SailorRunnerVisual>(),
+                InitialPosition = rightStartPos,
+                DropOffset = new Vector3(+0.75f, -0.38f, 0f), // Konteynerin SAĞINDA ve mesafeli durur
+                FinalFacingDirection = new Vector3(-0.85f, 0.52f, 0f).normalized // Konteynere sol-yukarı bakar
+            };
+
+            // Kamera orta gemicinin tam peşine takılır
+            centerAnchorGo.transform.position = middleStartPos;
+            tpCam.Target = centerAnchorGo.transform;
 
             // 11. 🎬 SAHNE YÖNETİCİSİ (CreativeAsmrSceneController)
             GameObject managerGo = new GameObject("[CREATIVE_ASMR_MANAGER]");
             CreativeAsmrSceneController controller = managerGo.AddComponent<CreativeAsmrSceneController>();
             controller.Camera = tpCam;
             controller.CameraCenterAnchor = centerAnchorGo.transform;
-            controller.Sailors.Add(heroSailorData);
+            controller.CameraFollowSailorIndex = 1; // 1 = Orta Hero Gemici!
+
+            controller.Sailors.Add(leftSailorData);   // Index 0: Sol
+            controller.Sailors.Add(middleSailorData); // Index 1: Orta (Hero - Kamera Takip)
+            controller.Sailors.Add(rightSailorData);  // Index 2: Sağ
+
             controller.ContainerTransform = containerRoot.transform;
-            controller.ContainerBadgeText = null;
+            controller.ContainerBadgeText = badgeTmp;
+            controller.BadgeAnchoredPosition = new Vector2(0f, 21f);
             controller.ContainerImage = containerImg;
             controller.ContainerCapacity = 16;
-            controller.ContainerDropOffset = new Vector3(0f, -0.55f, 0f);
+
+            // 🎊 Konfeti Efekti Sistemi ([Creative_Confetti_FX])
+            GameObject confettiGo = new GameObject("[Creative_Confetti_FX]");
+            confettiGo.transform.SetParent(managerGo.transform, false);
+            confettiGo.transform.position = containerRoot.transform.position;
+            ParticleSystem confettiPs = confettiGo.AddComponent<ParticleSystem>();
+            controller.SetupConfettiParticleSystem(confettiPs);
+            controller.ConfettiPS = confettiPs;
+
             controller.CacheInitialCubeData();
 
             EditorUtility.SetDirty(managerGo);
@@ -472,6 +614,38 @@ namespace PixelGame.Editor
             {
                 EditorSceneManager.OpenScene("Assets/Scenes/Gemi.unity", OpenSceneMode.Single);
             }
+        }
+
+        private static GameObject InstantiateSailorGo(GameObject prefab, string name, Vector3 pos, float scale, Material teamMat, Material stripeMat, Color teamColor, float groundZ)
+        {
+            GameObject go;
+            if (prefab != null)
+            {
+                go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                go.transform.position = pos;
+            }
+            else
+            {
+                go = new GameObject(name);
+                go.transform.position = pos;
+            }
+            go.name = name;
+            go.transform.localScale = Vector3.one * scale;
+            PrefabUtility.UnpackPrefabInstance(go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+
+            var vis = go.GetComponent<SailorRunnerVisual>();
+            if (vis != null)
+            {
+                vis.TiltTowardsCamera = 0f;
+                vis.SnapFacing(Vector3.up);
+                vis.SetupTeamRing(teamColor, groundZ);
+                vis.SetRingVisible(true);
+                vis.SetupFakeShadow(groundZ);
+            }
+
+            ApplySailorPermanentMaterials(go, teamMat, stripeMat, teamColor);
+            EditorUtility.SetDirty(go);
+            return go;
         }
 
         private static void ApplySailorPermanentMaterials(GameObject sailor, Material teamMat, Material stripeMat, Color teamColor)

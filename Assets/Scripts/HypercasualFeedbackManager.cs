@@ -139,6 +139,9 @@ namespace PixelGame
         [Tooltip("Denizci panodan küp alınca bunlardan rastgele biri çalar.")]
         [SerializeField] private AudioClip[] m_PickupSoundClips;
         [Range(0f, 1f)] [SerializeField] private float m_PickupSoundVolume = 0.6f;
+
+        public AudioClip[] PickupSoundClips { get => m_PickupSoundClips; set => m_PickupSoundClips = value; }
+        public float PickupSoundVolume { get => m_PickupSoundVolume; set => m_PickupSoundVolume = value; }
         [Tooltip("UI butonlarına basınca çalar. Boşsa Resources/Audio/ui_button_click kullanılır.")]
         [SerializeField] private AudioClip m_ButtonSoundClip;
         [Range(0f, 1f)] [SerializeField] private float m_ButtonSoundVolume = 0.8f;
@@ -279,6 +282,20 @@ namespace PixelGame
                 {
                     m_ContainerDockClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Kenney/kenney_impact-sounds/Audio/impactWood_medium_004.ogg");
                 }
+#endif
+            }
+
+            if (m_PickupSoundClips == null || m_PickupSoundClips.Length == 0)
+            {
+#if UNITY_EDITOR
+                m_PickupSoundClips = new AudioClip[]
+                {
+                    UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Kenney/kenney_impact-sounds/Audio/impactSoft_medium_000.ogg"),
+                    UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Kenney/kenney_impact-sounds/Audio/impactSoft_medium_001.ogg"),
+                    UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Kenney/kenney_impact-sounds/Audio/impactSoft_medium_002.ogg"),
+                    UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Kenney/kenney_impact-sounds/Audio/impactSoft_medium_003.ogg"),
+                    UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Kenney/kenney_impact-sounds/Audio/impactSoft_medium_004.ogg")
+                };
 #endif
             }
         }
