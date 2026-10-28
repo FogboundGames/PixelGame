@@ -90,10 +90,12 @@ namespace PixelGame.Creative
 
         [Header("🎊 Kutlama & Konfeti Efekti")]
         [SerializeField] private ParticleSystem m_ConfettiPS;
+        [SerializeField] private GameObject m_PerfectStamp;
         private bool m_HasCelebrated = false;
         private static Texture2D s_ConfettiTexture;
 
         public ParticleSystem ConfettiPS { get => m_ConfettiPS; set => m_ConfettiPS = value; }
+        public GameObject PerfectStamp { get => m_PerfectStamp; set => m_PerfectStamp = value; }
 
         private void Awake()
         {
@@ -159,9 +161,18 @@ namespace PixelGame.Creative
 
                 if (deliveredCount > 0)
                 {
+                    // 💓 Sayaç Kalp Atışı (Pulse)
                     m_ContainerBadgeText.transform.DOKill();
-                    m_ContainerBadgeText.transform.localScale = Vector3.one;
-                    m_ContainerBadgeText.transform.DOPunchScale(Vector3.one * 0.28f, 0.14f, 1, 0.5f);
+                    m_ContainerBadgeText.transform.localScale = Vector3.one * 1.50f;
+                    m_ContainerBadgeText.transform.DOScale(Vector3.one, 0.13f).SetEase(Ease.OutBack);
+
+                    // 🟦 Konteyner Jöle Yaylanması (Squash & Stretch)
+                    if (m_ContainerTransform != null)
+                    {
+                        m_ContainerTransform.DOKill();
+                        m_ContainerTransform.localScale = m_ContainerOriginalScale;
+                        m_ContainerTransform.DOPunchScale(new Vector3(0.08f, -0.07f, 0.08f), 0.16f, 2, 0.45f);
+                    }
                 }
                 else
                 {
@@ -355,6 +366,7 @@ namespace PixelGame.Creative
             m_DeliveredToContainerCount = 0;
             m_HasCelebrated = false;
             if (m_ConfettiPS != null) m_ConfettiPS.Clear();
+            if (m_PerfectStamp != null) m_PerfectStamp.SetActive(false);
             UpdateContainerBadge(0);
 
             UpdateCameraCenterAnchor(true);
@@ -379,10 +391,10 @@ namespace PixelGame.Creative
                 }
             }
 
-            // Kamera başlangıç perspektifine yumuşakça döner
+            // 🎥 Kamera başlangıçta denizcilere yakın ve alçak açı (ASMR yakınlığı)
             if (m_Camera != null)
             {
-                m_Camera.AnimateZoom(new Vector3(0f, -2.10f, -3.20f), 48f, 0.6f);
+                m_Camera.AnimateZoom(new Vector3(0f, -1.80f, -2.55f), 42f, 0.6f);
             }
 
             yield return new WaitForSeconds(m_StartDelay);
@@ -406,6 +418,12 @@ namespace PixelGame.Creative
             }
 
             yield return new WaitForSeconds(m_EndDelay);
+
+            if (CreativeSceneVideoRecorder.Instance != null && CreativeSceneVideoRecorder.Instance.IsRecording)
+            {
+                CreativeSceneVideoRecorder.Instance.StopRecording();
+                yield break;
+            }
 
             if (m_AutoLoop)
             {
@@ -531,10 +549,10 @@ namespace PixelGame.Creative
                 Vector3 dropTargetPos = m_ContainerTransform.position + sailor.DropOffset;
                 dropTargetPos.z = m_GroundZ;
 
-                // 🎥 Konteynera yaklaşırken kamera pürüzsüzce geriye ve geniş açıya çekilir
+                // 🎥 Konteynera yaklaşırken kamera yukarıdan tatlı bir takip açısına geçer
                 if (m_Camera != null)
                 {
-                    m_Camera.AnimateZoom(new Vector3(0.0f, -2.85f, -4.80f), 52f, 1.8f);
+                    m_Camera.AnimateZoom(new Vector3(0.0f, -2.60f, -4.20f), 50f, 1.8f);
                 }
 
                 sailor.Visual.Play(SailorRunnerVisual.StateRunCarry);
@@ -798,6 +816,30 @@ namespace PixelGame.Creative
         {
             if (m_HasCelebrated) return;
             m_HasCelebrated = true;
+
+            // 🎥 Kutlamada kamera hafif zoom-out yapar ve tatlı bir sevinç titreşimi verir
+            if (m_Camera != null)
+            {
+                m_Camera.AnimateZoom(new Vector3(0.0f, -3.10f, -5.20f), 54f, 0.6f);
+                m_Camera.transform.DOShakePosition(0.35f, 0.08f, 25, 90f);
+            }
+
+            // 🌟 "PERFECT!" Başarı Damgası (Patlama, sekme ve eğlenceli açı)
+            if (m_PerfectStamp != null)
+            {
+                m_PerfectStamp.SetActive(true);
+                m_PerfectStamp.transform.DOKill();
+                m_PerfectStamp.transform.localScale = Vector3.zero;
+                m_PerfectStamp.transform.localRotation = Quaternion.Euler(0f, 0f, -14f);
+                m_PerfectStamp.transform.DOScale(Vector3.one * 1.25f, 0.38f).SetEase(Ease.OutBack);
+                m_PerfectStamp.transform.DORotate(new Vector3(0f, 0f, 6f), 0.38f).SetEase(Ease.OutBack).OnComplete(() =>
+                {
+                    if (m_PerfectStamp != null)
+                    {
+                        m_PerfectStamp.transform.DORotate(new Vector3(0f, 0f, -3f), 0.28f).SetEase(Ease.InOutSine);
+                    }
+                });
+            }
 
             // 1. 🎉 Konteyner neşeli kutlama sıçraması (Pop Jump)
             if (m_ContainerTransform != null)

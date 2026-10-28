@@ -9,6 +9,7 @@ using PixelGame.Creative;
 
 namespace PixelGame.Editor
 {
+    [InitializeOnLoad]
     public static class SetupCreativeAsmrScene
     {
         private const string ScenePath = "Assets/Scenes/Creative_ASMR.unity";
@@ -70,11 +71,42 @@ namespace PixelGame.Editor
                 BuildAndOpenCreativeScene();
                 CaptureGameViewScreenshot.Capture();
             }
+
+            if (System.IO.File.Exists("scratch/record_creative.flag"))
+            {
+                if (EditorApplication.isPlaying)
+                {
+                    EditorApplication.isPlaying = false;
+                    return;
+                }
+                try { System.IO.File.Delete("scratch/record_creative.flag"); } catch {}
+                BuildAndOpenCreativeScene();
+
+                // Kameraya recorder bileşeni ekle
+                Camera cam = Camera.main;
+                if (cam == null) cam = Object.FindFirstObjectByType<Camera>();
+                if (cam != null)
+                {
+                    if (cam.GetComponent<CreativeSceneVideoRecorder>() == null)
+                    {
+                        cam.gameObject.AddComponent<CreativeSceneVideoRecorder>();
+                    }
+                }
+
+                // is_recording.flag oluştur
+                System.IO.File.WriteAllText("scratch/is_recording.flag", "record");
+
+                EditorSceneManager.SaveOpenScenes();
+                EditorApplication.isPlaying = true;
+            }
         }
 
         [InitializeOnLoadMethod]
         private static void AutoRebuildOnce()
         {
+            EditorApplication.update -= CheckFlag;
+            EditorApplication.update += CheckFlag;
+
             if (s_HasBuilt || EditorApplication.isPlayingOrWillChangePlaymode) return;
             s_HasBuilt = true;
             EditorApplication.delayCall += () =>
@@ -508,6 +540,37 @@ namespace PixelGame.Editor
             badgeTmp.outlineColor = Color.black;
             badgeTmp.text = "16";
             badgeTmp.raycastTarget = false;
+
+            // 4. KATMAN: 🌟 Bitiş Damgası (Perfect Stamp / TextMeshProUGUI)
+            GameObject stampGo = new GameObject("Perfect_Stamp", typeof(RectTransform));
+            stampGo.transform.SetParent(containerRoot.transform, false);
+
+            RectTransform stampRt = (RectTransform)stampGo.transform;
+            stampRt.anchorMin = new Vector2(0.5f, 0.5f);
+            stampRt.anchorMax = new Vector2(0.5f, 0.5f);
+            stampRt.pivot = new Vector2(0.5f, 0.5f);
+            stampRt.anchoredPosition = new Vector2(0f, 130f); // Konteynerin ve rozetin üzerinde
+            stampRt.sizeDelta = new Vector2(360f, 120f);
+
+            Canvas stampCanvas = stampGo.AddComponent<Canvas>();
+            stampCanvas.overrideSorting = true;
+            stampCanvas.sortingOrder = 25; // En üstte net okunsun
+
+            TextMeshProUGUI stampTmp = stampGo.AddComponent<TextMeshProUGUI>();
+            if (lilitaFont != null) stampTmp.font = lilitaFont;
+            stampTmp.alignment = TextAlignmentOptions.Center;
+            stampTmp.enableAutoSizing = true;
+            stampTmp.fontSizeMin = 36f;
+            stampTmp.fontSizeMax = 72f;
+            stampTmp.fontSize = 66f;
+            stampTmp.fontStyle = FontStyles.Bold;
+            stampTmp.color = new Color(1.0f, 0.88f, 0.10f, 1f); // Altın sarısı / Canlı sarı
+            stampTmp.outlineWidth = 0.32f;
+            stampTmp.outlineColor = new Color(0.08f, 0.10f, 0.22f, 1f); // Tok koyu lacivert kontur
+            stampTmp.text = "PERFECT!";
+            stampTmp.raycastTarget = false;
+            stampGo.SetActive(false); // Başlangıçta gizli
+
             // 10. 🏃 3 GEMİCİ TAKIMI (SOL, ORTA HERO, SAĞ)
             // Kullanıcı isteği:
             // - Tek denizci olmasın, 3 tane olsun.
@@ -571,6 +634,10 @@ namespace PixelGame.Editor
             // Kamera orta gemicinin tam peşine takılır
             centerAnchorGo.transform.position = middleStartPos;
             tpCam.Target = centerAnchorGo.transform;
+            if (tpCam.GetComponent<CreativeSceneVideoRecorder>() == null)
+            {
+                tpCam.gameObject.AddComponent<CreativeSceneVideoRecorder>();
+            }
 
             // 11. 🎬 SAHNE YÖNETİCİSİ (CreativeAsmrSceneController)
             GameObject managerGo = new GameObject("[CREATIVE_ASMR_MANAGER]");
@@ -588,6 +655,7 @@ namespace PixelGame.Editor
             controller.BadgeAnchoredPosition = new Vector2(0f, 21f);
             controller.ContainerImage = containerImg;
             controller.ContainerCapacity = 16;
+            controller.PerfectStamp = stampGo;
 
             // 🎊 Konfeti Efekti Sistemi ([Creative_Confetti_FX])
             GameObject confettiGo = new GameObject("[Creative_Confetti_FX]");

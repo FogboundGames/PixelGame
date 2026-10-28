@@ -1,0 +1,10 @@
+{
+    "fps": 30,
+    "width": 1080,
+    "height": 1920,
+    "frameCount": 313,
+    "sampleRate": 48000,
+    "channels": 2,
+    "audioFile": "audio_f32le.raw",
+    "lastFrame": "frames/f_00312.jpg"
+}

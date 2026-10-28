@@ -1391,6 +1391,11 @@ namespace PixelGame
             // Titreşim sesten bağımsız: ses klibi yoksa ya da ses kapalıysa da hissedilsin
             if (index <= 0) TriggerHapticLight();
 
+            if (m_EnableSparkles && m_SparklePS != null)
+            {
+                SpawnSparkles(position, new Color(1f, 0.95f, 0.75f, 1f), 5);
+            }
+
             if (!IsSoundActive) return;
 
             if (index <= 0 || immediate)
@@ -1946,7 +1951,7 @@ namespace PixelGame
             TriggerHapticMedium();
         }
 
-        private void SpawnSparkles(Vector3 pos, Color tint, int count)
+        public void SpawnSparkles(Vector3 pos, Color tint, int count)
         {
             if (m_SparklePS == null) return;
 
