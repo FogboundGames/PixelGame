@@ -111,10 +111,37 @@ def generate_ambient_ocean_breeze(duration_sec, sample_rate, out_wav_path):
     ]
     subprocess.run(cmd, check=True)
 
-def build_master_audio(raw_gameplay_path, sample_rate, channels, gp_dur, total_sec, click_path, out_wav_path):
+def detect_video_pickup(mp4_path):
+    cmd = ['ffmpeg', '-ss', '1.5', '-t', '2.5', '-i', mp4_path, '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    w, h = 1080, 1920
+    frame_size = w * h * 3
+    prev_blue = None
+    frame_idx = 0
+    detected_offset = None
+    while True:
+        raw = p.stdout.read(frame_size)
+        if not raw or len(raw) < frame_size:
+            break
+        arr = np.frombuffer(raw, dtype=np.uint8).reshape((h, w, 3))
+        roi = arr[400:1500, :]
+        blue_mask = (roi[:,:,0] < 50) & (roi[:,:,1] > 120) & (roi[:,:,2] > 200)
+        blue_count = np.sum(blue_mask)
+        if prev_blue is not None and (prev_blue - blue_count) > 8000:
+            detected_offset = frame_idx
+            break
+        prev_blue = blue_count
+        frame_idx += 1
+    p.stdout.close()
+    p.wait()
+    if detected_offset is not None:
+        return 1.5 + (detected_offset / 60.0)
+    return 3.0
+
+def build_master_audio(raw_gameplay_path, gameplay_mp4, sample_rate, channels, gp_dur, total_sec, click_path, out_wav_path):
     """
     Precision audio mastering:
-    1. Synchronize gameplay audio with measured 850ms offset.
+    1. Synchronize gameplay audio with dynamically measured offset.
     2. Fade out gameplay audio smoothly as end card appears.
     3. Mix soothing ambient coastal breeze continuously.
     4. Inject crisp button click sound on exact hand tap frames in end card.
@@ -122,12 +149,19 @@ def build_master_audio(raw_gameplay_path, sample_rate, channels, gp_dur, total_s
     total_samples = int(math.ceil(total_sec * sample_rate))
     master = np.zeros((total_samples, 2), dtype=np.float32)
 
-    # 1. Gameplay Audio (offset by +850ms)
-    sync_offset_sec = 0.850
-    sync_offset_samples = int(round(sync_offset_sec * sample_rate))
-
     raw_data = np.fromfile(raw_gameplay_path, dtype=np.float32).reshape(-1, channels)
     gp_samples = len(raw_data)
+
+    # 1. Automatically compute dynamic sync offset between audio and video
+    energy = np.abs(raw_data[:, 0]) + np.abs(raw_data[:, 1])
+    first_audio_idx = np.where(energy > 0.01)[0]
+    t_first_audio = (first_audio_idx[0] / sample_rate) if len(first_audio_idx) > 0 else 2.5
+
+    t_first_video = detect_video_pickup(gameplay_mp4)
+    sync_offset_sec = max(0.0, t_first_video - t_first_audio)
+
+    print(f"Detected dynamic sync: Audio peak at {t_first_audio:.3f}s, Video pickup at {t_first_video:.3f}s -> Offset: {sync_offset_sec:.3f}s ({sync_offset_sec*1000:.0f}ms)")
+    sync_offset_samples = int(round(sync_offset_sec * sample_rate))
 
     # Fade out gameplay audio around gameplay end
     fade_start_sample = int(round(gp_dur * sample_rate))
@@ -230,30 +264,34 @@ def main():
         "hand": Image.open(os.path.join(layers_dir, "6_el_210x246.png")).convert("RGBA"),
     }
 
-    last_frame_path = os.path.join(rec_dir, meta.get("lastFrame", f"frames/f_{frame_count-1:05d}.jpg"))
+    gameplay_mp4 = os.path.join(rec_dir, meta.get("videoFile", "gameplay_60fps.mp4"))
+    if not os.path.exists(gameplay_mp4) or os.path.getsize(gameplay_mp4) < 1000:
+        print(f"Rendering silky smooth 60fps gameplay to {gameplay_mp4}...")
+        cmd_gp = [
+            "ffmpeg", "-y", "-loglevel", "warning",
+            "-framerate", str(real_rec_fps),
+            "-i", os.path.join(rec_dir, "frames", "f_%05d.jpg"),
+            "-vf", "framerate=fps=60",
+            "-c:v", "libx264", "-crf", "16", "-preset", "fast", "-pix_fmt", "yuv420p",
+            gameplay_mp4
+        ]
+        subprocess.run(cmd_gp, check=True)
+    else:
+        print(f"Using native 60fps recorded gameplay video: {gameplay_mp4} ({os.path.getsize(gameplay_mp4)/1024/1024:.2f} MB)")
+
+    last_frame_path = os.path.join(rec_dir, meta.get("lastFrame", "last_frame.jpg"))
     if not os.path.exists(last_frame_path):
-        last_frame_path = os.path.join(rec_dir, "frames", f"f_{frame_count-1:05d}.jpg")
+        print(f"Extracting pristine last frame from {gameplay_mp4}...")
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "warning", "-sseof", "-0.1", "-i", gameplay_mp4, "-update", "1", "-frames:v", "1", last_frame_path], check=True)
+
     print(f"Using last gameplay frame: {last_frame_path}")
     last_frame_img = Image.open(last_frame_path).convert("RGBA")
-
-    # 1. Render gameplay at 60 fps using ffmpeg framerate motion-blend filter
-    gameplay_mp4 = os.path.join(rec_dir, "gameplay_60fps.mp4")
-    print(f"Rendering silky smooth 60fps gameplay to {gameplay_mp4}...")
-    cmd_gp = [
-        "ffmpeg", "-y", "-loglevel", "warning",
-        "-framerate", str(real_rec_fps),
-        "-i", os.path.join(rec_dir, "frames", "f_%05d.jpg"),
-        "-vf", "framerate=fps=60",
-        "-c:v", "libx264", "-crf", "16", "-preset", "fast", "-pix_fmt", "yuv420p",
-        gameplay_mp4
-    ]
-    subprocess.run(cmd_gp, check=True)
 
     # Get exact duration of gameplay video
     probe_cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", gameplay_mp4]
     gp_dur_str = subprocess.check_output(probe_cmd).decode().strip()
     gp_dur = float(gp_dur_str)
-    print(f"Gameplay 60fps video rendered: {gp_dur:.3f}s")
+    print(f"Gameplay 60fps video verified: {gp_dur:.3f}s")
 
     # End card duration: 4.5 seconds (270 frames at 60 fps)
     end_card_frames = 270
@@ -264,7 +302,7 @@ def main():
     click_path = os.path.expanduser("/home/emre/Belgeler/GitHub/PixelGame/Assets/Resources/Audio/ui_button_click.mp3")
     master_audio_wav = os.path.join(rec_dir, "master_audio_synced.wav")
     print(f"Building master synced audio with ambient breeze and end-card clicks -> {master_audio_wav}...")
-    build_master_audio(audio_file, sample_rate, channels, gp_dur, total_sec, click_path, master_audio_wav)
+    build_master_audio(audio_file, gameplay_mp4, sample_rate, channels, gp_dur, total_sec, click_path, master_audio_wav)
 
     output_dir = os.path.expanduser("/home/emre/Belgeler/GitHub/PixelGame/scratch")
     final_dest_dir = os.path.expanduser("/home/emre/Videolar/PixelGame_Reklam")

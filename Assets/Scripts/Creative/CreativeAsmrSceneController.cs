@@ -161,18 +161,10 @@ namespace PixelGame.Creative
 
                 if (deliveredCount > 0)
                 {
-                    // 💓 Sayaç Kalp Atışı (Pulse)
+                    // 💓 Sayaç Kalp Atışı (Pulse) - Sadece sayı rakamı büyüyüp küçülür
                     m_ContainerBadgeText.transform.DOKill();
-                    m_ContainerBadgeText.transform.localScale = Vector3.one * 1.50f;
-                    m_ContainerBadgeText.transform.DOScale(Vector3.one, 0.13f).SetEase(Ease.OutBack);
-
-                    // 🟦 Konteyner Jöle Yaylanması (Squash & Stretch)
-                    if (m_ContainerTransform != null)
-                    {
-                        m_ContainerTransform.DOKill();
-                        m_ContainerTransform.localScale = m_ContainerOriginalScale;
-                        m_ContainerTransform.DOPunchScale(new Vector3(0.08f, -0.07f, 0.08f), 0.16f, 2, 0.45f);
-                    }
+                    m_ContainerBadgeText.transform.localScale = Vector3.one * 1.35f;
+                    m_ContainerBadgeText.transform.DOScale(Vector3.one, 0.14f).SetEase(Ease.OutBack);
                 }
                 else
                 {
