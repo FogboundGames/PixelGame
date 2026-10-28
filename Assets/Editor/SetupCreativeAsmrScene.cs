@@ -15,6 +15,7 @@ namespace PixelGame.Editor
         private const string TabletopCubePrefabPath = "Assets/Prefabs/MainCube_Tabletop.prefab";
         private const string FallbackCubePrefabPath = "Assets/Prefabs/MainCube.prefab";
         private const string ShadowMatPath = "Assets/Resources/CubeContactShadow_Mat.mat";
+        private const string SoftShadowMatPath = "Assets/Materials/SoftVoxelShadow_Mat.mat";
         private const string SailorPrefabPath = "Assets/Resources/Sailor_Runner.prefab";
         private const string HarborBgPath = "Assets/Renkli Liman İskelesi ve Deniz.png";
         private const string FontPath = "Assets/Fonts/LilitaOne-Regular SDF.asset";
@@ -23,6 +24,7 @@ namespace PixelGame.Editor
         private const string ContainerBluePath = "Assets/Textures/Containers/Container_Blue.png";
         private const string BadgePillPath = "Assets/UI/Badge_Pill.png";
         private const string ContainerShadowPath = "Assets/UI/CargoContainer_Shadow.png";
+        private const string ContainerSoftShadowMatPath = "Assets/Materials/SoftContainerShadow_Mat.mat";
 
         // Küp Materyalleri (Toony Colors Pro - Parlak Plastik Efektli)
         private const string CubeMatPinkPath = "Assets/Materials/Creative_Mat_Pink.mat";
@@ -90,6 +92,10 @@ namespace PixelGame.Editor
         [MenuItem("Tools/PixelGame/🎬 ASMR Kreatif Sahnesini Sıfırdan Yeniden Kur (Su Damlası + Konteyner)", priority = 1)]
         public static void BuildAndOpenCreativeScene()
         {
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            AssetDatabase.ImportAsset("Assets/Textures/SoftContainerShadow.png", ImportAssetOptions.ForceUpdate);
+            AssetDatabase.ImportAsset(ContainerSoftShadowMatPath, ImportAssetOptions.ForceUpdate);
+
             // 1. Yeni ve tertemiz sahne aç
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
@@ -232,6 +238,8 @@ namespace PixelGame.Editor
 
             Material matBlue = AssetDatabase.LoadAssetAtPath<Material>(CubeMatBluePath);
             Material shadowMat = AssetDatabase.LoadAssetAtPath<Material>(ShadowMatPath);
+            Material softShadowMat = AssetDatabase.LoadAssetAtPath<Material>(SoftShadowMatPath);
+            if (softShadowMat == null) softShadowMat = shadowMat;
 
             var waterDropPattern = new (int col, int row)[]
             {
@@ -296,6 +304,32 @@ namespace PixelGame.Editor
                 pixelCube.ApplyColor(BlueColor, 0f);
                 pixelCube.SetBodyCastsRealtimeShadow(false);
 
+                // 🌑 SAHNEYE ÖZEL ZEMİN TEMAS GÖLGESİ (Cube Ground Contact Shadow)
+                // Küpün arkasında (Z = 0.52f, sortingOrder = -1) durur; asla küpün içine veya önüne çizilmez!
+                // Yalnızca şeklin tabanından ve kenarlarından zemine doğru taşar.
+                GameObject shadowQuad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                shadowQuad.name = "CubeShadow";
+                shadowQuad.transform.SetParent(cubeGo.transform, false);
+                shadowQuad.transform.localPosition = new Vector3(0f, -0.58f, 0.52f);
+                shadowQuad.transform.localRotation = Quaternion.identity;
+                shadowQuad.transform.localScale = new Vector3(1.45f, 1.05f, 1f);
+
+                MeshRenderer shadowMr = shadowQuad.GetComponent<MeshRenderer>();
+                if (shadowMr != null)
+                {
+                    if (shadowMat != null) shadowMr.sharedMaterial = shadowMat;
+                    else if (softShadowMat != null) shadowMr.sharedMaterial = softShadowMat;
+                    shadowMr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    shadowMr.receiveShadows = false;
+                    shadowMr.sortingOrder = -1; // Küp gövdesinin (-0) ve diğer küplerin arkasında, Canvas (-100) önünde!
+                }
+
+                Collider shadowCol = shadowQuad.GetComponent<Collider>();
+                if (shadowCol != null) Object.DestroyImmediate(shadowCol);
+
+                pixelCube.SetShadowObject(shadowQuad);
+                pixelCube.KeepShadowPermanent = true;
+
                 PrefabUtility.UnpackPrefabInstance(cubeGo, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
                 EditorUtility.SetDirty(cubeGo);
                 EditorUtility.SetDirty(pixelCube);
@@ -311,26 +345,48 @@ namespace PixelGame.Editor
             containerRoot.transform.position = new Vector3(containerX, containerY, groundZ);
             containerRoot.transform.rotation = Quaternion.Euler(-20f, 0f, 0f); // Kameraya dik ve net bakan açı
 
-            // Konteyner Fake Gölgesi (CargoContainer_Shadow_Mat ile)
+            // Konteyner Zemin Temas Gölgesi (Konteyner kutu formuna özel, her yönden yumuşak sönen kapsül gölge)
             GameObject contShadowGo = GameObject.CreatePrimitive(PrimitiveType.Quad);
             contShadowGo.name = "Container_FakeShadow";
-            contShadowGo.transform.position = new Vector3(containerX + 0.08f, containerY - 0.65f, groundZ - 0.005f);
+            contShadowGo.transform.position = new Vector3(containerX, 1.38f, groundZ + 0.02f);
             contShadowGo.transform.rotation = Quaternion.identity;
-            contShadowGo.transform.localScale = new Vector3(1.75f, 0.95f, 1f);
+            contShadowGo.transform.localScale = new Vector3(1.28f, 0.78f, 1f);
 
             MeshRenderer contShadowMr = contShadowGo.GetComponent<MeshRenderer>();
-            Material contShadowMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/CargoContainer_Shadow_Mat.mat");
-            if (contShadowMat != null) contShadowMr.sharedMaterial = contShadowMat;
-            contShadowMr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            contShadowMr.receiveShadows = false;
-            contShadowMr.sortingOrder = 3;
+            if (contShadowMr != null)
+            {
+                Material contShadowMat = AssetDatabase.LoadAssetAtPath<Material>(ContainerSoftShadowMatPath);
+                if (contShadowMat == null)
+                {
+                    Texture2D contTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/SoftContainerShadow.png");
+                    if (contTex != null)
+                    {
+                        contShadowMat = new Material(Shader.Find("Sprites/Default"));
+                        contShadowMat.mainTexture = contTex;
+                        contShadowMat.color = new Color(0.02f, 0.045f, 0.12f, 0.65f);
+                    }
+                }
+                if (contShadowMat != null) contShadowMr.sharedMaterial = contShadowMat;
+                else if (softShadowMat != null) contShadowMr.sharedMaterial = softShadowMat;
+                contShadowMr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                contShadowMr.receiveShadows = false;
+                contShadowMr.sortingOrder = 2; // Zemin (-100) önünde, Konteyner (5) arkasında
+            }
 
             Collider contCol = contShadowGo.GetComponent<Collider>();
             if (contCol != null) Object.DestroyImmediate(contCol);
 
-            // Dünya alanı Canvas
+            var tweaker = contShadowGo.AddComponent<PixelGame.Creative.ContainerShadowTweaker>();
+            tweaker.Width = 1.28f;
+            tweaker.Height = 0.78f;
+            tweaker.PositionX = containerX;
+            tweaker.PositionY = 1.38f;
+            tweaker.PositionZ = groundZ + 0.02f;
+
+            // Dünya alanı Canvas (Konteyner görseli kesinlikle gölgenin önünde olsun diye sortingOrder = 5)
             Canvas containerCanvas = containerRoot.AddComponent<Canvas>();
             containerCanvas.renderMode = RenderMode.WorldSpace;
+            containerCanvas.sortingOrder = 5;
             RectTransform containerRt = containerRoot.GetComponent<RectTransform>();
             containerRt.sizeDelta = new Vector2(160f, 163f);
             containerRt.localScale = Vector3.one * 0.0078f; // ~1.25m dünya boyutu
