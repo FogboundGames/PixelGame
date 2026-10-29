@@ -1,0 +1,203 @@
+# iOS → TestFlight
+# 1) Linux: Unity Xcode projesini çıkarır (game-ci Docker imajı, ücretsiz Linux dakikası).
+# 2) macOS: Xcode derler, dağıtım sertifikasıyla imzalar ve App Store Connect'e (TestFlight) yükler.
+# Kurulum: docs/ios-build.md
+name: iOS → TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "App Store'da görünen sürüm (örn. 1.0). Build numarası otomatik artar."
+        required: true
+        default: "1.0"
+
+permissions:
+  contents: read
+  actions: write   # Xcode projesi artifact'ını iş bitince silmek için
+
+concurrency:
+  group: ios-testflight
+  cancel-in-progress: false
+
+env:
+  BUILD_NAME: LandFlow
+
+jobs:
+  unity:
+    name: Unity → Xcode projesi
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      # Unity iOS imajı + Library birkaç GB tutuyor; runner'ın varsayılan boş alanı yetmeyebiliyor
+      - uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          tool-cache: false
+          swap-storage: false
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-iOS-${{ hashFiles('Packages/packages-lock.json', 'ProjectSettings/ProjectVersion.txt') }}
+          restore-keys: Library-iOS-
+
+      # Editör içi MCP köprüsü (git #main) build'e gerekmez; CI'da her seferinde son main'i çekmesin
+      - name: MCP paketini CI kopyasından çıkar
+        run: |
+          for f in Packages/manifest.json Packages/packages-lock.json; do
+            jq 'del(.dependencies["com.coplaydev.unity-mcp"])' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+          done
+
+      - name: Provisioning profile UUID
+        id: profile
+        env:
+          IOS_PROFILE: ${{ secrets.IOS_PROFILE }}
+        run: |
+          echo "$IOS_PROFILE" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
+          uuid=$(openssl smime -inform der -verify -noverify -in "$RUNNER_TEMP/profile.mobileprovision" 2>/dev/null \
+            | python3 -c "import plistlib,sys; print(plistlib.loads(sys.stdin.buffer.read())['UUID'])")
+          echo "uuid=$uuid" >> "$GITHUB_OUTPUT"
+          rm "$RUNNER_TEMP/profile.mobileprovision"
+
+      - uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: iOS
+          buildName: ${{ env.BUILD_NAME }}
+          buildMethod: PixelGame.Editor.IOSBuild.Build
+          versioning: None
+          allowDirtyBuild: true   # manifest yukarıda değiştirildi
+          customParameters: >-
+            -iosBundleId ${{ vars.IOS_BUNDLE_ID }}
+            -iosTeamId ${{ vars.APPLE_TEAM_ID }}
+            -iosProfileId ${{ steps.profile.outputs.uuid }}
+            -iosVersion ${{ inputs.version }}
+            -iosBuildNumber ${{ github.run_number }}
+
+      - name: Xcode projesini paketle
+        run: |
+          proj=$(find build -maxdepth 4 -name Unity-iPhone.xcodeproj | head -1)
+          test -n "$proj" || { echo "Unity-iPhone.xcodeproj bulunamadı"; exit 1; }
+          tar -C "$(dirname "$(dirname "$proj")")" -cf - "$(basename "$(dirname "$proj")")" | zstd -T0 -10 -o xcode.tar.zst
+          ls -lh xcode.tar.zst
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xcode-project
+          path: xcode.tar.zst
+          retention-days: 1
+          compression-level: 0
+
+  xcode:
+    name: Xcode → TestFlight
+    needs: unity
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      ASC_KEY_PATH: ${{ github.workspace }}/asc_key.p8
+      KEYCHAIN: ${{ github.workspace }}/build.keychain-db
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: xcode-project
+
+      - name: Projeyi aç
+        run: |
+          zstd -d -c xcode.tar.zst | tar -xf -
+          rm xcode.tar.zst
+          echo "PROJECT_DIR=$(dirname "$(find . -maxdepth 3 -name Unity-iPhone.xcodeproj | head -1)")" >> "$GITHUB_ENV"
+
+      - name: Sertifika, profil ve API anahtarı
+        env:
+          IOS_DIST_P12: ${{ secrets.IOS_DIST_P12 }}
+          IOS_DIST_P12_PASSWORD: ${{ secrets.IOS_DIST_P12_PASSWORD }}
+          IOS_PROFILE: ${{ secrets.IOS_PROFILE }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          kc_pass=$(uuidgen)
+          security create-keychain -p "$kc_pass" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$kc_pass" "$KEYCHAIN"
+          echo "$IOS_DIST_P12" | base64 --decode > "$RUNNER_TEMP/dist.p12"
+          security import "$RUNNER_TEMP/dist.p12" -P "$IOS_DIST_P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$kc_pass" "$KEYCHAIN" > /dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/dist.p12"
+
+          echo "$IOS_PROFILE" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
+          uuid=$(security cms -D -i "$RUNNER_TEMP/profile.mobileprovision" | plutil -extract UUID raw -)
+          for d in "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
+            mkdir -p "$d"
+            cp "$RUNNER_TEMP/profile.mobileprovision" "$d/$uuid.mobileprovision"
+          done
+          echo "PROFILE_UUID=$uuid" >> "$GITHUB_ENV"
+
+          echo "$ASC_KEY_P8" > "$ASC_KEY_PATH"
+
+      # Şifreleme yalnız HTTPS → muaf; her yüklemede "Export Compliance" sorusu çıkmasın
+      - name: Info.plist
+        run: |
+          plist="$PROJECT_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" "$plist" 2>/dev/null \
+            || /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$plist"
+
+      - name: Archive
+        run: |
+          xcodebuild -version
+          xcodebuild archive \
+            -project "$PROJECT_DIR/Unity-iPhone.xcodeproj" \
+            -scheme Unity-iPhone \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/$BUILD_NAME.xcarchive" \
+            -quiet
+
+      - name: Export + TestFlight'a yükle
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>${{ vars.APPLE_TEAM_ID }}</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${{ vars.IOS_BUNDLE_ID }}</key><string>$PROFILE_UUID</string>
+            </dict>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/$BUILD_NAME.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "${{ vars.ASC_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ vars.ASC_ISSUER_ID }}"
+
+      - name: Temizlik
+        if: always()
+        run: |
+          security delete-keychain "$KEYCHAIN" 2>/dev/null || true
+          rm -f "$ASC_KEY_PATH"
+
+      # Artifact depolama kotası küçük (özel repo); yüklendikten sonra hemen sil
+      - uses: geekyeggo/delete-artifact@v5
+        if: always()
+        with:
+          name: xcode-project

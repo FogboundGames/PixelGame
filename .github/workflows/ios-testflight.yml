@@ -11,6 +11,13 @@ on:
         description: "App Store'da görünen sürüm (örn. 1.0). Build numarası otomatik artar."
         required: true
         default: "1.0"
+      distribution:
+        description: "app-store: TestFlight/App Store'a yükler. ad-hoc: kayıtlı cihazlara kurulacak .ipa'yı artifact olarak verir (IOS_ADHOC_PROFILE secret'ı gerekir)."
+        type: choice
+        options:
+          - app-store
+          - ad-hoc
+        default: app-store
 
 permissions:
   contents: read
@@ -57,7 +64,7 @@ jobs:
       - name: Provisioning profile UUID
         id: profile
         env:
-          IOS_PROFILE: ${{ secrets.IOS_PROFILE }}
+          IOS_PROFILE: ${{ inputs.distribution == 'ad-hoc' && secrets.IOS_ADHOC_PROFILE || secrets.IOS_PROFILE }}
         run: |
           echo "$IOS_PROFILE" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
           uuid=$(openssl smime -inform der -verify -noverify -in "$RUNNER_TEMP/profile.mobileprovision" 2>/dev/null \
@@ -120,7 +127,7 @@ jobs:
         env:
           IOS_DIST_P12: ${{ secrets.IOS_DIST_P12 }}
           IOS_DIST_P12_PASSWORD: ${{ secrets.IOS_DIST_P12_PASSWORD }}
-          IOS_PROFILE: ${{ secrets.IOS_PROFILE }}
+          IOS_PROFILE: ${{ inputs.distribution == 'ad-hoc' && secrets.IOS_ADHOC_PROFILE || secrets.IOS_PROFILE }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: |
           kc_pass=$(uuidgen)
@@ -161,15 +168,18 @@ jobs:
             -archivePath "$RUNNER_TEMP/$BUILD_NAME.xcarchive" \
             -quiet
 
-      - name: Export + TestFlight'a yükle
+      - name: Export + TestFlight'a yükle (ad-hoc'ta yalnız .ipa üretir)
+        env:
+          EXPORT_METHOD: ${{ inputs.distribution == 'ad-hoc' && 'release-testing' || 'app-store-connect' }}
+          EXPORT_DESTINATION: ${{ inputs.distribution == 'ad-hoc' && 'export' || 'upload' }}
         run: |
           cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
-            <key>method</key><string>app-store-connect</string>
-            <key>destination</key><string>upload</string>
+            <key>method</key><string>$EXPORT_METHOD</string>
+            <key>destination</key><string>$EXPORT_DESTINATION</string>
             <key>teamID</key><string>${{ vars.APPLE_TEAM_ID }}</string>
             <key>signingStyle</key><string>manual</string>
             <key>provisioningProfiles</key>
@@ -189,6 +199,15 @@ jobs:
             -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "${{ vars.ASC_KEY_ID }}" \
             -authenticationKeyIssuerID "${{ vars.ASC_ISSUER_ID }}"
+
+      # Ad Hoc: kayıtlı cihazlara kurulacak .ipa (Actions sayfasından indirilir)
+      - uses: actions/upload-artifact@v4
+        if: inputs.distribution == 'ad-hoc'
+        with:
+          name: LandFlow-adhoc-ipa
+          path: ${{ runner.temp }}/export/*.ipa
+          retention-days: 3
+          compression-level: 0
 
       - name: Temizlik
         if: always()
