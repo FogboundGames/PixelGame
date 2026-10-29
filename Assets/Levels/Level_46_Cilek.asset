@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_46_Cilek
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: "\xC7ilek"
-  m_LevelIndex: 46
+  m_LevelIndex: 53
   m_DifficultyTier: 2
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

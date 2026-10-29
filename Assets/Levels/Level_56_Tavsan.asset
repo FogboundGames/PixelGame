@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_56_Tavsan
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: "Tav\u015Fan"
-  m_LevelIndex: 61
+  m_LevelIndex: 56
   m_DifficultyTier: 1
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

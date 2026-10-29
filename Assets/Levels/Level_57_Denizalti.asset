@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_57_Denizalti
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: "Denizalt\u0131"
-  m_LevelIndex: 56
+  m_LevelIndex: 59
   m_DifficultyTier: 2
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_47_KardanAdam
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Kardan Adam
-  m_LevelIndex: 44
+  m_LevelIndex: 67
   m_DifficultyTier: 1
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

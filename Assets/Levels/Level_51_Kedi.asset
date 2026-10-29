@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_51_Kedi
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Kedi
-  m_LevelIndex: 47
+  m_LevelIndex: 51
   m_DifficultyTier: 1
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

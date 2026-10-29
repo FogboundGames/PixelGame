@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_60_Dinozor
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Dinozor
-  m_LevelIndex: 49
+  m_LevelIndex: 42
   m_DifficultyTier: 1
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0
