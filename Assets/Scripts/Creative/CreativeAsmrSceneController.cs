@@ -52,8 +52,8 @@ namespace PixelGame.Creative
         [Header("🎬 Otomatik Oynatma")]
         [SerializeField] private bool m_AutoStartOnPlay = true;
         [SerializeField] private bool m_AutoLoop = true;
-        [SerializeField] private float m_StartDelay = 1.0f;
-        [SerializeField] private float m_EndDelay = 3.5f;
+        [SerializeField] private float m_StartDelay = 0.04f;
+        [SerializeField] private float m_EndDelay = 2.4f;
 
         [Header("🎥 Kamera")]
         [SerializeField] private CreativeThirdPersonCamera m_Camera;
@@ -91,6 +91,7 @@ namespace PixelGame.Creative
         [Header("🎊 Kutlama & Konfeti Efekti")]
         [SerializeField] private ParticleSystem m_ConfettiPS;
         [SerializeField] private GameObject m_PerfectStamp;
+        private TMPro.TextMeshProUGUI m_StampText;
         private bool m_HasCelebrated = false;
         private static Texture2D s_ConfettiTexture;
 
@@ -383,10 +384,11 @@ namespace PixelGame.Creative
                 }
             }
 
-            // 🎥 Kamera başlangıçta denizcilere yakın ve alçak açı (ASMR yakınlığı)
+            // 🎥 Kamera başlangıçta denizcilere doğrudan yakın ve alçak açıdan başlasın (ASMR yakınlığı - ilk saniyede anında hareket kancası)
             if (m_Camera != null)
             {
-                m_Camera.AnimateZoom(new Vector3(0f, -1.80f, -2.55f), 42f, 0.6f);
+                m_Camera.SnapToTarget();
+                m_Camera.AnimateZoom(new Vector3(0f, -1.80f, -2.55f), 42f, 0.01f);
             }
 
             yield return new WaitForSeconds(m_StartDelay);
@@ -409,7 +411,21 @@ namespace PixelGame.Creative
                 TriggerCelebrationSequence();
             }
 
-            yield return new WaitForSeconds(m_EndDelay);
+            // 🌟 Kutlama patlamasının ilk 1.5 saniyesini canlı yaşat (PERFECT! damgası ve konfetiler)
+            yield return new WaitForSeconds(1.5f);
+
+            // 🧹 Kapanış kartında arka planın tertemiz görünmesi için PERFECT! yazısını pürüzsüzce küçültüp gizle
+            if (m_PerfectStamp != null)
+            {
+                m_PerfectStamp.transform.DOKill();
+                m_PerfectStamp.transform.DOScale(Vector3.zero, 0.25f).SetEase(Ease.InBack).OnComplete(() =>
+                {
+                    if (m_PerfectStamp != null) m_PerfectStamp.SetActive(false);
+                });
+            }
+
+            // Konfetilerin tamamen dağılıp geride sadece dopdolu gururlu konteyner ve zafer pozu veren tatlı gemicilerin kalmasını bekle (0.75s)
+            yield return new WaitForSeconds(0.75f);
 
             if (CreativeSceneVideoRecorder.Instance != null && CreativeSceneVideoRecorder.Instance.IsRecording)
             {
@@ -670,6 +686,9 @@ namespace PixelGame.Creative
                         m_DeliveredToContainerCount++;
                         UpdateContainerBadge(m_DeliveredToContainerCount);
 
+                        // 🎯 Küpler dolarken sırayla motive edici kelimeler patlasın (GOOD! -> GREAT! -> AMAZING!)
+                        CheckMilestoneFeedback(m_DeliveredToContainerCount);
+
                         // 🎉 Son küp ulaştıysa konfeti ve kutlama sekansını anında ateşle!
                         if (m_DeliveredToContainerCount >= m_ContainerCapacity && !m_HasCelebrated)
                         {
@@ -816,22 +835,8 @@ namespace PixelGame.Creative
                 m_Camera.transform.DOShakePosition(0.35f, 0.08f, 25, 90f);
             }
 
-            // 🌟 "PERFECT!" Başarı Damgası (Patlama, sekme ve eğlenceli açı)
-            if (m_PerfectStamp != null)
-            {
-                m_PerfectStamp.SetActive(true);
-                m_PerfectStamp.transform.DOKill();
-                m_PerfectStamp.transform.localScale = Vector3.zero;
-                m_PerfectStamp.transform.localRotation = Quaternion.Euler(0f, 0f, -14f);
-                m_PerfectStamp.transform.DOScale(Vector3.one * 1.25f, 0.38f).SetEase(Ease.OutBack);
-                m_PerfectStamp.transform.DORotate(new Vector3(0f, 0f, 6f), 0.38f).SetEase(Ease.OutBack).OnComplete(() =>
-                {
-                    if (m_PerfectStamp != null)
-                    {
-                        m_PerfectStamp.transform.DORotate(new Vector3(0f, 0f, -3f), 0.28f).SetEase(Ease.InOutSine);
-                    }
-                });
-            }
+            // 🌟 "PERFECT!" Final Başarı Damgası (Altın sarısı, konfetilerin ortasında patlar)
+            ShowMilestoneStamp("PERFECT!", new Color(1.00f, 0.88f, 0.10f, 1f), -14f, 1.35f, isFinalCelebration: true);
 
             // 1. 🎉 Konteyner neşeli kutlama sıçraması (Pop Jump)
             if (m_ContainerTransform != null)
@@ -870,6 +875,76 @@ namespace PixelGame.Creative
                 {
                     s.SailorObject.transform.DOPunchScale(new Vector3(0.14f, 0.14f, 0.14f), 0.6f, 3, 0.5f);
                 }
+            }
+        }
+
+        private void CheckMilestoneFeedback(int deliveredCount)
+        {
+            if (deliveredCount == 4)
+            {
+                // 1. Aşama: "GOOD!" - Canlı Zümrüt / Nane Yeşili
+                ShowMilestoneStamp("GOOD!", new Color(0.10f, 0.95f, 0.50f, 1f), -7f, 1.02f);
+            }
+            else if (deliveredCount == 8)
+            {
+                // 2. Aşama: "GREAT!" - Elektrik Cam Göbeği / Canlı Turkuaz
+                ShowMilestoneStamp("GREAT!", new Color(0.00f, 0.85f, 1.00f, 1f), 6f, 1.08f);
+            }
+            else if (deliveredCount == 12)
+            {
+                // 3. Aşama: "SUPER!" - Neon Pembe / Fuşya (Ekrana mükemmel oturan 6 harfli tatlı kelime)
+                ShowMilestoneStamp("SUPER!", new Color(1.00f, 0.22f, 0.58f, 1f), -6f, 1.05f);
+            }
+        }
+
+        public void ShowMilestoneStamp(string text, Color color, float tiltAngle, float targetScale, bool isFinalCelebration = false)
+        {
+            if (m_PerfectStamp == null) return;
+
+            if (m_StampText == null)
+            {
+                m_StampText = m_PerfectStamp.GetComponent<TMPro.TextMeshProUGUI>();
+            }
+
+            if (m_StampText != null)
+            {
+                m_StampText.text = text;
+                m_StampText.color = color;
+            }
+
+            m_PerfectStamp.SetActive(true);
+            m_PerfectStamp.transform.DOKill();
+
+            if (isFinalCelebration)
+            {
+                // 🌟 "PERFECT!" Final Büyük Patlama & Sevinç Sekmesi
+                m_PerfectStamp.transform.localScale = Vector3.zero;
+                m_PerfectStamp.transform.localRotation = Quaternion.Euler(0f, 0f, -14f);
+                m_PerfectStamp.transform.DOScale(Vector3.one * targetScale, 0.38f).SetEase(Ease.OutBack);
+                m_PerfectStamp.transform.DORotate(new Vector3(0f, 0f, 6f), 0.38f).SetEase(Ease.OutBack).OnComplete(() =>
+                {
+                    if (m_PerfectStamp != null)
+                    {
+                        m_PerfectStamp.transform.DORotate(new Vector3(0f, 0f, -3f), 0.28f).SetEase(Ease.InOutSine);
+                    }
+                });
+            }
+            else
+            {
+                // ✨ "GOOD!", "GREAT!", "AMAZING!" Ara Kelimeleri (Canlı Elastik Pop & Hafif Yaylanma)
+                m_PerfectStamp.transform.localScale = Vector3.one * (targetScale * 0.35f);
+                m_PerfectStamp.transform.localRotation = Quaternion.Euler(0f, 0f, tiltAngle * 1.4f);
+
+                m_PerfectStamp.transform.DOScale(Vector3.one * targetScale, 0.22f).SetEase(Ease.OutBack).OnComplete(() =>
+                {
+                    if (m_PerfectStamp != null && !m_HasCelebrated)
+                    {
+                        m_PerfectStamp.transform.DOScale(Vector3.one * (targetScale * 1.05f), 0.32f)
+                            .SetEase(Ease.InOutSine)
+                            .SetLoops(-1, LoopType.Yoyo);
+                    }
+                });
+                m_PerfectStamp.transform.DORotate(new Vector3(0f, 0f, tiltAngle), 0.22f).SetEase(Ease.OutBack);
             }
         }
 

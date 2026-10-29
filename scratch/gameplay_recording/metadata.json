@@ -2,7 +2,7 @@
     "fps": 60,
     "width": 1080,
     "height": 1920,
-    "frameCount": 699,
+    "frameCount": 624,
     "sampleRate": 48000,
     "channels": 2,
     "audioFile": "audio_f32le.raw",

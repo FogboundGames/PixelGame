@@ -6,12 +6,22 @@ namespace PixelGame.Editor
 {
     public static class SetupAsmrAudioMode
     {
+        private const string k_CreativeSceneName = "Creative_ASMR";
+
+        // ASMR modu sadece kreatif sahneye yazılmalı; Gemi'ye yazılınca oyunun tüm sesleri susuyor.
+        private static bool IsCreativeScene(HypercasualFeedbackManager manager)
+        {
+            if (manager.gameObject.scene.name == k_CreativeSceneName) return true;
+            EditorUtility.DisplayDialog("ASMR Ses Modu",
+                $"ASMR modu sadece {k_CreativeSceneName} sahnesinde açılabilir.\nŞu anki sahne: {manager.gameObject.scene.name}", "Tamam");
+            return false;
+        }
 
         [MenuItem("Tools/PixelGame/💾 ASMR Ayarlarını Sahneye Kaydet", priority = 0)]
         public static void SaveAsmrSettingsToScene()
         {
             var manager = Object.FindFirstObjectByType<HypercasualFeedbackManager>();
-            if (manager != null)
+            if (manager != null && IsCreativeScene(manager))
             {
                 Undo.RecordObject(manager, "Update ASMR Audio Settings");
                 manager.AsmrCreativeOnlyPickupSound = true;
@@ -36,6 +46,9 @@ namespace PixelGame.Editor
                 EditorUtility.DisplayDialog("Hata", "Sahnede HypercasualFeedbackManager bulunamadı!", "Tamam");
                 return;
             }
+
+            // Kapatmaya her sahnede izin ver, açmaya sadece kreatif sahnede
+            if (!manager.AsmrCreativeOnlyPickupSound && !IsCreativeScene(manager)) return;
 
             Undo.RecordObject(manager, "Toggle ASMR Creative Audio Mode");
             manager.AsmrCreativeOnlyPickupSound = !manager.AsmrCreativeOnlyPickupSound;
@@ -67,6 +80,8 @@ namespace PixelGame.Editor
                 EditorUtility.DisplayDialog("Hata", "Sahnede HypercasualFeedbackManager bulunamadı!", "Tamam");
                 return;
             }
+
+            if (!IsCreativeScene(manager)) return;
 
             Undo.RecordObject(manager, "Toggle ASMR Boarding Sound");
             manager.AsmrIncludeBoardingSound = !manager.AsmrIncludeBoardingSound;

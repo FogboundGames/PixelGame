@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_41_BalPetegi
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: "Bal Pete\u011Fi"
-  m_LevelIndex: 41
+  m_LevelIndex: 40
   m_DifficultyTier: 1
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0
@@ -76,139 +76,133 @@ MonoBehaviour:
   - wagonColor: {r: 0.83137256, g: 0.49411765, b: 0.0627451, a: 1}
     capacity: 30
     paletteIndex: 0
-    label: "S\xFCz\xFClen Bal"
+    label: "S\xFCz\xFClen Bal (#1)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.83137256, g: 0.49411765, b: 0.0627451, a: 1}
     capacity: 30
     paletteIndex: 0
-    label: "S\xFCz\xFClen Bal"
+    label: "S\xFCz\xFClen Bal (#2)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.26666668, g: 0.14117648, b: 0.047058824, a: 1}
     capacity: 20
     paletteIndex: 3
-    label: "Koyu \xC7ikolata / Ar\u0131"
+    label: "Koyu \xC7ikolata / Ar\u0131 (#3)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.83137256, g: 0.49411765, b: 0.0627451, a: 1}
     capacity: 30
     paletteIndex: 0
-    label: "S\xFCz\xFClen Bal"
+    label: "S\xFCz\xFClen Bal (#4)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.5803922, g: 0.3137255, b: 0.078431375, a: 1}
     capacity: 20
     paletteIndex: 2
-    label: "Petek \xC7er\xE7evesi"
+    label: "Petek \xC7er\xE7evesi (#5)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.83137256, g: 0.49411765, b: 0.0627451, a: 1}
     capacity: 30
     paletteIndex: 0
-    label: "S\xFCz\xFClen Bal"
+    label: "S\xFCz\xFClen Bal (#6)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.9882353, g: 0.7372549, b: 0.10980392, a: 1}
     capacity: 20
     paletteIndex: 1
-    label: "Alt\u0131n Bal"
+    label: "Alt\u0131n Bal (#7)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.26666668, g: 0.14117648, b: 0.047058824, a: 1}
     capacity: 20
     paletteIndex: 3
-    label: "Koyu \xC7ikolata / Ar\u0131"
+    label: "Koyu \xC7ikolata / Ar\u0131 (#8)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.83137256, g: 0.49411765, b: 0.0627451, a: 1}
     capacity: 30
     paletteIndex: 0
-    label: "S\xFCz\xFClen Bal"
+    label: "S\xFCz\xFClen Bal (#9)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.5803922, g: 0.3137255, b: 0.078431375, a: 1}
     capacity: 20
     paletteIndex: 2
-    label: "Petek \xC7er\xE7evesi"
+    label: "Petek \xC7er\xE7evesi (#10)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 1, b: 1, a: 1}
     capacity: 20
     paletteIndex: 4
-    label: "Bal Par\u0131lt\u0131s\u0131 & Kanat"
+    label: "Bal Par\u0131lt\u0131s\u0131 & Kanat (#11)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.83137256, g: 0.49411765, b: 0.0627451, a: 1}
     capacity: 30
     paletteIndex: 0
-    label: "S\xFCz\xFClen Bal"
+    label: "S\xFCz\xFClen Bal (#12)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.9882353, g: 0.7372549, b: 0.10980392, a: 1}
     capacity: 20
     paletteIndex: 1
-    label: "Alt\u0131n Bal"
+    label: "Alt\u0131n Bal (#13)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.83137256, g: 0.49411765, b: 0.0627451, a: 1}
     capacity: 30
     paletteIndex: 0
-    label: "S\xFCz\xFClen Bal"
+    label: "S\xFCz\xFClen Bal (#14)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.5803922, g: 0.3137255, b: 0.078431375, a: 1}
     capacity: 22
     paletteIndex: 2
-    label: "Petek \xC7er\xE7evesi"
+    label: "Petek \xC7er\xE7evesi (#15)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.9882353, g: 0.7372549, b: 0.10980392, a: 1}
     capacity: 20
     paletteIndex: 1
-    label: "Alt\u0131n Bal"
+    label: "Alt\u0131n Bal (#16)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 1, g: 1, b: 1, a: 1}
     capacity: 13
     paletteIndex: 4
-    label: "Bal Par\u0131lt\u0131s\u0131 & Kanat"
+    label: "Bal Par\u0131lt\u0131s\u0131 & Kanat (#17)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.83137256, g: 0.49411765, b: 0.0627451, a: 1}
     capacity: 30
     paletteIndex: 0
-    label: "S\xFCz\xFClen Bal"
+    label: "S\xFCz\xFClen Bal (#18)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.9882353, g: 0.7372549, b: 0.10980392, a: 1}
     capacity: 13
     paletteIndex: 1
-    label: "Alt\u0131n Bal"
+    label: "Alt\u0131n Bal (#19)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.83137256, g: 0.49411765, b: 0.0627451, a: 1}
     capacity: 30
     paletteIndex: 0
-    label: "S\xFCz\xFClen Bal"
+    label: "S\xFCz\xFClen Bal (#20)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.83137256, g: 0.49411765, b: 0.0627451, a: 1}
     capacity: 30
     paletteIndex: 0
-    label: "S\xFCz\xFClen Bal"
-    linkId: 0
-    isHidden: 0
-  - wagonColor: {r: 0.83137256, g: 0.49411765, b: 0.0627451, a: 1}
-    capacity: 30
-    paletteIndex: 0
-    label: "S\xFCz\xFClen Bal"
+    label: "S\xFCz\xFClen Bal (#21)"
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.83137256, g: 0.49411765, b: 0.0627451, a: 1}
     capacity: 20
     paletteIndex: 0
-    label: "S\xFCz\xFClen Bal"
+    label: "S\xFCz\xFClen Bal (#22)"
     linkId: 0
     isHidden: 0
   m_FigureShadowTexture: {fileID: 0}

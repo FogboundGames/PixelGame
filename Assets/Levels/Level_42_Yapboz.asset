@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_42_Yapboz
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Piksel Yapboz
-  m_LevelIndex: 42
+  m_LevelIndex: 41
   m_DifficultyTier: 1
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

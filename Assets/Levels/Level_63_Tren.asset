@@ -1,0 +1,396 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56621c704aae40878464c98bd3ff671a, type: 3}
+  m_Name: Level_63_Tren
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
+  m_LevelName: Tren
+  m_LevelIndex: 58
+  m_DifficultyTier: 2
+  m_DifficultyManual: 1
+  m_LegacyIsHardLevel: 0
+  m_LevelTexture: {fileID: 2800000, guid: 841f86848c3f4806bb1f60e7edb8c55a, type: 3}
+  m_OriginalSourceTexture: {fileID: 2800000, guid: 841f86848c3f4806bb1f60e7edb8c55a, type: 3}
+  m_LevelSprite: {fileID: 0}
+  m_UseNativeResolution: 1
+  m_CustomResolution: {x: 32, y: 32}
+  m_ColorPalette:
+  - originalColor: {r: 0.36078432, g: 0.6431373, b: 0.9098039, a: 1}
+    targetColor: {r: 0.36078432, g: 0.6431373, b: 0.9098039, a: 1}
+    pixelCount: 270
+    label: 
+  - originalColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
+    targetColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
+    pixelCount: 178
+    label: 
+  - originalColor: {r: 0.36078432, g: 0.69803923, b: 0.2901961, a: 1}
+    targetColor: {r: 0.36078432, g: 0.69803923, b: 0.2901961, a: 1}
+    pixelCount: 166
+    label: 
+  - originalColor: {r: 0.8627451, g: 0.19607843, b: 0.23529412, a: 1}
+    targetColor: {r: 0.8627451, g: 0.19607843, b: 0.23529412, a: 1}
+    pixelCount: 90
+    label: 
+  - originalColor: {r: 0.65882355, g: 0.8392157, b: 0.9647059, a: 1}
+    targetColor: {r: 0.65882355, g: 0.8392157, b: 0.9647059, a: 1}
+    pixelCount: 81
+    label: 
+  - originalColor: {r: 0.972549, g: 0.972549, b: 0.98039216, a: 1}
+    targetColor: {r: 0.972549, g: 0.972549, b: 0.98039216, a: 1}
+    pixelCount: 67
+    label: 
+  - originalColor: {r: 0.18039216, g: 0.47058824, b: 0.23529412, a: 1}
+    targetColor: {r: 0.18039216, g: 0.47058824, b: 0.23529412, a: 1}
+    pixelCount: 64
+    label: 
+  - originalColor: {r: 0.23529412, g: 0.43137255, b: 0.78431374, a: 1}
+    targetColor: {r: 0.23529412, g: 0.43137255, b: 0.78431374, a: 1}
+    pixelCount: 59
+    label: 
+  - originalColor: {r: 0.54901963, g: 0.11764706, b: 0.19607843, a: 1}
+    targetColor: {r: 0.54901963, g: 0.11764706, b: 0.19607843, a: 1}
+    pixelCount: 26
+    label: 
+  - originalColor: {r: 0.98039216, g: 0.8627451, b: 0.47058824, a: 1}
+    targetColor: {r: 0.98039216, g: 0.8627451, b: 0.47058824, a: 1}
+    pixelCount: 23
+    label: 
+  m_TintColor: {r: 1, g: 1, b: 1, a: 1}
+  m_HueShift: 0
+  m_ColorBrightness: 1
+  m_ColorSaturation: 1
+  m_ColorContrast: 1
+  m_EmissionIntensity: 0
+  m_CubeSpacing: 0.06
+  m_CubeSpacingX: 0
+  m_CubeDepth: 1
+  m_BoardTiltAngle: 18
+  m_CubeFrontTiltAngle: -6
+  m_TargetZ: 0
+  m_CubeRowStepOffset: {x: 0, y: 0, z: 0}
+  m_InnerPadding: 0.08
+  m_SkipTransparent: 1
+  m_MysteryCubeCoordinates:
+  - {x: 2, y: 10}
+  - {x: 2, y: 11}
+  - {x: 2, y: 12}
+  - {x: 3, y: 9}
+  - {x: 3, y: 10}
+  - {x: 3, y: 11}
+  - {x: 3, y: 12}
+  - {x: 3, y: 13}
+  - {x: 4, y: 8}
+  - {x: 4, y: 9}
+  - {x: 4, y: 10}
+  - {x: 4, y: 11}
+  - {x: 4, y: 12}
+  - {x: 4, y: 13}
+  - {x: 4, y: 14}
+  - {x: 5, y: 9}
+  - {x: 5, y: 10}
+  - {x: 5, y: 11}
+  - {x: 5, y: 12}
+  - {x: 5, y: 13}
+  - {x: 6, y: 10}
+  - {x: 6, y: 11}
+  - {x: 6, y: 12}
+  - {x: 7, y: 11}
+  - {x: 10, y: 20}
+  - {x: 11, y: 19}
+  - {x: 11, y: 20}
+  - {x: 11, y: 21}
+  - {x: 12, y: 18}
+  - {x: 12, y: 19}
+  - {x: 12, y: 20}
+  - {x: 12, y: 21}
+  - {x: 12, y: 22}
+  - {x: 13, y: 17}
+  - {x: 13, y: 18}
+  - {x: 13, y: 19}
+  - {x: 13, y: 20}
+  - {x: 13, y: 21}
+  - {x: 13, y: 22}
+  - {x: 13, y: 23}
+  - {x: 14, y: 18}
+  - {x: 14, y: 19}
+  - {x: 14, y: 20}
+  - {x: 14, y: 21}
+  - {x: 14, y: 22}
+  - {x: 15, y: 19}
+  - {x: 15, y: 20}
+  - {x: 15, y: 21}
+  - {x: 16, y: 20}
+  - {x: 20, y: 13}
+  - {x: 20, y: 14}
+  m_MysteryRevealCondition: 0
+  m_MysteryCubeColor: {r: 0.588235, g: 0.54902, b: 0.627451, a: 1}
+  m_SlotSprite: {fileID: 0}
+  m_SlotCount: 4
+  m_PoolColumns: 3
+  m_PoolRows: 3
+  m_DisableAutoPlaceTurbo: 0
+  m_TruckCapacity: 40
+  m_MinTruckCapacity: 4
+  m_PeakTruckCapacity: 10
+  m_UseRoundCapacities: 1
+  m_RoundCapacityRatio: 0.8
+  m_UseCustomWagonSequence: 1
+  m_WagonSequence:
+  - wagonColor: {r: 0.972549, g: 0.972549, b: 0.98039216, a: 1}
+    capacity: 10
+    paletteIndex: 5
+    label: Vagon
+    linkId: 1
+    isHidden: 0
+  - wagonColor: {r: 0.36078432, g: 0.6431373, b: 0.9098039, a: 1}
+    capacity: 40
+    paletteIndex: 0
+    label: Vagon
+    linkId: 1
+    isHidden: 0
+  - wagonColor: {r: 0.972549, g: 0.972549, b: 0.98039216, a: 1}
+    capacity: 40
+    paletteIndex: 5
+    label: Vagon
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.36078432, g: 0.6431373, b: 0.9098039, a: 1}
+    capacity: 30
+    paletteIndex: 0
+    label: Vagon
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.36078432, g: 0.69803923, b: 0.2901961, a: 1}
+    capacity: 40
+    paletteIndex: 2
+    label: Vagon
+    linkId: 2
+    isHidden: 0
+  - wagonColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
+    capacity: 40
+    paletteIndex: 1
+    label: Vagon
+    linkId: 2
+    isHidden: 0
+  - wagonColor: {r: 0.18039216, g: 0.47058824, b: 0.23529412, a: 1}
+    capacity: 14
+    paletteIndex: 6
+    label: Vagon
+    linkId: 0
+    isHidden: 1
+  - wagonColor: {r: 0.18039216, g: 0.47058824, b: 0.23529412, a: 1}
+    capacity: 40
+    paletteIndex: 6
+    label: Vagon
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.36078432, g: 0.6431373, b: 0.9098039, a: 1}
+    capacity: 40
+    paletteIndex: 0
+    label: Vagon
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.8627451, g: 0.19607843, b: 0.23529412, a: 1}
+    capacity: 10
+    paletteIndex: 3
+    label: Vagon
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
+    capacity: 40
+    paletteIndex: 1
+    label: Vagon
+    linkId: 0
+    isHidden: 1
+  - wagonColor: {r: 0.972549, g: 0.972549, b: 0.98039216, a: 1}
+    capacity: 17
+    paletteIndex: 5
+    label: Vagon
+    linkId: 0
+    isHidden: 1
+  - wagonColor: {r: 0.23529412, g: 0.43137255, b: 0.78431374, a: 1}
+    capacity: 40
+    paletteIndex: 7
+    label: Vagon
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.23529412, g: 0.43137255, b: 0.78431374, a: 1}
+    capacity: 19
+    paletteIndex: 7
+    label: Vagon
+    linkId: 3
+    isHidden: 0
+  - wagonColor: {r: 0.36078432, g: 0.69803923, b: 0.2901961, a: 1}
+    capacity: 30
+    paletteIndex: 2
+    label: Vagon
+    linkId: 3
+    isHidden: 0
+  - wagonColor: {r: 0.65882355, g: 0.8392157, b: 0.9647059, a: 1}
+    capacity: 30
+    paletteIndex: 4
+    label: Vagon
+    linkId: 4
+    isHidden: 0
+  - wagonColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
+    capacity: 18
+    paletteIndex: 1
+    label: Vagon
+    linkId: 4
+    isHidden: 0
+  - wagonColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
+    capacity: 40
+    paletteIndex: 1
+    label: Vagon
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.36078432, g: 0.6431373, b: 0.9098039, a: 1}
+    capacity: 40
+    paletteIndex: 0
+    label: Vagon
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.98039216, g: 0.8627451, b: 0.47058824, a: 1}
+    capacity: 23
+    paletteIndex: 9
+    label: Vagon
+    linkId: 5
+    isHidden: 0
+  - wagonColor: {r: 0.65882355, g: 0.8392157, b: 0.9647059, a: 1}
+    capacity: 40
+    paletteIndex: 4
+    label: Vagon
+    linkId: 5
+    isHidden: 0
+  - wagonColor: {r: 0.36078432, g: 0.69803923, b: 0.2901961, a: 1}
+    capacity: 16
+    paletteIndex: 2
+    label: Vagon
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.36078432, g: 0.6431373, b: 0.9098039, a: 1}
+    capacity: 40
+    paletteIndex: 0
+    label: Vagon
+    linkId: 0
+    isHidden: 1
+  - wagonColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
+    capacity: 40
+    paletteIndex: 1
+    label: Vagon
+    linkId: 0
+    isHidden: 1
+  - wagonColor: {r: 0.65882355, g: 0.8392157, b: 0.9647059, a: 1}
+    capacity: 11
+    paletteIndex: 4
+    label: Vagon
+    linkId: 0
+    isHidden: 1
+  - wagonColor: {r: 0.8627451, g: 0.19607843, b: 0.23529412, a: 1}
+    capacity: 40
+    paletteIndex: 3
+    label: Vagon
+    linkId: 6
+    isHidden: 0
+  - wagonColor: {r: 0.36078432, g: 0.6431373, b: 0.9098039, a: 1}
+    capacity: 40
+    paletteIndex: 0
+    label: Vagon
+    linkId: 6
+    isHidden: 0
+  - wagonColor: {r: 0.36078432, g: 0.69803923, b: 0.2901961, a: 1}
+    capacity: 40
+    paletteIndex: 2
+    label: Vagon
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.36078432, g: 0.69803923, b: 0.2901961, a: 1}
+    capacity: 40
+    paletteIndex: 2
+    label: Vagon
+    linkId: 7
+    isHidden: 0
+  - wagonColor: {r: 0.54901963, g: 0.11764706, b: 0.19607843, a: 1}
+    capacity: 26
+    paletteIndex: 8
+    label: Vagon
+    linkId: 7
+    isHidden: 0
+  - wagonColor: {r: 0.36078432, g: 0.6431373, b: 0.9098039, a: 1}
+    capacity: 40
+    paletteIndex: 0
+    label: Vagon
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.8627451, g: 0.19607843, b: 0.23529412, a: 1}
+    capacity: 40
+    paletteIndex: 3
+    label: Vagon
+    linkId: 0
+    isHidden: 0
+  - wagonColor: {r: 0.18039216, g: 0.47058824, b: 0.23529412, a: 1}
+    capacity: 10
+    paletteIndex: 6
+    label: Vagon
+    linkId: 0
+    isHidden: 1
+  m_FigureShadowTexture: {fileID: 0}
+  m_UseCustomColorTheme: 0
+  m_ColorTheme:
+    m_Parts:
+    - part: 6
+      matchBlockColor: 1
+      customColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+    - part: 7
+      matchBlockColor: 1
+      customColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+    - part: 0
+      matchBlockColor: 0
+      customColor: {r: 0.19607843, g: 0.19607843, b: 0.21568628, a: 1}
+    - part: 1
+      matchBlockColor: 0
+      customColor: {r: 0.7647059, g: 0.77254903, b: 0.7921569, a: 1}
+    - part: 2
+      matchBlockColor: 0
+      customColor: {r: 0.3529412, g: 0.43137255, b: 0.50980395, a: 1}
+    - part: 3
+      matchBlockColor: 0
+      customColor: {r: 0.9882353, g: 0.98039216, b: 0.93333334, a: 1}
+    - part: 4
+      matchBlockColor: 0
+      customColor: {r: 0.5294118, g: 0.09411765, b: 0.11764706, a: 1}
+    - part: 5
+      matchBlockColor: 0
+      customColor: {r: 0.23529412, g: 0.23529412, b: 0.25882354, a: 1}
+    - part: 8
+      matchBlockColor: 0
+      customColor: {r: 0.5019608, g: 0.5176471, b: 0.54901963, a: 1}
+    - part: 11
+      matchBlockColor: 0
+      customColor: {r: 0.3764706, g: 0.3882353, b: 0.42352942, a: 1}
+    - part: 9
+      matchBlockColor: 0
+      customColor: {r: 0.47058824, g: 0.30588236, b: 0.1882353, a: 1}
+    - part: 10
+      matchBlockColor: 0
+      customColor: {r: 0.07058824, g: 0.0627451, b: 0.08627451, a: 1}
+    - part: 12
+      matchBlockColor: 0
+      customColor: {r: 0.92156863, g: 0.39215687, b: 0.078431375, a: 1}
+    - part: 13
+      matchBlockColor: 0
+      customColor: {r: 1, g: 0.78431374, b: 0, a: 1}
+    - part: 14
+      matchBlockColor: 0
+      customColor: {r: 0.15686275, g: 0.17254902, b: 0.20392157, a: 1}
+    - part: 15
+      matchBlockColor: 0
+      customColor: {r: 1, g: 0.972549, b: 0.78431374, a: 1}

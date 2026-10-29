@@ -549,8 +549,8 @@ namespace PixelGame.Editor
             stampRt.anchorMin = new Vector2(0.5f, 0.5f);
             stampRt.anchorMax = new Vector2(0.5f, 0.5f);
             stampRt.pivot = new Vector2(0.5f, 0.5f);
-            stampRt.anchoredPosition = new Vector2(0f, 130f); // Konteynerin ve rozetin üzerinde
-            stampRt.sizeDelta = new Vector2(360f, 120f);
+            stampRt.anchoredPosition = new Vector2(0f, 142f); // Konteynerin ve rozetin üzerinde ferah duruş
+            stampRt.sizeDelta = new Vector2(460f, 130f);
 
             Canvas stampCanvas = stampGo.AddComponent<Canvas>();
             stampCanvas.overrideSorting = true;
@@ -560,10 +560,11 @@ namespace PixelGame.Editor
             if (lilitaFont != null) stampTmp.font = lilitaFont;
             stampTmp.alignment = TextAlignmentOptions.Center;
             stampTmp.enableAutoSizing = true;
-            stampTmp.fontSizeMin = 36f;
-            stampTmp.fontSizeMax = 72f;
-            stampTmp.fontSize = 66f;
+            stampTmp.fontSizeMin = 28f;
+            stampTmp.fontSizeMax = 52f;
+            stampTmp.fontSize = 48f;
             stampTmp.fontStyle = FontStyles.Bold;
+            stampTmp.enableWordWrapping = false;
             stampTmp.color = new Color(1.0f, 0.88f, 0.10f, 1f); // Altın sarısı / Canlı sarı
             stampTmp.outlineWidth = 0.32f;
             stampTmp.outlineColor = new Color(0.08f, 0.10f, 0.22f, 1f); // Tok koyu lacivert kontur

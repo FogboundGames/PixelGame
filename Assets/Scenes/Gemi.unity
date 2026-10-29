@@ -122619,7 +122619,7 @@ MonoBehaviour:
   m_EnableWaterSplash: 1
   m_EnableSound: 1
   m_MasterVolume: 0.75
-  m_AsmrCreativeOnlyPickupSound: 1
+  m_AsmrCreativeOnlyPickupSound: 0
   m_AsmrIncludeBoardingSound: 0
   m_AsmrPickupVolume: 0.35
   m_AsmrUsePureProceduralSound: 0
