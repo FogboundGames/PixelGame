@@ -1,0 +1,11 @@
+{
+    "fps": 60,
+    "width": 1080,
+    "height": 1920,
+    "frameCount": 699,
+    "sampleRate": 48000,
+    "channels": 2,
+    "audioFile": "audio_f32le.raw",
+    "lastFrame": "last_frame.jpg",
+    "videoFile": "gameplay_60fps.mp4"
+}

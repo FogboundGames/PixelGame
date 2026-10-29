@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using DG.Tweening;
 
 namespace PixelGame.Creative
 {
@@ -28,7 +29,7 @@ namespace PixelGame.Creative
         [SerializeField] private Transform m_Target;
 
         [Header("📐 Kamera Modu")]
-        [SerializeField] private CameraMode m_Mode = CameraMode.GameIsometricFollow;
+        [SerializeField] private CameraMode m_Mode = CameraMode.PerspectiveThirdPerson;
 
         [Header("🎬 Mod 0: Oyunun Kendi Açısı Ayarları (GameIsometricFollow)")]
         [Tooltip("Oyun sahnesiyle birebir aynı açı (-20° eğim)")]
@@ -38,15 +39,17 @@ namespace PixelGame.Creative
         [SerializeField] private float m_IsoTargetOffsetY = 0.5f;
         [SerializeField] private float m_IsoCameraDistanceZ = -19.425f;
 
-        [Header("🎥 Mod 1: 3rd Person Perspektif Ayarları")]
+        [Header("🎥 Mod 1: 3rd Person Perspektif (Gemicinin Arkasından / Omuz Takip)")]
         [SerializeField] private float m_PerspFov = 48f;
-        [SerializeField] private Vector3 m_PerspOffset = new Vector3(0f, -2.5f, -5.2f);
-        [SerializeField] private Vector3 m_PerspEuler = new Vector3(336f, 0f, 0f);
+        [Tooltip("Gemicinin arkasından takip konumu (DİK koşu için: arkada -Y, yukarıda -Z, ortalanmış X=0)")]
+        [SerializeField] private Vector3 m_PerspOffset = new Vector3(0.0f, -2.10f, -3.20f);
+        [Tooltip("Kamera dönüş açısı (Euler: Pitch, Yaw, Roll). Roll kesinlikle 0'dır, ufuk dümdüz!")]
+        [SerializeField] private Vector3 m_PerspEuler = new Vector3(322f, 0f, 0f);
 
         [Header("🔍 Mod 2: Yakın Çekim Ayarları")]
         [SerializeField] private float m_CloseUpFov = 42f;
-        [SerializeField] private Vector3 m_CloseUpOffset = new Vector3(0f, -2.6f, -4.8f);
-        [SerializeField] private Vector3 m_CloseUpEuler = new Vector3(338f, 0f, 0f);
+        [SerializeField] private Vector3 m_CloseUpOffset = new Vector3(0.0f, -1.50f, -2.40f);
+        [SerializeField] private Vector3 m_CloseUpEuler = new Vector3(326f, 0f, 0f);
 
         [Header("✨ Pürüzsüzleştirme (Damping)")]
         [Range(0.01f, 0.5f)] [SerializeField] private float m_PositionSmoothTime = 0.12f;
@@ -74,6 +77,23 @@ namespace PixelGame.Creative
                 m_Mode = value;
                 ApplyCameraSettings();
             }
+        }
+
+        public Vector3 PerspOffset { get => m_PerspOffset; set => m_PerspOffset = value; }
+        public float PerspFov { get => m_PerspFov; set => m_PerspFov = value; }
+
+        /// <summary>
+        /// Konteynera yaklaşınca kamerayı pürüzsüzce geriye ve geniş açıya çeker (Ezgi'nin sinematik uzaklaşma isteği).
+        /// </summary>
+        public void AnimateZoom(Vector3 targetOffset, float targetFov, float duration)
+        {
+            DG.Tweening.DOTween.Kill(this);
+            DG.Tweening.DOTween.To(() => m_PerspOffset, x => m_PerspOffset = x, targetOffset, duration).SetEase(DG.Tweening.Ease.InOutCubic).SetTarget(this);
+            DG.Tweening.DOTween.To(() => m_PerspFov, x =>
+            {
+                m_PerspFov = x;
+                if (m_Camera != null) m_Camera.fieldOfView = x;
+            }, targetFov, duration).SetEase(DG.Tweening.Ease.InOutCubic).SetTarget(this);
         }
 
         private void Awake()

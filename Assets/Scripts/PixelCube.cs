@@ -191,7 +191,7 @@ namespace PixelGame
         public void EnsureShadowReferences()
         {
             PixelArtGenerator gen = PixelArtGenerator.Instance;
-            bool enableShadows = gen != null && gen.EnableCubeShadows;
+            bool enableShadows = (gen != null && gen.EnableCubeShadows) || m_KeepShadowPermanent || Object.FindFirstObjectByType<Creative.CreativeAsmrSceneController>() != null;
 
             if (!enableShadows)
             {
