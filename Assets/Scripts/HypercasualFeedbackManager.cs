@@ -62,8 +62,8 @@ namespace PixelGame
         [Tooltip("ASMR modunda küpün gemiye yüklenme / bırakılma tınısı da çalsın mı? (Varsayılan false: SADECE gemicinin küp toplama sesi çalar).")]
         [SerializeField] private bool m_AsmrIncludeBoardingSound = false;
 
-        [Tooltip("ASMR modunda küp toplama sesinin seviyesi (patlama ve distorsiyonu önleyen optimize edilmiş seviye).")]
-        [Range(0.1f, 1f)] [SerializeField] private float m_AsmrPickupVolume = 0.35f;
+        [Tooltip("ASMR modunda küp toplama sesinin seviyesi (net ve belirgin duyulabilir).")]
+        [Range(0.1f, 1f)] [SerializeField] private float m_AsmrPickupVolume = 0.85f;
 
         [Tooltip("ASMR modunda eski hazır sesler yerine prosedürel tını kullanılsın mı? (Varsayılan false: Eski orijinal ses kullanılır).")]
         [SerializeField] private bool m_AsmrUsePureProceduralSound = false;
@@ -109,11 +109,11 @@ namespace PixelGame
 
         public bool IsSoundActive => m_EnableSound && (CasualHudController.Instance == null || CasualHudController.Instance.SoundEnabled);
 
-        [Header("🚢 Gemiye Binme Sesi (Boarding Sound FX)")]
+        [Header("🚢 Gemiye / Konteynera Binme Sesi (Boarding Sound FX)")]
         [Tooltip("Küpler gemiye binerken çalacak ses tınısı tarzı.")]
         [SerializeField] private BoardingSoundStyle m_BoardingSoundStyle = BoardingSoundStyle.WarmWoodMarimba;
-        [Tooltip("Gemiye binme sesinin temel ses seviyesi (tok, melodik ve net duyulabilir).")]
-        [Range(0.05f, 1f)] [SerializeField] private float m_BoardingVolume = 0.75f;
+        [Tooltip("Gemiye/konteynera binme sesinin temel ses seviyesi (kulağı yormayan, arka planda hafif tatlı melodi).")]
+        [Range(0.05f, 1f)] [SerializeField] private float m_BoardingVolume = 0.26f;
         [Tooltip("Aynı anda çok sayıda küp bindiğinde seslerin üst üste binip gürültü yapmasını önleyen minimum aralık (sn).")]
         [SerializeField] private float m_MinBoardingSoundInterval = 0.038f;
         [Tooltip("Hızlı küp akışında seslerin ses seviyesini dinamik olarak dengeleyen polifoni koruması.")]
@@ -131,25 +131,48 @@ namespace PixelGame
                 }
             }
         }
+        public float BoardingVolume { get => m_BoardingVolume; set => m_BoardingVolume = Mathf.Clamp01(value); }
 
-        [Header("🔊 Hazır Ses Klipleri (boş bırakılırsa üretilen ses çalar)")]
-        [Tooltip("Konteyner/gemi slota yerleşince bunlardan rastgele biri çalar.")]
-        [SerializeField] private AudioClip[] m_DockSoundClips;
-        [Range(0f, 1f)] [SerializeField] private float m_DockSoundVolume = 0.8f;
-        [Tooltip("Denizci panodan küp alınca bunlardan rastgele biri çalar.")]
+        [Header("🔊 Küp Toplama Sesleri (Pickup Sound FX)")]
+        [Tooltip("Denizci panodan küp alınca bunlardan rastgele biri çalar (kullanıcının net duymak istediği ASMR toplama sesi).")]
         [SerializeField] private AudioClip[] m_PickupSoundClips;
-        [Range(0f, 1f)] [SerializeField] private float m_PickupSoundVolume = 0.6f;
+        [Range(0f, 1f)] [SerializeField] private float m_PickupSoundVolume = 0.90f;
 
         public AudioClip[] PickupSoundClips { get => m_PickupSoundClips; set => m_PickupSoundClips = value; }
-        public float PickupSoundVolume { get => m_PickupSoundVolume; set => m_PickupSoundVolume = value; }
-        [Tooltip("UI butonlarına basınca çalar. Boşsa Resources/Audio/ui_button_click kullanılır.")]
-        [SerializeField] private AudioClip m_ButtonSoundClip;
-        [Range(0f, 1f)] [SerializeField] private float m_ButtonSoundVolume = 0.8f;
+        public float PickupSoundVolume { get => m_PickupSoundVolume; set => m_PickupSoundVolume = Mathf.Clamp01(value); }
 
-        [Header("📦 Konteyner Sesleri")]
+        [Header("🏁 Konteyner Dolma & Ayrılma Sesleri")]
+        [Tooltip("Konteyner/gemi dolduğunda çalan zafer akoru melodisinin ses seviyesi.")]
+        [Range(0f, 1f)] [SerializeField] private float m_ShipFullVolume = 0.38f;
+        [Tooltip("Konteyner dolup patladığında çalan gevrek balon patlama ('pıt') sesi seviyesi.")]
+        [Range(0f, 1f)] [SerializeField] private float m_BalloonPopVolume = 0.40f;
+        [Tooltip("Gemi/konteyner dolup açık denize kalkış yaparken çalan düdük ses seviyesi.")]
+        [Range(0f, 1f)] [SerializeField] private float m_DepartSoundVolume = 0.38f;
+
+        public float ShipFullVolume { get => m_ShipFullVolume; set => m_ShipFullVolume = Mathf.Clamp01(value); }
+        public float BalloonPopVolume { get => m_BalloonPopVolume; set => m_BalloonPopVolume = Mathf.Clamp01(value); }
+        public float DepartSoundVolume { get => m_DepartSoundVolume; set => m_DepartSoundVolume = Mathf.Clamp01(value); }
+
+        [Header("📦 Konteyner Yanaşma & İskele Sesleri")]
+        [Tooltip("Konteyner/gemi slota yerleşince bunlardan rastgele biri çalar.")]
+        [SerializeField] private AudioClip[] m_DockSoundClips;
+        [Range(0f, 1f)] [SerializeField] private float m_DockSoundVolume = 0.35f;
         [Tooltip("Konteyner slota yerleştiğinde çalacak tok darbe sesi (impactWood_medium_004).")]
         [SerializeField] private AudioClip m_ContainerDockClip;
-        [Range(0f, 1f)] [SerializeField] private float m_ContainerDockVolume = 0.85f;
+        [Range(0f, 1f)] [SerializeField] private float m_ContainerDockVolume = 0.38f;
+
+        public float DockSoundVolume { get => m_DockSoundVolume; set => m_DockSoundVolume = Mathf.Clamp01(value); }
+        public float ContainerDockVolume { get => m_ContainerDockVolume; set => m_ContainerDockVolume = Mathf.Clamp01(value); }
+
+        [Header("🚀 Oyun Başlangıç & Arayüz Sesleri")]
+        [Tooltip("Oyun açılışında çalan jingle ses seviyesi.")]
+        [Range(0f, 1f)] [SerializeField] private float m_GameLaunchVolume = 0.35f;
+        [Tooltip("UI butonlarına basınca çalar. Boşsa Resources/Audio/ui_button_click kullanılır.")]
+        [SerializeField] private AudioClip m_ButtonSoundClip;
+        [Range(0f, 1f)] [SerializeField] private float m_ButtonSoundVolume = 0.60f;
+
+        public float GameLaunchVolume { get => m_GameLaunchVolume; set => m_GameLaunchVolume = Mathf.Clamp01(value); }
+        public float ButtonSoundVolume { get => m_ButtonSoundVolume; set => m_ButtonSoundVolume = Mathf.Clamp01(value); }
 
         [Header("📳 Mobil Titreşim (Haptics)")]
         [SerializeField] private bool m_EnableHaptics = true;
@@ -232,6 +255,8 @@ namespace PixelGame
 
         private void InitializeAudio()
         {
+            NormalizeAudioMixLevels();
+
             AudioSource[] sources = GetComponents<AudioSource>();
             if (m_ChimeSource == null) m_ChimeSource = sources.Length > 0 ? sources[0] : gameObject.AddComponent<AudioSource>();
             if (m_FxSource == null) m_FxSource = sources.Length > 1 ? sources[1] : gameObject.AddComponent<AudioSource>();
@@ -300,12 +325,45 @@ namespace PixelGame
             }
         }
 
+        /// <summary>
+        /// Sahneye önceden kaydedilmiş eski orantısız ses seviyelerini (örneğin patlayan açılış/dock/full veya duyulmayan toplama)
+        /// tatmin edici ve dengeli hypercasual standartlarına otomatik dengeler.
+        /// </summary>
+        public void NormalizeAudioMixLevels()
+        {
+            if (m_PickupSoundVolume < 0.70f) m_PickupSoundVolume = 0.90f;
+            if (m_AsmrPickupVolume < 0.60f) m_AsmrPickupVolume = 0.85f;
+            if (m_BoardingVolume > 0.35f) m_BoardingVolume = 0.26f;
+            if (m_ContainerDockVolume > 0.50f) m_ContainerDockVolume = 0.38f;
+            if (m_DockSoundVolume > 0.50f) m_DockSoundVolume = 0.35f;
+            if (m_ShipFullVolume <= 0.001f || m_ShipFullVolume > 0.50f) m_ShipFullVolume = 0.38f;
+            if (m_BalloonPopVolume <= 0.001f || m_BalloonPopVolume > 0.50f) m_BalloonPopVolume = 0.40f;
+            if (m_DepartSoundVolume <= 0.001f || m_DepartSoundVolume > 0.50f) m_DepartSoundVolume = 0.38f;
+            if (m_GameLaunchVolume <= 0.001f || m_GameLaunchVolume > 0.50f) m_GameLaunchVolume = 0.35f;
+        }
+
         private void OnValidate()
         {
+            NormalizeAudioMixLevels();
             if (m_ChimeSource != null)
             {
                 RegenerateBoardingClips();
             }
+        }
+
+        [ContextMenu("🔊 Ses Seviyelerini İdeal Dengeye Sıfırla (Normalize Mix)")]
+        public void ResetToBalancedMix()
+        {
+            m_PickupSoundVolume = 0.90f;
+            m_AsmrPickupVolume = 0.85f;
+            m_BoardingVolume = 0.26f;
+            m_ShipFullVolume = 0.38f;
+            m_BalloonPopVolume = 0.40f;
+            m_DepartSoundVolume = 0.38f;
+            m_DockSoundVolume = 0.35f;
+            m_ContainerDockVolume = 0.38f;
+            m_GameLaunchVolume = 0.35f;
+            m_ButtonSoundVolume = 0.60f;
         }
 
         [ContextMenu("🪵 Stili Ahşap Marimba Yap (Önerilen Tok Tını)")]
@@ -950,7 +1008,7 @@ namespace PixelGame
                     acc += warm;
                 }
 
-                samples[i] = Mathf.Clamp(acc * 0.90f, -1f, 1f);
+                samples[i] = Mathf.Clamp(acc * 0.65f, -1f, 1f);
             }
 
             AudioClip clip = AudioClip.Create("GameLaunch_Jingle", count, 1, sampleRate, false);
@@ -1503,8 +1561,8 @@ namespace PixelGame
             AudioSource src = GetNextLiftoffSource();
             if (src == null) return;
 
-            // Çoklu toplamada kulak tırmalamayan akıllı yoğunluk sönümlemesi
-            float densityDamping = Mathf.Clamp(1.0f - (m_RecentLiftoffClusterCount * 0.04f), 0.70f, 1.0f);
+            // Çoklu toplamada kulak tırmalamayan akıllı yoğunluk sönümlemesi (aşırı kısmayı önlemek için taban 0.82f)
+            float densityDamping = Mathf.Clamp(1.0f - (m_RecentLiftoffClusterCount * 0.02f), 0.82f, 1.0f);
 
             // 1. ESKİ ORİJİNAL SES (Kenney impactSoft) - KULLANICININ İSTEDİĞİ SES HAKİM OLSUN:
             AudioClip pickupClip = PickNextPickupClip(m_PickupSoundClips);
@@ -1514,9 +1572,9 @@ namespace PixelGame
                 // Önceki çalan seslerin perdesini veya kuyruğunu kesinlikle bozmaz, pürüzsüz doğal varyasyon sağlar
                 src.pitch = 1.0f + (index % 6) * 0.02f + UnityEngine.Random.Range(-0.02f, 0.02f);
 
-                // Ses seviyesi: Patlama ve distorsiyonu önleyen optimize seviye (aşırı yüksek 1.0 yerine 0.35 * density)
+                // Ses seviyesi: Toplama sesi net, berrak ve belirgin duyulsun
                 float vol = (m_AsmrCreativeOnlyPickupSound ? m_AsmrPickupVolume : (m_PickupSoundVolume * m_MasterVolume)) * densityDamping;
-                src.PlayOneShot(pickupClip, vol);
+                src.PlayOneShot(pickupClip, Mathf.Clamp01(vol));
                 return;
             }
 
@@ -1528,7 +1586,7 @@ namespace PixelGame
                 {
                     float[] asmrPitches = new float[] { 1.00f, 1.06f, 1.12f, 1.19f, 1.25f, 1.33f };
                     src.pitch = asmrPitches[(m_RecentLiftoffClusterCount - 1) % asmrPitches.Length];
-                    src.PlayOneShot(m_AsmrPurePickupClip, m_AsmrPickupVolume * densityDamping);
+                    src.PlayOneShot(m_AsmrPurePickupClip, Mathf.Clamp01(m_AsmrPickupVolume * densityDamping));
                     return;
                 }
             }
@@ -1538,7 +1596,7 @@ namespace PixelGame
             if (m_LiftoffClip == null) return;
 
             src.pitch = Mathf.Clamp(1.0f + (index % 6) * 0.045f + UnityEngine.Random.Range(-0.015f, 0.015f), 0.95f, 1.35f);
-            src.PlayOneShot(m_LiftoffClip, 0.35f * densityDamping);
+            src.PlayOneShot(m_LiftoffClip, Mathf.Clamp01(m_PickupSoundVolume * m_MasterVolume * 0.85f * densityDamping));
         }
 
         private static AudioClip PickRandomClip(AudioClip[] clips)
@@ -1586,7 +1644,7 @@ namespace PixelGame
                         if (m_ShipFullClip != null)
                         {
                             chimeSrc.pitch = 1.0f;
-                            chimeSrc.PlayOneShot(m_ShipFullClip, m_MasterVolume * 0.90f);
+                            chimeSrc.PlayOneShot(m_ShipFullClip, m_MasterVolume * m_ShipFullVolume);
                             m_LastBoardingSoundTime = now;
                             m_RecentBoardingClusterCount = 0;
                         }
@@ -1792,7 +1850,7 @@ namespace PixelGame
                     if (m_DockClip != null)
                     {
                         m_FxSource.pitch = UnityEngine.Random.Range(0.97f, 1.03f);
-                        m_FxSource.PlayOneShot(m_DockClip, m_MasterVolume * 0.95f);
+                        m_FxSource.PlayOneShot(m_DockClip, m_MasterVolume * m_DockSoundVolume);
                     }
                 }
             }
@@ -1831,7 +1889,7 @@ namespace PixelGame
                 if (m_DepartClip != null)
                 {
                     m_FxSource.pitch = UnityEngine.Random.Range(0.98f, 1.02f);
-                    m_FxSource.PlayOneShot(m_DepartClip, m_MasterVolume * 0.95f);
+                    m_FxSource.PlayOneShot(m_DepartClip, m_MasterVolume * m_DepartSoundVolume);
                 }
             }
 
@@ -1855,7 +1913,7 @@ namespace PixelGame
                 if (m_DenialClip != null)
                 {
                     m_FxSource.pitch = UnityEngine.Random.Range(0.98f, 1.02f);
-                    m_FxSource.PlayOneShot(m_DenialClip, m_MasterVolume * 0.85f);
+                    m_FxSource.PlayOneShot(m_DenialClip, m_MasterVolume * 0.60f);
                 }
             }
 
@@ -1883,7 +1941,7 @@ namespace PixelGame
                 if (m_GameLaunchClip != null)
                 {
                     src.pitch = 1.0f;
-                    src.PlayOneShot(m_GameLaunchClip, m_MasterVolume * 0.95f);
+                    src.PlayOneShot(m_GameLaunchClip, m_MasterVolume * m_GameLaunchVolume);
                 }
             }
 
@@ -1910,7 +1968,7 @@ namespace PixelGame
                 if (m_ButtonClickClip != null)
                 {
                     src.pitch = UnityEngine.Random.Range(0.96f, 1.04f);
-                    src.PlayOneShot(m_ButtonClickClip, m_MasterVolume * 0.80f);
+                    src.PlayOneShot(m_ButtonClickClip, m_MasterVolume * m_ButtonSoundVolume);
                 }
             }
         }
@@ -1942,7 +2000,7 @@ namespace PixelGame
                     if (m_BalloonPopClip != null)
                     {
                         src.pitch = UnityEngine.Random.Range(0.97f, 1.05f);
-                        src.PlayOneShot(m_BalloonPopClip, m_MasterVolume * 0.95f);
+                        src.PlayOneShot(m_BalloonPopClip, m_MasterVolume * m_BalloonPopVolume);
                     }
                 }
             }

@@ -26,7 +26,7 @@ namespace PixelGame.Editor
                 Undo.RecordObject(manager, "Update ASMR Audio Settings");
                 manager.AsmrCreativeOnlyPickupSound = true;
                 manager.AsmrUsePureProceduralSound = false; // Eski orijinal ses hakim
-                manager.AsmrPickupVolume = 0.35f;
+                manager.AsmrPickupVolume = 0.85f;
                 manager.LiftoffSoundDebounceTime = 0.032f;
                 EditorUtility.SetDirty(manager);
                 EditorSceneManager.MarkSceneDirty(manager.gameObject.scene);

@@ -125273,11 +125273,11 @@ MonoBehaviour:
   m_MasterVolume: 0.75
   m_AsmrCreativeOnlyPickupSound: 0
   m_AsmrIncludeBoardingSound: 0
-  m_AsmrPickupVolume: 0.35
+  m_AsmrPickupVolume: 0.85
   m_AsmrUsePureProceduralSound: 0
   m_LiftoffSoundDebounceTime: 0.032
   m_BoardingSoundStyle: 0
-  m_BoardingVolume: 0.4
+  m_BoardingVolume: 0.26
   m_MinBoardingSoundInterval: 0.038
   m_EnableBoardingDensityDamping: 1
   m_DockSoundClips:
@@ -125286,18 +125286,22 @@ MonoBehaviour:
   - {fileID: 8300000, guid: c576affce72d790b992e37483068fdc1, type: 3}
   - {fileID: 8300000, guid: 342c3000f14e90e0da8a5751e5bda75f, type: 3}
   - {fileID: 8300000, guid: 86e057be5062d1aaba5c3921ccc40113, type: 3}
-  m_DockSoundVolume: 0.6
+  m_DockSoundVolume: 0.35
   m_PickupSoundClips:
   - {fileID: 8300000, guid: 4f752b1febeea976a81c4d4e540b1f47, type: 3}
   - {fileID: 8300000, guid: 8d44f971b87b0c7a8aeee55ee9914dc1, type: 3}
   - {fileID: 8300000, guid: 8572081fc0aae5351a725614a7ed1cdf, type: 3}
   - {fileID: 8300000, guid: d7c9b8d0a09532ba0af3713c67b16d03, type: 3}
   - {fileID: 8300000, guid: 5610fe16b5fe5b0d296232aab859eaa2, type: 3}
-  m_PickupSoundVolume: 0.3
+  m_PickupSoundVolume: 0.9
+  m_ShipFullVolume: 0.38
+  m_BalloonPopVolume: 0.4
+  m_DepartSoundVolume: 0.38
   m_ButtonSoundClip: {fileID: 0}
-  m_ButtonSoundVolume: 0.8
+  m_ButtonSoundVolume: 0.6
   m_ContainerDockClip: {fileID: 8300000, guid: 95bc00c1d141ddf5282afdf6fbeed370, type: 3}
-  m_ContainerDockVolume: 0.85
+  m_ContainerDockVolume: 0.38
+  m_GameLaunchVolume: 0.35
   m_EnableHaptics: 1
   m_HapticsOnlyOnMobile: 1
 --- !u!4 &1699816083

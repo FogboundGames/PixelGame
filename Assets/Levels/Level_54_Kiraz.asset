@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Kiraz
   m_LevelIndex: 50
-  m_DifficultyTier: 2
+  m_DifficultyTier: 1
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: f5e6ba59548045499edb0dfae1fd251f, type: 3}

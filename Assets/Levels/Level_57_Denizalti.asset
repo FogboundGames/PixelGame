@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: "Denizalt\u0131"
   m_LevelIndex: 59
-  m_DifficultyTier: 2
+  m_DifficultyTier: 1
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0
   m_LevelTexture: {fileID: 2800000, guid: 6e2d7e9542214401babc06d8b977582c, type: 3}
@@ -134,7 +134,7 @@ MonoBehaviour:
   m_MysteryCubeColor: {r: 0.588235, g: 0.54902, b: 0.627451, a: 1}
   m_SlotSprite: {fileID: 0}
   m_SlotCount: 4
-  m_PoolColumns: 3
+  m_PoolColumns: 4
   m_PoolRows: 3
   m_DisableAutoPlaceTurbo: 0
   m_TruckCapacity: 40
@@ -154,19 +154,19 @@ MonoBehaviour:
     capacity: 40
     paletteIndex: 1
     label: Vagon
-    linkId: 1
+    linkId: 6
     isHidden: 0
   - wagonColor: {r: 0.2745098, g: 0.627451, b: 0.78431374, a: 1}
     capacity: 40
     paletteIndex: 0
     label: Vagon
-    linkId: 1
+    linkId: 5
     isHidden: 0
   - wagonColor: {r: 0.2745098, g: 0.627451, b: 0.78431374, a: 1}
     capacity: 40
     paletteIndex: 0
     label: Vagon
-    linkId: 0
+    linkId: 4
     isHidden: 0
   - wagonColor: {r: 0.972549, g: 0.972549, b: 0.98039216, a: 1}
     capacity: 11
@@ -178,48 +178,42 @@ MonoBehaviour:
     capacity: 11
     paletteIndex: 3
     label: Vagon
-    linkId: 2
+    linkId: 6
     isHidden: 0
   - wagonColor: {r: 0.07843137, g: 0.23529412, b: 0.47058824, a: 1}
     capacity: 40
     paletteIndex: 1
     label: Vagon
-    linkId: 0
-    isHidden: 1
+    linkId: 5
+    isHidden: 0
   - wagonColor: {r: 0.2745098, g: 0.627451, b: 0.78431374, a: 1}
     capacity: 40
     paletteIndex: 0
     label: Vagon
-    linkId: 0
+    linkId: 4
     isHidden: 0
   - wagonColor: {r: 0.98039216, g: 0.78431374, b: 0.19607843, a: 1}
     capacity: 40
     paletteIndex: 2
     label: Vagon
-    linkId: 0
+    linkId: 2
     isHidden: 0
   - wagonColor: {r: 0.14117648, g: 0.40784314, b: 0.6666667, a: 1}
     capacity: 40
     paletteIndex: 3
     label: Vagon
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   - wagonColor: {r: 0.8862745, g: 0.76862746, b: 0.5098039, a: 1}
     capacity: 17
     paletteIndex: 5
     label: Vagon
-    linkId: 3
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.2745098, g: 0.627451, b: 0.78431374, a: 1}
     capacity: 40
     paletteIndex: 0
     label: Vagon
-    linkId: 3
-    isHidden: 0
-  - wagonColor: {r: 0.07843137, g: 0.23529412, b: 0.47058824, a: 1}
-    capacity: 40
-    paletteIndex: 1
-    label: Vagon
     linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.07843137, g: 0.23529412, b: 0.47058824, a: 1}
@@ -228,72 +222,78 @@ MonoBehaviour:
     label: Vagon
     linkId: 0
     isHidden: 0
+  - wagonColor: {r: 0.07843137, g: 0.23529412, b: 0.47058824, a: 1}
+    capacity: 40
+    paletteIndex: 1
+    label: Vagon
+    linkId: 0
+    isHidden: 1
   - wagonColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
     capacity: 12
     paletteIndex: 4
     label: Vagon
-    linkId: 0
+    linkId: 1
     isHidden: 0
   - wagonColor: {r: 0.2745098, g: 0.627451, b: 0.78431374, a: 1}
     capacity: 40
     paletteIndex: 0
     label: Vagon
-    linkId: 0
+    linkId: 1
     isHidden: 0
   - wagonColor: {r: 0.98039216, g: 0.78431374, b: 0.19607843, a: 1}
     capacity: 19
     paletteIndex: 2
     label: Vagon
-    linkId: 4
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.07843137, g: 0.23529412, b: 0.47058824, a: 1}
     capacity: 10
     paletteIndex: 1
     label: Vagon
-    linkId: 4
+    linkId: 3
     isHidden: 0
   - wagonColor: {r: 0.98039216, g: 0.78431374, b: 0.19607843, a: 1}
     capacity: 40
     paletteIndex: 2
     label: Vagon
-    linkId: 5
+    linkId: 3
     isHidden: 0
   - wagonColor: {r: 0.14117648, g: 0.40784314, b: 0.6666667, a: 1}
     capacity: 40
     paletteIndex: 3
     label: Vagon
-    linkId: 5
-    isHidden: 0
+    linkId: 0
+    isHidden: 1
   - wagonColor: {r: 0.2745098, g: 0.627451, b: 0.78431374, a: 1}
     capacity: 40
     paletteIndex: 0
     label: Vagon
     linkId: 0
-    isHidden: 1
+    isHidden: 0
   - wagonColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
     capacity: 30
     paletteIndex: 4
     label: Vagon
-    linkId: 0
+    linkId: 7
     isHidden: 0
   - wagonColor: {r: 0.8862745, g: 0.76862746, b: 0.5098039, a: 1}
     capacity: 40
     paletteIndex: 5
     label: Vagon
-    linkId: 6
+    linkId: 7
     isHidden: 0
   - wagonColor: {r: 0.5882353, g: 0.9019608, b: 0.9411765, a: 1}
     capacity: 24
     paletteIndex: 7
     label: Vagon
-    linkId: 6
-    isHidden: 0
+    linkId: 0
+    isHidden: 1
   - wagonColor: {r: 0.07843137, g: 0.23529412, b: 0.47058824, a: 1}
     capacity: 40
     paletteIndex: 1
     label: Vagon
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.07843137, g: 0.23529412, b: 0.47058824, a: 1}
     capacity: 40
     paletteIndex: 1
@@ -310,20 +310,20 @@ MonoBehaviour:
     capacity: 40
     paletteIndex: 3
     label: Vagon
-    linkId: 7
+    linkId: 0
     isHidden: 0
   - wagonColor: {r: 0.2745098, g: 0.627451, b: 0.78431374, a: 1}
     capacity: 40
     paletteIndex: 0
     label: Vagon
-    linkId: 7
+    linkId: 8
     isHidden: 0
   - wagonColor: {r: 0.8235294, g: 0.5098039, b: 0.11764706, a: 1}
     capacity: 34
     paletteIndex: 6
     label: Vagon
-    linkId: 0
-    isHidden: 1
+    linkId: 8
+    isHidden: 0
   - wagonColor: {r: 0.23529412, g: 0.627451, b: 0.3529412, a: 1}
     capacity: 16
     paletteIndex: 8

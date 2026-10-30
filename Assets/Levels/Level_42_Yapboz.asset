@@ -83,8 +83,8 @@ MonoBehaviour:
   m_MysteryCubeColor: {r: 0.125, g: 0.118, b: 0.306, a: 1}
   m_SlotSprite: {fileID: 0}
   m_SlotCount: 4
-  m_PoolColumns: 3
-  m_PoolRows: 3
+  m_PoolColumns: 4
+  m_PoolRows: 5
   m_DisableAutoPlaceTurbo: 0
   m_TruckCapacity: 64
   m_MinTruckCapacity: 60
@@ -97,7 +97,7 @@ MonoBehaviour:
     capacity: 60
     paletteIndex: 0
     label: "Turuncu Par\xE7a"
-    linkId: 0
+    linkId: 2
     isHidden: 0
   - wagonColor: {r: 0.9882353, g: 0.9882353, b: 0.9882353, a: 1}
     capacity: 60
@@ -121,13 +121,13 @@ MonoBehaviour:
     capacity: 52
     paletteIndex: 9
     label: "Ye\u015Fil Par\xE7a"
-    linkId: 0
+    linkId: 2
     isHidden: 0
   - wagonColor: {r: 0.95686275, g: 0.40784314, b: 0.7058824, a: 1}
     capacity: 60
     paletteIndex: 1
     label: "Pembe Par\xE7a"
-    linkId: 0
+    linkId: 3
     isHidden: 0
   - wagonColor: {r: 0.08627451, g: 0.8156863, b: 0.9254902, a: 1}
     capacity: 56
@@ -151,20 +151,20 @@ MonoBehaviour:
     capacity: 32
     paletteIndex: 0
     label: "Turuncu Par\xE7a"
-    linkId: 0
+    linkId: 3
     isHidden: 0
   - wagonColor: {r: 0.972549, g: 0.45490196, b: 0.09411765, a: 1}
     capacity: 60
     paletteIndex: 0
     label: "Turuncu Par\xE7a"
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.9882353, g: 0.9882353, b: 0.9882353, a: 1}
     capacity: 60
     paletteIndex: 3
     label: "Beyaz Par\xE7a"
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.95686275, g: 0.40784314, b: 0.7058824, a: 1}
     capacity: 60
     paletteIndex: 1
@@ -175,13 +175,13 @@ MonoBehaviour:
     capacity: 60
     paletteIndex: 2
     label: "Mavi Par\xE7a"
-    linkId: 0
+    linkId: 1
     isHidden: 0
   - wagonColor: {r: 0.8784314, g: 0.18039216, b: 0.1254902, a: 1}
     capacity: 14
     paletteIndex: 6
     label: "K\u0131rm\u0131z\u0131 Par\xE7a"
-    linkId: 0
+    linkId: 1
     isHidden: 0
   - wagonColor: {r: 0.49411765, g: 0.14901961, b: 0.63529414, a: 1}
     capacity: 46
@@ -194,7 +194,7 @@ MonoBehaviour:
     paletteIndex: 7
     label: "Kahverengi Par\xE7a"
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.99607843, g: 0.7607843, b: 0.047058824, a: 1}
     capacity: 64
     paletteIndex: 8
