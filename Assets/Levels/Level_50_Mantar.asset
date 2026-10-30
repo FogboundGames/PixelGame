@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_50_Mantar
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Mantar
-  m_LevelIndex: 41
+  m_LevelIndex: 61
   m_DifficultyTier: 2
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

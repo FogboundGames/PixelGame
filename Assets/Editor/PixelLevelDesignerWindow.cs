@@ -4305,6 +4305,7 @@ namespace PixelGame.Editor
 
         public void RefreshLevelList()
         {
+            AssetDatabase.Refresh();
             m_AllLevels.Clear();
             string[] guids = AssetDatabase.FindAssets("t:PixelLevelData");
             foreach (string guid in guids)

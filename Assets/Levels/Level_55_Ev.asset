@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_55_Ev
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Ev
-  m_LevelIndex: 61
+  m_LevelIndex: 47
   m_DifficultyTier: 2
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

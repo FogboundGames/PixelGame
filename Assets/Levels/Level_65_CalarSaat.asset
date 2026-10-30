@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_65_CalarSaat
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: "\xC7alar Saat"
-  m_LevelIndex: 48
+  m_LevelIndex: 77
   m_DifficultyTier: 1
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

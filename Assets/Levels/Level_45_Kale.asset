@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_45_Kale
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Kale
-  m_LevelIndex: 57
+  m_LevelIndex: 65
   m_DifficultyTier: 2
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_53_Kelebek
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Kelebek
-  m_LevelIndex: 65
+  m_LevelIndex: 84
   m_DifficultyTier: 2
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

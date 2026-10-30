@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_41_BalPetegi
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: "Bal Pete\u011Fi"
-  m_LevelIndex: 41
+  m_LevelIndex: 40
   m_DifficultyTier: 1
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

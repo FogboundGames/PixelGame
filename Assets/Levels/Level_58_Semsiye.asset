@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_58_Semsiye
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: "\u015Eemsiye"
-  m_LevelIndex: 43
+  m_LevelIndex: 87
   m_DifficultyTier: 2
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

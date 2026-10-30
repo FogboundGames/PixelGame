@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_66_Balina
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Balina
-  m_LevelIndex: 52
+  m_LevelIndex: 83
   m_DifficultyTier: 1
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0
