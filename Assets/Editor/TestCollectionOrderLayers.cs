@@ -6,7 +6,7 @@ namespace PixelGame.Editor
 {
     public static class TestCollectionOrderLayers
     {
-        [MenuItem("PixelGame/🧪 Test Outermost-To-Innermost Collection Order")]
+        // [MenuItem("PixelGame/🧪 Test Outermost-To-Innermost Collection Order")]
         public static void RunDiagnostic()
         {
             var gen = Object.FindFirstObjectByType<PixelArtGenerator>();

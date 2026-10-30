@@ -6,7 +6,7 @@ namespace PixelGame.Editor
 {
     public static class UpdateShipColorsMenu
     {
-        [MenuItem("Tools/PixelGame/🚢 Gemi Güvertelerini Kahverengi Yap ve Yenile")]
+        // [MenuItem("Tools/PixelGame/🚢 Gemi Güvertelerini Kahverengi Yap ve Yenile")]
         public static void RefreshShipDeckColors()
         {
             ShipController.ClearMaterialCache();

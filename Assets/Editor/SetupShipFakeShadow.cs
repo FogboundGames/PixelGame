@@ -24,7 +24,7 @@ namespace PixelGame.Editor
             */
         }
 
-        [MenuItem("Tools/PixelGame/🌑 Gemi Prefabına Fake Shadow Ekle")]
+        // [MenuItem("Tools/PixelGame/🌑 Gemi Prefabına Fake Shadow Ekle")]
         public static void ApplyToPrefab()
         {
             GameObject root = PrefabUtility.LoadPrefabContents(PrefabPath);

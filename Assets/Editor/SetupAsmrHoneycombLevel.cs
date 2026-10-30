@@ -17,7 +17,7 @@ namespace PixelGame.Editor
             EditorApplication.delayCall += EnsureLevelCreated;
         }
 
-        [MenuItem("Tools/PixelGame/🍯 ASMR Bal Peteği Seviyesini Kur ve Güncelle", priority = 10)]
+        // [MenuItem("Tools/PixelGame/🍯 ASMR Bal Peteği Seviyesini Kur ve Güncelle", priority = 10)]
         public static void EnsureLevelCreated()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;

@@ -14,7 +14,7 @@ namespace PixelGame.Editor
             EditorApplication.delayCall += EnsureSettingsAsset;
         }
 
-        [MenuItem("PixelGame/✨ Ensure Cube Movement Settings")]
+        // [MenuItem("PixelGame/✨ Ensure Cube Movement Settings")]
         public static void EnsureSettingsAsset()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
@@ -86,7 +86,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("PixelGame/👣 Ensure Sand Footprint Manager")]
+        // [MenuItem("PixelGame/👣 Ensure Sand Footprint Manager")]
         public static void EnsureSandFootprintManager()
         {
             SandFootprintManager mgr = Object.FindFirstObjectByType<SandFootprintManager>();

@@ -44,7 +44,7 @@ namespace PixelGame.Editor
             return obj;
         }
 
-        [MenuItem("Tools/PixelGame/🌑 Küp Prefablarına Referans Fake Shadow Uygula", priority = 10)]
+        // [MenuItem("Tools/PixelGame/🌑 Küp Prefablarına Referans Fake Shadow Uygula", priority = 10)]
         public static void ApplyManual()
         {
             ApplyShadowToPrefab(force: true);

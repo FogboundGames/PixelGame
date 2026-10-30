@@ -69,7 +69,7 @@ namespace PixelGame.Editor
         private readonly HashSet<string> m_Failed = new HashSet<string>();
         private readonly ConcurrentQueue<(string key, byte[] data)> m_Downloaded = new ConcurrentQueue<(string, byte[])>();
 
-        [MenuItem("Tools/PixelGame/🔎 Görsel Tarayıcı (Emoji → Piksel)", priority = 3)]
+        // [MenuItem("Tools/PixelGame/🔎 Görsel Tarayıcı (Emoji → Piksel)", priority = 3)]
         public static void OpenWindow()
         {
             var window = GetWindow<PixelImageBrowserWindow>("Görsel Tarayıcı");

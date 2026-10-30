@@ -21,7 +21,7 @@ namespace PixelGame.Editor
             // EditorApplication.delayCall += SetupCurvedPier;
         }
 
-        [MenuItem("PixelGame/⚓ Setup Curved Marina Pier (4 & 5 Slots)")]
+        // [MenuItem("PixelGame/⚓ Setup Curved Marina Pier (4 & 5 Slots)")]
         public static void SetupCurvedPier()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;

@@ -9,7 +9,7 @@ namespace PixelGame.Editor
     {
         private const string ScenePath = "Assets/Scenes/Gemi.unity";
 
-        [MenuItem("PixelGame/⚓ Setup Straight Marina Pier (Düz İskele Slotları)")]
+        // [MenuItem("PixelGame/⚓ Setup Straight Marina Pier (Düz İskele Slotları)")]
         public static void ApplyStraightPierSetup()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;

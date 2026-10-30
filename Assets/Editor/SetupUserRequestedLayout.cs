@@ -28,7 +28,7 @@ namespace PixelGame.Editor
 #endif
         }
 
-        [MenuItem("PixelGame/⚓ Fix Pier Dock Slots & Align Frame (User Request)")]
+        // [MenuItem("PixelGame/⚓ Fix Pier Dock Slots & Align Frame (User Request)")]
         public static void ApplyLayoutAndFixSlots()
         {
             if (EditorSceneManager.GetActiveScene().path != ScenePath)

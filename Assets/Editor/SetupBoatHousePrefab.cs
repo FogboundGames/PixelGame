@@ -5,7 +5,7 @@ using PixelGame;
 
 public static class SetupBoatHousePrefab
 {
-    [MenuItem("PixelGame/Setup Boat House Prefab")]
+    // [MenuItem("PixelGame/Setup Boat House Prefab")]
     public static void ExecuteSetup()
     {
         string fbxPath = "Assets/Kenney/kenney_watercraft-pack/Models/FBX format/boat-house-a.fbx";

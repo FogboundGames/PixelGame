@@ -6,7 +6,7 @@ namespace PixelGame.Editor
 {
     public static class DebugInspectShips
     {
-        [MenuItem("PixelGame/🔍 Debug Inspect Ships")]
+        // [MenuItem("PixelGame/🔍 Debug Inspect Ships")]
         public static void Inspect()
         {
             var ships = Object.FindObjectsByType<ShipController>(FindObjectsSortMode.None);

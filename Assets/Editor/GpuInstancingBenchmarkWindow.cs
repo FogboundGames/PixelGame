@@ -12,7 +12,7 @@ namespace PixelGame.Editor
         private float m_LiveWobbleAmount = 0.12f;
         private float m_LiveSquashAmount = 0f;
 
-        [MenuItem("PixelGame/⚡ GPU Instancing & Crowd Optimizer", false, 50)]
+        // [MenuItem("PixelGame/⚡ GPU Instancing & Crowd Optimizer", false, 50)]
         public static void Open()
         {
             var win = GetWindow<GpuInstancingBenchmarkWindow>("⚡ GPU Crowd Optimizer");

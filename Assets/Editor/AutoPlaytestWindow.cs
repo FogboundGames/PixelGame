@@ -15,7 +15,7 @@ namespace PixelGame.Editor
     /// </summary>
     public class AutoPlaytestWindow : EditorWindow
     {
-        [MenuItem("Tools/PixelGame/🤖 Otomatik Oyun Testi", priority = 30)]
+        // [MenuItem("Tools/PixelGame/🤖 Otomatik Oyun Testi", priority = 30)]
         public static void Open() => GetWindow<AutoPlaytestWindow>("🤖 Oyun Testi").minSize = new Vector2(760, 420);
 
         private Vector2 m_LevelScroll, m_ResultScroll;

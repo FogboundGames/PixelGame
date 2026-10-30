@@ -133,7 +133,7 @@ namespace PixelGame.Editor
     /// <summary>Zorluk tablosunu ayrı pencerede açar (Level Designer'daki "Zorluk Tablosu" sekmesinin aynısı).</summary>
     public class LevelDifficultyOverviewWindow : EditorWindow
     {
-        [MenuItem("Tools/PixelGame/📊 Level Zorluk Tablosu", priority = 31)]
+        // [MenuItem("Tools/PixelGame/📊 Level Zorluk Tablosu", priority = 31)]
         public static void Open() => GetWindow<LevelDifficultyOverviewWindow>("📊 Zorluk Tablosu").minSize = new Vector2(980, 300);
 
         private readonly LevelDifficultyTableView m_View = new LevelDifficultyTableView();

@@ -20,7 +20,7 @@ namespace PixelGame.Editor
             Dump();
         }
 
-        [MenuItem("PixelGame/🔍 Dump Scene Hierarchy to File")]
+        // [MenuItem("PixelGame/🔍 Dump Scene Hierarchy to File")]
         public static void Dump()
         {
             var scene = EditorSceneManager.GetActiveScene();

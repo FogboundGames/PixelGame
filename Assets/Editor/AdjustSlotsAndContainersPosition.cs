@@ -12,13 +12,13 @@ namespace PixelGame.Editor
         // [Queue_Spots] -324 -> -359 (-35px)
         public const float ShiftAmount = -35f;
 
-        [MenuItem("PixelGame/⬇️ Shift Slots and Containers Down (-35px)")]
+        // [MenuItem("PixelGame/⬇️ Shift Slots and Containers Down (-35px)")]
         public static void ApplyShift35()
         {
             ApplyShift(ShiftAmount);
         }
 
-        [MenuItem("PixelGame/⬇️ Shift Slots and Containers Down (-25px)")]
+        // [MenuItem("PixelGame/⬇️ Shift Slots and Containers Down (-25px)")]
         public static void ApplyShift25()
         {
             ApplyShift(-25f);

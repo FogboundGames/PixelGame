@@ -32,7 +32,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("PixelGame/📦 Apply Complete Cargo Container & Beach Layout (UI Containers)")]
+        // [MenuItem("PixelGame/📦 Apply Complete Cargo Container & Beach Layout (UI Containers)")]
         public static void ApplyCompleteReferenceLayout()
         {
             Debug.Log("<color=#00FFAA><b>[UI Container Setup]</b></color> Starting 100% 2D UI Container Transformation...");
@@ -568,7 +568,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("PixelGame/🔗 Test Linked Containers Preview")]
+        // [MenuItem("PixelGame/🔗 Test Linked Containers Preview")]
         public static void TestLinkedContainersPreview()
         {
             ApplyCompleteReferenceLayout();

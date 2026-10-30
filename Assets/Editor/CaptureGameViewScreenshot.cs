@@ -32,7 +32,7 @@ namespace PixelGame.Editor
 
         private static bool s_IsCapturing = false;
 
-        [MenuItem("PixelGame/📸 9:16 Gemi Ekran Görüntüsü")]
+        // [MenuItem("PixelGame/📸 9:16 Gemi Ekran Görüntüsü")]
         public static void CaptureGemiScene()
         {
             if (s_IsCapturing) return;
@@ -179,7 +179,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("PixelGame/📸 9:16 Ekran Görüntüsü Al (Capture Screenshot)")]
+        // [MenuItem("PixelGame/📸 9:16 Ekran Görüntüsü Al (Capture Screenshot)")]
         public static void Capture()
         {
             Capture(null);

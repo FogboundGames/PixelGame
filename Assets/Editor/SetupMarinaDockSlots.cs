@@ -29,7 +29,7 @@ namespace PixelGame.Editor
             SetupMarinaSlots();
         }
 
-        [MenuItem("PixelGame/🔲 Setup Rounded Square Dock Slots (Image 2)")]
+        // [MenuItem("PixelGame/🔲 Setup Rounded Square Dock Slots (Image 2)")]
         public static void SetupMarinaSlots()
         {
             EnsureDirectories();

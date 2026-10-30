@@ -32,7 +32,7 @@ namespace PixelGame.Editor
             ApplyReferenceLayout();
         }
 
-        [MenuItem("PixelGame/🏝️ Apply Reference Layout (Pixel Art, 5 Buoy Slots, Deck Ships)")]
+        // [MenuItem("PixelGame/🏝️ Apply Reference Layout (Pixel Art, 5 Buoy Slots, Deck Ships)")]
         public static void ApplyReferenceLayout()
         {
             if (EditorSceneManager.GetActiveScene().path != ScenePath)

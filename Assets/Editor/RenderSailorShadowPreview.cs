@@ -6,7 +6,7 @@ namespace PixelGame.Editor
 {
     public static class RenderSailorShadowPreview
     {
-        [MenuItem("PixelGame/📸 Render Sailor Shadow Preview")]
+        // [MenuItem("PixelGame/📸 Render Sailor Shadow Preview")]
         public static void RenderPreview()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Sailor_Runner.prefab");

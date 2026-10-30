@@ -22,7 +22,7 @@ namespace PixelGame.Editor
             };
         }
 
-        [MenuItem("Tools/PixelGame/🔥 Hard Level Banner Kur & Test Et", priority = 45)]
+        // [MenuItem("Tools/PixelGame/🔥 Hard Level Banner Kur & Test Et", priority = 45)]
         public static void SetupAndTest()
         {
             CasualHudController hud = Object.FindFirstObjectByType<CasualHudController>();

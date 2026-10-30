@@ -12,7 +12,7 @@ namespace PixelGame.Editor
 
 // Manuel Menüden Çağrılabilir
 
-        [MenuItem("PixelGame/🌊 WaterSlot 1 Foam Kur ve Ekran Görüntüsü Al")]
+        // [MenuItem("PixelGame/🌊 WaterSlot 1 Foam Kur ve Ekran Görüntüsü Al")]
         public static void SetupWaterSlot1AndCapture()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isPlaying || Application.isPlaying) return;
@@ -130,7 +130,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("PixelGame/📸 Sahne Ekran Görüntüsü Al")]
+        // [MenuItem("PixelGame/📸 Sahne Ekran Görüntüsü Al")]
         public static void CaptureScreenshot()
         {
             Camera cam = Camera.main;
@@ -180,7 +180,7 @@ namespace PixelGame.Editor
             Debug.Log($"[WaterSlotFoamSetup] Ekran görüntüsü kaydedildi: {savePath}");
         }
 
-        [MenuItem("PixelGame/🌊 FoamSlot'u 5 Slota Yay (Spread To All 5 Slots)")]
+        // [MenuItem("PixelGame/🌊 FoamSlot'u 5 Slota Yay (Spread To All 5 Slots)")]
         public static void SpreadFoamToAll5Slots()
         {
             GameObject slotsRow = GameObject.Find("[WaterSlotsRow]");

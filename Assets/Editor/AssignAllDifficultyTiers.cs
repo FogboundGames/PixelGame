@@ -15,7 +15,7 @@ namespace PixelGame.Editor
             EditorApplication.delayCall += SyncAll;
         }
 
-        [MenuItem("Tools/PixelGame/Sync All Difficulty Tiers", priority = 40)]
+        // [MenuItem("Tools/PixelGame/Sync All Difficulty Tiers", priority = 40)]
         public static void SyncAll()
         {
             string[] guids = AssetDatabase.FindAssets("t:PixelLevelData", new[] { "Assets/Levels" });

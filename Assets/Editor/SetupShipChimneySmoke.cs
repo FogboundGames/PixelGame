@@ -23,7 +23,7 @@ namespace PixelGame.EditorTools
             SetupPrefabAndSceneShips(silent: false);
         }
 
-        [MenuItem("PixelGame/Ships/Setup Chimney & Smoke on Ships")]
+        // [MenuItem("PixelGame/Ships/Setup Chimney & Smoke on Ships")]
         public static void MenuSetup()
         {
             SetupPrefabAndSceneShips(silent: false);

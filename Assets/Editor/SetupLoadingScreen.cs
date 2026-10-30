@@ -6,7 +6,7 @@ namespace PixelGame.Editor
 {
     public static class SetupLoadingScreen
     {
-        [MenuItem("Tools/PixelGame/🌊 Land Flow & Fogbound Açılış Ekranını Kur / Güncelle")]
+        // [MenuItem("Tools/PixelGame/🌊 Land Flow & Fogbound Açılış Ekranını Kur / Güncelle")]
         public static void SetupInScene()
         {
             var existing = Object.FindFirstObjectByType<LandFlowLoadingScreen>();
@@ -36,7 +36,7 @@ namespace PixelGame.Editor
                 "Oyun açılışında, level geçişlerinde ve level fail durumlarında otomatik ve pürüzsüz çalışır.", "Harika!");
         }
 
-        [MenuItem("Tools/PixelGame/🏢 Fogbound Logo ve Proje Ayarlarını Yapılandır")]
+        // [MenuItem("Tools/PixelGame/🏢 Fogbound Logo ve Proje Ayarlarını Yapılandır")]
         public static void ConfigureSettingsMenu()
         {
             ConfigureFogboundPlayerSettings(true);

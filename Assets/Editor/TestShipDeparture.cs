@@ -6,7 +6,7 @@ namespace PixelGame.Editor
 {
     public static class TestShipDeparture
     {
-        [MenuItem("Tools/PixelGame/🧪 Test 1: Tekil Gemi Dolunca Kalkış")]
+        // [MenuItem("Tools/PixelGame/🧪 Test 1: Tekil Gemi Dolunca Kalkış")]
         public static void RunTest()
         {
             Debug.Log("<color=#00FFAA><b>[TestShipDeparture]</b></color> Starting Single Ship Departure Verification...");
@@ -46,7 +46,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("Tools/PixelGame/🔗 Test 2: 2'li Bağlı Gemiler (Biri Dolunca Bekleme ve Birlikte Kalkış)")]
+        // [MenuItem("Tools/PixelGame/🔗 Test 2: 2'li Bağlı Gemiler (Biri Dolunca Bekleme ve Birlikte Kalkış)")]
         public static void RunLinkedShipsTest()
         {
             Debug.Log("<color=#00FFAA><b>[TestLinkedShips]</b></color> 🔗 2'li Bağlı Gemi Bekleme ve Birlikte Kalkış Testi Başlatılıyor...");
@@ -127,7 +127,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("Tools/PixelGame/⛔ Test 3: Slotlar Doluyken Tıklama ve Kırmızı Yazı Ret Animasyonu")]
+        // [MenuItem("Tools/PixelGame/⛔ Test 3: Slotlar Doluyken Tıklama ve Kırmızı Yazı Ret Animasyonu")]
         public static void RunDenialFeedbackTest()
         {
             Debug.Log("<color=#00FFAA><b>[TestDenialFeedback]</b></color> ⛔ Slotlar Dolu Tıklama & Ret Animasyonu Testi Başlatılıyor...");
@@ -162,7 +162,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("Tools/PixelGame/🌊 Test 4: Küp Yürüyüş Yolu ve Viraj Yumuşatma (Fillet) Testi")]
+        // [MenuItem("Tools/PixelGame/🌊 Test 4: Küp Yürüyüş Yolu ve Viraj Yumuşatma (Fillet) Testi")]
         public static void RunCornerFilletTest()
         {
             Debug.Log("<color=#00FFAA><b>[TestCornerFillet]</b></color> 🌊 Küp Dönüş Yumuşatma ve Fillet Doğrulama Testi Başlatılıyor...");
@@ -213,7 +213,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("Tools/PixelGame/✨ Test 5: Sparkle, Su Splash, Ses ve Titreşim Testi")]
+        // [MenuItem("Tools/PixelGame/✨ Test 5: Sparkle, Su Splash, Ses ve Titreşim Testi")]
         public static void RunFeedbackJuiceTest()
         {
             Debug.Log("<color=#00FFAA><b>[TestFeedbackJuice]</b></color> ✨ Sparkle, 💦 Splash, 🔊 Hypercasual Ses & 📳 Titreşim Testi Başlatılıyor...");

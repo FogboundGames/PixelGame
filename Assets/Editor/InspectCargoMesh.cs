@@ -21,7 +21,7 @@ namespace PixelGame.Editor
             };
         }
 
-        [MenuItem("PixelGame/✨ Konteynerleri Hizala ve Güncelle (Normalize All)")]
+        // [MenuItem("PixelGame/✨ Konteynerleri Hizala ve Güncelle (Normalize All)")]
         public static void NormalizeAndAlignCubes()
         {
             var gen = Object.FindFirstObjectByType<PixelArtGenerator>();
@@ -46,7 +46,7 @@ namespace PixelGame.Editor
             Debug.Log("<color=#00FFAA>[Normalize]</color> Tüm konteyner yükleri başarıyla normalize edildi ve sahne güncellendi!");
         }
 
-        [MenuItem("PixelGame/🔍 Check Pink Materials")]
+        // [MenuItem("PixelGame/🔍 Check Pink Materials")]
         public static void CheckPinkMaterials()
         {
             foreach (var r in Object.FindObjectsByType<Renderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
@@ -83,7 +83,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("PixelGame/🔍 Inspect Cargo Mesh")]
+        // [MenuItem("PixelGame/🔍 Inspect Cargo Mesh")]
         public static void Inspect()
         {
             CheckPinkMaterials();

@@ -16,7 +16,7 @@ namespace PixelGame.Editor
             };
         }
 
-        [MenuItem("PixelGame/🔍 Diagnostic Dump")]
+        // [MenuItem("PixelGame/🔍 Diagnostic Dump")]
         public static void RunDiagnostic()
         {
             Debug.Log("=== SHIP VISUAL DIAGNOSTIC ===");

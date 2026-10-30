@@ -30,7 +30,7 @@ namespace PixelGame.Editor
         private MessageType m_StatusType = MessageType.Info;
         private double m_StatusTime = 0;
 
-        [MenuItem("PixelGame/🎨 Çerçeve ve Pano Renkleri (Board Frame Colors)", priority = 1)]
+        // [MenuItem("PixelGame/🎨 Çerçeve ve Pano Renkleri (Board Frame Colors)", priority = 1)]
         [MenuItem("Window/PixelGame/🎨 Çerçeve Renkleri")]
         public static void Open()
         {

@@ -24,7 +24,7 @@ namespace PixelGame.Editor
         private const string FailPanelSpritePath = "Assets/UI/fail.png";
         private const string FailRetrySpritePath = "Assets/UI/tryagain_clean.png";
 
-        [MenuItem("Tools/PixelGame/UI/🏆 Sahneye Win & Fail Panellerini Kur")]
+        // [MenuItem("Tools/PixelGame/UI/🏆 Sahneye Win & Fail Panellerini Kur")]
         public static void SetupModalsInScene()
         {
             var activeScene = EditorSceneManager.GetActiveScene();
@@ -198,7 +198,7 @@ namespace PixelGame.Editor
             return obj;
         }
 
-        [MenuItem("Tools/PixelGame/UI/👁️ Win Panelini Aç - Kapat")]
+        // [MenuItem("Tools/PixelGame/UI/👁️ Win Panelini Aç - Kapat")]
         public static void ToggleWinPanel()
         {
             GameObject canvasGo = GameObject.Find("HUD_Canvas");
@@ -216,7 +216,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("Tools/PixelGame/UI/👁️ Fail Panelini Aç - Kapat")]
+        // [MenuItem("Tools/PixelGame/UI/👁️ Fail Panelini Aç - Kapat")]
         public static void ToggleFailPanel()
         {
             GameObject canvasGo = GameObject.Find("HUD_Canvas");

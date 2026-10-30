@@ -23,7 +23,7 @@ namespace PixelGame.Editor
 #endif
         }
 
-        [MenuItem("Tools/PixelGame/🧹 Pano ve Obje Arkasındaki Gölgeleri Tamamen Temizle", priority = 20)]
+        // [MenuItem("Tools/PixelGame/🧹 Pano ve Obje Arkasındaki Gölgeleri Tamamen Temizle", priority = 20)]
         public static void ForcePurgeMenu()
         {
             RunPurge();

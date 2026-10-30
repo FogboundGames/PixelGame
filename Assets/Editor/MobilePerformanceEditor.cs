@@ -6,7 +6,7 @@ namespace PixelGame.Editor
 {
     public static class MobilePerformanceEditor
     {
-        [MenuItem("PixelGame/📱 Setup Mobile Performance Manager (45-60 FPS)")]
+        // [MenuItem("PixelGame/📱 Setup Mobile Performance Manager (45-60 FPS)")]
         public static void SetupManager()
         {
             var existing = Object.FindFirstObjectByType<MobilePerformanceManager>();
@@ -25,7 +25,7 @@ namespace PixelGame.Editor
             Selection.activeGameObject = existing.gameObject;
         }
 
-        [MenuItem("PixelGame/📊 Toggle Mobile FPS Counter")]
+        // [MenuItem("PixelGame/📊 Toggle Mobile FPS Counter")]
         public static void ToggleFpsCounter()
         {
             var manager = Object.FindFirstObjectByType<MobilePerformanceManager>();

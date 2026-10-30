@@ -139,7 +139,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("PixelGame/🎮 Bölüm Yönetimi/🗑️ Kayıtlı İlerlemeyi Sıfırla (Reset PlayerPrefs)")]
+        // [MenuItem("PixelGame/🎮 Bölüm Yönetimi/🗑️ Kayıtlı İlerlemeyi Sıfırla (Reset PlayerPrefs)")]
         public static void ResetPlayerPrefsProgress()
         {
             PlayerPrefs.DeleteKey(ProgressPrefKey);

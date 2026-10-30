@@ -32,7 +32,7 @@ namespace PixelGame.Editor
             CalibrateCubeGrid();
         }
 
-        [MenuItem("PixelGame/🎯 Calibrate Gemi Cubes (Snug & Seamless)")]
+        // [MenuItem("PixelGame/🎯 Calibrate Gemi Cubes (Snug & Seamless)")]
         public static void CalibrateCubeGrid()
         {
             var activeScene = EditorSceneManager.GetActiveScene();

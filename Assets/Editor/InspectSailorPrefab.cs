@@ -22,7 +22,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("Tools/PixelGame/Inspect Sailor Prefab")]
+        // [MenuItem("Tools/PixelGame/Inspect Sailor Prefab")]
         public static void Run()
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Sailor_Runner.prefab");

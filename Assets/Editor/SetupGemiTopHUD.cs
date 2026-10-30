@@ -56,7 +56,7 @@ namespace PixelGame.Editor
             EnsureRetryButtonInScene();
         }
 
-        [MenuItem("PixelGame/🔄 Sahneye Retry Butonu Ekle (Ensure Retry Button)")]
+        // [MenuItem("PixelGame/🔄 Sahneye Retry Butonu Ekle (Ensure Retry Button)")]
         public static void EnsureRetryButtonInScene()
         {
             var activeScene = EditorSceneManager.GetActiveScene();
@@ -168,7 +168,7 @@ namespace PixelGame.Editor
             Debug.Log("<color=#00FFAA><b>[SetupGemiTopHUD]</b></color> 🔄 Sol köşeye RetryButton başarıyla eklendi ve bağlandı!");
         }
 
-        [MenuItem("PixelGame/🪙 Sahnedeki Coin Sistemini Kaldır (Remove Coin System)")]
+        // [MenuItem("PixelGame/🪙 Sahnedeki Coin Sistemini Kaldır (Remove Coin System)")]
         public static void RemoveCoinsFromScene()
         {
             var activeScene = EditorSceneManager.GetActiveScene();
@@ -200,7 +200,7 @@ namespace PixelGame.Editor
             AssetDatabase.SaveAssets();
         }
 
-        [MenuItem("PixelGame/🎯 Setup Gemi Top HUD (Image 1 Style)")]
+        // [MenuItem("PixelGame/🎯 Setup Gemi Top HUD (Image 1 Style)")]
         public static void BuildTopHUD()
         {
             if (!EditorSceneManager.GetActiveScene().path.Equals(ScenePath))

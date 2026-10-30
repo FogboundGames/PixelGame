@@ -17,7 +17,7 @@ namespace PixelGame.Editor
             return false;
         }
 
-        [MenuItem("Tools/PixelGame/💾 ASMR Ayarlarını Sahneye Kaydet", priority = 0)]
+        // [MenuItem("Tools/PixelGame/💾 ASMR Ayarlarını Sahneye Kaydet", priority = 0)]
         public static void SaveAsmrSettingsToScene()
         {
             var manager = Object.FindFirstObjectByType<HypercasualFeedbackManager>();
@@ -37,7 +37,7 @@ namespace PixelGame.Editor
 
 
 
-        [MenuItem("Tools/PixelGame/🎙️ ASMR Kreatif Ses Modu (Sadece Küp Toplama Sesini Aç/Kapat)", priority = 1)]
+        // [MenuItem("Tools/PixelGame/🎙️ ASMR Kreatif Ses Modu (Sadece Küp Toplama Sesini Aç/Kapat)", priority = 1)]
         public static void ToggleAsmrCreativeSoundMode()
         {
             var manager = Object.FindFirstObjectByType<HypercasualFeedbackManager>();
@@ -71,7 +71,7 @@ namespace PixelGame.Editor
             Debug.Log($"<color=#14D2EB>🎙️ [ASMR Ses Modu]</color> Durum: <b>{state}</b>");
         }
 
-        [MenuItem("Tools/PixelGame/🔔 ASMR Gemiye Yüklenme Tınısını Aç/Kapat", priority = 2)]
+        // [MenuItem("Tools/PixelGame/🔔 ASMR Gemiye Yüklenme Tınısını Aç/Kapat", priority = 2)]
         public static void ToggleAsmrIncludeBoardingSound()
         {
             var manager = Object.FindFirstObjectByType<HypercasualFeedbackManager>();

@@ -115,7 +115,7 @@ namespace PixelGame.Editor
             };
         }
 
-        [MenuItem("Tools/PixelGame/🎬 ASMR Kreatif Sahnesini Aç", priority = 0)]
+        // [MenuItem("Tools/PixelGame/🎬 ASMR Kreatif Sahnesini Aç", priority = 0)]
         public static void OpenCreativeScene()
         {
             if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
@@ -124,7 +124,7 @@ namespace PixelGame.Editor
             }
         }
 
-        [MenuItem("Tools/PixelGame/🎬 ASMR Kreatif Sahnesini Sıfırdan Yeniden Kur (Su Damlası + Konteyner)", priority = 1)]
+        // [MenuItem("Tools/PixelGame/🎬 ASMR Kreatif Sahnesini Sıfırdan Yeniden Kur (Su Damlası + Konteyner)", priority = 1)]
         public static void BuildAndOpenCreativeScene()
         {
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
@@ -676,7 +676,7 @@ namespace PixelGame.Editor
             Debug.Log("<color=#00FFAA><b>[Creative ASMR Scene]</b></color> 🌊 Su Damlası + Konteyner Teslimatı + Third Person Kamera Başarıyla Kuruldu: <b>Assets/Scenes/Creative_ASMR.unity</b>!");
         }
 
-        [MenuItem("Tools/PixelGame/🎮 Normal Oyun Sahnesini Aç (Gemi)", priority = 2)]
+        // [MenuItem("Tools/PixelGame/🎮 Normal Oyun Sahnesini Aç (Gemi)", priority = 2)]
         public static void OpenGameScene()
         {
             if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())

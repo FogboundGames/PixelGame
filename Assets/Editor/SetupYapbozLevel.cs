@@ -17,7 +17,7 @@ namespace PixelGame.Editor
             EditorApplication.delayCall += EnsureYapbozLevel;
         }
 
-        [MenuItem("Tools/PixelGame/🧩 ASMR Piksel Yapboz Seviyesini Kur ve Güncelle", priority = 11)]
+        // [MenuItem("Tools/PixelGame/🧩 ASMR Piksel Yapboz Seviyesini Kur ve Güncelle", priority = 11)]
         public static void EnsureYapbozLevel()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
