@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56621c704aae40878464c98bd3ff671a, type: 3}
   m_Name: Level_87_MantarEv
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
-  m_LevelName: "Mantar Ev"
+  m_LevelName: Mantar Ev
   m_LevelIndex: 74
   m_DifficultyTier: 1
   m_DifficultyManual: 1
@@ -23,44 +23,44 @@ MonoBehaviour:
   m_UseNativeResolution: 1
   m_CustomResolution: {x: 24, y: 24}
   m_ColorPalette:
-  - originalColor: {r: 0.97254902, g: 0.96470588, b: 0.94117647, a: 1}
-    targetColor: {r: 0.97254902, g: 0.96470588, b: 0.94117647, a: 1}
+  - originalColor: {r: 0.972549, g: 0.9647059, b: 0.9411765, a: 1}
+    targetColor: {r: 0.972549, g: 0.9647059, b: 0.9411765, a: 1}
     pixelCount: 170
     label: 
-  - originalColor: {r: 0.88235294, g: 0.16470588, b: 0.20392157, a: 1}
-    targetColor: {r: 0.88235294, g: 0.16470588, b: 0.20392157, a: 1}
+  - originalColor: {r: 0.88235295, g: 0.16470589, b: 0.20392157, a: 1}
+    targetColor: {r: 0.88235295, g: 0.16470589, b: 0.20392157, a: 1}
     pixelCount: 110
     label: 
   - originalColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
     targetColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
     pixelCount: 95
     label: 
-  - originalColor: {r: 0.11764706, g: 0.41176471, b: 0.15294118, a: 1}
-    targetColor: {r: 0.11764706, g: 0.41176471, b: 0.15294118, a: 1}
+  - originalColor: {r: 0.11764706, g: 0.4117647, b: 0.15294118, a: 1}
+    targetColor: {r: 0.11764706, g: 0.4117647, b: 0.15294118, a: 1}
     pixelCount: 51
     label: 
-  - originalColor: {r: 0.16470588, g: 0.20392157, b: 0.30588235, a: 1}
-    targetColor: {r: 0.16470588, g: 0.20392157, b: 0.30588235, a: 1}
+  - originalColor: {r: 0.16470589, g: 0.20392157, b: 0.30588236, a: 1}
+    targetColor: {r: 0.16470589, g: 0.20392157, b: 0.30588236, a: 1}
     pixelCount: 35
     label: 
-  - originalColor: {r: 0.63921569, g: 0.09019608, b: 0.12156863, a: 1}
-    targetColor: {r: 0.63921569, g: 0.09019608, b: 0.12156863, a: 1}
+  - originalColor: {r: 0.6392157, g: 0.09019608, b: 0.12156863, a: 1}
+    targetColor: {r: 0.6392157, g: 0.09019608, b: 0.12156863, a: 1}
     pixelCount: 28
     label: 
-  - originalColor: {r: 0.51764706, g: 0.29019608, b: 0.13333333, a: 1}
-    targetColor: {r: 0.51764706, g: 0.29019608, b: 0.13333333, a: 1}
+  - originalColor: {r: 0.5176471, g: 0.2901961, b: 0.13333333, a: 1}
+    targetColor: {r: 0.5176471, g: 0.2901961, b: 0.13333333, a: 1}
     pixelCount: 24
     label: 
-  - originalColor: {r: 0.92156863, g: 0.44705882, b: 0.47058824, a: 1}
-    targetColor: {r: 0.92156863, g: 0.44705882, b: 0.47058824, a: 1}
+  - originalColor: {r: 0.92156863, g: 0.44705883, b: 0.47058824, a: 1}
+    targetColor: {r: 0.92156863, g: 0.44705883, b: 0.47058824, a: 1}
     pixelCount: 20
     label: 
-  - originalColor: {r: 1, g: 0.83137255, b: 0.18823529, a: 1}
-    targetColor: {r: 1, g: 0.83137255, b: 0.18823529, a: 1}
+  - originalColor: {r: 1, g: 0.83137256, b: 0.18823528, a: 1}
+    targetColor: {r: 1, g: 0.83137256, b: 0.18823528, a: 1}
     pixelCount: 12
     label: 
-  - originalColor: {r: 0.35294118, g: 0.81568627, b: 0.40784314, a: 1}
-    targetColor: {r: 0.35294118, g: 0.81568627, b: 0.40784314, a: 1}
+  - originalColor: {r: 0.3529412, g: 0.8156863, b: 0.40784314, a: 1}
+    targetColor: {r: 0.3529412, g: 0.8156863, b: 0.40784314, a: 1}
     pixelCount: 11
     label: 
   m_TintColor: {r: 1, g: 1, b: 1, a: 1}
@@ -121,13 +121,13 @@ MonoBehaviour:
   m_RoundCapacityRatio: 0.8
   m_UseCustomWagonSequence: 1
   m_WagonSequence:
-  - wagonColor: {r: 0.35294118, g: 0.81568627, b: 0.40784314, a: 1}
+  - wagonColor: {r: 0.3529412, g: 0.8156863, b: 0.40784314, a: 1}
     capacity: 11
     paletteIndex: 9
     label: Vagon
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.97254902, g: 0.96470588, b: 0.94117647, a: 1}
+  - wagonColor: {r: 0.972549, g: 0.9647059, b: 0.9411765, a: 1}
     capacity: 30
     paletteIndex: 0
     label: Vagon
@@ -139,43 +139,43 @@ MonoBehaviour:
     label: Vagon
     linkId: 1
     isHidden: 0
-  - wagonColor: {r: 0.88235294, g: 0.16470588, b: 0.20392157, a: 1}
+  - wagonColor: {r: 0.88235295, g: 0.16470589, b: 0.20392157, a: 1}
     capacity: 30
     paletteIndex: 1
     label: Vagon
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.88235294, g: 0.16470588, b: 0.20392157, a: 1}
+  - wagonColor: {r: 0.88235295, g: 0.16470589, b: 0.20392157, a: 1}
     capacity: 30
     paletteIndex: 1
     label: Vagon
     linkId: 0
     isHidden: 1
-  - wagonColor: {r: 0.11764706, g: 0.41176471, b: 0.15294118, a: 1}
+  - wagonColor: {r: 0.11764706, g: 0.4117647, b: 0.15294118, a: 1}
     capacity: 30
     paletteIndex: 3
     label: Vagon
     linkId: 2
     isHidden: 0
-  - wagonColor: {r: 0.16470588, g: 0.20392157, b: 0.30588235, a: 1}
+  - wagonColor: {r: 0.16470589, g: 0.20392157, b: 0.30588236, a: 1}
     capacity: 15
     paletteIndex: 4
     label: Vagon
     linkId: 2
     isHidden: 0
-  - wagonColor: {r: 0.11764706, g: 0.41176471, b: 0.15294118, a: 1}
+  - wagonColor: {r: 0.11764706, g: 0.4117647, b: 0.15294118, a: 1}
     capacity: 11
     paletteIndex: 3
     label: Vagon
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.97254902, g: 0.96470588, b: 0.94117647, a: 1}
+  - wagonColor: {r: 0.972549, g: 0.9647059, b: 0.9411765, a: 1}
     capacity: 30
     paletteIndex: 0
     label: Vagon
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.63921569, g: 0.09019608, b: 0.12156863, a: 1}
+  - wagonColor: {r: 0.6392157, g: 0.09019608, b: 0.12156863, a: 1}
     capacity: 28
     paletteIndex: 5
     label: Vagon
@@ -187,7 +187,7 @@ MonoBehaviour:
     label: Vagon
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.97254902, g: 0.96470588, b: 0.94117647, a: 1}
+  - wagonColor: {r: 0.972549, g: 0.9647059, b: 0.9411765, a: 1}
     capacity: 30
     paletteIndex: 0
     label: Vagon
@@ -199,61 +199,61 @@ MonoBehaviour:
     label: Vagon
     linkId: 3
     isHidden: 0
-  - wagonColor: {r: 0.88235294, g: 0.16470588, b: 0.20392157, a: 1}
+  - wagonColor: {r: 0.88235295, g: 0.16470589, b: 0.20392157, a: 1}
     capacity: 30
     paletteIndex: 1
     label: Vagon
     linkId: 3
     isHidden: 0
-  - wagonColor: {r: 0.11764706, g: 0.41176471, b: 0.15294118, a: 1}
+  - wagonColor: {r: 0.11764706, g: 0.4117647, b: 0.15294118, a: 1}
     capacity: 10
     paletteIndex: 3
     label: Vagon
     linkId: 4
     isHidden: 0
-  - wagonColor: {r: 0.92156863, g: 0.44705882, b: 0.47058824, a: 1}
+  - wagonColor: {r: 0.92156863, g: 0.44705883, b: 0.47058824, a: 1}
     capacity: 20
     paletteIndex: 7
     label: Vagon
     linkId: 4
     isHidden: 0
-  - wagonColor: {r: 1, g: 0.83137255, b: 0.18823529, a: 1}
+  - wagonColor: {r: 1, g: 0.83137256, b: 0.18823528, a: 1}
     capacity: 12
     paletteIndex: 8
     label: Vagon
     linkId: 0
     isHidden: 1
-  - wagonColor: {r: 0.97254902, g: 0.96470588, b: 0.94117647, a: 1}
+  - wagonColor: {r: 0.972549, g: 0.9647059, b: 0.9411765, a: 1}
     capacity: 30
     paletteIndex: 0
     label: Vagon
     linkId: 5
     isHidden: 0
-  - wagonColor: {r: 0.51764706, g: 0.29019608, b: 0.13333333, a: 1}
+  - wagonColor: {r: 0.5176471, g: 0.2901961, b: 0.13333333, a: 1}
     capacity: 24
     paletteIndex: 6
     label: Vagon
     linkId: 5
     isHidden: 0
-  - wagonColor: {r: 0.97254902, g: 0.96470588, b: 0.94117647, a: 1}
+  - wagonColor: {r: 0.972549, g: 0.9647059, b: 0.9411765, a: 1}
     capacity: 30
     paletteIndex: 0
     label: Vagon
     linkId: 0
     isHidden: 1
-  - wagonColor: {r: 0.97254902, g: 0.96470588, b: 0.94117647, a: 1}
+  - wagonColor: {r: 0.972549, g: 0.9647059, b: 0.9411765, a: 1}
     capacity: 20
     paletteIndex: 0
     label: Vagon
     linkId: 0
     isHidden: 1
-  - wagonColor: {r: 0.88235294, g: 0.16470588, b: 0.20392157, a: 1}
+  - wagonColor: {r: 0.88235295, g: 0.16470589, b: 0.20392157, a: 1}
     capacity: 20
     paletteIndex: 1
     label: Vagon
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.16470588, g: 0.20392157, b: 0.30588235, a: 1}
+  - wagonColor: {r: 0.16470589, g: 0.20392157, b: 0.30588236, a: 1}
     capacity: 20
     paletteIndex: 4
     label: Vagon
