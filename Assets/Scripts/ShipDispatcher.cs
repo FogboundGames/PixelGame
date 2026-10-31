@@ -1265,6 +1265,10 @@ namespace PixelGame
                             }
                             break;
                         }
+
+                        // Ne yer açıldı ne de gemi doldu: bir kare bekle, yoksa döngü yield etmeden
+                        // dönüp Editor'ü dondurur.
+                        yield return null;
                     }
                     else
                     {
@@ -1424,7 +1428,7 @@ namespace PixelGame
                     }
                 }
 
-                StartCoroutine(RunReversedShipRunnersToCollectCargo(selectedCubes, ship, shoreCenter, batchQuota, claim));
+                StartCoroutine(RunReversedShipRunnersToCollectCargo(selectedCubes, ship, targetColor, shoreCenter, batchQuota, claim));
 
                 if (m_Generator != null) m_Generator.RegenerateContourShadowFromLiveCubeState();
 
@@ -1460,7 +1464,7 @@ namespace PixelGame
                 if (dur > maxDuration) maxDuration = dur;
             }
 
-            StartCoroutine(RunIndependentCubesToShip(selectedCubes, paths, boardExitDists, entersLeftList, ship, shoreCenter));
+            StartCoroutine(RunIndependentCubesToShip(selectedCubes, paths, boardExitDists, entersLeftList, ship, targetColor, shoreCenter));
 
             if (m_Generator != null) m_Generator.RegenerateContourShadowFromLiveCubeState();
 
@@ -1823,6 +1827,7 @@ namespace PixelGame
             List<float> boardExitDists,
             List<bool> entersLeftList,
             ShipController ship,
+            Color reserveColor,
             Vector3 shoreTargetAtLaunch)
         {
             if (cubes == null || cubes.Count == 0) yield break;
@@ -1962,7 +1967,7 @@ namespace PixelGame
                         arrived[k] = true;
                         onPath--;
                         bool entersLeft = (entersLeftList != null && k < entersLeftList.Count) ? entersLeftList[k] : false;
-                        StartCoroutine(HopCargoToShip(cargo, ship, entersLeft, cubes[k], motions[k]));
+                        StartCoroutine(HopCargoToShip(cargo, ship, reserveColor, entersLeft, cubes[k], motions[k]));
                     }
                 }
 
@@ -2063,7 +2068,7 @@ namespace PixelGame
         /// yavaşlar, gövdesini düzeltir, minik bir yaylanmayla oturur ve güverteye batarak kaybolur.
         /// Move Into Ship → Align → Slight Ease → Settle.
         /// </summary>
-        private IEnumerator HopCargoToShip(GameObject cargo, ShipController ship, bool fromLeft, PixelCube sourceCube, CubeMovementController controller = null)
+        private IEnumerator HopCargoToShip(GameObject cargo, ShipController ship, Color reserveColor, bool fromLeft, PixelCube sourceCube, CubeMovementController controller = null)
         {
             if (cargo == null) yield break;
 
@@ -2128,7 +2133,8 @@ namespace PixelGame
             // (Eskiden yaylanma + batma animasyonu da bittikten sonra sayılıyordu; sayı ~0.5 sn+ geç düşüyordu.)
             if (ship != null)
             {
-                ship.AddCargo(1);
+                // Rezervasyon hangi renge yapıldıysa o yarı dolar (Güçlü konteynerde siyah yarının sayacı sızmasın)
+                ship.AddCargoForColor(reserveColor, 1);
                 ship.TriggerWaterDipImpact(0.12f, 0.35f);
                 ShipController.SpawnWaterRipple(ship.transform.position + new Vector3(0f, -0.05f, 0.05f), 0.28f, 0.95f, 0.45f);
                 HypercasualWaterController.TriggerWaterRipple(ship.transform.position, 0.70f, 0.25f);
@@ -4794,6 +4800,7 @@ namespace PixelGame
         private IEnumerator RunReversedShipRunnersToCollectCargo(
             List<PixelCube> cubes,
             ShipController ship,
+            Color reserveColor,
             Vector3 shoreTargetAtLaunch,
             int batchQuota = 1,
             StackClaim claim = null)
@@ -4817,7 +4824,7 @@ namespace PixelGame
                     if (ship != null)
                     {
                         if (count == 1) ReleaseStackClaim(claim);
-                        for (int q = 0; q < unusedQuota; q++) ship.ReleaseCargoReservation();
+                        for (int q = 0; q < unusedQuota; q++) ship.ReleaseCargoReservationForColor(reserveColor);
                     }
                     m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - unusedQuota);
                     if (targetCube != null) s_ReservedCubes.Remove(targetCube);
@@ -4828,7 +4835,7 @@ namespace PixelGame
                 // Koşucular artık tek tek çıktığı için k hep 0 olurdu; sağ/sol sırası global sayaçla dönsün.
                 // Yığın kotası yalnızca tek küplük fırlatmada anlamlı (koşucular tek tek çıkıyor)
                 int quota = count == 1 ? Mathf.Max(1, batchQuota) : 1;
-                StartCoroutine(SingleRunnerMissionRoutine(m_RunnerSerial++, count, targetCube, ship, shoreTargetAtLaunch, otMin, otMax, otCorners, groundPlaneZ, quota, count == 1 ? claim : null));
+                StartCoroutine(SingleRunnerMissionRoutine(m_RunnerSerial++, count, targetCube, ship, reserveColor, shoreTargetAtLaunch, otMin, otMax, otCorners, groundPlaneZ, quota, count == 1 ? claim : null));
 
                 if (k < count - 1)
                 {
@@ -5417,6 +5424,7 @@ namespace PixelGame
             int totalInGroup,
             PixelCube targetCube,
             ShipController ship,
+            Color reserveColor,
             Vector3 shoreTargetAtLaunch,
             Vector3 otMin,
             Vector3 otMax,
@@ -5431,7 +5439,7 @@ namespace PixelGame
             if (ship == null) yield break;
             if (targetCube == null)
             {
-                { ReleaseStackClaim(claim); for (int q = 0; q < quota; q++) ship.ReleaseCargoReservation(); }
+                { ReleaseStackClaim(claim); for (int q = 0; q < quota; q++) ship.ReleaseCargoReservationForColor(reserveColor); }
                 m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - quota);
                 yield break;
             }
@@ -5467,7 +5475,7 @@ namespace PixelGame
             {
                 Debug.LogError($"[ShipDispatcher] Koşucu oluşturulamadı (prefab: {(runnerPrefabToUse != null ? runnerPrefabToUse.name : "null")}). Rezervasyon geri bırakılıyor.");
                 ReleaseReservedCubes(targetCube, pickedCubes);
-                { ReleaseStackClaim(claim); for (int q = 0; q < quota; q++) ship.ReleaseCargoReservation(); }
+                { ReleaseStackClaim(claim); for (int q = 0; q < quota; q++) ship.ReleaseCargoReservationForColor(reserveColor); }
                 m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - quota);
                 yield break;
             }
@@ -5667,7 +5675,7 @@ namespace PixelGame
                 ReleaseReservedCubes(targetCube, pickedCubes);
                 if (ship != null)
                 {
-                    { ReleaseStackClaim(claim); for (int q = 0; q < quota; q++) ship.ReleaseCargoReservation(); }
+                    { ReleaseStackClaim(claim); for (int q = 0; q < quota; q++) ship.ReleaseCargoReservationForColor(reserveColor); }
                     ship.OnWorkerMissionAborted();
                 }
                 m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - quota);
@@ -5825,7 +5833,7 @@ namespace PixelGame
             {
                 int unused = quota - pickedCubes.Count;
                 ReleaseStackClaim(claim);
-                for (int q = 0; q < unused; q++) ship.ReleaseCargoReservationForColor(runnerColor);
+                for (int q = 0; q < unused; q++) ship.ReleaseCargoReservationForColor(reserveColor);
                 m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - unused);
                 quota = pickedCubes.Count;
                 // Boşa çıkan kontenjanı hemen değerlendir: bekleyen gemileri ve sıradaki gemicileri HEMEN tetikle!
@@ -5890,7 +5898,7 @@ namespace PixelGame
                 ReleaseReservedCubes(targetCube, pickedCubes);
                 if (ship != null)
                 {
-                    { ReleaseStackClaim(claim); for (int q = 0; q < quota; q++) ship.ReleaseCargoReservation(); }
+                    { ReleaseStackClaim(claim); for (int q = 0; q < quota; q++) ship.ReleaseCargoReservationForColor(reserveColor); }
                     ship.OnWorkerMissionAborted();
                 }
                 m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - quota);
@@ -5927,7 +5935,7 @@ namespace PixelGame
                 ReleaseReservedCubes(targetCube, pickedCubes);
                 if (ship != null)
                 {
-                    { ReleaseStackClaim(claim); for (int q = 0; q < quota; q++) ship.ReleaseCargoReservation(); }
+                    { ReleaseStackClaim(claim); for (int q = 0; q < quota; q++) ship.ReleaseCargoReservationForColor(reserveColor); }
                     ship.OnWorkerMissionAborted();
                 }
                 m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - quota);
@@ -6014,8 +6022,9 @@ namespace PixelGame
             // Boarding completion & load ship
             if (ship != null)
             {
-                Color loadedColor = (pickedCubes.Count > 0 && pickedCubes[0] != null) ? pickedCubes[0].CurrentColor : runnerColor;
-                ship.AddCargoForColor(loadedColor, Mathf.Max(1, pickedCubes.Count));
+                // Küpün o anki rengi değil, yerin ayrıldığı renk: ikisi tutmazsa siyah yarının rezervasyonu hiç
+                // düşmüyor, Güçlü konteyner hiç dolmadan slotta takılı kalıyordu.
+                ship.AddCargoForColor(reserveColor, Mathf.Max(1, pickedCubes.Count));
                 // Tek yükte hafif, art arda yüklerde ve gemi dolunca daha güçlü batma
                 float dip = NextShipBoardDip(ship);
                 ship.TriggerWaterDipImpact(dip, Mathf.Lerp(0.32f, 0.5f, Mathf.InverseLerp(m_ShipBoardDipRange.x, m_ShipFullDip, dip)));
@@ -6054,8 +6063,7 @@ namespace PixelGame
             // İşçi güverteden içeri tamamen bindi (yok oldu):
             if (ship != null)
             {
-                Color loadedColor = (pickedCubes.Count > 0 && pickedCubes[0] != null) ? pickedCubes[0].CurrentColor : runnerColor;
-                ship.OnWorkerBoardedForColor(loadedColor, Mathf.Max(1, pickedCubes.Count));
+                ship.OnWorkerBoardedForColor(reserveColor, Mathf.Max(1, pickedCubes.Count));
             }
 
             ReleaseReservedCubes(targetCube, pickedCubes);
