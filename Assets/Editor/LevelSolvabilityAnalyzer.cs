@@ -157,6 +157,22 @@ namespace PixelGame.Editor
                     }
                     capByPalette[pi] += Mathf.Max(0, w.capacity);
                     wagonsByPalette[pi]++;
+
+                    // Güçlü (çift renkli) konteynerin ikinci yarısı da kendi rengine kapasite getirir
+                    if (w.isDualColor)
+                    {
+                        int si = MatchPaletteIndex(palette, level, w.secondaryColor);
+                        int secCap = w.secondaryCapacity > 0 ? w.secondaryCapacity : w.capacity;
+                        if (si < 0 || si >= paletteCount)
+                            rep.warnings.Add($"'{w.label}' güçlü konteynerinin 2. rengi bölümde yok — o yarı hiç dolmaz, konteyner ancak 1. renk bitince kalkar.");
+                        else if (si == pi)
+                            rep.warnings.Add($"'{w.label}' güçlü konteynerinin iki yarısı aynı renk — oyunda {Mathf.Max(0, w.capacity) + secCap}'lik tek renkli konteyner olur.");
+                        if (si >= 0 && si < paletteCount)
+                        {
+                            capByPalette[si] += secCap;
+                            if (si != pi) wagonsByPalette[si]++;
+                        }
+                    }
                 }
             }
             else

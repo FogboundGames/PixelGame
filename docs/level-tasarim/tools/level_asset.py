@@ -65,8 +65,26 @@ def parse_asset(path):
     a = open(P(path)).read()
     pal = [tuple(round(float(v) * 255) for v in m.groups()) for m in
            re.finditer(r'- originalColor: \{r: ([\d.e-]+), g: ([\d.e-]+), b: ([\d.e-]+)', a)]
-    ws = [dict(cap=int(m.group(1)), c=int(m.group(2)), link=int(m.group(3)), hid=int(m.group(4))) for m in
-          re.finditer(r'capacity: (\d+)\n    paletteIndex: (\d+)\n    label: [^\n]*\n    linkId: (\d+)\n    isHidden: (\d)', a)]
+    F = r'([\d.e-]+)'
+    # Gemiler paletteki hedef renkle (targetColor; renk değiştirilmişse orijinalden farklı) eşleşir
+    tpal = [tuple(round(float(v) * 255) for v in m.groups()) for m in
+            re.finditer(r'targetColor: \{r: ([\d.e-]+), g: ([\d.e-]+), b: ([\d.e-]+)', a)]
+    near = lambda rgb: next((i for i in range(len(pal)) for c in (pal[i], tpal[i] if i < len(tpal) else pal[i])
+                             if all(abs(c[k] - rgb[k]) / 255 < GAME_TOL for k in range(3))), -1)
+    ws = []
+    for m in re.finditer(r'wagonColor: \{r: ' + F + ', g: ' + F + ', b: ' + F + r'[^\n]*\n    capacity: (\d+)\n    paletteIndex: (\d+)\n    label: [^\n]*\n    linkId: (\d+)\n    isHidden: (\d)'
+                         r'(?:\n    isDualColor: (\d)\n    secondaryColor: \{r: ' + F + ', g: ' + F + ', b: ' + F +
+                         r'[^\n]*\n    secondaryCapacity: (\d+))?', a):
+        g = m.group   # 1-3 gemi rengi, 4 kapasite, 5 paletteIndex, 6 halat, 7 gizli, 8 çift renk, 9-11 2. renk, 12 2. kapasite
+        w = dict(cap=int(g(4)), c=int(g(5)), link=int(g(6)), hid=int(g(7)), sc=None, scap=0,
+                 rgb=tuple(round(float(g(i)) * 255) for i in (1, 2, 3)))
+        if g(8) == '1':
+            # Güçlü (çift renkli) konteyner: ikinci yarı kendi rengine kapasite getirir
+            sec = tuple(round(float(g(i)) * 255) for i in (9, 10, 11))
+            w['sc'] = near(sec)
+            w['scap'] = int(g(12)) or w['cap']
+        w['own'] = w['c'] if w['c'] < len(pal) and near(w['rgb']) == w['c'] else near(w['rgb'])
+        ws.append(w)
     tex = re.search(r'm_LevelTexture: \{fileID: \d+, guid: (\w+)', a).group(1)
     cols = int(re.search(r'm_PoolColumns: (\d+)', a).group(1))
     rows = int(re.search(r'm_PoolRows: (\d+)', a).group(1))
@@ -218,7 +236,20 @@ def cmd_check(args):
     (W, H), px = png_pixels(png)
     # sayı eşleşmesi oyunun toleransıyla
     caps = collections.Counter()
-    for w in ws: caps[w['c']] += w['cap']
+    for i, w in enumerate(ws):
+        # Oyun gemiyi paletteIndex'e değil rengine göre eşler: kapasiteyi o renge say
+        if w['own'] < 0:
+            errs.append(f'gemi {i}: rengi {w["rgb"]} palette yok — hiçbir küpü toplayamaz')
+            continue
+        caps[w['own']] += w['cap']
+        if w['sc'] is None: continue
+        if w['sc'] < 0:
+            errs.append(f'gemi {i}: güçlü konteynerin 2. rengi palette yok — o yarı hiç dolmaz')
+        elif w['sc'] == w['own']:
+            warns.append(f'gemi {i}: güçlü konteynerin iki yarısı aynı renk — oyunda tek renkli {w["cap"] + w["scap"]}\'lik olur')
+            caps[w['sc']] += w['scap']
+        else:
+            caps[w['sc']] += w['scap']
     for k, cap in caps.items():
         c = pal[k]
         cubes = sum(1 for p in px if p[3] > 0 and all(abs(p[i] - c[i]) / 255 < GAME_TOL for i in range(3)))
@@ -291,6 +322,8 @@ def cmd_check(args):
 
 def cmd_export(args):
     a, pal, ws, tex, cols, rows, _ = parse_asset(args.asset)
+    if any(w['sc'] is not None for w in ws):
+        sys.exit('HATA: bu levelde güçlü (çift renkli) konteyner var; simülatör bu mekaniği bilmiyor, sonuçlar yanlış olur')
     (W, H), px = png_pixels(png_for_guid(tex))
     near = lambda p: min(range(len(pal)), key=lambda i: sum((pal[i][k] - p[k]) ** 2 for k in range(3)))
     with open(args.out, 'w') as f:

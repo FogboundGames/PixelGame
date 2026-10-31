@@ -186,12 +186,12 @@ namespace PixelGame
                 ShipController s = ships[i];
                 if (s == null || s.IsDeparting || !s.gameObject.activeInHierarchy) continue;
                 // Küpü henüz seçilmemiş (yığın kotası) yerler boş sayılır: o küpler panoda "kalan" sayılıyor
-                int pendingWithCube = Mathf.Max(0, s.PendingCargo - s.UnassignedQuota);
-                total += Mathf.Max(0, s.Capacity - s.CurrentCargo - pendingWithCube);
-                if (s.IsDualColor)
-                {
-                    total += Mathf.Max(0, s.SecondaryCapacity - s.CurrentSecondaryCargo - s.PendingSecondaryCargo);
-                }
+                // Çift renkli konteynerde yığın kotası ikinci renge de ayrılmış olabilir: iki yarı birlikte hesaplanır
+                int capacity = s.Capacity + (s.IsDualColor ? s.SecondaryCapacity : 0);
+                int current = s.CurrentCargo + (s.IsDualColor ? s.CurrentSecondaryCargo : 0);
+                int pending = s.PendingCargo + (s.IsDualColor ? s.PendingSecondaryCargo : 0);
+                int pendingWithCube = Mathf.Max(0, pending - s.UnassignedQuota);
+                total += Mathf.Max(0, capacity - current - pendingWithCube);
             }
             return total;
         }
@@ -255,6 +255,8 @@ namespace PixelGame
         private bool TryGetNextSequenceShip(int spotIndex, out Color shipColor, out int capacity, out int linkId)
         {
             m_LastSequenceShipHidden = false;
+            // Önceki çekimden kalan girdi, sıradan gelmeyen (yedek) gemiyi yanlışlıkla çift renkli yapmasın
+            m_LastSequenceEntry = null;
             if (m_UsingLevelSequence && m_LevelSequenceLanes != null && m_LevelSequenceLanes.Count > 0)
             {
                 int lane = spotIndex % m_LevelSequenceLanes.Count;
@@ -278,6 +280,20 @@ namespace PixelGame
             capacity = 0;
             linkId = 0;
             return false;
+        }
+
+        /// <summary>
+        /// Gemiyi son çekilen sıra girdisine göre yapılandırır: girdi çift renkliyse (Güçlü Konteyner) iki rengiyle,
+        /// değilse verilen tek renk/kapasiteyle. Bütün doğurma yolları (açılış, sahnedeki hazır konteyner, oyun
+        /// sırasında arkadan gelen) bunu kullanmalı; yoksa çift renkli girdi tek renkli konteyner olarak gelir.
+        /// </summary>
+        private void ConfigureFromLastEntry(ShipController ship, Color shipColor, int capacity)
+        {
+            var e = m_LastSequenceEntry;
+            if (e != null && e.isDualColor)
+                ship.ConfigureDualColor(e.wagonColor, e.secondaryColor, e.capacity, e.secondaryCapacity);
+            else
+                ship.Configure(shipColor, capacity);
         }
 
         public static ShipQueuePool Instance { get; private set; }
@@ -858,7 +874,7 @@ namespace PixelGame
                     // Sahnedeki konteyner yerinde kalır; sadece bu bölümün rengi ve kapasitesi verilir
                     sceneShip.gameObject.SetActive(true);
                     sceneShip.SetLinkId(linkId, GetLinkGroupSize(linkId));
-                    sceneShip.Configure(shipColor, capacity);
+                    ConfigureFromLastEntry(sceneShip, shipColor, capacity);
                     sceneShip.SetMysteryHidden(m_LastSequenceShipHidden);
                     m_WaitingShips[i] = sceneShip;
                     continue;
@@ -966,14 +982,7 @@ namespace PixelGame
             ship.SetBaseScale(Vector3.one * SpawnScale);
             ship.SetLinkId(linkId, GetLinkGroupSize(linkId));
 
-            if (m_LastSequenceEntry != null && m_LastSequenceEntry.isDualColor)
-            {
-                ship.ConfigureDualColor(m_LastSequenceEntry.wagonColor, m_LastSequenceEntry.secondaryColor, m_LastSequenceEntry.capacity, m_LastSequenceEntry.secondaryCapacity);
-            }
-            else
-            {
-                ship.Configure(shipColor, capacity);
-            }
+            ConfigureFromLastEntry(ship, shipColor, capacity);
             ship.SetMysteryHidden(hidden);
 
             while (m_WaitingShips.Count <= spotIndex)
@@ -1658,7 +1667,7 @@ namespace PixelGame
             ship.SetBaseScale(Vector3.one * SpawnScale);
             ship.SetLinkId(linkId, GetLinkGroupSize(linkId));
 
-            ship.Configure(shipColor, capacity);
+            ConfigureFromLastEntry(ship, shipColor, capacity);
             ship.SetMysteryHidden(m_LastSequenceShipHidden);
             // Oyun sırasında denizden gelen gemi "arkadan gelmiş" sayılır: sütun tamamen boşaldığında (ör. sütundaki
             // her gemi bir halatla birlikte gidince) doğrudan ön sıraya yerleşiyor, hiç arka sırada görülmediği için

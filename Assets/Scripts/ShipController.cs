@@ -461,9 +461,10 @@ namespace PixelGame
             get
             {
                 if (!m_IsDualColor) return Mathf.Max(0, m_Capacity - m_WorkersExitedCount);
+                // Rozet konteynerin toplam kalan yükünü gösterir (30+30'luk konteynerde 60'tan geri sayar)
                 int remPrimary = Mathf.Max(0, m_Capacity - m_WorkersExitedCount);
                 int remSecondary = Mathf.Max(0, m_SecondaryCapacity - m_WorkersExitedSecondaryCount);
-                return Mathf.Max(remPrimary, remSecondary);
+                return remPrimary + remSecondary;
             }
         }
 
@@ -1116,7 +1117,7 @@ namespace PixelGame
 
         /// <summary>Yola çıkmış ama henüz gemiye varmamış kargo sayısı.</summary>
         public int PendingCargo => m_PendingCargo;
-        public bool HasPendingCargo => m_PendingCargo > 0;
+        public bool HasPendingCargo => m_PendingCargo > 0 || m_PendingSecondaryCargo > 0;
 
         public bool CanAcceptColor(Color color)
         {
@@ -2352,17 +2353,32 @@ namespace PixelGame
         /// </summary>
         public void ConfigureDualColor(Color primary, Color secondary, int capacity, int secondaryCapacity = 0, string colorName = "")
         {
-            m_IsDualColor = true;
-            m_SecondaryColor = secondary;
-            m_SecondaryCapacity = secondaryCapacity > 0 ? secondaryCapacity : capacity;
-            m_CurrentSecondaryCargo = 0;
-            m_PendingSecondaryCargo = 0;
-            m_WorkersExitedSecondaryCount = 0;
-            Configure(primary, capacity, colorName);
+            int secCap = secondaryCapacity > 0 ? secondaryCapacity : capacity;
+            // İki yarı aynı renkse ayrı sayaç tutmanın anlamı yok (küpler hep tek yarıya gidip öteki hiç dolmuyordu):
+            // toplam kapasiteli tek renkli konteyner olur.
+            if (PaletteColorOverride.ColorsMatch(primary, secondary))
+            {
+                Configure(primary, Mathf.Max(1, capacity) + secCap, colorName);
+                return;
+            }
+            ConfigureCore(primary, capacity, colorName, true, secondary, secCap);
         }
 
         public void Configure(Color color, int capacity, string colorName = "")
         {
+            // Sahnedeki hazır konteynerler bölümden bölüme yeniden kullanılır: önceki bölümde çift renkli olan
+            // konteyner tek renkli yapılandırılırken çift renk bayrağı da sıfırlanmalı.
+            ConfigureCore(color, capacity, colorName, false, Color.black, 0);
+        }
+
+        private void ConfigureCore(Color color, int capacity, string colorName, bool dual, Color secondary, int secondaryCapacity)
+        {
+            m_IsDualColor = dual;
+            m_SecondaryColor = secondary;
+            m_SecondaryCapacity = dual ? Mathf.Max(1, secondaryCapacity) : 0;
+            m_CurrentSecondaryCargo = 0;
+            m_PendingSecondaryCargo = 0;
+            m_WorkersExitedSecondaryCount = 0;
             m_ShipColor = color;
             m_IsMysteryHidden = false; // Gizlilik durumunu kuyruk (SetMysteryHidden) belirler
             m_Capacity = Mathf.Max(1, capacity);
@@ -2371,13 +2387,6 @@ namespace PixelGame
             m_UnassignedQuota = 0;
             m_ActiveWorkersOut = 0;
             m_WorkersExitedCount = 0;
-            if (!m_IsDualColor)
-            {
-                m_SecondaryCapacity = 0;
-                m_CurrentSecondaryCargo = 0;
-                m_PendingSecondaryCargo = 0;
-                m_WorkersExitedSecondaryCount = 0;
-            }
             m_ColorName = string.IsNullOrEmpty(colorName) ? ColorUtility.ToHtmlStringRGB(color) : colorName;
 
             m_IsMoving = false;

@@ -1275,7 +1275,7 @@ namespace PixelGame
                             bool newCubeExposed = false;
                             while (ship != null && ship.CanAcceptMore && (ship.HasPendingCargo || m_ActiveCargoFlightCount > 0))
                             {
-                                if (HasExposedMatchingCube(ship.ShipColor))
+                                if (HasExposedMatchingCube(ship.ShipColor) || (ship.IsDualColor && HasExposedMatchingCube(ship.SecondaryColor)))
                                 {
                                     newCubeExposed = true;
                                     break;
@@ -3538,6 +3538,13 @@ namespace PixelGame
             return false;
         }
 
+        private void AddCandidateColor(List<Color> colors, Color col)
+        {
+            for (int c = 0; c < colors.Count; c++)
+                if (ColorsMatch(colors[c], col)) return;
+            colors.Add(col);
+        }
+
         private bool HasAnyDockedShipExposedCube(List<ShipSlot> slots)
         {
             if (m_Generator == null) m_Generator = PixelArtGenerator.Instance;
@@ -3555,20 +3562,13 @@ namespace PixelGame
                     var s = slots[i];
                     if (s != null && s.DockedShip != null && !s.DockedShip.IsDeparting && s.DockedShip.CanAcceptMore)
                     {
-                        Color col = s.DockedShip.ShipColor;
-                        bool alreadyAdded = false;
-                        for (int c = 0; c < candidateColors.Count; c++)
-                        {
-                            if (ColorsMatch(candidateColors[c], col))
-                            {
-                                alreadyAdded = true;
-                                break;
-                            }
-                        }
-                        if (!alreadyAdded)
-                        {
-                            candidateColors.Add(col);
-                        }
+                        var docked = s.DockedShip;
+                        // Çift renkli (Güçlü) konteyner yeri olan iki rengi de alabilir: yalnızca birincil renge bakmak,
+                        // sadece ikinci rengi açıkta olan konteyneri "hamle yok" sayıp bölümü yanlışlıkla bitiriyordu.
+                        if (!docked.IsDualColor || docked.CanAcceptColor(docked.ShipColor))
+                            AddCandidateColor(candidateColors, docked.ShipColor);
+                        if (docked.IsDualColor && docked.CanAcceptColor(docked.SecondaryColor))
+                            AddCandidateColor(candidateColors, docked.SecondaryColor);
                     }
                 }
             }
@@ -3704,7 +3704,9 @@ namespace PixelGame
                     return false;
                 }
 
-                if (GetRemainingCountForColor(ship.ShipColor) == 0)
+                int remainingForShip = GetRemainingCountForColor(ship.ShipColor);
+                if (ship.IsDualColor) remainingForShip += GetRemainingCountForColor(ship.SecondaryColor);
+                if (remainingForShip == 0)
                 {
                     return false;
                 }
