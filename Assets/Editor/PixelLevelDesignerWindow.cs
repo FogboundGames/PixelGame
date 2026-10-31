@@ -76,7 +76,21 @@ namespace PixelGame.Editor
             m_CurrentTab = (DetailTab)EditorPrefs.GetInt("PixelGame_SelectedDetailTab", (int)DetailTab.SimpleMode);
             m_GenLinkPercent = EditorPrefs.GetInt("PixelGame_GenLinkPercent", 20);
             m_GenHiddenPercent = EditorPrefs.GetInt("PixelGame_GenHiddenPercent", 15);
+            EditorApplication.update -= OnEditorUpdate;
+            EditorApplication.update += OnEditorUpdate;
             RefreshLevelList();
+        }
+
+        private void OnDisable()
+        {
+            EditorApplication.update -= OnEditorUpdate;
+            // Pencere kapanırken bekleyen sahne senkronu kaybolmasın
+            if (m_LiveUpdatePending)
+            {
+                m_LiveUpdatePending = false;
+                if (m_LiveUpdateShipsOnly) ApplyShipQueueUpdate();
+                else ApplyLiveSceneUpdate();
+            }
         }
 
         private void OnGUI()
@@ -195,6 +209,11 @@ namespace PixelGame.Editor
 
         #region SIDEBAR (LEVEL LIST & DROP ZONE)
 
+        private readonly List<int> m_SidebarRows = new List<int>();
+        private int m_SidebarFirst, m_SidebarLast = -1;
+        private float m_SidebarRowHeight = 58f;
+        private float m_SidebarViewHeight = 800f;
+
         private void DrawSidebar(float width)
         {
             EditorGUILayout.BeginVertical(GUILayout.Width(width), GUILayout.ExpandHeight(true));
@@ -239,19 +258,35 @@ namespace PixelGame.Editor
                 EditorGUILayout.HelpBox("Henüz oluşturulmuş bir level yok. Yukarıdaki kutuya görsel sürükleyebilir veya 'Yeni Level Ekle'ye basabilirsiniz.", MessageType.Info);
             }
 
-            for (int i = 0; i < m_AllLevels.Count; i++)
+            // Sadece görünen satırlar çizilir (100+ level'da her olayda hepsini çizmek pencereyi kasıyordu).
+            // Liste ve görünür aralık Layout olayında belirlenir, aynı döngünün diğer olaylarında aynen kullanılır.
+            if (Event.current.type == EventType.Layout || m_SidebarRows.Count == 0)
             {
+                m_SidebarRows.Clear();
+                string term = string.IsNullOrEmpty(m_SearchFilter) ? null : m_SearchFilter.ToLowerInvariant();
+                for (int i = 0; i < m_AllLevels.Count; i++)
+                {
+                    PixelLevelData lv = m_AllLevels[i];
+                    if (lv == null) continue;
+                    if (term != null && !lv.LevelName.ToLowerInvariant().Contains(term) && !lv.LevelIndex.ToString().Contains(term)) continue;
+                    m_SidebarRows.Add(i);
+                }
+                // Sürükleme sırasında bırakma hedefi olabilsin diye tüm satırlar çizilir
+                bool all = m_DraggingLevel != null;
+                m_SidebarFirst = all ? 0 : Mathf.Clamp(Mathf.FloorToInt(m_SidebarScroll.y / m_SidebarRowHeight) - 2, 0, m_SidebarRows.Count);
+                m_SidebarLast = all ? m_SidebarRows.Count - 1
+                    : Mathf.Clamp(Mathf.CeilToInt((m_SidebarScroll.y + m_SidebarViewHeight) / m_SidebarRowHeight) + 2, -1, m_SidebarRows.Count - 1);
+            }
+
+            if (m_SidebarFirst > 0) GUILayout.Space(m_SidebarFirst * m_SidebarRowHeight);
+            float prevRowY = -1f;
+
+            for (int k = m_SidebarFirst; k <= m_SidebarLast && k < m_SidebarRows.Count; k++)
+            {
+                int i = m_SidebarRows[k];
+                if (i >= m_AllLevels.Count) break;
                 PixelLevelData level = m_AllLevels[i];
                 if (level == null) continue;
-
-                // Arama filtresi kontrolü
-                if (!string.IsNullOrEmpty(m_SearchFilter))
-                {
-                    string term = m_SearchFilter.ToLowerInvariant();
-                    bool matches = level.LevelName.ToLowerInvariant().Contains(term) || 
-                                   level.LevelIndex.ToString().Contains(term);
-                    if (!matches) continue;
-                }
 
                 bool isSelected = (m_SelectedLevel == level);
                 bool isBeingDragged = (m_DraggingLevel == level);
@@ -433,7 +468,18 @@ namespace PixelGame.Editor
 
                 EditorGUILayout.EndHorizontal();
                 GUI.backgroundColor = Color.white;
+
+                // Satır yüksekliğini (boşluk dahil) ölç: iki ardışık satırın üst kenarı arası
+                if (Event.current.type == EventType.Repaint)
+                {
+                    float y = GUILayoutUtility.GetLastRect().y;
+                    if (prevRowY >= 0f && y - prevRowY > 20f && Mathf.Abs(y - prevRowY - m_SidebarRowHeight) > 0.5f) { m_SidebarRowHeight = y - prevRowY; Repaint(); }
+                    prevRowY = y;
+                }
             }
+
+            int below = m_SidebarRows.Count - 1 - Mathf.Max(m_SidebarLast, m_SidebarFirst - 1);
+            if (below > 0) GUILayout.Space(below * m_SidebarRowHeight);
 
             // Sürükleme, herhangi bir satırın üzerinde değil de boşlukta bırakılırsa takılı kalmasın.
             if (m_DraggingLevel != null && Event.current.type == EventType.MouseUp)
@@ -447,6 +493,11 @@ namespace PixelGame.Editor
             }
 
             EditorGUILayout.EndScrollView();
+            if (Event.current.type == EventType.Repaint)
+            {
+                float h = GUILayoutUtility.GetLastRect().height;
+                if (h > 1f && Mathf.Abs(h - m_SidebarViewHeight) > 1f) { m_SidebarViewHeight = h; Repaint(); }
+            }
 
             EditorGUILayout.Space(6);
 
@@ -724,6 +775,11 @@ namespace PixelGame.Editor
 
             EditorGUILayout.Space(16);
             EditorGUILayout.EndScrollView();
+            if (Event.current.type == EventType.Repaint)
+            {
+                float h = GUILayoutUtility.GetLastRect().height;
+                if (h > 1f && Mathf.Abs(h - m_DetailViewHeight) > 1f) { m_DetailViewHeight = h; Repaint(); }
+            }
             EditorGUILayout.EndVertical();
         }
 
@@ -2004,7 +2060,7 @@ namespace PixelGame.Editor
                     AutoDistributeSmartPuzzle();
                 }
                 EditorUtility.SetDirty(m_SelectedLevel);
-                NotifyLiveSceneUpdate();
+                NotifyShipQueueUpdate();
             }
 
             // Denge rozeti: gemi kapasiteleri toplamı küp sayısıyla tutuyor mu
@@ -2090,7 +2146,7 @@ namespace PixelGame.Editor
                     m_SelectedSlotForSwap = -1;
                     m_ActiveBrushPaletteIndex = -1;
                     EditorUtility.SetDirty(m_SelectedLevel);
-                    NotifyLiveSceneUpdate();
+                    NotifyShipQueueUpdate();
                 }
             }
             GUI.backgroundColor = Color.white;
@@ -2112,7 +2168,7 @@ namespace PixelGame.Editor
                     m_TargetGridRows = rows;
                     m_SelectedLevel.PoolRows = rows;
                     EditorUtility.SetDirty(m_SelectedLevel);
-                    NotifyLiveSceneUpdate();
+                    NotifyShipQueueUpdate();
                 }
 
                 int cols = DrawStepperRow("Kolon", "Havuzda yan yana kaç sütun gemi olur.", m_GridColumnsPerRow, 1, 8);
@@ -2122,7 +2178,7 @@ namespace PixelGame.Editor
                     m_GridColumnsPerRow = cols;
                     m_SelectedLevel.PoolColumns = cols;
                     EditorUtility.SetDirty(m_SelectedLevel);
-                    NotifyLiveSceneUpdate();
+                    NotifyShipQueueUpdate();
                 }
 
                 int slots = DrawStepperRow("⚓ Yanaşma Slotu", "Aynı anda yanaşabilen açık gemi slotu sayısı. Kalan bölmeler kilitli duba ve zincirle kapanır.", m_SelectedLevel.SlotCount, 1, 8);
@@ -2173,7 +2229,7 @@ namespace PixelGame.Editor
                     if (m_SelectedLevel.MinTruckCapacity > maxCap) m_SelectedLevel.MinTruckCapacity = maxCap;
                     if (m_SelectedLevel.PeakTruckCapacity > maxCap) m_SelectedLevel.PeakTruckCapacity = maxCap;
                     EditorUtility.SetDirty(m_SelectedLevel);
-                    NotifyLiveSceneUpdate();
+                    NotifyShipQueueUpdate();
                 }
 
                 if (m_SelectedLevel.UseRoundCapacities)
@@ -2209,7 +2265,7 @@ namespace PixelGame.Editor
                         m_SelectedLevel.VaryWagonCapacities();
                     m_SelectedLevel.UseCustomWagonSequence = true;
                     EditorUtility.SetDirty(m_SelectedLevel);
-                    NotifyLiveSceneUpdate();
+                    NotifyShipQueueUpdate();
                 }
                 GUI.backgroundColor = Color.white;
             });
@@ -2243,7 +2299,7 @@ namespace PixelGame.Editor
                         out int pairs, out int hidden, out int targetPairs);
                     m_SelectedSlotForLink = -1;
                     EditorUtility.SetDirty(m_SelectedLevel);
-                    NotifyLiveSceneUpdate();
+                    NotifyShipQueueUpdate();
                     string note = pairs < targetPairs ? $" (hedef {targetPairs} çiftti; havuzda uygun yan yana/üst üste yer bu kadar)" : "";
                     ShowNotification(new GUIContent($"🔗 {pairs} halat · ❓ {hidden} gizli gemi{note}"));
                     Debug.Log($"[Level Designer] {m_SelectedLevel.name}: {pairs} halat, {hidden} gizli gemi üretildi{note}.");
@@ -2551,7 +2607,7 @@ namespace PixelGame.Editor
 
             m_SelectedLevel.UseCustomWagonSequence = true;
             EditorUtility.SetDirty(m_SelectedLevel);
-            NotifyLiveSceneUpdate();
+            NotifyShipQueueUpdate();
         }
 
         /// <summary>
@@ -2620,6 +2676,11 @@ namespace PixelGame.Editor
             wagon.label = $"Güçlü ({pName}+{sName})";
         }
 
+        private float m_GridRowsTopY = -1f;
+        private float m_WaveRowHeight = 190f;
+        private float m_DetailViewHeight = 800f;
+        private int m_GridFirstRow, m_GridLastRow = int.MaxValue;
+
         private void DrawVisualGridBoard()
         {
             if (m_SelectedLevel == null) return;
@@ -2641,16 +2702,51 @@ namespace PixelGame.Editor
                 m_SelectedLevel.PoolRows = rows;
                 m_SelectedLevel.PoolColumns = cols;
                 EditorUtility.SetDirty(m_SelectedLevel);
-                NotifyLiveSceneUpdate();
+                NotifyShipQueueUpdate();
             }
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.Space(4);
 
-            // Izgara Satırları (Her satır bir dalga)
-            for (int r = 0; r < rows; r++)
+            // Izgara Satırları (Her satır bir dalga). Ekranda görünmeyen dalgalar çizilmez, yerine boşluk konur:
+            // her dalga ~4×20 kontrol; 30+ gemilik sıralarda tümünü her olayda çizmek sekmeyi kasıyordu.
+            Rect gridAnchor = GUILayoutUtility.GetRect(0f, 0f, GUILayout.ExpandWidth(true));
+            if (Event.current.type == EventType.Repaint && Mathf.Abs(m_GridRowsTopY - gridAnchor.y) > 1f)
+            {
+                // Konum değişti (level/sekme değişimi): görünür dalgaları doğru konumla yeniden hesapla
+                m_GridRowsTopY = gridAnchor.y;
+                Repaint();
+            }
+            if (Event.current.type == EventType.Layout)
+            {
+                if (m_GridRowsTopY < 0f)
+                {
+                    m_GridFirstRow = 0;
+                    m_GridLastRow = rows - 1;
+                }
+                else
+                {
+                    float top = m_DetailScroll.y - m_GridRowsTopY;
+                    m_GridFirstRow = Mathf.Clamp(Mathf.FloorToInt(top / m_WaveRowHeight) - 1, 0, rows);
+                    m_GridLastRow = Mathf.Clamp(Mathf.CeilToInt((top + m_DetailViewHeight) / m_WaveRowHeight) + 1, -1, rows - 1);
+                }
+            }
+            int firstRow = Mathf.Min(m_GridFirstRow, rows);
+            int lastRow = Mathf.Min(m_GridLastRow, rows - 1);
+            if (firstRow > 0) GUILayout.Space(firstRow * m_WaveRowHeight);
+            float prevWaveY = -1f;
+
+            for (int r = firstRow; r <= lastRow; r++)
             {
                 int startIdx = r * cols;
+
+                Rect waveStart = GUILayoutUtility.GetRect(0f, 0f, GUILayout.ExpandWidth(true));
+                if (Event.current.type == EventType.Repaint)
+                {
+                    float hgt = waveStart.y - prevWaveY;
+                    if (prevWaveY >= 0f && hgt > 40f && Mathf.Abs(hgt - m_WaveRowHeight) > 1f) { m_WaveRowHeight = hgt; Repaint(); }
+                    prevWaveY = waveStart.y;
+                }
 
                 EditorGUILayout.BeginVertical("box");
 
@@ -2731,6 +2827,9 @@ namespace PixelGame.Editor
                 EditorGUILayout.Space(2);
             }
 
+            int wavesBelow = rows - 1 - Mathf.Max(lastRow, firstRow - 1);
+            if (wavesBelow > 0) GUILayout.Space(wavesBelow * m_WaveRowHeight);
+
             // Alt Butonlar
             EditorGUILayout.Space(4);
             EditorGUILayout.BeginHorizontal();
@@ -2809,7 +2908,7 @@ namespace PixelGame.Editor
                     wagon.isHidden = !wagon.isHidden;
                     m_SelectedLevel.UseCustomWagonSequence = true;
                     EditorUtility.SetDirty(m_SelectedLevel);
-                    NotifyLiveSceneUpdate();
+                    NotifyShipQueueUpdate();
                 }
                 GUI.backgroundColor = Color.white;
                 if (wagon.isHidden)
@@ -2831,7 +2930,7 @@ namespace PixelGame.Editor
                     m_SelectedSlotForLink = -1;
                     m_SelectedLevel.UseCustomWagonSequence = true;
                     EditorUtility.SetDirty(m_SelectedLevel);
-                    NotifyLiveSceneUpdate();
+                    NotifyShipQueueUpdate();
                     EditorGUILayout.EndVertical();
                     return;
                 }
@@ -2855,7 +2954,7 @@ namespace PixelGame.Editor
                     }
                     m_SelectedLevel.UseCustomWagonSequence = true;
                     EditorUtility.SetDirty(m_SelectedLevel);
-                    NotifyLiveSceneUpdate();
+                    NotifyShipQueueUpdate();
                 }
                 GUI.backgroundColor = Color.white;
                 EditorGUILayout.EndHorizontal();
@@ -2888,7 +2987,7 @@ namespace PixelGame.Editor
                                 wagon.label = $"Güçlü ({pN}+{sN})";
                                 m_SelectedLevel.UseCustomWagonSequence = true;
                                 EditorUtility.SetDirty(m_SelectedLevel);
-                                NotifyLiveSceneUpdate();
+                                NotifyShipQueueUpdate();
                             });
                         }
                         menu.ShowAsContext();
@@ -2964,7 +3063,7 @@ namespace PixelGame.Editor
                         {
                             m_SelectedLevel.UseCustomWagonSequence = true;
                             EditorUtility.SetDirty(m_SelectedLevel);
-                            NotifyLiveSceneUpdate();
+                            NotifyShipQueueUpdate();
                         }
                         else
                         {
@@ -2994,7 +3093,7 @@ namespace PixelGame.Editor
                         m_SelectedLevel.UnlinkWagon(slotIndex);
                         m_SelectedLevel.UseCustomWagonSequence = true;
                         EditorUtility.SetDirty(m_SelectedLevel);
-                        NotifyLiveSceneUpdate();
+                        NotifyShipQueueUpdate();
                     }
                     GUI.backgroundColor = Color.white;
                 }
@@ -3017,7 +3116,7 @@ namespace PixelGame.Editor
                     wagon.capacity = Mathf.Max(1, wagon.capacity - 1);
                     m_SelectedLevel.UseCustomWagonSequence = true;
                     EditorUtility.SetDirty(m_SelectedLevel);
-                    NotifyLiveSceneUpdate();
+                    NotifyShipQueueUpdate();
                 }
 
                 int newCap = EditorGUILayout.IntField(wagon.capacity, GUILayout.Width(28));
@@ -3026,7 +3125,7 @@ namespace PixelGame.Editor
                     wagon.capacity = Mathf.Max(1, newCap);
                     m_SelectedLevel.UseCustomWagonSequence = true;
                     EditorUtility.SetDirty(m_SelectedLevel);
-                    NotifyLiveSceneUpdate();
+                    NotifyShipQueueUpdate();
                 }
 
                 if (GUILayout.Button("+", EditorStyles.miniButton, GUILayout.Width(18), GUILayout.Height(16)))
@@ -3034,7 +3133,7 @@ namespace PixelGame.Editor
                     wagon.capacity += 1;
                     m_SelectedLevel.UseCustomWagonSequence = true;
                     EditorUtility.SetDirty(m_SelectedLevel);
-                    NotifyLiveSceneUpdate();
+                    NotifyShipQueueUpdate();
                 }
 
                 // Eksik tamamlama simgesi
@@ -3049,7 +3148,7 @@ namespace PixelGame.Editor
                         wagon.capacity += diff;
                         m_SelectedLevel.UseCustomWagonSequence = true;
                         EditorUtility.SetDirty(m_SelectedLevel);
-                        NotifyLiveSceneUpdate();
+                        NotifyShipQueueUpdate();
                     }
                     GUI.backgroundColor = Color.white;
                 }
@@ -3060,12 +3159,15 @@ namespace PixelGame.Editor
                 if (m_SelectedLevel.ColorPalette != null && m_SelectedLevel.ColorPalette.Count > 0)
                 {
                     EditorGUILayout.Space(1);
-                    EditorGUILayout.BeginHorizontal();
+                    // Tek kontrol alanı içinde elle dilimlenir (renk başına ayrı layout kontrolü kasıyordu)
+                    Rect dotStrip = EditorGUILayout.GetControlRect(false, 13);
+                    float dotX = dotStrip.x;
                     for (int p = 0; p < m_SelectedLevel.ColorPalette.Count; p++)
                     {
                         var pEntry = m_SelectedLevel.ColorPalette[p];
                         if (pEntry == null || pEntry.pixelCount <= 0) continue;
-                        Rect dotRect = EditorGUILayout.GetControlRect(false, 13, GUILayout.Width(13));
+                        Rect dotRect = new Rect(dotX, dotStrip.y, 13f, 13f);
+                        dotX += 15f;
                         EditorGUI.DrawRect(dotRect, pEntry.targetColor);
                         if (Event.current.type == EventType.MouseDown && dotRect.Contains(Event.current.mousePosition))
                         {
@@ -3075,12 +3177,10 @@ namespace PixelGame.Editor
                             wagon.label = $"{dotName} (#{slotIndex + 1})";
                             m_SelectedLevel.UseCustomWagonSequence = true;
                             EditorUtility.SetDirty(m_SelectedLevel);
-                            NotifyLiveSceneUpdate();
+                            NotifyShipQueueUpdate();
                             Event.current.Use();
                         }
                     }
-                    GUILayout.FlexibleSpace();
-                    EditorGUILayout.EndHorizontal();
                 }
 
                 EditorGUILayout.EndVertical();
@@ -3118,12 +3218,14 @@ namespace PixelGame.Editor
                 if (m_SelectedLevel.ColorPalette != null && m_SelectedLevel.ColorPalette.Count > 0)
                 {
                     EditorGUILayout.Space(2);
-                    EditorGUILayout.BeginHorizontal();
+                    Rect dotStrip = EditorGUILayout.GetControlRect(false, 13);
+                    float dotX = dotStrip.x;
                     for (int p = 0; p < m_SelectedLevel.ColorPalette.Count; p++)
                     {
                         var pEntry = m_SelectedLevel.ColorPalette[p];
                         if (pEntry == null || pEntry.pixelCount <= 0) continue;
-                        Rect dotRect = EditorGUILayout.GetControlRect(false, 13, GUILayout.Width(13));
+                        Rect dotRect = new Rect(dotX, dotStrip.y, 13f, 13f);
+                        dotX += 15f;
                         EditorGUI.DrawRect(dotRect, pEntry.targetColor);
                         if (Event.current.type == EventType.MouseDown && dotRect.Contains(Event.current.mousePosition))
                         {
@@ -3133,8 +3235,6 @@ namespace PixelGame.Editor
                             Event.current.Use();
                         }
                     }
-                    GUILayout.FlexibleSpace();
-                    EditorGUILayout.EndHorizontal();
                 }
 
                 EditorGUILayout.EndVertical();
@@ -3175,7 +3275,7 @@ namespace PixelGame.Editor
             m_SelectedSlotForSwap = -1;
             m_SelectedLevel.UseCustomWagonSequence = true;
             EditorUtility.SetDirty(m_SelectedLevel);
-            NotifyLiveSceneUpdate();
+            NotifyShipQueueUpdate();
         }
 
         private void HandleSlotClick(int slotIndex)
@@ -3197,7 +3297,7 @@ namespace PixelGame.Editor
                 m_SelectedSlotForSwap = -1;
                 m_SelectedLevel.UseCustomWagonSequence = true;
                 EditorUtility.SetDirty(m_SelectedLevel);
-                NotifyLiveSceneUpdate();
+                NotifyShipQueueUpdate();
                 return;
             }
 
@@ -3215,7 +3315,7 @@ namespace PixelGame.Editor
                     m_SelectedSlotForSwap = -1;
                     m_SelectedLevel.UseCustomWagonSequence = true;
                     EditorUtility.SetDirty(m_SelectedLevel);
-                    NotifyLiveSceneUpdate();
+                    NotifyShipQueueUpdate();
                 }
                 return;
             }
@@ -3585,7 +3685,7 @@ namespace PixelGame.Editor
             m_SelectedSlotForSwap = -1;
 
             EditorUtility.SetDirty(m_SelectedLevel);
-            NotifyLiveSceneUpdate();
+            NotifyShipQueueUpdate();
 
             string modeName = m_WagonDifficulty == WagonDifficultyMode.Easy ? "🟢 Kolay (Risksiz)" :
                               m_WagonDifficulty == WagonDifficultyMode.Medium ? "🟡 Dengeli (Standart)" : "🔴 Zor (Taktiksel)";
@@ -3626,7 +3726,7 @@ namespace PixelGame.Editor
 
             m_SelectedLevel.UseCustomWagonSequence = true;
             EditorUtility.SetDirty(m_SelectedLevel);
-            NotifyLiveSceneUpdate();
+            NotifyShipQueueUpdate();
         }
 
         private Color GetNextMissingColorOrDefault()
@@ -3694,7 +3794,7 @@ namespace PixelGame.Editor
             }
             m_SelectedLevel.UseCustomWagonSequence = true;
             EditorUtility.SetDirty(m_SelectedLevel);
-            NotifyLiveSceneUpdate();
+            NotifyShipQueueUpdate();
         }
 
         private void DeleteWagonRow(int rowIndex, int colCount)
@@ -3709,7 +3809,7 @@ namespace PixelGame.Editor
             sequence.RemoveRange(start, count);
             m_SelectedLevel.UseCustomWagonSequence = true;
             EditorUtility.SetDirty(m_SelectedLevel);
-            NotifyLiveSceneUpdate();
+            NotifyShipQueueUpdate();
         }
 
         private void MoveWagonRow(int rowIndex, int targetRowIndex, int colCount)
@@ -3745,7 +3845,7 @@ namespace PixelGame.Editor
             }
             m_SelectedLevel.UseCustomWagonSequence = true;
             EditorUtility.SetDirty(m_SelectedLevel);
-            NotifyLiveSceneUpdate();
+            NotifyShipQueueUpdate();
         }
 
         #endregion
@@ -4431,7 +4531,51 @@ namespace PixelGame.Editor
             EditorGUI.DrawRect(dividerRect, new Color(0.2f, 0.22f, 0.26f, 1f));
         }
 
+        // Sahne senkronu pahalı (küpler + gemi havuzu yeniden kurulur). Her tıklamada/tuşta hemen yapmak
+        // pencereyi kasıyordu; istekler biriktirilip en fazla LiveUpdateInterval'da bir uygulanır.
+        private const double LiveUpdateInterval = 0.15;
+        private bool m_LiveUpdatePending;
+        private bool m_LiveUpdateShipsOnly = true;
+        private double m_LastLiveUpdateTime;
+
+        /// <summary>Sahnedeki küpleri, gemi havuzunu ve slotları seçili level'a göre (gecikmeli) yeniler.</summary>
         private void NotifyLiveSceneUpdate()
+        {
+            m_LiveUpdatePending = true;
+            m_LiveUpdateShipsOnly = false;
+        }
+
+        /// <summary>Yalnızca gemi sırası değişti: sadece sahnedeki gemi havuzunu (gecikmeli) yeniler.</summary>
+        private void NotifyShipQueueUpdate()
+        {
+            m_LiveUpdatePending = true;
+        }
+
+        private void OnEditorUpdate()
+        {
+            if (!m_LiveUpdatePending) return;
+            double now = EditorApplication.timeSinceStartup;
+            if (now - m_LastLiveUpdateTime < LiveUpdateInterval) return;
+            bool shipsOnly = m_LiveUpdateShipsOnly;
+            m_LiveUpdatePending = false;
+            m_LiveUpdateShipsOnly = true;
+            m_LastLiveUpdateTime = now;
+            if (shipsOnly) ApplyShipQueueUpdate();
+            else ApplyLiveSceneUpdate();
+        }
+
+        private void ApplyShipQueueUpdate()
+        {
+            ShipQueuePool shipPool = Object.FindFirstObjectByType<ShipQueuePool>();
+            if (shipPool != null && m_SelectedLevel != null)
+            {
+                shipPool.RebuildSpots(m_SelectedLevel.PoolColumns, m_SelectedLevel.PoolRows);
+                shipPool.InitializeQueue();
+            }
+            SceneView.RepaintAll();
+        }
+
+        private void ApplyLiveSceneUpdate()
         {
             PixelArtGenerator gen = Object.FindFirstObjectByType<PixelArtGenerator>();
             if (gen != null && gen.ActiveLevelData == m_SelectedLevel)
