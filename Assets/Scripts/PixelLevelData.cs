@@ -65,6 +65,15 @@ namespace PixelGame
         [Tooltip("Gizli gemi: Kuyrukta en ön sıraya gelene kadar rengi ve kapasite yazısı '?' desenli örtüyle saklanır.")]
         public bool isHidden = false;
 
+        [Tooltip("Güçlü Gemiciler / Çift Renkli Konteyner: Yarısı beyaz yarısı siyah; hem siyah hem beyaz küpleri toplar.")]
+        public bool isDualColor = false;
+
+        [Tooltip("İkinci renk (Güçlü gemiciler için varsayılan Siyah).")]
+        public Color secondaryColor = Color.black;
+
+        [Tooltip("İkinci rengin kapasitesi. 0 ise birincil kapasiteyle (capacity) aynı kabul edilir.")]
+        public int secondaryCapacity = 0;
+
         public WagonSequenceEntry() { }
 
         public WagonSequenceEntry(Color color, int cap = 16, int palIdx = 0, string lbl = "Vagon", int link = 0)
@@ -72,6 +81,17 @@ namespace PixelGame
             wagonColor = color;
             capacity = cap;
             paletteIndex = palIdx;
+            label = lbl;
+            linkId = link;
+        }
+
+        public WagonSequenceEntry(Color primary, Color secondary, int cap = 16, int secCap = 0, string lbl = "Güçlü Konteyner", int link = 0)
+        {
+            wagonColor = primary;
+            secondaryColor = secondary;
+            capacity = cap;
+            secondaryCapacity = secCap > 0 ? secCap : cap;
+            isDualColor = true;
             label = lbl;
             linkId = link;
         }
@@ -939,7 +959,14 @@ namespace PixelGame
             int sum = 0;
             foreach (var wagon in m_WagonSequence)
             {
-                if (wagon != null) sum += wagon.capacity;
+                if (wagon != null)
+                {
+                    sum += wagon.capacity;
+                    if (wagon.isDualColor)
+                    {
+                        sum += wagon.secondaryCapacity > 0 ? wagon.secondaryCapacity : wagon.capacity;
+                    }
+                }
             }
             return sum;
         }
@@ -961,6 +988,10 @@ namespace PixelGame
                 if (ColorDistance(wagon.wagonColor, targetColor) <= threshold)
                 {
                     sum += wagon.capacity;
+                }
+                else if (wagon.isDualColor && ColorDistance(wagon.secondaryColor, targetColor) <= threshold)
+                {
+                    sum += wagon.secondaryCapacity > 0 ? wagon.secondaryCapacity : wagon.capacity;
                 }
             }
             return sum;

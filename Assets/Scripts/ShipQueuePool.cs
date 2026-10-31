@@ -188,6 +188,10 @@ namespace PixelGame
                 // Küpü henüz seçilmemiş (yığın kotası) yerler boş sayılır: o küpler panoda "kalan" sayılıyor
                 int pendingWithCube = Mathf.Max(0, s.PendingCargo - s.UnassignedQuota);
                 total += Mathf.Max(0, s.Capacity - s.CurrentCargo - pendingWithCube);
+                if (s.IsDualColor)
+                {
+                    total += Mathf.Max(0, s.SecondaryCapacity - s.CurrentSecondaryCargo - s.PendingSecondaryCargo);
+                }
             }
             return total;
         }
@@ -245,6 +249,7 @@ namespace PixelGame
 
         // Son çekilen sıra girdisinin "gizli gemi" bayrağı (TryGetNextSequenceShip her çağrıda günceller)
         private bool m_LastSequenceShipHidden = false;
+        private WagonSequenceEntry m_LastSequenceEntry = null;
 
         // Spotun sütununa ait şeritten sıradaki gemiyi çeker.
         private bool TryGetNextSequenceShip(int spotIndex, out Color shipColor, out int capacity, out int linkId)
@@ -260,6 +265,7 @@ namespace PixelGame
                     WagonSequenceEntry entry = q.Dequeue();
                     if (entry != null && entry.capacity > 0)
                     {
+                        m_LastSequenceEntry = entry;
                         shipColor = entry.wagonColor;
                         capacity = entry.capacity;
                         linkId = entry.linkId;
@@ -960,7 +966,14 @@ namespace PixelGame
             ship.SetBaseScale(Vector3.one * SpawnScale);
             ship.SetLinkId(linkId, GetLinkGroupSize(linkId));
 
-            ship.Configure(shipColor, capacity);
+            if (m_LastSequenceEntry != null && m_LastSequenceEntry.isDualColor)
+            {
+                ship.ConfigureDualColor(m_LastSequenceEntry.wagonColor, m_LastSequenceEntry.secondaryColor, m_LastSequenceEntry.capacity, m_LastSequenceEntry.secondaryCapacity);
+            }
+            else
+            {
+                ship.Configure(shipColor, capacity);
+            }
             ship.SetMysteryHidden(hidden);
 
             while (m_WaitingShips.Count <= spotIndex)

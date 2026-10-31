@@ -94,6 +94,20 @@ namespace PixelGame
         [SerializeField] private int m_Capacity = 16;
         [SerializeField] private int m_CurrentCargo = 0;
 
+        [Header("⚡ Güçlü Gemiciler / Çift Renkli Konteyner")]
+        [SerializeField] private bool m_IsDualColor = false;
+        [SerializeField] private Color m_SecondaryColor = Color.black;
+        [SerializeField] private int m_SecondaryCapacity = 16;
+        [SerializeField] private int m_CurrentSecondaryCargo = 0;
+        [SerializeField] private int m_PendingSecondaryCargo = 0;
+        [SerializeField] private int m_WorkersExitedSecondaryCount = 0;
+
+        public bool IsDualColor { get => m_IsDualColor; set => m_IsDualColor = value; }
+        public Color SecondaryColor { get => m_SecondaryColor; set => m_SecondaryColor = value; }
+        public int SecondaryCapacity { get => m_SecondaryCapacity; set => m_SecondaryCapacity = value; }
+        public int CurrentSecondaryCargo => m_CurrentSecondaryCargo;
+        public int PendingSecondaryCargo => m_PendingSecondaryCargo;
+
         [Header("⚓ Durum")]
         [SerializeField] private bool m_IsDocked = false;
         [SerializeField] private bool m_IsDeparting = false;
@@ -442,7 +456,16 @@ namespace PixelGame
         /// Kullanıcı isteği: sayı işçi gemiden çıkınca değil, küpü alıp gemiye geri binince azalır.
         /// (Alan adı tarihsel: artık "geri binen işçi sayısı"nı tutar.)
         /// </summary>
-        public int DisplayRemainingCapacity => Mathf.Max(0, m_Capacity - m_WorkersExitedCount);
+        public int DisplayRemainingCapacity
+        {
+            get
+            {
+                if (!m_IsDualColor) return Mathf.Max(0, m_Capacity - m_WorkersExitedCount);
+                int remPrimary = Mathf.Max(0, m_Capacity - m_WorkersExitedCount);
+                int remSecondary = Mathf.Max(0, m_SecondaryCapacity - m_WorkersExitedSecondaryCount);
+                return Mathf.Max(remPrimary, remSecondary);
+            }
+        }
 
         /// <summary>
         /// Gemiden bir işçi sahile zıplayıp göreve çıktığında çağrılır. Sayı burada düşmez (OnWorkerBoarded'da düşer).
@@ -459,8 +482,20 @@ namespace PixelGame
         /// <param name="boardedCargo">İşçinin getirdiği küp sayısı (yığın taşıyan denizcide sayı bir kerede bu kadar düşer).</param>
         public void OnWorkerBoarded(int boardedCargo = 1)
         {
+            OnWorkerBoardedForColor(m_ShipColor, boardedCargo);
+        }
+
+        public void OnWorkerBoardedForColor(Color color, int boardedCargo = 1)
+        {
             m_ActiveWorkersOut = Mathf.Max(0, m_ActiveWorkersOut - 1);
-            m_WorkersExitedCount = Mathf.Min(m_Capacity, m_WorkersExitedCount + Mathf.Max(1, boardedCargo));
+            if (m_IsDualColor && PaletteColorOverride.ColorsMatch(color, m_SecondaryColor))
+            {
+                m_WorkersExitedSecondaryCount = Mathf.Min(m_SecondaryCapacity, m_WorkersExitedSecondaryCount + Mathf.Max(1, boardedCargo));
+            }
+            else
+            {
+                m_WorkersExitedCount = Mathf.Min(m_Capacity, m_WorkersExitedCount + Mathf.Max(1, boardedCargo));
+            }
             UpdateBadgeText();
             PlayBadgePunchJuice();
 
@@ -471,6 +506,26 @@ namespace PixelGame
                 if (ShipDispatcher.Instance != null) ShipDispatcher.Instance.OnShipFilled(this);
                 DepartAndFreeSlot();
             }
+        }
+
+        public void AddCargoForColor(Color color, int amount = 1)
+        {
+            if (m_IsDualColor && PaletteColorOverride.ColorsMatch(color, m_SecondaryColor))
+            {
+                m_PendingSecondaryCargo = Mathf.Max(0, m_PendingSecondaryCargo - amount);
+                if (m_IsDeparting) return;
+                m_CurrentSecondaryCargo = Mathf.Min(m_SecondaryCapacity, m_CurrentSecondaryCargo + amount);
+                UpdateBadgeText();
+                PlayCargoReceiveJuice();
+                if (IsFull && m_ActiveWorkersOut <= 0 && !m_IsDeparting)
+                {
+                    OnCargoFilled?.Invoke(this);
+                    if (ShipDispatcher.Instance != null) ShipDispatcher.Instance.OnShipFilled(this);
+                    DepartAndFreeSlot();
+                }
+                return;
+            }
+            AddCargo(amount);
         }
 
         /// <summary>
@@ -500,7 +555,14 @@ namespace PixelGame
                 EnsureSilhouetteShadow();
             }
         }
-        public bool IsFull => m_CurrentCargo >= m_Capacity;
+        public bool IsFull
+        {
+            get
+            {
+                if (!m_IsDualColor) return m_CurrentCargo >= m_Capacity;
+                return m_CurrentCargo >= m_Capacity && m_CurrentSecondaryCargo >= m_SecondaryCapacity;
+            }
+        }
         public bool IsDeparting => m_IsDeparting;
         public bool IsMoving => m_IsMoving;
         private bool m_IsQueueAnimating = false;
@@ -1056,8 +1118,26 @@ namespace PixelGame
         public int PendingCargo => m_PendingCargo;
         public bool HasPendingCargo => m_PendingCargo > 0;
 
+        public bool CanAcceptColor(Color color)
+        {
+            if (m_IsDeparting) return false;
+            if (m_IsDualColor)
+            {
+                if (PaletteColorOverride.ColorsMatch(color, m_ShipColor))
+                    return (m_CurrentCargo + m_PendingCargo) < m_Capacity;
+                if (PaletteColorOverride.ColorsMatch(color, m_SecondaryColor))
+                    return (m_CurrentSecondaryCargo + m_PendingSecondaryCargo) < m_SecondaryCapacity;
+                return false;
+            }
+            return PaletteColorOverride.ColorsMatch(color, m_ShipColor) && (m_CurrentCargo + m_PendingCargo) < m_Capacity;
+        }
+
         /// <summary>Yoldakiler DAHİL gemi hâlâ kargo alabilir mi?</summary>
-        public bool CanAcceptMore => !m_IsDeparting && (m_CurrentCargo + m_PendingCargo) < m_Capacity;
+        public bool CanAcceptMore => !m_IsDeparting && (
+            m_IsDualColor 
+                ? ((m_CurrentCargo + m_PendingCargo) < m_Capacity || (m_CurrentSecondaryCargo + m_PendingSecondaryCargo) < m_SecondaryCapacity)
+                : ((m_CurrentCargo + m_PendingCargo) < m_Capacity)
+        );
 
         /// <summary>
         /// Uçuş BAŞLAMADAN önce çağrılır: yer varsa bir kargo yeri ayırıp true döner.
@@ -1065,7 +1145,19 @@ namespace PixelGame
         /// </summary>
         public bool TryReserveCargo()
         {
-            if (!CanAcceptMore) return false;
+            return TryReserveCargoForColor(m_ShipColor);
+        }
+
+        public bool TryReserveCargoForColor(Color color)
+        {
+            if (m_IsDeparting) return false;
+            if (m_IsDualColor && PaletteColorOverride.ColorsMatch(color, m_SecondaryColor))
+            {
+                if ((m_CurrentSecondaryCargo + m_PendingSecondaryCargo) >= m_SecondaryCapacity) return false;
+                m_PendingSecondaryCargo++;
+                return true;
+            }
+            if ((m_CurrentCargo + m_PendingCargo) >= m_Capacity) return false;
             m_PendingCargo++;
             return true;
         }
@@ -1073,6 +1165,16 @@ namespace PixelGame
         /// <summary>Uçuş yarıda kesilirse ayrılan yeri geri verir.</summary>
         public void ReleaseCargoReservation()
         {
+            ReleaseCargoReservationForColor(m_ShipColor);
+        }
+
+        public void ReleaseCargoReservationForColor(Color color)
+        {
+            if (m_IsDualColor && PaletteColorOverride.ColorsMatch(color, m_SecondaryColor))
+            {
+                m_PendingSecondaryCargo = Mathf.Max(0, m_PendingSecondaryCargo - 1);
+                return;
+            }
             m_PendingCargo = Mathf.Max(0, m_PendingCargo - 1);
         }
 
@@ -2248,6 +2350,17 @@ namespace PixelGame
         /// Gemiyi belirli bir renk ve kapasite ile yapılandırır.
         /// Başlangıçta güverte tamamen boştur, küpler geldikçe aynı renkte variller oluşur.
         /// </summary>
+        public void ConfigureDualColor(Color primary, Color secondary, int capacity, int secondaryCapacity = 0, string colorName = "")
+        {
+            m_IsDualColor = true;
+            m_SecondaryColor = secondary;
+            m_SecondaryCapacity = secondaryCapacity > 0 ? secondaryCapacity : capacity;
+            m_CurrentSecondaryCargo = 0;
+            m_PendingSecondaryCargo = 0;
+            m_WorkersExitedSecondaryCount = 0;
+            Configure(primary, capacity, colorName);
+        }
+
         public void Configure(Color color, int capacity, string colorName = "")
         {
             m_ShipColor = color;
@@ -2258,6 +2371,13 @@ namespace PixelGame
             m_UnassignedQuota = 0;
             m_ActiveWorkersOut = 0;
             m_WorkersExitedCount = 0;
+            if (!m_IsDualColor)
+            {
+                m_SecondaryCapacity = 0;
+                m_CurrentSecondaryCargo = 0;
+                m_PendingSecondaryCargo = 0;
+                m_WorkersExitedSecondaryCount = 0;
+            }
             m_ColorName = string.IsNullOrEmpty(colorName) ? ColorUtility.ToHtmlStringRGB(color) : colorName;
 
             m_IsMoving = false;
@@ -2497,6 +2617,112 @@ namespace PixelGame
             return sp;
         }
 
+        private static readonly Dictionary<string, Sprite> s_DualContainerSprites = new Dictionary<string, Sprite>();
+
+        /// <summary>
+        /// Seviyedeki iki renge (ColorA ve ColorB) dinamik boyanmış çift renkli konteyner sprite'ı üretir.
+        /// Sol yarısı birinci rengin, sağ yarısı ikinci rengin tonunda; orta ayrım çizgisi ve tokalar korunur.
+        /// </summary>
+        public static Sprite GetDualContainerSprite(Color colorA, Color colorB)
+        {
+            string key = $"{ColorUtility.ToHtmlStringRGB(colorA)}_{ColorUtility.ToHtmlStringRGB(colorB)}";
+            if (s_DualContainerSprites.TryGetValue(key, out Sprite cached) && cached != null) return cached;
+
+            if (s_ContainerBasePixels == null)
+            {
+#if UNITY_EDITOR
+                s_ContainerBaseTex = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Resources/Containers/Container_Base.png");
+#endif
+                if (s_ContainerBaseTex == null) s_ContainerBaseTex = Resources.Load<Texture2D>("Containers/Container_Base");
+                if (s_ContainerBaseTex == null || !s_ContainerBaseTex.isReadable)
+                {
+                    return Resources.Load<Sprite>("Containers/Container_Red");
+                }
+                s_ContainerBasePixels = s_ContainerBaseTex.GetPixels32();
+            }
+
+            int w = s_ContainerBaseTex.width;
+            int h = s_ContainerBaseTex.height;
+            float midX = w * 0.5f;
+
+            Color.RGBToHSV(colorA, out float thA, out float tsA, out float tvA);
+            float satScaleA = tsA / ContainerBaseSaturation;
+            float valScaleA = tvA / ContainerBaseValue;
+
+            Color.RGBToHSV(colorB, out float thB, out float tsB, out float tvB);
+            float satScaleB = tsB / ContainerBaseSaturation;
+            float valScaleB = tvB / ContainerBaseValue;
+
+            var src = s_ContainerBasePixels;
+            var dst = new Color32[src.Length];
+
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    int i = y * w + x;
+                    Color32 c = src[i];
+                    if (c.a == 0) { dst[i] = c; continue; }
+
+                    Color.RGBToHSV(c, out float hVal, out float s, out float v);
+                    // Açık mavi kilit tokaları ve mandalları korunur
+                    if (hVal >= 0.52f && hVal <= 0.68f && s > 0.22f) { dst[i] = c; continue; }
+
+                    bool isLeft = x < midX;
+                    float th = isLeft ? thA : thB;
+                    float ts = isLeft ? tsA : tsB;
+                    float tv = isLeft ? tvA : tvB;
+                    float satScale = isLeft ? satScaleA : satScaleB;
+                    float valScale = isLeft ? valScaleA : valScaleB;
+
+                    float weight = Mathf.Clamp01((s - 0.2f) / 0.15f);
+                    Color origTinted = Color.HSVToRGB(th, s, v);
+                    origTinted.a = c.a / 255f;
+
+                    Color res;
+                    if (weight <= 0f)
+                    {
+                        res = origTinted;
+                    }
+                    else
+                    {
+                        float addW = tv * tv;
+                        float nv = (v * valScale) * (1f - addW) + (tv + (v - ContainerBaseValue) * 0.85f) * addW;
+                        Color recol = Color.HSVToRGB(th, Mathf.Clamp01(s * satScale), Mathf.Clamp01(nv));
+                        res = Color.Lerp(origTinted, recol, weight);
+                    }
+
+                    // Ortadaki derz / dikiş çizgisi (|x - midX| <= 1.8): temiz ve şık bir ayrım çizgisi
+                    float distCenter = Mathf.Abs(x - midX);
+                    if (distCenter <= 1.8f)
+                    {
+                        float seamFactor = 1f - (distCenter / 1.8f);
+                        res.r *= (1f - 0.35f * seamFactor);
+                        res.g *= (1f - 0.35f * seamFactor);
+                        res.b *= (1f - 0.35f * seamFactor);
+                    }
+
+                    res.a = c.a / 255f;
+                    dst[i] = res;
+                }
+            }
+
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false)
+            {
+                name = $"Container_{key}",
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear,
+                hideFlags = HideFlags.DontSave
+            };
+            tex.SetPixels32(dst);
+            tex.Apply(false, true);
+            Sprite sp = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+            sp.name = tex.name;
+            sp.hideFlags = HideFlags.DontSave;
+            s_DualContainerSprites[key] = sp;
+            return sp;
+        }
+
         /// <summary>
         /// Gemiyi küplerle %100 aynı tonda mat cartoon renk ile boyar.
         /// </summary>
@@ -2512,6 +2738,10 @@ namespace PixelGame
                     if (m_IsMysteryHidden)
                     {
                         s = GetMysteryContainerSprite();
+                    }
+                    else if (m_IsDualColor)
+                    {
+                        s = GetDualContainerSprite(m_ShipColor, m_SecondaryColor);
                     }
                     else if (!string.IsNullOrEmpty(m_ColorName))
                     {

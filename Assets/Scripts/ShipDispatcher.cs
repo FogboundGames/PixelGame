@@ -1187,7 +1187,7 @@ namespace PixelGame
                     // Slot gemiye yola çıkarken ayrılır; tren ancak gemi slota oturunca başlasın
                     if (ship != null && ship.IsDocked && !ship.IsMoving && ship.CanAcceptMore && !m_ActiveExtractingShips.Contains(ship))
                     {
-                        bool canLaunch = HasExposedMatchingCube(ship.ShipColor);
+                        bool canLaunch = HasExposedMatchingCube(ship.ShipColor) || (ship.IsDualColor && HasExposedMatchingCube(ship.SecondaryColor));
                         if (canLaunch)
                         {
                             StartCoroutine(ExtractMatchingCubesToShipRoutine(ship));
@@ -1223,6 +1223,10 @@ namespace PixelGame
 
                     // 2. Seviyede bu renkten hiç küp kalmadıysa:
                     int totalRemaining = GetRemainingCountForColor(ship.ShipColor);
+                    if (ship.IsDualColor)
+                    {
+                        totalRemaining += GetRemainingCountForColor(ship.SecondaryColor);
+                    }
                     if (totalRemaining == 0)
                     {
                         yield return new WaitForSeconds(0.2f);
@@ -1324,38 +1328,63 @@ namespace PixelGame
 
             s_ReservedCubes.RemoveWhere(c => c == null || c.IsPopped || !c.gameObject.activeSelf);
 
-            // 1. Bu geminin rengiyle eşleşen ve henüz rezerve edilmemiş canlı küp var mı? (renk listesi ve tahta sınırları
-            // önbellekten: bütün tahtayı her denizci çıkışında gezmek büyük bölümlerde kare düşürüyordu)
             int minX = m_BoardCellMinX, maxX = m_BoardCellMaxX, maxY = m_BoardCellMaxY;
-            bool anyMatching = false;
-            var colorCubes = GetBoardCubesOfColor(ship.ShipColor);
-            for (int i = 0; i < colorCubes.Count; i++)
+
+            // 1. Hedef renk belirleme (Güçlü gemiciler çift renkli ise hem birincil hem ikincil rengi kontrol eder)
+            Color targetColor = ship.ShipColor;
+            if (ship.IsDualColor)
             {
-                PixelCube cube = colorCubes[i];
-                if (cube == null || s_ReservedCubes.Contains(cube) || cube.IsMystery) continue;
-                anyMatching = true;
-                break;
+                bool canPrimary = (ship.Capacity - (ship.CurrentCargo + ship.PendingCargo) > 0) && HasExposedMatchingCube(ship.ShipColor);
+                bool canSecondary = (ship.SecondaryCapacity - (ship.CurrentSecondaryCargo + ship.PendingSecondaryCargo) > 0) && HasExposedMatchingCube(ship.SecondaryColor);
+
+                if (canPrimary && canSecondary)
+                {
+                    int needP = ship.Capacity - (ship.CurrentCargo + ship.PendingCargo);
+                    int needS = ship.SecondaryCapacity - (ship.CurrentSecondaryCargo + ship.PendingSecondaryCargo);
+                    targetColor = needP >= needS ? ship.ShipColor : ship.SecondaryColor;
+                }
+                else if (canSecondary)
+                {
+                    targetColor = ship.SecondaryColor;
+                }
+                else if (canPrimary)
+                {
+                    targetColor = ship.ShipColor;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                bool anyMatching = false;
+                var colorCubes = GetBoardCubesOfColor(ship.ShipColor);
+                for (int i = 0; i < colorCubes.Count; i++)
+                {
+                    PixelCube cube = colorCubes[i];
+                    if (cube == null || s_ReservedCubes.Contains(cube) || cube.IsMystery) continue;
+                    anyMatching = true;
+                    break;
+                }
+                if (!anyMatching) return false;
             }
 
-            if (!anyMatching) return false;
-
-            // Seçim kuralı (GetExposedMatchingCubes ile aynı): yalnızca şu an gerçekten açık küpler,
-            // en alt sıra önce, aynı sırada soldan sağa.
-            int needed = Mathf.Max(0, ship.Capacity - (ship.CurrentCargo + ship.PendingCargo));
+            int needed = (ship.IsDualColor && PaletteColorOverride.ColorsMatch(targetColor, ship.SecondaryColor))
+                ? Mathf.Max(0, ship.SecondaryCapacity - (ship.CurrentSecondaryCargo + ship.PendingSecondaryCargo))
+                : Mathf.Max(0, ship.Capacity - (ship.CurrentCargo + ship.PendingCargo));
             int limit = Mathf.Min(needed, Mathf.Max(1, maxPerLaunch));
             if (limit <= 0) return false;
 
             List<PixelCube> candidates;
             if (m_UseReversedShipRunners)
             {
-                // Önce bekleyen denizciler (en eski çıkandan başlayarak) yeni açılan küpleri alır; yeni denizcinin ilk
-                // küpü kalanlar arasından toplama sırasına göre (en alt, en dış) seçilir — mesafeye göre değil
                 AllocateStackClaims();
-                candidates = GetNextCollectibleBlocks(ship.ShipColor);
+                candidates = GetNextCollectibleBlocks(targetColor);
             }
             else
             {
-                candidates = GetExposedMatchingCubes(ship.ShipColor);
+                candidates = GetExposedMatchingCubes(targetColor);
             }
             if (candidates.Count > limit) candidates.RemoveRange(limit, candidates.Count - limit);
 
@@ -1365,7 +1394,7 @@ namespace PixelGame
             Vector3 shoreCenter = GetShorePoint(ship);
 
             int reserved = 0;
-            while (reserved < candidates.Count && ship.TryReserveCargo()) reserved++;
+            while (reserved < candidates.Count && ship.TryReserveCargoForColor(targetColor)) reserved++;
             if (reserved == 0) return false;
 
             var selectedCubes = new List<PixelCube>(reserved);
@@ -1380,18 +1409,15 @@ namespace PixelGame
             {
                 bool sailorRunners = m_UseSailorRunner && GetRunnerPrefab() != null && GetRunnerPrefab().GetComponent<SailorRunnerVisual>() != null;
 
-                // Yığın taşıma: denizci ilk küpü alır, kalanını yolda tek tek toplar. Kotası kadar yer şimdiden
-                // ayrılır ki sonraki denizciler aynı yükü paylaşmasın (30 → 6 denizci × 5). Bulamadığını dönüşte geri verir.
                 int batchQuota = reserved;
                 StackClaim claim = null;
                 if (sailorRunners && reserved == 1 && m_SailorStackSize > 1)
                 {
-                    while (batchQuota < m_SailorStackSize && ship.TryReserveCargo()) batchQuota++;
+                    while (batchQuota < m_SailorStackSize && ship.TryReserveCargoForColor(targetColor)) batchQuota++;
                     ship.AddUnassignedQuota(batchQuota - reserved);
                     if (batchQuota > reserved)
                     {
-                        // Görevin kalanı: sıradaki küpler denizci ilk küpü aldıktan sonra, bulunduğu yere en yakın açık küpten tek tek ayrılır
-                        claim = new StackClaim { Serial = ++m_StackClaimSerial, Ship = ship, Color = ship.ShipColor, Unassigned = batchQuota - reserved,
+                        claim = new StackClaim { Serial = ++m_StackClaimSerial, Ship = ship, Color = targetColor, Unassigned = batchQuota - reserved,
                                                  Last = (selectedCubes[0].GridX, selectedCubes[0].GridY) };
                         m_StackClaims.Add(claim);
                         AllocateStackClaims();
@@ -5797,7 +5823,7 @@ namespace PixelGame
             {
                 int unused = quota - pickedCubes.Count;
                 ReleaseStackClaim(claim);
-                for (int q = 0; q < unused; q++) ship.ReleaseCargoReservation();
+                for (int q = 0; q < unused; q++) ship.ReleaseCargoReservationForColor(runnerColor);
                 m_ActiveCargoFlightCount = Mathf.Max(0, m_ActiveCargoFlightCount - unused);
                 quota = pickedCubes.Count;
                 // Boşa çıkan kontenjanı hemen değerlendir: bekleyen gemileri ve sıradaki gemicileri HEMEN tetikle!
@@ -5986,7 +6012,8 @@ namespace PixelGame
             // Boarding completion & load ship
             if (ship != null)
             {
-                ship.AddCargo(Mathf.Max(1, pickedCubes.Count));
+                Color loadedColor = (pickedCubes.Count > 0 && pickedCubes[0] != null) ? pickedCubes[0].CurrentColor : runnerColor;
+                ship.AddCargoForColor(loadedColor, Mathf.Max(1, pickedCubes.Count));
                 // Tek yükte hafif, art arda yüklerde ve gemi dolunca daha güçlü batma
                 float dip = NextShipBoardDip(ship);
                 ship.TriggerWaterDipImpact(dip, Mathf.Lerp(0.32f, 0.5f, Mathf.InverseLerp(m_ShipBoardDipRange.x, m_ShipFullDip, dip)));
@@ -6025,7 +6052,8 @@ namespace PixelGame
             // İşçi güverteden içeri tamamen bindi (yok oldu):
             if (ship != null)
             {
-                ship.OnWorkerBoarded(Mathf.Max(1, pickedCubes.Count));
+                Color loadedColor = (pickedCubes.Count > 0 && pickedCubes[0] != null) ? pickedCubes[0].CurrentColor : runnerColor;
+                ship.OnWorkerBoardedForColor(loadedColor, Mathf.Max(1, pickedCubes.Count));
             }
 
             ReleaseReservedCubes(targetCube, pickedCubes);

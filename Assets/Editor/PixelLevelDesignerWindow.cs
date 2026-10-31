@@ -2408,6 +2408,16 @@ namespace PixelGame.Editor
 
             GUILayout.Space(6);
 
+            // ⚡ Güçlü Konteyner Fırçası (Siyah-Beyaz)
+            bool isStrongBrush = (m_ActiveBrushPaletteIndex == -3);
+            GUI.backgroundColor = isStrongBrush ? new Color(0.3f, 1f, 0.5f) : new Color(0.95f, 0.95f, 1f);
+            if (GUILayout.Button(isStrongBrush ? "⚡ Güçlü Fırça Aktif" : "⚡ Güçlü Konteyner", EditorStyles.miniButton, GUILayout.Width(125), GUILayout.Height(20)))
+            {
+                m_ActiveBrushPaletteIndex = isStrongBrush ? -1 : -3;
+                m_SelectedSlotForSwap = -1;
+            }
+            GUI.backgroundColor = Color.white;
+
             // Silgi Butonu
             bool isEraser = (m_ActiveBrushPaletteIndex == -2);
             GUI.backgroundColor = isEraser ? new Color(1f, 0.4f, 0.4f) : Color.white;
@@ -2435,6 +2445,10 @@ namespace PixelGame.Editor
                 var brushEntry = m_SelectedLevel.ColorPalette[m_ActiveBrushPaletteIndex];
                 string bName = GetColorDisplayName(brushEntry.targetColor, brushEntry.label, m_ActiveBrushPaletteIndex);
                 EditorGUILayout.HelpBox($"🖌️ Fırça Aktif: '{bName}'. Aşağıdaki ızgara slotlarına tıklayarak bu rengi tek tıkla yerleştirebilirsiniz.", MessageType.Info);
+            }
+            else if (m_ActiveBrushPaletteIndex == -3)
+            {
+                EditorGUILayout.HelpBox("⚡ Güçlü Konteyner Fırçası Aktif: Tıkladığınız slot seviyedeki en yüksek oranlı renklere sahip çift renkli güçlü gemiciler konteynerine dönüşür.", MessageType.Info);
             }
             else if (m_ActiveBrushPaletteIndex == -2)
             {
@@ -2538,6 +2552,72 @@ namespace PixelGame.Editor
             m_SelectedLevel.UseCustomWagonSequence = true;
             EditorUtility.SetDirty(m_SelectedLevel);
             NotifyLiveSceneUpdate();
+        }
+
+        /// <summary>
+        /// Seviyenin renk paletindeki küp oranlarını analiz ederek vagona en uygun iki rengi atar.
+        /// Birincil rengi korur (veya en çok küpü olan rengi seçer); ikincil renge ise seviyedeki
+        /// en yüksek oranlı diğer rengi atar.
+        /// </summary>
+        private void SetupDualColorWagonFromPalette(WagonSequenceEntry wagon, int slotIndex)
+        {
+            if (wagon == null) return;
+            wagon.isDualColor = true;
+
+            var palette = m_SelectedLevel != null ? m_SelectedLevel.ColorPalette : null;
+            if (palette == null || palette.Count == 0)
+            {
+                wagon.wagonColor = Color.white;
+                wagon.secondaryColor = Color.black;
+                wagon.secondaryCapacity = wagon.capacity;
+                wagon.label = "Güçlü Konteyner";
+                return;
+            }
+
+            // Seviyedeki renkleri küp sayısına göre (büyükten küçüğe) sıralayalım
+            var sorted = new List<PaletteColorOverride>(palette);
+            sorted.Sort((a, b) => (b != null ? b.pixelCount : 0).CompareTo(a != null ? a.pixelCount : 0));
+
+            // Mevcut renk seviyenin paletinde var mı?
+            Color primary = wagon.wagonColor;
+            bool primaryInPalette = false;
+            for (int i = 0; i < palette.Count; i++)
+            {
+                if (palette[i] != null && PaletteColorOverride.ColorsMatch(palette[i].targetColor, primary))
+                {
+                    primaryInPalette = true;
+                    break;
+                }
+            }
+
+            if (!primaryInPalette && sorted.Count > 0 && sorted[0] != null)
+            {
+                primary = sorted[0].targetColor;
+                wagon.wagonColor = primary;
+            }
+
+            // İkincil renk: Seviyedeki paletten, birincil renkten farklı en yüksek küp sayısına sahip renk
+            Color secondary = primary;
+            for (int i = 0; i < sorted.Count; i++)
+            {
+                if (sorted[i] != null && !PaletteColorOverride.ColorsMatch(sorted[i].targetColor, primary))
+                {
+                    secondary = sorted[i].targetColor;
+                    break;
+                }
+            }
+
+            // Seviyede sadece 1 renk varsa kontrast koyu/açık ton
+            if (PaletteColorOverride.ColorsMatch(secondary, primary))
+            {
+                secondary = primary.grayscale > 0.5f ? Color.black : Color.white;
+            }
+
+            wagon.secondaryColor = secondary;
+            wagon.secondaryCapacity = wagon.capacity;
+            string pName = GetColorDisplayName(primary, "", slotIndex);
+            string sName = GetColorDisplayName(secondary, "", slotIndex);
+            wagon.label = $"Güçlü ({pName}+{sName})";
         }
 
         private void DrawVisualGridBoard()
@@ -2694,15 +2774,28 @@ namespace PixelGame.Editor
 
                 // 1. Üst Şerit: Vagon Rengi + Numara + Silme Butonu
                 Rect topRect = EditorGUILayout.GetControlRect(false, 20);
-                EditorGUI.DrawRect(topRect, wc);
+                if (wagon.isDualColor)
+                {
+                    Rect leftRect = new Rect(topRect.x, topRect.y, topRect.width * 0.5f, topRect.height);
+                    Rect rightRect = new Rect(topRect.x + topRect.width * 0.5f, topRect.y, topRect.width * 0.5f, topRect.height);
+                    EditorGUI.DrawRect(leftRect, Color.white);
+                    EditorGUI.DrawRect(rightRect, new Color(0.12f, 0.12f, 0.14f, 1f));
+                }
+                else
+                {
+                    EditorGUI.DrawRect(topRect, wc);
+                }
 
                 GUIStyle numStyle = new GUIStyle(EditorStyles.boldLabel)
                 {
                     alignment = TextAnchor.MiddleLeft,
                     fontSize = 10,
-                    normal = { textColor = (wc.grayscale > 0.55f) ? Color.black : Color.white }
+                    normal = { textColor = wagon.isDualColor ? Color.black : ((wc.grayscale > 0.55f) ? Color.black : Color.white) }
                 };
-                GUI.Label(new Rect(topRect.x + 4, topRect.y + 1, topRect.width - 44, 18), $"#{slotIndex + 1} {cDisplayName}", numStyle);
+                string c1Short = wagon.isDualColor ? GetColorDisplayName(wagon.wagonColor, "", slotIndex) : "";
+                string c2Short = wagon.isDualColor ? GetColorDisplayName(wagon.secondaryColor, "", slotIndex) : "";
+                string titleLabel = wagon.isDualColor ? $"#{slotIndex + 1} ⚡ Güçlü ({c1Short}+{c2Short})" : $"#{slotIndex + 1} {cDisplayName}";
+                GUI.Label(new Rect(topRect.x + 4, topRect.y + 1, topRect.width - 44, 18), titleLabel, numStyle);
 
                 // ❓ Gizli Gemi: En ön sıraya gelene kadar renk ve yazı '?' desenli örtüyle saklanır
                 GUI.backgroundColor = wagon.isHidden ? new Color(0.35f, 0.32f, 0.9f) : Color.white;
@@ -2741,6 +2834,66 @@ namespace PixelGame.Editor
                     NotifyLiveSceneUpdate();
                     EditorGUILayout.EndVertical();
                     return;
+                }
+
+                // ⚡ Güçlü Gemiciler / Çift Renkli Butonu (Seviye paletine oranlı)
+                EditorGUILayout.BeginHorizontal();
+                GUI.backgroundColor = wagon.isDualColor ? new Color(0.2f, 0.92f, 0.45f) : Color.white;
+                string dualBtnText = wagon.isDualColor ? "⚡ Güçlü: Aktif" : "⚡ Güçlü Yap";
+                if (GUILayout.Button(new GUIContent(dualBtnText, "Seviyenin renk oranlarına göre güçlü gemiciler konteyneri oluşturur (her iki rengi de toplar)"), EditorStyles.miniButton, GUILayout.Height(17)))
+                {
+                    Undo.RecordObject(m_SelectedLevel, "Toggle Dual Color Wagon");
+                    if (!wagon.isDualColor)
+                    {
+                        SetupDualColorWagonFromPalette(wagon, slotIndex);
+                    }
+                    else
+                    {
+                        wagon.isDualColor = false;
+                        string origName = GetColorDisplayName(wagon.wagonColor, "", slotIndex);
+                        wagon.label = origName;
+                    }
+                    m_SelectedLevel.UseCustomWagonSequence = true;
+                    EditorUtility.SetDirty(m_SelectedLevel);
+                    NotifyLiveSceneUpdate();
+                }
+                GUI.backgroundColor = Color.white;
+                EditorGUILayout.EndHorizontal();
+
+                // Çift renkliyse 2. Rengi seviye paletinden seçme / değiştirme butonu
+                if (wagon.isDualColor && m_SelectedLevel != null && m_SelectedLevel.ColorPalette != null)
+                {
+                    EditorGUILayout.BeginHorizontal();
+                    string secName = GetColorDisplayName(wagon.secondaryColor, "", slotIndex);
+                    GUILayout.Label("2. Renk:", EditorStyles.miniLabel, GUILayout.Width(44));
+                    Rect secRect = EditorGUILayout.GetControlRect(false, 14, GUILayout.Width(16));
+                    EditorGUI.DrawRect(secRect, wagon.secondaryColor);
+                    if (GUILayout.Button(new GUIContent("Değiştir ▾", "2. rengi seviyenin diğer renklerinden biriyle değiştir"), EditorStyles.miniButton, GUILayout.Height(15)))
+                    {
+                        GenericMenu menu = new GenericMenu();
+                        for (int p = 0; p < m_SelectedLevel.ColorPalette.Count; p++)
+                        {
+                            var entry = m_SelectedLevel.ColorPalette[p];
+                            if (entry == null || entry.pixelCount <= 0) continue;
+                            Color pc = entry.targetColor;
+                            string name = GetColorDisplayName(pc, entry.label, p);
+                            int count = entry.pixelCount;
+                            menu.AddItem(new GUIContent($"{name} ({count} küp)"), PaletteColorOverride.ColorsMatch(wagon.secondaryColor, pc), () =>
+                            {
+                                Undo.RecordObject(m_SelectedLevel, "Change Secondary Color");
+                                wagon.secondaryColor = pc;
+                                wagon.secondaryCapacity = wagon.capacity;
+                                string pN = GetColorDisplayName(wagon.wagonColor, "", slotIndex);
+                                string sN = GetColorDisplayName(wagon.secondaryColor, "", slotIndex);
+                                wagon.label = $"Güçlü ({pN}+{sN})";
+                                m_SelectedLevel.UseCustomWagonSequence = true;
+                                EditorUtility.SetDirty(m_SelectedLevel);
+                                NotifyLiveSceneUpdate();
+                            });
+                        }
+                        menu.ShowAsContext();
+                    }
+                    EditorGUILayout.EndHorizontal();
                 }
 
                 // 2. Takas / Seçim Butonu
@@ -3029,6 +3182,24 @@ namespace PixelGame.Editor
         {
             var sequence = m_SelectedLevel.WagonSequence;
             if (sequence == null) sequence = m_SelectedLevel.WagonSequence = new List<WagonSequenceEntry>();
+
+            // 0. ⚡ Güçlü Konteyner Fırçası (Seviye renklerine oranlı)
+            if (m_ActiveBrushPaletteIndex == -3)
+            {
+                while (sequence.Count <= slotIndex) sequence.Add(null);
+                int cap = Mathf.Max(1, m_SelectedLevel.TruckCapacity > 0 ? m_SelectedLevel.TruckCapacity : 20);
+                var entry = sequence[slotIndex] ?? new WagonSequenceEntry(Color.white, cap, 0, "Vagon");
+                Undo.RecordObject(m_SelectedLevel, "Set Dual Color Wagon");
+                SetupDualColorWagonFromPalette(entry, slotIndex);
+                entry.capacity = cap;
+                entry.secondaryCapacity = cap;
+                sequence[slotIndex] = entry;
+                m_SelectedSlotForSwap = -1;
+                m_SelectedLevel.UseCustomWagonSequence = true;
+                EditorUtility.SetDirty(m_SelectedLevel);
+                NotifyLiveSceneUpdate();
+                return;
+            }
 
             // 1. Silgi Modu
             if (m_ActiveBrushPaletteIndex == -2)
