@@ -216,7 +216,8 @@ def main():
     rnd = random.Random(seed)
     W, H, g, pal, cnt = load(png)
     OUTER.update(outer_colors(W, H, g))
-    maxc = 40 if sum(cnt) >= 900 else 30
+    # kapasite sınırı: Kolay 30 (büyükte 40), Orta 40, Zor 50 — MAXC ile ezilebilir
+    maxc = int(os.environ.get('MAXC', 0)) or (50 if tier in 'ZS' else 40 if tier == 'O' or sum(cnt) >= 900 else 30)
     caps = {i: split(n, maxc) for i, n in enumerate(cnt)}
     best = None
     for restart in range(3):

@@ -16,7 +16,7 @@ Tüm komutlar proje kökünden (`PixelGame/`) çalıştırılır.
 2. Resmin her opak pikseli bir küptür. Her rengin küp sayısı = o rengin gemilerinin kapasite toplamı. **Bir küp bile eksik/fazla olursa level bitmez.**
 3. Oyun iki rengi kanal başına **0.04 (≈10/255) toleransla** aynı sayar. Bu kadar yakın iki renk olursa sayılar bozulur. Kanal başına 14'ten yakın tonlar da oyuncu için ayırt edilemez → kullanma.
 4. 5 slot sabittir. Kuyrukta sütun (şerit) sayısı `m_PoolColumns`: **çoğunlukla 4**, küçük/az gemili levellerde 3; **Kolay levellerde her zaman 3**. Satır `m_PoolRows: 3`.
-5. Gemi kapasitesi en fazla **30** (1024 küplük "büyük" levellerde **40**). Renk başına en fazla **1 küsuratlı** (10'un katı olmayan) gemi.
+5. Gemi kapasitesi en fazla: Kolay **30** (1024 küplük "büyük" Kolay'da **40**), Orta **40**, Zor **50** (kullanıcı kararı, 2026-10-31). Renk başına en fazla **1 küsuratlı** (10'un katı olmayan) gemi.
 6. Aynı sütunda aynı renk arka arkaya gelmez.
 7. Halat **sadece ikili**, iki gemi **farklı renk**, yan yana komşu sütunda ya da başlangıç havuzunda alt alta.
 8. **Halatlı gemi dolunca kalkmaz; partneri de dolana kadar slotu işgal eder.** Zorluğun en büyük kaynağı ve en büyük tuzağı budur.
@@ -83,7 +83,7 @@ Konum: `Assets/Levels/Level_<N>_<Ad>.asset` (+ `.meta`, benzersiz guid). YAML; i
 | `m_PoolRows` | 3 |
 | `m_UseCustomWagonSequence` | **1** |
 | `m_WagonSequence` | Gemi listesi: `wagonColor` (paletteki renk), `capacity`, `paletteIndex`, `label: Vagon`, `linkId` (0 = halatsız, aynı sayı = çift), `isHidden` (0/1) |
-| `m_TruckCapacity` | 30 (büyük levelde 40) — özel sırada sadece bilgi amaçlı |
+| `m_TruckCapacity` | sıradaki en büyük gemi kapasitesi — özel sırada sadece bilgi amaçlı |
 | `m_MysteryCubeCoordinates` | `- {x: 4, y: 12}` listesi ya da `[]` |
 | `m_MysteryRevealCondition` | 0 |
 | `m_MysteryCubeColor` | `{r: 0.415686, g: 0.352941, b: 0.478431, a: 1}` gibi, paletten uzak |
@@ -129,7 +129,7 @@ Konum: `Assets/Levels/Level_<N>_<Ad>.asset` (+ `.meta`, benzersiz guid). YAML; i
 
 ### 4.1 Kapasite bölme
 - Her renk ayrı gemilere bölünür. `n ≤ max` → tek gemi. Değilse: `r = n % 10`; `r > 0` ise bir küsuratlı gemi `10 + r`, kalanı `max`, …, son parça 10'un katı. Örn. max 30: 187 → 30,30,30,30,30,20,17; 66 → 30,20,16. Max = 30 (büyük levelde 40).
-- Kapasiteler çoğunlukla 10/20/30(/40) okunmalı; renk başına en fazla 1 küsuratlı gemi; küsuratlı gemiler kuyruğa homojen dağılsın (hepsi başa yığılmasın). 10'dan küçük gemi olmasın (rengin tamamı <10 değilse).
+- Kapasiteler çoğunlukla 10/20/30/40(/50) okunmalı; renk başına en fazla 1 küsuratlı gemi; küsuratlı gemiler kuyruğa homojen dağılsın (hepsi başa yığılmasın). 10'dan küçük gemi olmasın (rengin tamamı <10 değilse).
 - Gemi sayısını gereksiz artırma (çok küçük gemi levelleri uzatır, oyun döngüsünü bozar).
 
 ### 4.2 Sıra

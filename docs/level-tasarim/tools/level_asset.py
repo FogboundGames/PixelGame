@@ -114,7 +114,7 @@ def cmd_apply(args):
     tier = args.tier or {'S': 'Z'}.get(d['tier'], d['tier'])
     big = sum(d['cnt']) >= 900
     for k, v in [('m_PoolColumns', cols), ('m_PoolRows', 3), ('m_DifficultyTier', TIER[tier]), ('m_DifficultyManual', 1),
-                 ('m_UseCustomWagonSequence', 1), ('m_TruckCapacity', 40 if big else 30), ('m_UseNativeResolution', 1)]:
+                 ('m_UseCustomWagonSequence', 1), ('m_TruckCapacity', max(s['cap'] for s in d['seq'])), ('m_UseNativeResolution', 1)]:
         a = re.sub(rf'{k}: \d+', f'{k}: {v}', a, count=1)
     open(path, 'w').write(a)
     print(f'yazıldı: {args.asset}  gemi {len(d["seq"])}  sütun {cols}  zorluk {tier}')
@@ -232,7 +232,9 @@ def cmd_check(args):
         errs.append('m_UseCustomWagonSequence 1 olmalı')
     if 'm_DifficultyManual: 1' not in a:
         warns.append('m_DifficultyManual 0: Unity zorluğu kendi analiziyle değiştirir')
-    maxc = 40 if info['big'] else 30
+    m = re.search(r'm_DifficultyTier: (\d+)', a)
+    tier = {v: k for k, v in TIER.items()}.get(int(m.group(1)) if m else -1, 'K')
+    maxc = 50 if tier in 'ZS' else 40 if tier == 'O' or info['big'] else 30  # Kolay 30 (büyükte 40), Orta 40, Zor 50
     for i, w in enumerate(ws):
         if w['cap'] > maxc: errs.append(f'gemi {i}: kapasite {w["cap"]} > {maxc}')
     odd = collections.Counter(w['c'] for w in ws if w['cap'] % 10)
