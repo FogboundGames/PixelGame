@@ -262,21 +262,24 @@ MonoBehaviour:
   - wagonColor: {r: 0.36078432, g: 0.6431373, b: 0.9098039, a: 1}
     capacity: 40
     paletteIndex: 0
-    label: Vagon (#28) (#28) (#28)
+    label: "G\xFC\xE7l\xFC (#0+#1)"
     linkId: 0
     isHidden: 0
+    isDualColor: 1
+    secondaryColor: {r: 0.65882355, g: 0.8392157, b: 0.9647059, a: 1}
+    secondaryCapacity: 40
   - wagonColor: {r: 0.19607843, g: 0.54901963, b: 0.23529412, a: 1}
     capacity: 24
     paletteIndex: 9
     label: Vagon (#29) (#29) (#29)
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.65882355, g: 0.8392157, b: 0.9647059, a: 1}
+  - wagonColor: {r: 0.18039216, g: 0.47058824, b: 0.23529412, a: 1}
     capacity: 40
-    paletteIndex: 1
-    label: Vagon (#30) (#30) (#30)
+    paletteIndex: 6
+    label: Vagon (#34) (#34) (#34)
     linkId: 0
-    isHidden: 0
+    isHidden: 1
   - wagonColor: {r: 0.65882355, g: 0.8392157, b: 0.9647059, a: 1}
     capacity: 40
     paletteIndex: 1
@@ -293,12 +296,6 @@ MonoBehaviour:
     capacity: 40
     paletteIndex: 2
     label: Vagon (#33) (#33) (#33)
-    linkId: 0
-    isHidden: 1
-  - wagonColor: {r: 0.18039216, g: 0.47058824, b: 0.23529412, a: 1}
-    capacity: 40
-    paletteIndex: 6
-    label: Vagon (#34) (#34) (#34)
     linkId: 0
     isHidden: 1
   m_FigureShadowTexture: {fileID: 0}

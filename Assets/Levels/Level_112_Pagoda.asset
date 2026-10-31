@@ -285,9 +285,12 @@ MonoBehaviour:
   - wagonColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
     capacity: 50
     paletteIndex: 1
-    label: Vagon
+    label: "G\xFC\xE7l\xFC (#1+#0)"
     linkId: 0
     isHidden: 0
+    isDualColor: 1
+    secondaryColor: {r: 0.69019608, g: 0.8627451, b: 0.98039216, a: 1}
+    secondaryCapacity: 50
   - wagonColor: {r: 0.69019608, g: 0.8627451, b: 0.98039216, a: 1}
     capacity: 30
     paletteIndex: 0
@@ -305,12 +308,6 @@ MonoBehaviour:
     paletteIndex: 1
     label: Vagon
     linkId: 5
-    isHidden: 0
-  - wagonColor: {r: 0.69019608, g: 0.8627451, b: 0.98039216, a: 1}
-    capacity: 50
-    paletteIndex: 0
-    label: Vagon
-    linkId: 0
     isHidden: 0
   m_FigureShadowTexture: {fileID: 0}
   m_UseCustomColorTheme: 0

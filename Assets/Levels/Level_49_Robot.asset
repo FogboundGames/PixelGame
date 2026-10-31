@@ -329,15 +329,12 @@ MonoBehaviour:
   - wagonColor: {r: 0.69803923, g: 0.74509805, b: 0.8, a: 1}
     capacity: 40
     paletteIndex: 2
-    label: Vagon (#32) (#32)
+    label: "G\xFC\xE7l\xFC (#2+#1)"
     linkId: 0
     isHidden: 0
-  - wagonColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
-    capacity: 40
-    paletteIndex: 1
-    label: Vagon (#33) (#33)
-    linkId: 0
-    isHidden: 0
+    isDualColor: 1
+    secondaryColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
+    secondaryCapacity: 40
   m_FigureShadowTexture: {fileID: 0}
   m_UseCustomColorTheme: 0
   m_ColorTheme:
