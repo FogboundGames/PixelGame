@@ -12,6 +12,8 @@ namespace PixelGame.Editor
     {
         static SetupHardLevelBanner()
         {
+            // Otomatik çalıştırma kapalı: Sahneyi kirletmemesi için. Menüden elle çalıştırılabilir.
+            /*
             EditorApplication.delayCall += () =>
             {
                 CasualHudController hud = Object.FindFirstObjectByType<CasualHudController>();
@@ -20,6 +22,7 @@ namespace PixelGame.Editor
                     hud.EnsureHardLevelBanner();
                 }
             };
+            */
         }
 
         // [MenuItem("Tools/PixelGame/🔥 Hard Level Banner Kur & Test Et", priority = 45)]

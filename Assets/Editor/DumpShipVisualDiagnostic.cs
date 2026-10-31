@@ -9,11 +9,14 @@ namespace PixelGame.Editor
     {
         static DumpShipVisualDiagnostic()
         {
+            // Otomatik çalıştırma kapalı. Menüden elle çalıştırılabilir.
+            /*
             EditorApplication.delayCall += () =>
             {
                 if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode) return;
                 RunDiagnostic();
             };
+            */
         }
 
         // [MenuItem("PixelGame/🔍 Diagnostic Dump")]

@@ -14,7 +14,8 @@ namespace PixelGame.Editor
 
         static SetupYapbozLevel()
         {
-            EditorApplication.delayCall += EnsureYapbozLevel;
+            // Otomatik çalıştırma kapalı: Seviye ayarlarını ve sıra indeksini ezmemesi için.
+            // EditorApplication.delayCall += EnsureYapbozLevel;
         }
 
         // [MenuItem("Tools/PixelGame/🧩 ASMR Piksel Yapboz Seviyesini Kur ve Güncelle", priority = 11)]

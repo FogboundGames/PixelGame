@@ -11,13 +11,13 @@ SIM = D + '/sim'
 COLS, ROWS = int(os.environ.get('COLS', 4)), int(os.environ.get('ROWS', 3))
 
 BANDS = {  # (random lo, hi), (smart lo, hi)
-    'K': ((0.90, 1.00), (1.00, 1.00)),
+    'K': ((0.55, 0.80), (0.98, 1.00)),  # 2026-10-31: 0.90+ "ekrana bakmadan geçiliyor" — çok kolaydı
     'O': ((0.30, 0.55), (0.90, 1.00)),
     'Z': ((0.05, 0.20), (0.30, 0.80)),
     'S': ((0.12, 0.30), (0.80, 0.95)),  # fair Zor: a careful player should win
 }
-LINKS = {'K': (0, 1), 'O': (4, 6), 'Z': (5, 7), 'S': (5, 6)}
-HIDDEN = {'K': (0, 1), 'O': (4, 6), 'Z': (5, 7), 'S': (5, 6)}
+LINKS = {'K': (1, 2), 'O': (4, 6), 'Z': (5, 7), 'S': (5, 6)}
+HIDDEN = {'K': (1, 2), 'O': (4, 6), 'Z': (5, 7), 'S': (5, 6)}
 
 
 def load(png):
@@ -29,6 +29,27 @@ def load(png):
     idx = {c: i for i, c in enumerate(pal)}
     g = [[idx[px[y * W + x][:3]] if px[y * W + x][3] > 0 else -1 for x in range(W)] for y in range(H)]
     return W, H, g, pal, [cnt[c] for c in pal]
+
+
+# başta açıkta olan (dış katman) renkler: en öndeki gemiler bunlardan olursa level kendini oynar
+OUTER = set()
+FRONT_OUTER = int(os.environ.get('FRONT_OUTER', 1))   # ön sırada en fazla bu kadar dış-katman gemisi
+OPEN_OUTER = int(os.environ.get('OPEN_OUTER', 3))     # ilk iki sırada en fazla bu kadar
+
+
+def outer_colors(W, H, g, min_exposed=6):
+    air = set(); st = [(-1, -1)]
+    while st:
+        x, y = st.pop()
+        if (x, y) in air or not (-1 <= x <= W and -1 <= y <= H):
+            continue
+        if 0 <= x < W and 0 <= y < H and g[y][x] >= 0:
+            continue
+        air.add((x, y))
+        st += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+    exp = collections.Counter(g[y][x] for y in range(H) for x in range(W)
+                              if g[y][x] >= 0 and any(q in air for q in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1))))
+    return {c for c, n in exp.items() if n >= min_exposed}
 
 
 def split(n, maxc):
@@ -84,6 +105,10 @@ def valid_order(seq):
     if sum(1 for i in first.values() if i < pool) > 2:
         return False
     if sum(1 for i in range(min(COLS, n)) if seq[i]['link']) > COLS // 2:
+        return False
+    if sum(1 for i in range(min(COLS, n)) if seq[i]['c'] in OUTER) > FRONT_OUTER:
+        return False
+    if sum(1 for i in range(min(2 * COLS, n)) if seq[i]['c'] in OUTER) > OPEN_OUTER:
         return False
     return True
 
@@ -190,6 +215,7 @@ def main():
     iters = int(os.environ.get('ITERS', 400))
     rnd = random.Random(seed)
     W, H, g, pal, cnt = load(png)
+    OUTER.update(outer_colors(W, H, g))
     maxc = 40 if sum(cnt) >= 900 else 30
     caps = {i: split(n, maxc) for i, n in enumerate(cnt)}
     best = None

@@ -12,7 +12,8 @@ namespace PixelGame.Editor
     {
         static AssignAllDifficultyTiers()
         {
-            EditorApplication.delayCall += SyncAll;
+            // Otomatik çalıştırma kapalı: Seviye zorluk kademelerini ezmemesi için.
+            // EditorApplication.delayCall += SyncAll;
         }
 
         // [MenuItem("Tools/PixelGame/Sync All Difficulty Tiers", priority = 40)]

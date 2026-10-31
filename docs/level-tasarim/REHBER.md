@@ -15,13 +15,13 @@ Tüm komutlar proje kökünden (`PixelGame/`) çalıştırılır.
 1. Her level = bir 32×32 PNG + bir `PixelLevelData` asset'i (`Assets/Levels/Level_<N>_<Ad>.asset`) + LevelSequence'te bir satır.
 2. Resmin her opak pikseli bir küptür. Her rengin küp sayısı = o rengin gemilerinin kapasite toplamı. **Bir küp bile eksik/fazla olursa level bitmez.**
 3. Oyun iki rengi kanal başına **0.04 (≈10/255) toleransla** aynı sayar. Bu kadar yakın iki renk olursa sayılar bozulur. Kanal başına 14'ten yakın tonlar da oyuncu için ayırt edilemez → kullanma.
-4. 5 slot sabittir. Kuyrukta sütun (şerit) sayısı `m_PoolColumns`: **çoğunlukla 4**, küçük/az gemili levellerde 3. Satır `m_PoolRows: 3`.
+4. 5 slot sabittir. Kuyrukta sütun (şerit) sayısı `m_PoolColumns`: **çoğunlukla 4**, küçük/az gemili levellerde 3; **Kolay levellerde her zaman 3**. Satır `m_PoolRows: 3`.
 5. Gemi kapasitesi en fazla **30** (1024 küplük "büyük" levellerde **40**). Renk başına en fazla **1 küsuratlı** (10'un katı olmayan) gemi.
 6. Aynı sütunda aynı renk arka arkaya gelmez.
 7. Halat **sadece ikili**, iki gemi **farklı renk**, yan yana komşu sütunda ya da başlangıç havuzunda alt alta.
 8. **Halatlı gemi dolunca kalkmaz; partneri de dolana kadar slotu işgal eder.** Zorluğun en büyük kaynağı ve en büyük tuzağı budur.
 9. Gizli gemi (`isHidden`) ön sırada başlamaz ve halatlı olmaz.
-10. Açılış okunur olmalı: ilk 3 satırda en fazla 2 halat, ön sıranın en fazla yarısı halatlı.
+10. Açılış okunur olmalı: ilk 3 satırda en fazla 2 halat, ön sıranın en fazla yarısı halatlı. **Ön sırada en fazla 1, ilk iki sırada en fazla 3 gemi "dış katman" renginden olur** (başta açıkta ≥6 küpü olan renk: genelde outline). Yoksa oyuncu ekrana bakmadan öndeki gemileri yollar ve level kendini oynar (kullanıcı şikayeti, 2026-10-31).
 11. Zorluğu **simülatörle ölç**; Zor level "dikkatli oynayan oyuncu %80–95 geçer" olmalı, "şansa bağlı" olmamalı (zamanlama testi).
 12. 3–4 renkli düz ikonlar olduğu gibi **her zaman Kolay**dır; Orta/Zor için resmi zenginleştir (outline, gölge, iç halka, arka plan) ve **önce/sonra görseliyle kullanıcıya onaylat.**
 13. Level sırasını **dosyayı elle düzenleyerek değil, Unity içinden** ayarla (§9). Kurallar: iki Zor yan yana olmaz, 3 büyük resim art arda olmaz.
@@ -117,7 +117,7 @@ Konum: `Assets/Levels/Level_<N>_<Ad>.asset` (+ `.meta`, benzersiz guid). YAML; i
 
 ### 3.4 Elindeki düz ikonlar (Assets/30.10.2026/ — 30 resim, 3–4 renk, 234–584 küp, outline'sız)
 Ölçüldü: **olduğu gibi bırakılırsa kuyruk ne olursa olsun simülatörde %100 geçilir** (bütün renkler baştan açıkta). Yani:
-- **Kolay** level için olduğu gibi kullan (halat 0–1, gizli 0–1, 3 sütun).
+- **Kolay** level için olduğu gibi kullan (halat 1–2, gizli 1–2, **3 sütun**, ön sıra kuralı §0/10).
 - **Orta** için zenginleştir: `--outline --shade --highlight --ring` (renk 3 → ~9; ölçüm: Ampul random %38, akıllı %100).
 - **Zor** için ayrıca arka plan ekle: `--bg sky|night|sea|sunset|checker` (1024 küp; ölçüm: Ampul+gece random %16, Can Simidi+deniz random %16 / akıllı %88).
 - Zenginleştirilmiş resmi **ayrı dosya adıyla** kaydet (örn. `Assets/30.10.2026/AmpulZ.png` ya da `Assets/32x32/Ampul.png`) — orijinali ezme. Her zaman `--preview` ile önce/sonra görseli üret ve **kullanıcıya göster, onay al.** Otomatik sonuç kötü görünürse (gölge garip yerde, halka anlamsız) elle düzelt ya da seçenekleri azalt.
@@ -141,7 +141,7 @@ Konum: `Assets/Levels/Level_<N>_<Ad>.asset` (+ `.meta`, benzersiz guid). YAML; i
 ### 4.3 Halat / gizli sayıları (kullanıcının istediği yoğunluk)
 | Zorluk | Halat (çift) | Gizli gemi | Gizli küp |
 |---|---|---|---|
-| Kolay | 0–1 | 0–1 | yok |
+| Kolay | 1–2 | 1–2 | yok |
 | Orta | 4–6 | 4–6 | bazılarında ~%4 |
 | Zor | 5–6 | 5–6 | ~%5 |
 Küçük (15–20 gemilik) levellerde üst sınıra zorlama; sayı kadar **açılış kuralı** ve **çözülebilirlik** önemli.
@@ -169,7 +169,7 @@ Slot sayısı **sabit 5**; zorluk slotla ayarlanmaz.
 ### 5.3 Hedef bantlar (kullanıcı oynayarak kalibre etti)
 | Zorluk | random | smart | tap testi | not |
 |---|---|---|---|---|
-| Kolay | ≥ 0.90 | 1.00 | — | hızlı biter |
+| Kolay | 0.55–0.80 | ≥ 0.98 | — | **3 sütun.** Eski hedef ≥0.90 "ekrana bakmadan geçiliyor" dedirtti |
 | Orta | 0.30–0.55 | ≥ 0.90 | smart ≥ 0.85 | |
 | Zor | 0.12–0.30 | 0.80–0.95 (1.00 da olur) | smart, normalden en fazla ~0.1 düşük | "dikkatli oynayan geçer" |
 Kalibrasyon dersleri:

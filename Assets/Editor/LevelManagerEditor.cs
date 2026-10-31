@@ -122,6 +122,8 @@ namespace PixelGame.Editor
             serializedObject.ApplyModifiedProperties();
         }
 
+        // Otomatik çalıştırma kapalı: İlerlemeyi habersiz sıfırlamaması için. Menüden elle sıfırlanabilir.
+        /*
         [InitializeOnLoadMethod]
         private static void AutoResetOnceOnCompile()
         {
@@ -138,6 +140,7 @@ namespace PixelGame.Editor
                 Debug.Log("<color=#00FFAA><b>[LevelManager]</b></color> 🌟 Oyun sıfırlandı: Level 1 (Elma) ve 30dk 2X süresi hazırlandı.");
             }
         }
+        */
 
         // [MenuItem("PixelGame/🎮 Bölüm Yönetimi/🗑️ Kayıtlı İlerlemeyi Sıfırla (Reset PlayerPrefs)")]
         public static void ResetPlayerPrefsProgress()

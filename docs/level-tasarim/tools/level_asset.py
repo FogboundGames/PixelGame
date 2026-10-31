@@ -262,6 +262,21 @@ def cmd_check(args):
     front = sum(1 for i in range(min(cols, len(ws))) if ws[i]['link'])
     if pool_links > 2: warns.append(f'açılışta (ilk 3 sıra) {pool_links} halat — en fazla 2')
     if front > cols // 2: warns.append(f'ön sıranın {front}/{cols} gemisi halatlı — en fazla yarısı')
+    # dış katman: başta açıkta ≥6 küpü olan renkler; ön sıra bunlarla dolarsa level kendini oynar
+    fig = {(x, y) for y in range(H) for x in range(W) if px[y * W + x][3] > 0}
+    air, st = set(), [(-1, -1)]
+    while st:
+        q = st.pop()
+        if q in air or q in fig or not (-1 <= q[0] <= W and -1 <= q[1] <= H): continue
+        air.add(q); st += [(q[0] + 1, q[1]), (q[0] - 1, q[1]), (q[0], q[1] + 1), (q[0], q[1] - 1)]
+    expo = collections.Counter(px[y * W + x][:3] for (x, y) in fig
+                               if any(n in air for n in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1))))
+    near = lambda a, b: all(abs(a[k] - b[k]) <= 10 for k in range(3))
+    outer = [c for c, n in expo.items() if n >= 6]
+    is_outer = lambda w: any(near(tuple(pal[w['c']]), c) for c in outer)
+    f1 = sum(1 for w in ws[:cols] if is_outer(w)); f2 = sum(1 for w in ws[:2 * cols] if is_outer(w))
+    if f1 > 1: warns.append(f'ön sıranın {f1}/{cols} gemisi dış katman rengi — en fazla 1 (yoksa level kendini oynar)')
+    if f2 > 3: warns.append(f'ilk iki sırada {f2} dış katman gemisi — en fazla 3')
     occ = {(x, H - 1 - y) for y in range(H) for x in range(W) if px[y * W + x][3] > 0}
     for c in myst:
         if c not in occ: errs.append(f'gizli küp boş hücrede: {c}')

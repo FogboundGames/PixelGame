@@ -11,7 +11,8 @@ namespace PixelGame.Editor
     {
         static InspectSceneHierarchy()
         {
-            EditorApplication.delayCall += RunDump;
+            // Otomatik çalıştırma kapalı: scene_hierarchy_dump.txt dosyasını sürekli kirletmemesi için.
+            // EditorApplication.delayCall += RunDump;
         }
 
         private static void RunDump()

@@ -101,6 +101,9 @@ namespace PixelGame.Editor
             }
         }
 
+        // Otomatik çalıştırma kapalı: Unity her açıldığında sahneyi Creative_ASMR ile değiştirmemesi için.
+        // Gerekirse Tools menüsünden veya bayrak dosyasıyla elle çalıştırılabilir.
+        /*
         [InitializeOnLoadMethod]
         private static void AutoRebuildOnce()
         {
@@ -114,6 +117,7 @@ namespace PixelGame.Editor
                 BuildAndOpenCreativeScene();
             };
         }
+        */
 
         // [MenuItem("Tools/PixelGame/🎬 ASMR Kreatif Sahnesini Aç", priority = 0)]
         public static void OpenCreativeScene()

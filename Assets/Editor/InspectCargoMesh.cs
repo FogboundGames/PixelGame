@@ -9,6 +9,8 @@ namespace PixelGame.Editor
         private static bool s_AutoNormalized = false;
         static InspectCargoMesh()
         {
+            // Otomatik çalıştırma kapalı: Sahneyi ve küpleri habersiz değiştirmemesi için. Menüden elle çalıştırılabilir.
+            /*
             EditorApplication.delayCall += () =>
             {
                 // Play mode'da sahne düzenlenemez (MarkSceneDirty hata atar) ve canlı küplere dokunmamalı.
@@ -19,6 +21,7 @@ namespace PixelGame.Editor
                     NormalizeAndAlignCubes();
                 }
             };
+            */
         }
 
         // [MenuItem("PixelGame/✨ Konteynerleri Hizala ve Güncelle (Normalize All)")]

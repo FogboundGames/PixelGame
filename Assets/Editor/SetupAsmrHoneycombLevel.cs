@@ -14,7 +14,8 @@ namespace PixelGame.Editor
 
         static SetupAsmrHoneycombLevel()
         {
-            EditorApplication.delayCall += EnsureLevelCreated;
+            // Otomatik çalıştırma kapalı: Seviye ayarlarını ve sıra indeksini ezmemesi için.
+            // EditorApplication.delayCall += EnsureLevelCreated;
         }
 
         // [MenuItem("Tools/PixelGame/🍯 ASMR Bal Peteği Seviyesini Kur ve Güncelle", priority = 10)]

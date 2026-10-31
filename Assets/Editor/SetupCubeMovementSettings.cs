@@ -11,7 +11,8 @@ namespace PixelGame.Editor
 
         static SetupCubeMovementSettings()
         {
-            EditorApplication.delayCall += EnsureSettingsAsset;
+            // Otomatik çalıştırma kapalı. Menüden elle çalıştırılabilir.
+            // EditorApplication.delayCall += EnsureSettingsAsset;
         }
 
         // [MenuItem("PixelGame/✨ Ensure Cube Movement Settings")]
