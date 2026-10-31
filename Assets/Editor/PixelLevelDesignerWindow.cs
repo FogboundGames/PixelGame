@@ -78,7 +78,10 @@ namespace PixelGame.Editor
             m_GenHiddenPercent = EditorPrefs.GetInt("PixelGame_GenHiddenPercent", 15);
             EditorApplication.update -= OnEditorUpdate;
             EditorApplication.update += OnEditorUpdate;
-            RefreshLevelList();
+            // Açılışta sadece listeyi oku: tüm projeyi yeniden taramak (AssetDatabase.Refresh) ve sırayı/sahneyi
+            // kaydetmek her açılışta (ve her derlemeden sonra) yapılıyordu; OneDrive gibi yavaş disklerde
+            // pencereyi açar açmaz donduruyordu, ayrıca LevelSequence'teki elle yapılmış sırayı eziyordu.
+            RefreshLevelList(importChanges: false, syncSequence: false);
         }
 
         private void OnDisable()
@@ -4618,9 +4621,11 @@ namespace PixelGame.Editor
             SceneView.RepaintAll();
         }
 
-        public void RefreshLevelList()
+        /// <param name="importChanges">Diskteki değişiklikleri içe aktarmak için tüm projeyi tara (yavaş; sadece Yenile butonunda).</param>
+        /// <param name="syncSequence">Listeyi LevelSequence'e ve sahnedeki LevelManager'a yaz ve kaydet.</param>
+        public void RefreshLevelList(bool importChanges = true, bool syncSequence = true)
         {
-            AssetDatabase.Refresh();
+            if (importChanges) AssetDatabase.Refresh();
             m_AllLevels.Clear();
             string[] guids = AssetDatabase.FindAssets("t:PixelLevelData");
             foreach (string guid in guids)
@@ -4646,7 +4651,7 @@ namespace PixelGame.Editor
                 SelectLevel(m_AllLevels[0], saveAsPlayerProgress: false);
             }
 
-            SyncWithSceneLevelManager();
+            if (syncSequence) SyncWithSceneLevelManager();
         }
 
         private void SelectLevel(PixelLevelData level, bool saveAsPlayerProgress = true)
