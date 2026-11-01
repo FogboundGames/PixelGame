@@ -1,0 +1,4 @@
+id,name,starts,completes,fails,avg_complete_sec,avg_fail_sec,players
+Level_001,Kedi,1250,1180,60,52,38,1200
+Level_002,Balon,1240,1120,105,61,41,
+Level_003,Ok,1500,1050,420,75,48,

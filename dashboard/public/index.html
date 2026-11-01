@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LandFlow Analiz</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>LandFlow Analiz</h1>
+      <p id="rangeText" class="muted">Yükleniyor…</p>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Tarih aralığı">
+        <button data-days="7">7 gün</button>
+        <button data-days="14">14 gün</button>
+        <button data-days="30" class="on">30 gün</button>
+        <button data-days="90">90 gün</button>
+      </div>
+      <button id="refresh" class="btn">Yenile</button>
+    </div>
+  </header>
+
+  <div id="sources" class="sources"></div>
+  <div id="errorBox" class="error" hidden></div>
+
+  <main>
+    <section>
+      <h2>Oyun karnesi</h2>
+      <p class="hint">Hibrit-casual bulmaca oyunları için yaklaşık eşiklere göre. Yeşil: iyi, sarı: sınırda, kırmızı: düzeltilmeli.</p>
+      <div id="verdicts" class="verdicts"></div>
+    </section>
+
+    <section>
+      <h2>Reklam ve edinme <span class="tag">Meta</span></h2>
+      <div id="kpiAcq" class="kpis"></div>
+      <div class="grid2">
+        <figure class="card"><figcaption>Günlük kurulum / yeni oyuncu</figcaption><div id="chInstalls" class="chart"></div></figure>
+        <figure class="card"><figcaption>Günlük reklam harcaması</figcaption><div id="chSpend" class="chart"></div></figure>
+      </div>
+    </section>
+
+    <section>
+      <h2>Oyuncu davranışı <span class="tag">GameAnalytics</span></h2>
+      <div id="kpiBeh" class="kpis"></div>
+      <div class="grid2">
+        <figure class="card"><figcaption>Retention eğrisi (gün N'de geri dönen yeni oyuncu %)</figcaption><div id="chRet" class="chart"></div></figure>
+        <figure class="card"><figcaption>Günlük aktif oyuncu (DAU)</figcaption><div id="chDau" class="chart"></div></figure>
+        <figure class="card"><figcaption>Oyuncu başına günlük oynama süresi (dk)</figcaption><div id="chPlay" class="chart"></div></figure>
+        <figure class="card"><figcaption>Oyun içi olaylar (oyuncu başına)</figcaption><div id="designTable" class="tablewrap"></div></figure>
+      </div>
+    </section>
+
+    <section>
+      <h2>Level analizi <span class="tag">GameAnalytics</span></h2>
+      <div id="levelSummary" class="callouts"></div>
+      <div class="grid2">
+        <figure class="card"><figcaption>Kazanma oranı (tamamlama ÷ başlama)</figcaption><div id="chWin" class="chart"></div></figure>
+        <figure class="card"><figcaption>Oyuncu hunisi (levele ulaşan oyuncu %)</figcaption><div id="chFunnel" class="chart"></div></figure>
+      </div>
+      <figure class="card wide">
+        <figcaption>Level tablosu <span class="muted">— satıra gelince açıklama; sütun başlığına tıklayınca sıralar</span></figcaption>
+        <div id="levelTable" class="tablewrap"></div>
+      </figure>
+    </section>
+
+    <section>
+      <h2>Kampanyalar <span class="tag">Meta</span></h2>
+      <figure class="card wide"><div id="campTable" class="tablewrap"></div></figure>
+    </section>
+
+    <footer class="muted" id="footer"></footer>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
