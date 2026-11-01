@@ -1,0 +1,6 @@
+<linker>
+  <!-- CreatePrimitive(Quad) MeshCollider ekler; sahnede kullanılmadığı için Strip Engine Code bu sınıfı build'den çıkarıyordu -->
+  <assembly fullname="UnityEngine.PhysicsModule">
+    <type fullname="UnityEngine.MeshCollider" preserve="all"/>
+  </assembly>
+</linker>
