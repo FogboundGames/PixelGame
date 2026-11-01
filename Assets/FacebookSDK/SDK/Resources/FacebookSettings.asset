@@ -29,7 +29,7 @@ MonoBehaviour:
   appLinkSchemes:
   - list: []
   uploadAccessToken: 
-  autoLogAppEventsEnabled: 1
+  autoLogAppEventsEnabled: 0
   autoLogProductImprovementEnabled: 0
   autoLogMetaDataEnabled: 0
-  advertiserIDCollectionEnabled: 1
+  advertiserIDCollectionEnabled: 0

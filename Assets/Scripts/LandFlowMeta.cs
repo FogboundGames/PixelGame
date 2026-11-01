@@ -9,7 +9,8 @@ namespace PixelGame
     /// <summary>
     /// Meta (Facebook) SDK başlatıcısı: uygulama olayları ve reklam atfı için. Ayar dosyasında App ID veya Client Token
     /// yoksa (Facebook → Edit Settings) hiçbir şey göndermez; böylece değerler girilmeden de oyun sorunsuz çalışır.
-    /// iOS'ta önce ATT izni sorulur, SDK cevaptan sonra başlatılır; böylece izinden önce olay gönderilmez.
+    /// Oyuncu veri izni vermeden başlatılmaz (LandFlowPrivacy). iOS'ta ardından ATT izni sorulur, SDK cevaptan sonra başlatılır.
+    /// Ayar dosyasında otomatik olay ve reklam kimliği kapalıdır; yalnızca izin varsa burada açılır.
     /// </summary>
     public sealed class LandFlowMeta : MonoBehaviour, IGameAnalyticsATTListener
     {
@@ -36,16 +37,20 @@ namespace PixelGame
             go.AddComponent<LandFlowMeta>();
         }
 
+        private void Awake() => LandFlowPrivacy.ConsentChanged += ApplyConsent;
+        private void OnDestroy() => LandFlowPrivacy.ConsentChanged -= ApplyConsent;
+
         private IEnumerator Start()
         {
+            yield return new WaitUntil(() => LandFlowPrivacy.Allowed);
 #if UNITY_IOS && !UNITY_EDITOR
             // Uygulama aktif değilken yapılan ATT isteği pencere göstermeden düşer
             yield return new WaitUntil(() => Application.isFocused);
             GameAnalytics.RequestTrackingAuthorization(this);
             yield return new WaitUntil(() => m_AttAnswered);
-#else
-            yield return null;
 #endif
+            // ATT beklenirken izin geri alınmış olabilir
+            yield return new WaitUntil(() => LandFlowPrivacy.Allowed);
             FB.Init(HandleInitialized);
         }
 
@@ -57,15 +62,24 @@ namespace PixelGame
                 return;
             }
 
+            ApplyConsent(LandFlowPrivacy.Allowed);
+        }
+
+        private void ApplyConsent(bool allowed)
+        {
+            if (!FB.IsInitialized) return;
+
+            FB.Mobile.SetAutoLogAppEventsEnabled(allowed);
+            FB.Mobile.SetAdvertiserIDCollectionEnabled(allowed);
 #if UNITY_IOS && !UNITY_EDITOR
-            FB.Mobile.SetAdvertiserTrackingEnabled(m_AttAuthorized);
+            FB.Mobile.SetAdvertiserTrackingEnabled(allowed && m_AttAuthorized);
 #endif
-            FB.ActivateApp();
+            if (allowed) FB.ActivateApp();
         }
 
         private void OnApplicationPause(bool paused)
         {
-            if (!paused && FB.IsInitialized) FB.ActivateApp();
+            if (!paused && FB.IsInitialized && LandFlowPrivacy.Allowed) FB.ActivateApp();
         }
 
         public void GameAnalyticsATTListenerNotDetermined() => m_AttAnswered = true;

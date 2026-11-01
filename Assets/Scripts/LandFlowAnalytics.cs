@@ -5,13 +5,14 @@ namespace PixelGame
 {
     /// <summary>
     /// GameAnalytics için ince sarmalayıcı. Ayar dosyası (Resources/GameAnalytics/Settings) yoksa hiçbir şey göndermez;
-    /// böylece anahtarlar girilmeden de oyun sorunsuz çalışır. Level başlangıç/bitiş/kayıp olaylarını
-    /// "Level_015:Hayalet" biçiminde gönderir (sıra değişse de level adı ayırt edilebilsin diye).
+    /// böylece anahtarlar girilmeden de oyun sorunsuz çalışır. Oyuncu veri izni vermeden başlatılmaz (LandFlowPrivacy).
+    /// Level başlangıç/bitiş/kayıp olaylarını "Level_015:Hayalet" biçiminde gönderir (sıra değişse de level adı ayırt edilebilsin diye).
     /// </summary>
     public static class LandFlowAnalytics
     {
         private static bool s_Enabled;
         private static bool s_Initialized;
+        private static bool s_Started;
         private static PixelLevelData s_LastStartedLevel;
         private static float s_LastStartTime = -10f;
         private static float s_LevelStartTime;
@@ -28,13 +29,27 @@ namespace PixelGame
                 return;
             }
 
+            LandFlowPrivacy.ConsentChanged += ApplyConsent;
+            if (LandFlowPrivacy.Allowed) ApplyConsent(true);
+        }
+
+        private static void ApplyConsent(bool allowed)
+        {
+            s_Enabled = allowed;
+            if (s_Started)
+            {
+                GameAnalytics.SetEnabledEventSubmission(allowed);
+                return;
+            }
+            if (!allowed) return;
+
             if (Object.FindFirstObjectByType<GameAnalytics>() == null)
             {
                 new GameObject("GameAnalytics").AddComponent<GameAnalytics>();
             }
 
             GameAnalytics.Initialize();
-            s_Enabled = true;
+            s_Started = true;
             PixelArtGenerator.LevelLoaded += HandleLevelLoaded;
         }
 
