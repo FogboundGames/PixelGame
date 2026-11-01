@@ -108,3 +108,6 @@ kullanıcıları (App Store Connect'teki ekip) inceleme beklemeden yükleyebilir
   sürümden sonra yeni sürüm numarası gerekir.
 - **Editör hook'ları:** `Assets/Editor` altındaki otomatik sahne kurulum script'leri CI'da da derlenir.
   Build sahneyi değiştirirse önce bunlara bak.
+- **Meta SDK:** iOS kütüphaneleri CocoaPods'tan gelir. Linux adımı yalnız `Podfile` üretir (`pod install` kapalı,
+  bkz. `ProjectSettings/GvhProjectSettings.xml`); `pod install` ve `Unity-iPhone.xcworkspace` ile derleme macOS adımındadır.
+  Oyun ATT izni istediği için App Store Connect'teki gizlilik beyanı "tracking" kullanımını içermelidir.

@@ -157,11 +157,19 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" "$plist" 2>/dev/null \
             || /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$plist"
 
+      # Meta SDK'nın iOS kütüphaneleri CocoaPods'tan gelir; Linux'ta pod yok, Podfile Unity'den hazır gelir
+      - name: CocoaPods
+        run: |
+          test -f "$PROJECT_DIR/Podfile" || { echo "Podfile bulunamadı"; exit 1; }
+          command -v pod >/dev/null || sudo gem install cocoapods
+          pod --version
+          (cd "$PROJECT_DIR" && pod install --repo-update)
+
       - name: Archive
         run: |
           xcodebuild -version
           xcodebuild archive \
-            -project "$PROJECT_DIR/Unity-iPhone.xcodeproj" \
+            -workspace "$PROJECT_DIR/Unity-iPhone.xcworkspace" \
             -scheme Unity-iPhone \
             -configuration Release \
             -destination 'generic/platform=iOS' \

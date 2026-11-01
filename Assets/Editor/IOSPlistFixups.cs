@@ -9,13 +9,17 @@ namespace PixelGame.Editor
 {
     /// <summary>
     /// iOS build sonrası Info.plist düzeltmeleri (GameAnalytics'in post-process'inden SONRA çalışır):
-    /// - NSUserTrackingUsageDescription kaldırılır: oyun takip/ATT izni istemiyor; GameAnalytics bu anahtarı
-    ///   varsayılan olarak eklediği için App Store "tracking" beyanıyla çelişip gönderimi engelliyordu.
+    /// - NSUserTrackingUsageDescription oyunun kendi metniyle yazılır: Meta SDK için ATT izni isteniyor (LandFlowMeta);
+    ///   GameAnalytics'in varsayılan metninin yerine geçer. App Store Connect'te "tracking" beyanı buna uygun olmalı.
+    /// - SKAdNetworkItems'a Meta'nın kimlikleri eklenir (ATT reddedilse de reklam atfı için).
     /// - ITSAppUsesNonExemptEncryption = NO: yalnızca standart HTTPS kullanılıyor; her yüklemede
     ///   App Store Connect'te şifreleme sorusu çıkmasın.
     /// </summary>
     public static class IOSPlistFixups
     {
+        private const string TrackingUsageDescription = "This identifier is used to measure and improve the ads that bring new players to Land Flow.";
+        private static readonly string[] s_MetaSkAdNetworkIds = { "v9wttpbfk9.skadnetwork", "n38lu8286q.skadnetwork" };
+
         [PostProcessBuild(9999)]
         public static void OnPostprocessBuild(BuildTarget target, string pathToBuiltProject)
         {
@@ -28,15 +32,25 @@ namespace PixelGame.Editor
             plist.ReadFromFile(plistPath);
             PlistElementDict root = plist.root;
 
-            if (root.values.ContainsKey("NSUserTrackingUsageDescription"))
-            {
-                root.values.Remove("NSUserTrackingUsageDescription");
-                Debug.Log("[IOSPlistFixups] NSUserTrackingUsageDescription kaldırıldı (oyun takip izni istemiyor).");
-            }
+            root.SetString("NSUserTrackingUsageDescription", TrackingUsageDescription);
+            AddSkAdNetworkIds(root);
 
             root.SetBoolean("ITSAppUsesNonExemptEncryption", false);
 
             plist.WriteToFile(plistPath);
+        }
+
+        private static void AddSkAdNetworkIds(PlistElementDict root)
+        {
+            PlistElementArray items = root.values.TryGetValue("SKAdNetworkItems", out PlistElement existing)
+                ? existing.AsArray()
+                : root.CreateArray("SKAdNetworkItems");
+
+            foreach (string id in s_MetaSkAdNetworkIds)
+            {
+                bool present = items.values.Exists(e => e.AsDict()?["SKAdNetworkIdentifier"]?.AsString() == id);
+                if (!present) items.AddDict().SetString("SKAdNetworkIdentifier", id);
+            }
         }
     }
 }
