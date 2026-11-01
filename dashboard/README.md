@@ -15,7 +15,16 @@ Kurulum gerektirmez (npm paketi yok), sadece **Node.js 18+** yeterli.
 
 Tarih aralığı 7, 14, 30 ya da 90 gün seçilebilir. Grafiklerde imleç üstüne gelince değerler görünür, tablolar sütun başlığına tıklanarak sıralanır.
 
-## Çalıştırma
+## Unity içinden açma (önerilen)
+
+Unity'de üst menüden **PixelGame → 📈 LandFlow Analiz Paneli** penceresini açın.
+1. Meta ve GameAnalytics anahtarlarını yazıp **Anahtarları Kaydet** deyin. Pencere bunları `dashboard/.env` dosyasına yazar.
+2. **Başlat ve Aç** dediğinizde sunucu arka planda çalışır ve panel tarayıcıda açılır. Unity kapanınca sunucu da kapanır.
+
+Tek tıkla açmak için **PixelGame → 📈 LandFlow Analiz Panelini Tarayıcıda Aç** menüsünü kullanabilirsiniz.
+Bilgisayarda [Node.js](https://nodejs.org) (LTS) kurulu olmalı. Kurduktan sonra Unity'yi yeniden başlatın.
+
+## Elle çalıştırma
 
 ```bash
 cd dashboard
