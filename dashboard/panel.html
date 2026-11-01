@@ -1,0 +1,1311 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LandFlow Analiz</title>
+  <style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --good: #0ca30c;
+  --warning: #fab219;
+  --critical: #d03b3b;
+  --good-ink: #006300;
+  --warn-ink: #8a5a00;
+  --crit-ink: #b02a2a;
+  --wash: rgba(42, 120, 214, 0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --s1: #3987e5;
+    --s2: #d95926;
+    --good-ink: #0ca30c;
+    --warn-ink: #fab219;
+    --crit-ink: #e66767;
+    --wash: rgba(57, 135, 229, 0.14);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --grid: #2c2c2a; --axis: #383835;
+  --border: rgba(255, 255, 255, 0.10); --s1: #3987e5; --s2: #d95926; --good-ink: #0ca30c; --warn-ink: #fab219; --crit-ink: #e66767;
+  --wash: rgba(57, 135, 229, 0.14);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1240px; margin: 0 auto; padding: 0 16px 48px; }
+h1 { font-size: 20px; margin: 0; }
+h2 { font-size: 17px; margin: 32px 0 8px; display: flex; align-items: center; gap: 8px; }
+.muted, .hint { color: var(--muted); }
+.hint { margin: 0 0 12px; font-size: 13px; }
+.tag { font-size: 11px; font-weight: 600; color: var(--ink-2); border: 1px solid var(--border); border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+.tag.demo { color: var(--warn-ink); border-color: var(--warning); }
+.tag.live, .tag.csv { color: var(--good-ink); border-color: var(--good); }
+.tag.none { color: var(--muted); }
+
+.sticky { position: sticky; top: 0; z-index: 5; }
+.demo-banner { padding: 8px 16px; text-align: center; font-size: 13px; background: var(--warning); color: #0b0b0b; }
+.demo-banner b { margin-right: 8px; letter-spacing: 0.04em; }
+.top {
+  display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center;
+  padding: 12px max(16px, calc((100vw - 1240px) / 2 + 16px));
+  background: color-mix(in srgb, var(--page) 90%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+.brand p { margin: 2px 0 0; font-size: 12px; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button, .btn {
+  font: inherit; font-size: 13px; color: var(--ink-2); background: transparent; border: 0; padding: 6px 12px; cursor: pointer;
+}
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button.on { color: var(--ink); font-weight: 600; background: var(--wash); }
+.btn { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.btn:hover, .seg button:hover { color: var(--ink); }
+
+.sources { max-width: 1240px; margin: 12px auto 0; padding: 0 16px; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; }
+.src { font-size: 12px; border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; background: var(--surface); color: var(--ink-2); }
+.src b { color: var(--ink); }
+.src.demo b { color: var(--warn-ink); }
+.src.error b, .src.partial b { color: var(--crit-ink); }
+.src.live b { color: var(--good-ink); }
+.error { max-width: 1208px; margin: 12px auto 0; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--critical); color: var(--crit-ink); background: var(--surface); }
+
+.sample-note { max-width: 1208px; margin: 12px auto 0; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--warning); color: var(--warn-ink); background: var(--surface); font-size: 13px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.kpi .label { font-size: 12px; color: var(--ink-2); }
+.kpi .value { font-size: 22px; font-weight: 650; margin-top: 2px; }
+.kpi .sub { font-size: 12px; color: var(--muted); }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 12px; }
+.card { margin: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.card.wide { margin-top: 12px; }
+section > .card + .card { margin-top: 12px; }
+figcaption { font-weight: 600; font-size: 13px; margin-bottom: 8px; }
+.chart { position: relative; width: 100%; min-height: 220px; }
+.chart-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart-svg .grid { stroke: var(--grid); stroke-width: 1; }
+.chart-svg .axis { stroke: var(--axis); stroke-width: 1; }
+.chart-svg .tick { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.chart-svg .cross { stroke: var(--axis); stroke-width: 1; }
+.chart-svg .dot { stroke: var(--surface); stroke-width: 2; }
+.chart-svg .bar.hover { opacity: 0.8; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink-2); margin-bottom: 6px; }
+.legend i, .tip-row i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.empty { color: var(--muted); padding: 40px 16px; text-align: center; white-space: normal; }
+code { font-size: 12px; background: var(--wash); border-radius: 4px; padding: 1px 4px; }
+.share { display: inline-block; width: 60px; height: 8px; margin-right: 8px; border-radius: 4px; background: var(--grid); vertical-align: 1px; overflow: hidden; }
+.share i { display: block; height: 100%; background: var(--s1); }
+#gapTable td { white-space: normal; min-width: 180px; }
+#gapTable th { cursor: default; }
+
+.tip {
+  position: absolute; z-index: 20; display: none; pointer-events: none; min-width: 160px; max-width: 280px;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18); font-size: 12px;
+}
+.tip-title { font-weight: 600; margin-bottom: 4px; }
+.tip-row { display: flex; align-items: center; gap: 4px; }
+.tip-row span { color: var(--ink-2); flex: 1; }
+.tip-row b { font-variant-numeric: tabular-nums; }
+.tip-note { margin-top: 4px; color: var(--ink-2); }
+
+.callouts { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.callout { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 13px; }
+.callout b { display: block; font-size: 12px; color: var(--ink-2); font-weight: 600; margin-bottom: 2px; }
+
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 7px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+th:first-child, td:first-child, th.l, td.l { text-align: left; }
+th { font-size: 12px; color: var(--ink-2); font-weight: 600; cursor: pointer; user-select: none; position: sticky; top: 0; background: var(--surface); }
+th.sorted::after { content: " ↓"; }
+th.sorted.asc::after { content: " ↑"; }
+tbody tr:hover { background: var(--wash); }
+.flag { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 999px; padding: 1px 8px; margin-left: 6px; border: 1px solid; }
+.flag.bad { color: var(--crit-ink); border-color: var(--critical); }
+.flag.warn { color: var(--warn-ink); border-color: var(--warning); }
+.flag.good { color: var(--good-ink); border-color: var(--good); }
+.v-bad { color: var(--crit-ink); font-weight: 600; }
+.v-warn { color: var(--warn-ink); font-weight: 600; }
+footer { margin-top: 32px; font-size: 12px; }
+
+@media (max-width: 560px) {
+  .sticky { position: static; }
+  .kpi .value { font-size: 19px; }
+}
+.btn.primary { color: var(--ink); font-weight: 600; background: var(--wash); }
+.link { font: inherit; font-size: 12px; color: var(--ink-2); background: none; border: 0; padding: 0 0 0 6px; text-decoration: underline; cursor: pointer; }
+.drop-overlay { display: none; position: fixed; inset: 0; z-index: 30; align-items: center; justify-content: center; background: color-mix(in srgb, var(--page) 80%, transparent); pointer-events: none; }
+.drop-overlay div { padding: 24px 40px; border: 2px dashed var(--s1); border-radius: 12px; background: var(--surface); font-size: 16px; font-weight: 600; }
+body.dropping .drop-overlay { display: flex; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <div class="drop-overlay" aria-hidden="true"><div>CSV dosyalarını buraya bırakın</div></div>
+  <div class="sticky">
+    <div id="demoBanner" class="demo-banner" hidden>
+      <b>ÖRNEK VERİ</b> Bu sayfadaki sayıların hiçbiri gerçek değil, GameAnalytics CSV'lerini bu sayfaya sürükleyince kaybolur. Karar vermek için kullanmayın.
+    </div>
+    <header class="top">
+      <div class="brand">
+        <h1>LandFlow Analiz</h1>
+        <p id="rangeText" class="muted">Yükleniyor…</p>
+      </div>
+      <div class="controls">
+        <div class="seg" role="group" aria-label="Tarih aralığı">
+          <button data-days="7">7 gün</button>
+          <button data-days="14">14 gün</button>
+          <button data-days="30" class="on">30 gün</button>
+          <button data-days="90">90 gün</button>
+        </div>
+        <button id="addCsv" class="btn primary">CSV ekle</button>
+        <input id="csvInput" type="file" accept=".csv" multiple hidden>
+        <button id="refresh" class="btn">Yenile</button>
+      </div>
+    </header>
+  </div>
+
+  <div id="sources" class="sources"></div>
+  <div id="errorBox" class="error" hidden></div>
+  <div id="sampleNote" class="sample-note" hidden></div>
+
+  <main>
+    <section>
+      <h2>Aktif kullanıcılar <span class="tag" data-src="daily"></span></h2>
+      <div id="kpiActive" class="kpis"></div>
+      <div class="grid2">
+        <figure class="card"><figcaption>Günlük aktif oyuncu (DAU)</figcaption><div id="chDau" class="chart"></div></figure>
+        <figure class="card"><figcaption>Günlük yeni oyuncu ve Meta kurulumu</figcaption><div id="chInstalls" class="chart"></div></figure>
+      </div>
+    </section>
+
+    <section>
+      <h2>Retention ve churn <span class="tag" data-src="retention"></span></h2>
+      <p class="hint">Churn, retention'ın tersidir: N. gün churn = 100 − N. gün retention. GameAnalytics churn'ü ayrı bir metrik olarak vermez, bu değerler buradan hesaplanır. Seçili dönemde N günü dolmuş yeterli kohort yoksa önceki kohortlar kullanılır.</p>
+      <div id="kpiRetention" class="kpis"></div>
+      <div class="grid2">
+        <figure class="card"><figcaption>Retention eğrisi (N. gün geri dönen yeni oyuncu %)</figcaption><div id="chRet" class="chart"></div></figure>
+        <figure class="card"><figcaption>Kurulum gününe göre D1 ve D7 retention</figcaption><div id="chRetTrend" class="chart"></div></figure>
+      </div>
+    </section>
+
+    <section>
+      <h2>Kaç dakika oynuyorlar <span class="tag" data-src="daily"></span></h2>
+      <div id="kpiPlay" class="kpis"></div>
+      <div class="grid2">
+        <figure class="card"><figcaption>Oyuncu başına günlük oynama (dk)</figcaption><div id="chPlay" class="chart"></div></figure>
+        <figure class="card"><figcaption>Kurulumdan N gün sonra oyuncu başına toplam oynama (dk) <span class="tag" data-src="cumulativePlaytime"></span></figcaption><div id="chCumul" class="chart"></div></figure>
+      </div>
+    </section>
+
+    <section>
+      <h2>Nereden geliyorlar</h2>
+      <p class="hint">Ülke ve platform GameAnalytics'ten, reklam kırılımı Meta'dan gelir. Reklam dışı kaynak (kampanya, ağ) ölçülmüyor: oyunda atıf aracı (MMP) yok.</p>
+      <div class="grid2">
+        <figure class="card"><figcaption>Ülkeye göre oyuncular <span class="tag" data-src="countries"></span></figcaption><div id="countryTable" class="tablewrap"></div></figure>
+        <figure class="card"><figcaption>Ülkeye göre Meta reklamı <span class="tag" data-src="adSpend"></span></figcaption><div id="metaCountryTable" class="tablewrap"></div></figure>
+        <figure class="card"><figcaption>Platform <span class="tag" data-src="platforms"></span></figcaption><div id="platformTable" class="tablewrap"></div></figure>
+        <figure class="card"><figcaption>Meta yerleşimi <span class="tag" data-src="adSpend"></span></figcaption><div id="placementTable" class="tablewrap"></div></figure>
+      </div>
+    </section>
+
+    <section>
+      <h2>Level analizi <span class="tag" data-src="levels"></span></h2>
+      <p class="hint">Süreler oyunun Complete ve Fail olaylarında gönderdiği saniyedir. Restart ile yarıda kesilen ve oyundan çıkılarak bırakılan denemelerin süresi gönderilmediği için dahil değildir.</p>
+      <div id="levelSummary" class="callouts"></div>
+      <div class="grid2">
+        <figure class="card"><figcaption>Kazanma oranı (bitirme ÷ başlama)</figcaption><div id="chWin" class="chart"></div></figure>
+        <figure class="card"><figcaption>Ortalama bitirme süresi (sn)</figcaption><div id="chLevelTime" class="chart"></div></figure>
+        <figure class="card"><figcaption>Oyuncu hunisi (levele ulaşan %)</figcaption><div id="chFunnel" class="chart"></div></figure>
+        <figure class="card"><figcaption>Levelde geçen toplam süre (dk)</figcaption><div id="chLevelTotal" class="chart"></div></figure>
+      </div>
+      <figure class="card wide">
+        <figcaption>Level tablosu <span class="muted">— sütun başlığına tıklayınca sıralar</span></figcaption>
+        <div id="levelTable" class="tablewrap"></div>
+      </figure>
+    </section>
+
+    <section>
+      <h2>Olaylar</h2>
+      <div class="grid2">
+        <figure class="card"><figcaption>Oyun içi olaylar <span class="tag" data-src="design"></span></figcaption><div id="designTable" class="tablewrap"></div></figure>
+        <figure class="card"><figcaption>Olay kategorileri <span class="tag" data-src="categories"></span></figcaption><div id="categoryTable" class="tablewrap"></div></figure>
+      </div>
+    </section>
+
+    <section>
+      <h2>Reklam ve edinme <span class="tag" data-src="adSpend"></span></h2>
+      <div id="kpiAcq" class="kpis"></div>
+      <figure class="card"><figcaption>Günlük reklam harcaması</figcaption><div id="chSpend" class="chart"></div></figure>
+      <figure class="card wide"><figcaption>Kampanyalar</figcaption><div id="campTable" class="tablewrap"></div></figure>
+    </section>
+
+    <section>
+      <h2>Ölçülemeyenler ve oyuna eklenmesi gerekenler</h2>
+      <p class="hint">Oyunun kodundan çıkarıldı (LandFlowAnalytics.cs, LandFlowMeta.cs). Bunlar eklenmeden panel bu soruları cevaplayamaz.</p>
+      <figure class="card"><div id="gapTable" class="tablewrap"></div></figure>
+    </section>
+
+    <footer class="muted" id="footer"></footer>
+  </main>
+  <script>
+(() => {
+'use strict';
+
+// ---------- grafikler ----------
+// Küçük, bağımlılıksız SVG grafik çizici: çizgi (çoklu seri, artı imleç + ipucu) ve çubuk (çubuk başına ipucu).
+const NS = 'http://www.w3.org/2000/svg';
+
+function el(tag, attrs = {}, parent) {
+  const n = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+
+// 4 veya 5 aralıktan "yuvarlak" olanını seç (ör. 50 → 0,10,20…; 100 → 0,25,50…)
+function tickCount(max) {
+  const q = max / 4;
+  return Math.abs(q - Math.round(q / 10 ** Math.floor(Math.log10(q))) * 10 ** Math.floor(Math.log10(q))) < 1e-9 ? 4 : 5;
+}
+
+function niceMax(v) {
+  if (!(v > 0)) return 1;
+  const p = 10 ** Math.floor(Math.log10(v));
+  const f = v / p;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+}
+
+let tip;
+function tooltip() {
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.className = 'tip';
+    tip.setAttribute('role', 'tooltip');
+    document.body.appendChild(tip);
+  }
+  return tip;
+}
+function showTip(html, x, y) {
+  const t = tooltip();
+  t.innerHTML = html;
+  t.style.display = 'block';
+  const w = t.offsetWidth, h = t.offsetHeight;
+  let left = x + 14, top = y - h - 10;
+  if (left + w > window.innerWidth - 8) left = x - w - 14;
+  if (top < 8) top = y + 14;
+  t.style.left = `${left + window.scrollX}px`;
+  t.style.top = `${top + window.scrollY}px`;
+}
+function hideTip() { if (tip) tip.style.display = 'none'; }
+
+function frame(container, height) {
+  container.innerHTML = '';
+  const width = Math.max(container.clientWidth, 260);
+  const svg = el('svg', { viewBox: `0 0 ${width} ${height}`, width, height, class: 'chart-svg' }, container);
+  return { svg, width, height };
+}
+
+function legend(container, series) {
+  if (series.length < 2) return;
+  const lg = document.createElement('div');
+  lg.className = 'legend';
+  for (const s of series) {
+    const item = document.createElement('span');
+    item.innerHTML = `<i style="background:${s.color}"></i>${s.name}`;
+    lg.appendChild(item);
+  }
+  container.prepend(lg);
+}
+
+/** Çizgi grafiği. opts: { labels, series:[{name, values, color}], format, xFormat, height } */
+function lineChart(container, opts) {
+  const { labels, series, format = String, xFormat = String, height = 220 } = opts;
+  const { svg, width } = frame(container, height);
+  const m = { t: 12, r: 14, b: 26, l: 52 };
+  const iw = width - m.l - m.r, ih = height - m.t - m.b;
+  const all = series.flatMap((s) => s.values).filter((v) => v !== null && Number.isFinite(v));
+  if (!all.length) { container.innerHTML = '<p class="empty">Bu aralıkta veri yok</p>'; return; }
+  const max = niceMax(Math.max(...all));
+  const x = (i) => m.l + (labels.length === 1 ? iw / 2 : (i / (labels.length - 1)) * iw);
+  const y = (v) => m.t + ih - (v / max) * ih;
+
+  const nt = tickCount(max);
+  for (let k = 0; k <= nt; k++) {
+    const v = (max / nt) * k;
+    el('line', { x1: m.l, x2: width - m.r, y1: y(v), y2: y(v), class: k ? 'grid' : 'axis' }, svg);
+    el('text', { x: m.l - 8, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, svg).textContent = format(v, true);
+  }
+  const step = Math.max(1, Math.ceil(labels.length / Math.floor(iw / 70)));
+  labels.forEach((l, i) => {
+    if (i % step && !(i === labels.length - 1 && i % step >= step / 2)) return;
+    el('text', { x: x(i), y: height - 8, 'text-anchor': 'middle', class: 'tick' }, svg).textContent = xFormat(l);
+  });
+
+  for (const s of series) {
+    let d = '';
+    let pen = false;
+    s.values.forEach((v, i) => {
+      if (v === null || !Number.isFinite(v)) { pen = false; return; }
+      d += `${pen ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`;
+      pen = true;
+    });
+    el('path', { d, fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, svg);
+    if (labels.length <= 12) {
+      s.values.forEach((v, i) => { if (v !== null && Number.isFinite(v)) el('circle', { cx: x(i), cy: y(v), r: 4, fill: s.color, class: 'dot' }, svg); });
+    }
+  }
+
+  const cross = el('line', { y1: m.t, y2: m.t + ih, class: 'cross', visibility: 'hidden' }, svg);
+  const marks = series.map((s) => el('circle', { r: 5, fill: s.color, class: 'dot', visibility: 'hidden' }, svg));
+  const hit = el('rect', { x: m.l, y: m.t, width: iw, height: ih, fill: 'transparent' }, svg);
+  const move = (ev) => {
+    const r = svg.getBoundingClientRect();
+    const px = ((ev.clientX - r.left) / r.width) * width;
+    const i = Math.round(((px - m.l) / iw) * (labels.length - 1));
+    if (i < 0 || i >= labels.length) return;
+    cross.setAttribute('x1', x(i)); cross.setAttribute('x2', x(i)); cross.setAttribute('visibility', 'visible');
+    let rows = '';
+    series.forEach((s, k) => {
+      const v = s.values[i];
+      const ok = v !== null && Number.isFinite(v);
+      marks[k].setAttribute('visibility', ok ? 'visible' : 'hidden');
+      if (ok) { marks[k].setAttribute('cx', x(i)); marks[k].setAttribute('cy', y(v)); }
+      rows += `<div class="tip-row"><i style="background:${s.color}"></i><span>${s.name}</span><b>${ok ? format(v) : '—'}</b></div>`;
+    });
+    showTip(`<div class="tip-title">${xFormat(labels[i], true)}</div>${rows}`, ev.clientX, ev.clientY);
+  };
+  hit.addEventListener('pointermove', move);
+  hit.addEventListener('pointerleave', () => { hideTip(); cross.setAttribute('visibility', 'hidden'); marks.forEach((mk) => mk.setAttribute('visibility', 'hidden')); });
+  legend(container, series);
+}
+
+/** Çubuk grafiği. opts: { labels, values, color(i,v), format, xFormat, tipExtra(i), height, name } */
+function barChart(container, opts) {
+  const { labels, values, color, format = String, xFormat = String, tipExtra, height = 220, name = '', max: fixedMax } = opts;
+  const { svg, width } = frame(container, height);
+  const m = { t: 12, r: 10, b: 26, l: 52 };
+  const iw = width - m.l - m.r, ih = height - m.t - m.b;
+  const finite = values.filter((v) => v !== null && Number.isFinite(v));
+  if (!finite.length) { container.innerHTML = '<p class="empty">Bu aralıkta veri yok</p>'; return; }
+  const max = fixedMax ?? niceMax(Math.max(...finite));
+  const y = (v) => m.t + ih - (v / max) * ih;
+  const band = iw / labels.length;
+  const bw = Math.max(2, Math.min(28, band - 2));
+
+  const nt = tickCount(max);
+  for (let k = 0; k <= nt; k++) {
+    const v = (max / nt) * k;
+    el('line', { x1: m.l, x2: width - m.r, y1: y(v), y2: y(v), class: k ? 'grid' : 'axis' }, svg);
+    el('text', { x: m.l - 8, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' }, svg).textContent = format(v, true);
+  }
+  const step = Math.max(1, Math.ceil(labels.length / Math.floor(iw / 56)));
+  values.forEach((v, i) => {
+    const cx = m.l + band * i + band / 2;
+    if (!(i % step) || (i === labels.length - 1 && i % step >= step / 2)) {
+      el('text', { x: cx, y: height - 8, 'text-anchor': 'middle', class: 'tick' }, svg).textContent = xFormat(labels[i]);
+    }
+    if (v === null || !Number.isFinite(v)) return;
+    const h = Math.max(0, m.t + ih - y(v));
+    const r = Math.min(4, bw / 2, h);
+    const x0 = cx - bw / 2, y0 = y(v), yb = m.t + ih;
+    // Yalnızca üst köşeler yuvarlak, taban düz
+    const d = `M${x0},${yb}V${y0 + r}Q${x0},${y0} ${x0 + r},${y0}H${x0 + bw - r}Q${x0 + bw},${y0} ${x0 + bw},${y0 + r}V${yb}Z`;
+    const bar = el('path', { d, fill: color(i, v), class: 'bar' }, svg);
+    const hit = el('rect', { x: m.l + band * i, y: m.t, width: band, height: ih, fill: 'transparent' }, svg);
+    const on = (ev) => {
+      bar.classList.add('hover');
+      showTip(`<div class="tip-title">${xFormat(labels[i], true)}</div><div class="tip-row"><i style="background:${color(i, v)}"></i><span>${name}</span><b>${format(v)}</b></div>${tipExtra ? tipExtra(i) : ''}`, ev.clientX, ev.clientY);
+    };
+    hit.addEventListener('pointermove', on);
+    hit.addEventListener('pointerleave', () => { bar.classList.remove('hover'); hideTip(); });
+  });
+}
+
+// ---------- tarih yardımcıları ----------
+function sortLevels(levels) {
+  const n = (id) => Number(String(id).replace(/\D/g, '')) || 0;
+  return levels.sort((a, b) => n(a.id) - n(b.id));
+}
+
+function addDays(date, days) {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function enumerateDays(from, to) {
+  const out = [];
+  for (let d = from; d <= to; d = addDays(d, 1)) out.push(d);
+  return out;
+}
+
+// ---------- GameAnalytics Explore CSV ----------
+const FOOTER = /^(total|mean|wgt\. mean)$/i;
+
+function detectDelimiter(header) {
+  return [',', ';', '\t'].map((d) => [d, header.split(d).length]).sort((a, b) => b[1] - a[1])[0][0];
+}
+
+function parseLine(line, sep) {
+  const out = [];
+  let cur = '', quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (quoted) {
+      if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+      else if (c === '"') quoted = false;
+      else cur += c;
+    } else if (c === '"') quoted = true;
+    else if (c === sep) { out.push(cur); cur = ''; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out.map((s) => s.trim());
+}
+
+function readTable(text) {
+  const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter((l) => l.trim());
+  if (!lines.length) return { head: [], rows: [] };
+  const sep = detectDelimiter(lines[0]);
+  return {
+    head: parseLine(lines[0], sep),
+    rows: lines.slice(1).map((l) => parseLine(l, sep)).filter((r) => !FOOTER.test(r[0])),
+  };
+}
+
+/** Explore sayıları düz yazar ("1250", "36.9"); Excel'den geçmişse "36,9" da olur. Boş → null. */
+const num = (v) => {
+  if (v === undefined || v === '') return null;
+  const n = Number(String(v).replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
+};
+
+const DAILY_COLUMNS = {
+  DAU: 'dau',
+  'New Users': 'newUsers',
+  'Session Count (started)': 'sessions',
+  'Playtime per session': 'avgSessionSec',
+  'Playtime per user': 'playtimeSec',
+  'MAU (rolling 30 days)': 'mau',
+};
+const LEVEL_COLUMNS = {
+  'Level attempts started': 'starts',
+  'Level attempts completed': 'completes',
+  'Level attempts failed': 'fails',
+  'Progression (unique users)': 'players',
+};
+const DESIGN_COLUMNS = { 'Design (count)': 'count', 'Design (unique users)': 'users' };
+const COUNTRY_USER_COLUMNS = ['All (unique users)', 'DAU'];
+
+function scoreField(file) {
+  const name = file.toLowerCase();
+  if (/bitir|complete/.test(name)) return 'avgCompleteSec';
+  if (/kay[iı]p|fail/.test(name)) return 'avgFailSec';
+  return null;
+}
+
+/** N. gün sütunlarını ("Retention 7") kohort tarihiyle birlikte okur. */
+function cohortRows(table, prefix) {
+  const columns = table.head.map((h, i) => [h, i]).filter(([h]) => h.startsWith(`${prefix} `))
+    .map(([h, i]) => [Number(h.slice(prefix.length + 1)), i]);
+  const rows = [];
+  for (const row of table.rows) {
+    const values = new Map();
+    for (const [day, i] of columns) if (num(row[i]) !== null) values.set(day, num(row[i]));
+    if (values.size) rows.push({ date: row[0], values });
+  }
+  return { days: columns.map(([d]) => d), rows };
+}
+
+/** Kurulum günü dönemin içinde olan ve N günü dolmuş kohortların ağırlıklı ortalaması. */
+function weightedByDay(cohorts, from, to, weightOf) {
+  const out = [];
+  for (const day of cohorts.days) {
+    let sum = 0, weight = 0;
+    for (const c of cohorts.rows) {
+      if (c.date < from || c.date > to || !c.values.has(day) || addDays(c.date, day) > to) continue;
+      const w = weightOf(c.date);
+      sum += c.values.get(day) * w; weight += w;
+    }
+    if (weight > 0) out.push({ day, value: sum / weight });
+  }
+  return out;
+}
+
+/** Aynı metrik birden çok dosyadaysa en yeni dosya kazanır. */
+function loadCsv(stored, from, to) {
+  const files = [...stored].sort((a, b) => a.at - b.at);
+
+  const daily = new Map(), levels = new Map(), design = new Map(), countries = new Map();
+  const asOf = {};
+  const errors = [];
+  let retention = null, playtime = null;
+  const stamp = (key, file) => { asOf[key] = new Date(file.at).toISOString(); };
+
+  for (const file of files) {
+    let table;
+    try { table = readTable(file.text); } catch (e) { errors.push(`${file.name} okunamadı: ${e.message}`); continue; }
+    const [first, second] = table.head;
+
+    if (first === 'Date' && second?.startsWith('Retention ')) {
+      retention = cohortRows(table, 'Retention'); stamp('retention', file);
+    } else if (first === 'Date' && second?.startsWith('Cumulative Playtime per user ')) {
+      playtime = cohortRows(table, 'Cumulative Playtime per user'); stamp('cumulativePlaytime', file);
+    } else if (first === 'Date' && DAILY_COLUMNS[second]) {
+      for (const row of table.rows) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(row[0])) continue;
+        if (!daily.has(row[0])) daily.set(row[0], { date: row[0] });
+        daily.get(row[0])[DAILY_COLUMNS[second]] = num(row[1]);
+      }
+      stamp('daily', file);
+    } else if (first === 'Progression 01' && (LEVEL_COLUMNS[second] || second === 'Progression (mean score per event)')) {
+      const field = LEVEL_COLUMNS[second] ?? scoreField(file.name);
+      if (!field) { errors.push(`${file.name}: ortalama skor dosyasının adında "bitirme" ya da "kayip" geçmeli`); continue; }
+      for (const row of table.rows) {
+        if (!row[0]) continue;
+        if (!levels.has(row[0])) levels.set(row[0], { id: row[0], name: '', starts: 0, completes: 0, fails: 0, avgCompleteSec: null, avgFailSec: null, players: null });
+        levels.get(row[0])[field] = num(row[1]);
+      }
+      stamp('levels', file);
+    } else if (/^Event id \d+$/.test(first ?? '') && DESIGN_COLUMNS[second]) {
+      for (const row of table.rows) {
+        if (!row[0]) continue;
+        if (!design.has(row[0])) design.set(row[0], { id: row[0], count: null, users: null });
+        design.get(row[0])[DESIGN_COLUMNS[second]] = num(row[1]);
+      }
+      stamp('design', file);
+    } else if (first === 'Country code' && (COUNTRY_USER_COLUMNS.includes(second) || second === 'New Users')) {
+      for (const row of table.rows) {
+        if (!row[0]) continue;
+        if (!countries.has(row[0])) countries.set(row[0], { code: row[0], users: null, newUsers: null, playtimeSec: null, d1: null });
+        countries.get(row[0])[second === 'New Users' ? 'newUsers' : 'users'] = num(row[1]);
+      }
+      stamp('countries', file);
+    } else {
+      errors.push(`${file.name} tanınmadı (başlık: ${table.head.join(', ')}). README'deki sorgulardan biri değil.`);
+    }
+  }
+
+  // Oyun yayına girmeden önceki boş günler ortalamaları düşürmesin: ilk gerçek veriden önceki satırlar atılır
+  const dailyRows = [...daily.values()].sort((a, b) => a.date.localeCompare(b.date));
+  const firstActive = dailyRows.findIndex((d) => Object.entries(d).some(([k, v]) => k !== 'date' && v > 0));
+  const activeDaily = firstActive < 0 ? [] : dailyRows.slice(firstActive);
+
+  const newUsersOf = new Map(activeDaily.map((d) => [d.date, d.newUsers]));
+  const weightOf = (date) => newUsersOf.get(date) || 1;
+  const pct = (v) => (v === undefined ? null : v * 100);
+
+  return {
+    any: files.length > 0,
+    errors,
+    asOf,
+    daily: activeDaily,
+    retention: retention ? weightedByDay(retention, from, to, weightOf).map((r) => ({ day: r.day, pct: r.value * 100 })) : null,
+    retentionTrend: retention ? retention.rows.filter((c) => c.date >= from && c.date <= to)
+      .map((c) => ({ date: c.date, d1: pct(c.values.get(1)), d7: pct(c.values.get(7)) })) : null,
+    cumulativePlaytime: playtime ? weightedByDay(playtime, from, to, weightOf).map((r) => ({ day: r.day, sec: r.value })) : null,
+    levels: levels.size ? sortLevels([...levels.values()]) : null,
+    design: design.size ? [...design.values()].sort((a, b) => (b.count ?? 0) - (a.count ?? 0)) : null,
+    countries: countries.size ? [...countries.values()].sort((a, b) => (b.users ?? 0) - (a.users ?? 0)) : null,
+  };
+}
+
+// ---------- örnek veri ----------
+// Anahtarlar girilmeden önce paneli denemek için örnek veri. Arayüzde "ÖRNEK VERİ" etiketiyle gösterilir.
+const NAMES = ['Kedi', 'Balon', 'Ok', 'Pizza', 'Gemi', 'Karpuz', 'Hayalet', 'Burger', 'Balina', 'Ada', 'Dolunay', 'Kilic',
+  'Mantar Ev', 'Kruvasan', 'Kardan Adam', 'Hediye Kutusu', 'Peynir Dilimi', 'Deniz Rozeti', 'Balkabagi', 'Rat'];
+
+function rng(seed) {
+  let s = seed >>> 0;
+  return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+}
+
+function demoMeta(from, to) {
+  const r = rng(7);
+  const daily = enumerateDays(from, to).map((date, i) => {
+    const spend = 40 + 25 * Math.sin(i / 4) + r() * 20 + i * 0.6;
+    const impressions = Math.round(spend * (900 + r() * 250));
+    const clicks = Math.round(impressions * (0.011 + r() * 0.007));
+    const installs = Math.round(clicks * (0.32 + r() * 0.12));
+    return { date, spend: +spend.toFixed(2), impressions, reach: Math.round(impressions * 0.62), clicks, installs };
+  });
+  const sum = (k) => daily.reduce((a, d) => a + d[k], 0);
+  const totals = { spend: +sum('spend').toFixed(2), impressions: sum('impressions'), reach: Math.round(sum('impressions') * 0.41), clicks: sum('clicks'), installs: sum('installs') };
+  const split = [['LF_US_Broad_Video', 0.46], ['LF_TR_Playable', 0.24], ['LF_EU_Static', 0.18], ['LF_Retarget_Test', 0.12]];
+  const campaigns = split.map(([name, share], i) => {
+    const q = 0.75 + i * 0.18;
+    return {
+      name,
+      spend: +(totals.spend * share).toFixed(2),
+      impressions: Math.round(totals.impressions * share * q),
+      reach: Math.round(totals.reach * share * q),
+      clicks: Math.round(totals.clicks * share * (1.2 - i * 0.15)),
+      installs: Math.round(totals.installs * share * (1.25 - i * 0.2)),
+    };
+  });
+  const countries = [['US', 0.42, 1.25], ['TR', 0.2, 0.38], ['DE', 0.16, 0.95], ['BR', 0.12, 0.3], ['GB', 0.1, 1.1]].map(([code, share, cpi]) => {
+    const spend = +(totals.spend * share).toFixed(2);
+    return { code, spend, impressions: Math.round(totals.impressions * share), reach: Math.round(totals.reach * share), clicks: Math.round(totals.clicks * share), installs: Math.round(spend / cpi) };
+  });
+  const placements = [['facebook', 0.38], ['instagram', 0.44], ['audience_network', 0.18]].map(([name, share]) => ({
+    name, spend: +(totals.spend * share).toFixed(2), impressions: Math.round(totals.impressions * share), reach: Math.round(totals.reach * share), clicks: Math.round(totals.clicks * share), installs: Math.round(totals.installs * share),
+  }));
+  return { account: 'Örnek reklam hesabı', currency: 'USD', daily, totals, campaigns, countries, placements };
+}
+
+function demoGA(from, to, metaDaily) {
+  const r = rng(11);
+  let dauCarry = 0;
+  const daily = enumerateDays(from, to).map((date, i) => {
+    const installs = metaDaily?.[i]?.installs ?? 300;
+    const organic = Math.round(installs * (0.18 + r() * 0.08));
+    const newUsers = installs + organic;
+    dauCarry = dauCarry * 0.78 + newUsers * 0.55;
+    const dau = Math.round(newUsers + dauCarry);
+    const sessions = Math.round(dau * (1.7 + r() * 0.4));
+    const avgSessionSec = 300 + r() * 90;
+    return { date, newUsers, dau, sessions, avgSessionSec, playtimeSec: (sessions * avgSessionSec) / dau };
+  });
+  const retentionTrend = daily.map((d, i) => ({ date: d.date, d1: 30 + r() * 8, d7: daily.length - i > 7 ? 8 + r() * 4 : null }));
+  const totalUsers = Math.round(daily.reduce((a, d) => a + d.dau, 0) * 0.35);
+  const countries = [['US', 0.34, 620, 31], ['TR', 0.24, 760, 39], ['DE', 0.13, 590, 33], ['BR', 0.12, 680, 27], ['GB', 0.09, 600, 32], ['FR', 0.08, 540, 29]].map(([code, share, playtimeSec, d1]) => ({
+    code, users: Math.round(totalUsers * share), newUsers: Math.round(daily.reduce((a, d) => a + d.newUsers, 0) * share), playtimeSec, d1,
+  }));
+  const retention = [[1, 34.2], [3, 17.9], [7, 9.8], [14, 6.1], [30, 3.2]]
+    .map(([day, pct]) => ({ day, pct }));
+
+  const totalNew = daily.reduce((a, d) => a + d.newUsers, 0);
+  let players = totalNew;
+  const levels = NAMES.map((name, i) => {
+    const hard = [4, 9, 13].includes(i); // birkaç "tıkanma" leveli
+    const winRate = hard ? 0.28 + r() * 0.08 : Math.max(0.45, 0.92 - i * 0.022 - r() * 0.06);
+    const completes = Math.round(players * (hard ? 0.82 : 0.95 - r() * 0.03));
+    const starts = Math.round(completes / winRate);
+    const lv = {
+      id: `Level_${String(i + 1).padStart(3, '0')}`,
+      name,
+      starts,
+      completes,
+      fails: Math.round((starts - completes) * 0.86),
+      avgCompleteSec: Math.round(55 + i * 6 + (hard ? 40 : 0) + r() * 20),
+      avgFailSec: Math.round(40 + i * 4 + r() * 15),
+      players,
+    };
+    players = completes;
+    return lv;
+  });
+  const design = [
+    { id: 'Level:Restart', count: Math.round(totalNew * 1.9), users: Math.round(totalNew * 0.6) },
+    { id: 'Speed:2X', count: Math.round(totalNew * 0.8), users: Math.round(totalNew * 0.4) },
+    { id: 'Speed:3X', count: Math.round(totalNew * 0.35), users: Math.round(totalNew * 0.2) },
+    { id: 'Speed:Depleted', count: Math.round(totalNew * 0.22), users: Math.round(totalNew * 0.15) },
+  ];
+  const startsTotal = levels.reduce((a, l) => a + l.starts, 0);
+  const categories = [
+    { id: 'progression', count: startsTotal * 2 },
+    { id: 'user', count: daily.reduce((a, d) => a + d.sessions, 0) },
+    { id: 'session_end', count: Math.round(daily.reduce((a, d) => a + d.sessions, 0) * 0.92) },
+    { id: 'design', count: design.reduce((a, e) => a + e.count, 0) },
+  ];
+  return {
+    daily, retention, retentionTrend, levels, design, categories, countries,
+    mau: Math.round(totalUsers * 1.15),
+    platforms: [{ name: 'android', users: Math.round(totalUsers * 0.68) }, { name: 'ios', users: Math.round(totalUsers * 0.32) }],
+    cumulativePlaytime: [[0, 760], [1, 1010], [3, 1380], [7, 1820], [14, 2240], [30, 2710]].map(([day, sec]) => ({ day, sec })),
+    errors: [],
+  };
+}
+
+// ---------- veri birleştirme ----------
+const EMPTY_META = { account: null, currency: null, daily: [], totals: null, campaigns: [], countries: [], placements: [] };
+const EMPTY_GA = { daily: [], mau: null, retention: [], retentionTrend: [], countries: [], platforms: [], categories: [], cumulativePlaytime: [], errors: [] };
+
+/** API verisini (sunucuyla açıldıysa) ve CSV'leri tek veri kümesinde birleştirir. Sayfa ya tamamen örnek ya tamamen gerçek veri gösterir. */
+function buildDashboard(from, to, api) {
+  const csv = loadCsv(storedFiles, from, to);
+  const metaOn = api && api.metaState.status !== 'off';
+  const gaOn = api && api.gaState.status !== 'off';
+  const demo = !metaOn && !gaOn && !csv.any;
+  const meta = demo ? demoMeta(from, to) : (api?.meta ?? EMPTY_META);
+  const ga = demo ? demoGA(from, to, meta.daily) : (api?.ga ?? EMPTY_GA);
+  const noServer = 'Bu sayfa dosyadan açıldı; anahtarla bağlanmak için sunucu gerekir (README)';
+  const metaState = demo ? { status: 'demo' } : (api?.metaState ?? { status: 'off', message: noServer });
+  const gaState = demo ? { status: 'demo' } : (api?.gaState ?? { status: 'off', message: noServer });
+  const apiKind = demo ? 'demo' : 'api';
+
+  // CSV varsa o veri için önceliklidir. Her veri kümesi nereden geldiğini kendi söyler.
+  const pick = (name, apiRows) => {
+    if (csv[name]?.length) return { rows: csv[name], source: { kind: 'csv', asOf: csv.asOf[name] } };
+    if (apiRows?.length) return { rows: apiRows, source: { kind: apiKind } };
+    return { rows: [], source: { kind: 'none' } };
+  };
+
+  const hasValue = (d) => [d.dau, d.newUsers, d.sessions, d.avgSessionSec, d.playtimeSec].some((v) => v !== null && v !== undefined);
+  const dailyPick = pick('daily', ga.daily.filter(hasValue).length ? ga.daily : []);
+  const csvDaily = dailyPick.source.kind === 'csv';
+  const gaDaily = new Map(dailyPick.rows.map((d) => [d.date, d]));
+  const metaDaily = new Map(meta.daily.map((d) => [d.date, d]));
+  const daily = enumerateDays(from, to).map((date) => {
+    const g = gaDaily.get(date) || {};
+    const m = metaDaily.get(date) || {};
+    return {
+      date,
+      newUsers: g.newUsers ?? null, dau: g.dau ?? null, sessions: g.sessions ?? null, avgSessionSec: g.avgSessionSec ?? null, playtimeSec: g.playtimeSec ?? null,
+      spend: m.spend ?? null, impressions: m.impressions ?? null, reach: m.reach ?? null, clicks: m.clicks ?? null, metaInstalls: m.installs ?? null,
+    };
+  });
+  const csvMau = csvDaily ? dailyPick.rows.filter((d) => d.date <= to && Number.isFinite(d.mau)).at(-1)?.mau ?? null : null;
+
+  const retention = pick('retention', ga.retention);
+  const countries = pick('countries', ga.countries);
+  const levels = pick('levels', ga.levels);
+  const design = pick('design', ga.design);
+  const cumulativePlaytime = pick('cumulativePlaytime', ga.cumulativePlaytime);
+  const trendHasData = (rows) => rows?.some((d) => d.d1 !== null || d.d7 !== null);
+  const retentionTrend = trendHasData(csv.retentionTrend)
+    ? { rows: csv.retentionTrend, source: { kind: 'csv', asOf: csv.asOf.retention } }
+    : { rows: ga.retentionTrend, source: { kind: trendHasData(ga.retentionTrend) ? apiKind : 'none' } };
+
+  return {
+    generatedAt: new Date().toISOString(),
+    range: { from, to },
+    demo,
+    currency: meta.currency,
+    account: meta.account,
+    sources: {
+      meta: metaState,
+      ga: gaState,
+      csvErrors: csv.errors,
+      daily: dailyPick.source,
+      retention: retention.source,
+      retentionTrend: retentionTrend.source,
+      countries: countries.source,
+      platforms: { kind: ga.platforms.length ? apiKind : 'none' },
+      categories: { kind: ga.categories.length ? apiKind : 'none' },
+      cumulativePlaytime: cumulativePlaytime.source,
+      levels: levels.source,
+      design: design.source,
+      adSpend: { kind: meta.totals ? apiKind : 'none' },
+    },
+    daily,
+    mau: csvDaily ? csvMau : ga.mau,
+    metaTotals: meta.totals,
+    campaigns: meta.campaigns,
+    metaCountries: meta.countries,
+    metaPlacements: meta.placements,
+    retention: retention.rows,
+    retentionTrend: retentionTrend.rows,
+    countries: countries.rows,
+    platforms: ga.platforms,
+    categories: ga.categories,
+    cumulativePlaytime: cumulativePlaytime.rows,
+    levels: levels.rows,
+    design: design.rows,
+  };
+}
+
+// ---------- biçimlendirme ----------
+const nf = new Intl.NumberFormat('tr-TR');
+const nf1 = new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 1 });
+const nfc = new Intl.NumberFormat('tr-TR', { notation: 'compact', maximumFractionDigits: 1 });
+const ok = (v) => v !== null && v !== undefined && Number.isFinite(v);
+const int = (v) => (ok(v) ? nf.format(Math.round(v)) : '—');
+const pct = (v, d = 1) => (ok(v) ? `%${v.toFixed(d).replace('.', ',')}` : '—');
+const mins = (sec) => (ok(sec) ? `${nf1.format(sec / 60)} dk` : '—');
+const secs = (s) => (ok(s) ? (s >= 60 ? `${Math.floor(s / 60)} dk ${Math.round(s % 60)} sn` : `${Math.round(s)} sn`) : '—');
+let currency = 'USD';
+const money = (v, d = 2) => (ok(v) ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency, maximumFractionDigits: d }).format(v) : '—');
+const dayLabel = (iso, long) => {
+  const d = new Date(`${iso}T00:00:00Z`);
+  return d.toLocaleDateString('tr-TR', long ? { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' } : { day: 'numeric', month: 'short', timeZone: 'UTC' });
+};
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const sum = (arr, k) => arr.reduce((a, d) => a + (ok(d[k]) ? d[k] : 0), 0);
+const avg = (arr, k) => { const v = arr.map((d) => d[k]).filter(ok); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+const div = (a, b) => (ok(a) && ok(b) && b > 0 ? a / b : null);
+const times100 = (v) => (ok(v) ? v * 100 : null);
+const countryNames = new Intl.DisplayNames(['tr'], { type: 'region' });
+const country = (code) => {
+  try { return countryNames.of(String(code).toUpperCase()) || code; } catch { return code || 'Bilinmiyor'; }
+};
+
+// ---------- durum ----------
+let days = 30;
+let data = null;
+
+const hasServer = location.protocol.startsWith('http');
+const STORE_KEY = 'landflow-panel-csv';
+let storedFiles = [];
+
+function readStore() {
+  try { storedFiles = JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch { storedFiles = []; }
+}
+
+/** Tarayıcı saklamayı reddederse dosyalar yalnızca bu sekme açıkken kalır; kullanıcıya söylenir. */
+function writeStore() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(storedFiles)); return true; } catch { return false; }
+}
+
+async function addFiles(fileList) {
+  const csvFiles = [...fileList].filter((f) => f.name.toLowerCase().endsWith('.csv'));
+  const skipped = fileList.length - csvFiles.length;
+  for (const file of csvFiles) {
+    const entry = { name: file.name, text: await file.text(), at: file.lastModified || Date.now() };
+    storedFiles = storedFiles.filter((f) => f.name !== file.name);
+    storedFiles.push(entry);
+  }
+  const saved = writeStore();
+  const notes = [];
+  if (skipped) notes.push(`${skipped} dosya CSV olmadığı için atlandı.`);
+  if (!saved) notes.push('Tarayıcı dosyaları saklayamadı; sayfayı kapatınca yeniden eklemeniz gerekir.');
+  fileNote = notes.join(' ');
+  load();
+}
+
+let fileNote = '';
+
+async function load(refresh = false) {
+  const btn = document.getElementById('refresh');
+  const box = document.getElementById('errorBox');
+  const to = addDays(new Date().toISOString().slice(0, 10), -1);
+  const from = addDays(to, -(days - 1));
+  let api = null;
+  try {
+    if (hasServer) {
+      btn.disabled = true; btn.textContent = 'Yükleniyor…';
+      const res = await fetch(`/api/sources?from=${from}&to=${to}${refresh ? '&refresh=1' : ''}`);
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+      api = body;
+    }
+    data = buildDashboard(from, to, api);
+    box.hidden = true;
+    render();
+  } catch (e) {
+    box.hidden = false;
+    box.textContent = `Veri alınamadı: ${e.message}`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Yenile';
+  }
+}
+
+document.getElementById('addCsv').addEventListener('click', () => document.getElementById('csvInput').click());
+document.getElementById('csvInput').addEventListener('change', (e) => { addFiles(e.target.files); e.target.value = ''; });
+window.addEventListener('dragover', (e) => { e.preventDefault(); document.body.classList.add('dropping'); });
+window.addEventListener('dragleave', (e) => { if (!e.relatedTarget) document.body.classList.remove('dropping'); });
+window.addEventListener('drop', (e) => {
+  e.preventDefault();
+  document.body.classList.remove('dropping');
+  if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files);
+});
+document.getElementById('sources').addEventListener('click', (e) => {
+  if (e.target.id !== 'clearCsv') return;
+  storedFiles = [];
+  writeStore();
+  fileNote = '';
+  load();
+});
+document.getElementById('refresh').hidden = !hasServer;
+
+document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('.seg button').forEach((x) => x.classList.toggle('on', x === b));
+  days = Number(b.dataset.days);
+  load();
+}));
+document.getElementById('refresh').addEventListener('click', () => load(true));
+let resizeTimer;
+window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => data && renderCharts(), 150); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => data && renderCharts());
+
+// ---------- türetilmiş metrikler ----------
+function derive() {
+  const d = data.daily;
+  const mt = data.metaTotals || {};
+  const newUsers = sum(d, 'newUsers');
+  const hasGaNew = d.some((x) => ok(x.newUsers));
+  const metaInstalls = data.metaTotals ? mt.installs : null;
+  const ret = (n) => data.retention.find((r) => r.day === n)?.pct ?? null;
+  const dau = avg(d, 'dau');
+  return {
+    spend: mt.spend, impressions: mt.impressions, reach: mt.reach, clicks: mt.clicks, metaInstalls,
+    newUsers: hasGaNew ? newUsers : null,
+    ctr: times100(div(mt.clicks, mt.impressions)),
+    cpi: div(mt.spend, metaInstalls),
+    cpm: ok(div(mt.spend, mt.impressions)) ? div(mt.spend, mt.impressions) * 1000 : null,
+    freq: div(mt.impressions, mt.reach),
+    installRate: times100(div(metaInstalls, mt.clicks)),
+    organic: hasGaNew && ok(metaInstalls) ? Math.max(0, newUsers - metaInstalls) : null,
+    dau,
+    mau: data.mau,
+    stickiness: times100(div(dau, data.mau)),
+    sessionsPerUser: div(sum(d, 'sessions'), sum(d, 'dau')),
+    avgSession: avg(d, 'avgSessionSec'),
+    playtime: avg(d, 'playtimeSec'),
+    d1: ret(1), d3: ret(3), d7: ret(7), d14: ret(14), d30: ret(30),
+    levels: deriveLevels(data.levels),
+  };
+}
+
+function deriveLevels(levels) {
+  const out = [];
+  const totalSec = (l) => (l.completes * (l.avgCompleteSec ?? 0)) + (l.fails * (l.avgFailSec ?? 0));
+  const allSec = levels.reduce((a, l) => a + totalSec(l), 0);
+  let base = null;
+  levels.forEach((l, i) => {
+    // Levele ulaşan: CSV'de tekil oyuncu varsa o, yoksa önceki leveli bitirenler (1. level için bilinmiyor)
+    const reached = ok(l.players) ? l.players : (i > 0 ? out[i - 1].completes : null);
+    if (base === null && ok(reached)) base = reached;
+    const lv = {
+      ...l,
+      reached,
+      estimated: !ok(l.players),
+      funnel: times100(div(reached, base)),
+      winRate: times100(div(l.completes, l.starts)),
+      attempts: div(l.starts, l.completes),
+      drop: ok(reached) && reached > 0 ? Math.max(0, ((reached - l.completes) / reached) * 100) : null,
+      totalSec: totalSec(l) > 0 ? totalSec(l) : null,
+      timeShare: times100(div(totalSec(l), allSec)),
+    };
+    lv.flags = [];
+    if (ok(lv.winRate) && lv.winRate < 40) lv.flags.push(['bad', 'Tıkanma', `Başlayanların yalnızca ${pct(lv.winRate, 0)}'i bitiriyor`]);
+    else if (ok(lv.winRate) && lv.winRate < 55) lv.flags.push(['warn', 'Zor', `Kazanma oranı ${pct(lv.winRate, 0)}`]);
+    if (ok(lv.drop) && lv.drop >= 15) lv.flags.push(['bad', 'Kopma', `Ulaşanların ${pct(lv.drop, 0)}'i bu leveli bitirmeden bırakıyor`]);
+    else if (ok(lv.drop) && lv.drop >= 8) lv.flags.push(['warn', 'Kopma', `Ulaşanların ${pct(lv.drop, 0)}'i bitirmiyor`]);
+    out.push(lv);
+  });
+  return out;
+}
+
+function kpis(id, items) {
+  document.getElementById(id).innerHTML = items.map(([label, value, sub]) => `
+    <div class="kpi"><div class="label">${label}</div><div class="value">${value}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>`).join('');
+}
+
+// ---------- tablolar ----------
+function table(containerId, columns, rows, { sortKey, desc = true, rowTitle, empty = 'Veri yok' } = {}) {
+  const host = document.getElementById(containerId);
+  if (!rows.length) { host.innerHTML = `<p class="empty">${empty}</p>`; return; }
+  let key = sortKey, isDesc = desc;
+  const draw = () => {
+    const sorted = key ? [...rows].sort((a, b) => {
+      const col = columns.find((c) => c.key === key);
+      const va = col.sort ? col.sort(a) : a[key], vb = col.sort ? col.sort(b) : b[key];
+      const cmp = typeof va === 'string' ? va.localeCompare(vb, 'tr') : (ok(va) ? va : -Infinity) - (ok(vb) ? vb : -Infinity);
+      return isDesc ? -cmp : cmp;
+    }) : rows;
+    host.innerHTML = `<table><thead><tr>${columns.map((c) => `<th data-k="${c.key}" class="${c.left ? 'l' : ''} ${c.key === key ? `sorted ${isDesc ? '' : 'asc'}` : ''}" title="${esc(c.help || '')}">${c.label}</th>`).join('')}</tr></thead>
+      <tbody>${sorted.map((r) => `<tr title="${esc(rowTitle ? rowTitle(r) : '')}">${columns.map((c) => `<td class="${c.left ? 'l' : ''} ${c.cls ? c.cls(r) : ''}">${c.fmt ? c.fmt(r) : esc(r[c.key])}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    host.querySelectorAll('th').forEach((th) => th.addEventListener('click', () => {
+      if (key === th.dataset.k) isDesc = !isDesc; else { key = th.dataset.k; isDesc = true; }
+      draw();
+    }));
+  };
+  draw();
+}
+
+const share = (value, max, text) => `<span class="share"><i style="width:${ok(value) && max > 0 ? (value / max) * 100 : 0}%"></i></span>${text}`;
+
+const CSV_HINT = "GameAnalytics Explore'dan indirdiğiniz CSV'leri bu sayfaya sürükleyin (README).";
+const NO_GA = CSV_HINT;
+const API_ONLY = 'Yalnızca ücretli GameAnalytics API ile gelir.';
+const NO_META = 'Meta reklam verisi anahtar ve sunucu gerektirir (README).';
+
+function renderTables(m) {
+  const levelNum = (l) => Number(String(l.id).replace(/\D/g, '')) || 0;
+  table('levelTable', [
+    { key: 'id', label: 'Level', left: true, sort: levelNum, fmt: (l) => `${esc(l.id)}${l.name ? ` <span class="muted">${esc(l.name)}</span>` : ''}` },
+    { key: 'reached', label: 'Ulaşan', fmt: (l) => `${int(l.reached)}${ok(l.reached) && l.estimated ? ' <span class="muted">~</span>' : ''}`, help: 'Tekil oyuncu; ~ işareti önceki leveli bitirenlerden tahmin edildi demek' },
+    { key: 'funnel', label: 'Ulaşan %', fmt: (l) => pct(l.funnel, 0) },
+    { key: 'starts', label: 'Başlama', fmt: (l) => int(l.starts), help: 'Tekrar denemeler dahil' },
+    { key: 'completes', label: 'Bitirme', fmt: (l) => int(l.completes) },
+    { key: 'fails', label: 'Kayıp', fmt: (l) => int(l.fails), help: 'Slotlar dolup kaybedilen oyun' },
+    { key: 'winRate', label: 'Kazanma %', fmt: (l) => pct(l.winRate, 0), cls: (l) => (l.winRate < 40 ? 'v-bad' : l.winRate < 55 ? 'v-warn' : '') },
+    { key: 'attempts', label: 'Deneme / bitirme', fmt: (l) => (ok(l.attempts) ? nf1.format(l.attempts) : '—'), cls: (l) => (l.attempts >= 2.5 ? 'v-bad' : l.attempts >= 1.8 ? 'v-warn' : ''), help: 'Bir kez bitirmek için ortalama kaç kez başlanıyor' },
+    { key: 'avgCompleteSec', label: 'Ort. bitirme', fmt: (l) => secs(l.avgCompleteSec) },
+    { key: 'avgFailSec', label: 'Ort. kayıp', fmt: (l) => secs(l.avgFailSec) },
+    { key: 'totalSec', label: 'Toplam süre', fmt: (l) => (ok(l.totalSec) ? `${int(l.totalSec / 60)} dk` : '—'), help: 'Bitirme ve kayıp denemelerinin toplamı' },
+    { key: 'drop', label: 'Bırakan %', fmt: (l) => pct(l.drop, 0), cls: (l) => (l.drop >= 15 ? 'v-bad' : l.drop >= 8 ? 'v-warn' : ''), help: 'Levele ulaşıp bitirmeyenler' },
+    { key: 'flags', label: 'Durum', left: true, sort: (l) => l.flags.length, fmt: (l) => l.flags.map(([c, t]) => `<span class="flag ${c}">${c === 'bad' ? '✕' : '!'} ${t}</span>`).join('') || '<span class="flag good">✓ Normal</span>' },
+  ], m.levels, { rowTitle: (l) => l.flags.map((f) => f[2]).join(' · '), empty: CSV_HINT });
+
+  const maxUsers = Math.max(0, ...data.countries.map((c) => c.users ?? 0));
+  table('countryTable', [
+    { key: 'code', label: 'Ülke', left: true, sort: (c) => country(c.code), fmt: (c) => esc(country(c.code)) },
+    { key: 'users', label: 'Oyuncu', fmt: (c) => share(c.users, maxUsers, int(c.users)) },
+    { key: 'newUsers', label: 'Yeni', fmt: (c) => int(c.newUsers) },
+    { key: 'playtimeSec', label: 'Süre / oyuncu', fmt: (c) => mins(c.playtimeSec), help: 'Dönem boyunca oyuncu başına oynama' },
+    { key: 'd1', label: 'D1', fmt: (c) => pct(c.d1), help: 'Son en çok 14 kohortun ortalaması' },
+    { key: 'churn', label: 'D1 churn', sort: (c) => (ok(c.d1) ? 100 - c.d1 : null), fmt: (c) => pct(ok(c.d1) ? 100 - c.d1 : null) },
+  ], data.countries.slice(0, 15), { sortKey: 'users', empty: NO_GA });
+
+  table('platformTable', [
+    { key: 'name', label: 'Platform', left: true },
+    { key: 'users', label: 'Oyuncu', fmt: (p) => int(p.users) },
+  ], data.platforms, { sortKey: 'users', empty: API_ONLY });
+
+  const adColumns = (first) => [
+    first,
+    { key: 'spend', label: 'Harcama', fmt: (c) => money(c.spend) },
+    { key: 'installs', label: 'Kurulum', fmt: (c) => int(c.installs) },
+    { key: 'cpi', label: 'CPI', sort: (c) => div(c.spend, c.installs), fmt: (c) => money(div(c.spend, c.installs)) },
+    { key: 'ctr', label: 'CTR', sort: (c) => div(c.clicks, c.impressions), fmt: (c) => pct(times100(div(c.clicks, c.impressions)), 2) },
+  ];
+  table('metaCountryTable', adColumns({ key: 'code', label: 'Ülke', left: true, sort: (c) => country(c.code), fmt: (c) => esc(country(c.code)) }), (data.metaCountries || []).slice(0, 15), { sortKey: 'spend', empty: NO_META });
+  table('placementTable', adColumns({ key: 'name', label: 'Yerleşim', left: true }), data.metaPlacements || [], { sortKey: 'spend', empty: NO_META });
+
+  table('campTable', [
+    { key: 'name', label: 'Kampanya', left: true },
+    { key: 'spend', label: 'Harcama', fmt: (c) => money(c.spend) },
+    { key: 'impressions', label: 'Gösterim', fmt: (c) => int(c.impressions) },
+    { key: 'reach', label: 'Erişim', fmt: (c) => int(c.reach) },
+    { key: 'ctr', label: 'CTR', sort: (c) => div(c.clicks, c.impressions), fmt: (c) => pct(times100(div(c.clicks, c.impressions)), 2) },
+    { key: 'installs', label: 'Kurulum', fmt: (c) => int(c.installs) },
+    { key: 'cpi', label: 'CPI', sort: (c) => div(c.spend, c.installs), fmt: (c) => money(div(c.spend, c.installs)) },
+    { key: 'cpm', label: 'CPM', sort: (c) => div(c.spend, c.impressions), fmt: (c) => money(ok(div(c.spend, c.impressions)) ? div(c.spend, c.impressions) * 1000 : null) },
+  ], data.campaigns || [], { sortKey: 'spend', empty: NO_META });
+
+  table('designTable', [
+    { key: 'id', label: 'Olay', left: true },
+    { key: 'count', label: 'Toplam', fmt: (e) => int(e.count) },
+    { key: 'users', label: 'Oyuncu', fmt: (e) => int(e.users) },
+    { key: 'per', label: 'Oyuncu başına', sort: (e) => div(e.count, e.users), fmt: (e) => (ok(div(e.count, e.users)) ? nf1.format(div(e.count, e.users)) : '—') },
+  ], data.design || [], { sortKey: 'count', empty: CSV_HINT });
+
+  table('categoryTable', [
+    { key: 'id', label: 'Kategori', left: true },
+    { key: 'count', label: 'Olay sayısı', fmt: (e) => int(e.count) },
+  ], data.categories || [], { sortKey: 'count', empty: API_ONLY });
+}
+
+const GAPS = [
+  ['Restart ile bırakılan denemenin süresi', 'Level:Restart süre taşımıyor, Fail da gitmiyor', 'Restart olayına geçen saniyeyi değer olarak ekle'],
+  ['Oyundan çıkarak bırakılan level', 'Yarıda kalan deneme için olay gitmiyor, yalnızca Start kalıyor', 'Uygulama arka plana geçerken "Level:Quit" olayı gönder'],
+  ['Kampanya ve kaynak (organik dahil)', 'Oyunda atıf aracı yok; GA install_publisher boyutu dolmaz', 'AppsFlyer veya Adjust gibi bir MMP ekle'],
+  ['Meta tarafında oyuncu davranışı', 'Oyun Meta\'ya yalnızca uygulama açılışı ve SDK\'nın otomatik olaylarını gönderiyor; Meta bunları API ile vermiyor (Events Manager\'da görünür)', 'Kampanyaya göre level kıyası için MMP ya da Meta\'ya özel olay gerekir'],
+  ['Gelir (ARPU, reklam ve satın alma)', 'Oyun reklam veya satın alma olayı göndermiyor', 'Satışa ve reklama başlanınca Business ve Ad olayları ekle'],
+  ['Sürümler arası karşılaştırma', 'GA ayarlarında Build sabit 0.1, oyun sürümü 1.4; bütün sürümler 0.1 görünür', 'GA ayarında sürüm numarasını güncelle ya da "Use Player Settings" aç'],
+];
+
+function renderLevelSummary(m) {
+  const L = m.levels;
+  const host = document.getElementById('levelSummary');
+  if (!L.length) { host.innerHTML = ''; return; }
+  const name = (l) => `${esc(l.id)}${l.name ? ` (${esc(l.name)})` : ''}`;
+  const hardest = [...L].filter((l) => ok(l.winRate)).sort((a, b) => a.winRate - b.winRate)[0];
+  const leaker = [...L].filter((l) => ok(l.drop)).sort((a, b) => b.drop - a.drop)[0];
+  const half = L.find((l) => ok(l.funnel) && l.funnel < 50);
+  const longest = [...L].filter((l) => ok(l.avgCompleteSec)).sort((a, b) => b.avgCompleteSec - a.avgCompleteSec)[0];
+  host.innerHTML = [
+    hardest && ['En zor level', `${name(hardest)}: kazanma ${pct(hardest.winRate, 0)}, ortalama ${nf1.format(hardest.attempts || 0)} deneme`],
+    leaker && ['En çok oyuncu kaybettiren', `${name(leaker)}: ulaşanların ${pct(leaker.drop, 0)}'i bırakıyor`],
+    ['Oyuncuların yarısı', half ? `${name(half)} seviyesine gelmeden bırakıyor` : `son levele (${esc(L.at(-1).id)}) kadar devam ediyor`],
+    longest && ['En uzun süren level', `${name(longest)}: ortalama ${secs(longest.avgCompleteSec)}`],
+  ].filter(Boolean).map(([t, v]) => `<div class="callout"><b>${t}</b>${v}</div>`).join('');
+}
+
+// ---------- grafikler ----------
+function emptyHint(id, html) {
+  document.getElementById(id).innerHTML = `<p class="empty">${html}</p>`;
+}
+
+function renderCharts() {
+  const m = derive();
+  const d = data.daily;
+  const labels = d.map((x) => x.date);
+  const s1 = css('--s1'), s2 = css('--s2'), crit = css('--critical'), warn = css('--warning');
+  const xf = (iso, long) => dayLabel(iso, long);
+  const compact = (v, axis) => (axis ? nfc.format(v) : int(v));
+  const hasMeta = Boolean(data.metaTotals);
+  const hasNew = d.some((x) => ok(x.newUsers));
+
+  lineChart(document.getElementById('chDau'), {
+    labels, xFormat: xf, format: compact, series: [{ name: 'DAU', values: d.map((x) => x.dau), color: s1 }],
+  });
+  const installSeries = [];
+  if (hasNew) installSeries.push({ name: 'Yeni oyuncu (GA)', values: d.map((x) => x.newUsers), color: s1 });
+  if (hasMeta) installSeries.push({ name: 'Kurulum (Meta)', values: d.map((x) => x.metaInstalls), color: s2 });
+  if (installSeries.length) lineChart(document.getElementById('chInstalls'), { labels, xFormat: xf, format: compact, series: installSeries });
+  else emptyHint('chInstalls', NO_GA);
+
+  barChart(document.getElementById('chSpend'), {
+    labels, xFormat: xf, name: 'Harcama', values: d.map((x) => x.spend), color: () => s1,
+    format: (v, axis) => (axis ? nfc.format(v) : money(v)),
+    tipExtra: (i) => `<div class="tip-note">CPI: ${money(div(d[i].spend, d[i].metaInstalls))} · ${int(d[i].metaInstalls)} kurulum</div>`,
+  });
+  if (!hasMeta) emptyHint('chSpend', NO_META);
+
+  lineChart(document.getElementById('chPlay'), {
+    labels, xFormat: xf,
+    format: (v, axis) => (axis ? nf1.format(v) : `${nf1.format(v)} dk`),
+    series: [{ name: 'Oynama süresi', values: d.map((x) => (ok(x.playtimeSec) ? x.playtimeSec / 60 : null)), color: s1 }],
+  });
+
+  const ret = data.retention;
+  barChart(document.getElementById('chRet'), {
+    labels: ret.map((r) => r.day), values: ret.map((r) => r.pct), name: 'Geri dönen', color: () => s1,
+    xFormat: (n, long) => (long ? `${n}. gün` : `D${n}`), format: (v, axis) => (axis ? `%${Math.round(v)}` : pct(v)),
+    tipExtra: (i) => `<div class="tip-note">Churn: ${pct(100 - ret[i].pct)}</div>`,
+  });
+  const trend = data.retentionTrend || [];
+  lineChart(document.getElementById('chRetTrend'), {
+    labels: trend.map((x) => x.date), xFormat: xf,
+    format: (v, axis) => (axis ? `%${Math.round(v)}` : pct(v)),
+    series: [
+      { name: 'D1', values: trend.map((x) => x.d1), color: s1 },
+      { name: 'D7', values: trend.map((x) => x.d7), color: s2 },
+    ],
+  });
+  if (data.sources.retentionTrend.kind === 'none') emptyHint('chRetTrend', CSV_HINT);
+
+  const cumul = data.cumulativePlaytime || [];
+  barChart(document.getElementById('chCumul'), {
+    labels: cumul.map((c) => c.day), values: cumul.map((c) => c.sec / 60), name: 'Toplam oynama', color: () => s1,
+    xFormat: (n, long) => (long ? `Kurulumdan ${n} gün sonra` : `D${n}`), format: (v, axis) => (axis ? nf1.format(v) : `${nf1.format(v)} dk`),
+  });
+  if (!cumul.length) emptyHint('chCumul', CSV_HINT);
+
+  const L = m.levels;
+  const levelCharts = ['chWin', 'chFunnel', 'chLevelTime', 'chLevelTotal'];
+  if (!L.length) { levelCharts.forEach((id) => emptyHint(id, CSV_HINT)); return; }
+  const shortId = (id) => String(id).replace(/^Level_0*/, '');
+  const levelX = (id, long) => {
+    if (!long) return shortId(id);
+    const l = L.find((x) => x.id === id);
+    return `${esc(id)}${l?.name ? ` · ${esc(l.name)}` : ''}`;
+  };
+  const ids = L.map((l) => l.id);
+  barChart(document.getElementById('chWin'), {
+    labels: ids, values: L.map((l) => l.winRate), name: 'Kazanma', max: 100, xFormat: levelX,
+    color: (i, v) => (v < 40 ? crit : v < 55 ? warn : s1),
+    format: (v, axis) => (axis ? `%${Math.round(v)}` : pct(v, 0)),
+    tipExtra: (i) => `<div class="tip-note">${int(L[i].starts)} başlama · ${int(L[i].fails)} kayıp · ${nf1.format(L[i].attempts || 0)} deneme/bitirme${L[i].flags.length ? `<br>${L[i].flags.map((f) => `<b>${f[1]}:</b> ${f[2]}`).join('<br>')}` : ''}</div>`,
+  });
+  barChart(document.getElementById('chLevelTime'), {
+    labels: ids, values: L.map((l) => l.avgCompleteSec), name: 'Ort. bitirme', xFormat: levelX, color: () => s1,
+    format: (v, axis) => (axis ? nf.format(v) : secs(v)),
+    tipExtra: (i) => `<div class="tip-note">Ort. kayıp: ${secs(L[i].avgFailSec)}</div>`,
+  });
+  lineChart(document.getElementById('chFunnel'), {
+    labels: ids, xFormat: levelX,
+    format: (v, axis) => (axis ? `%${Math.round(v)}` : pct(v, 0)),
+    series: [{ name: 'Ulaşan oyuncu', values: L.map((l) => l.funnel), color: s1 }],
+  });
+  barChart(document.getElementById('chLevelTotal'), {
+    labels: ids, values: L.map((l) => (ok(l.totalSec) ? l.totalSec / 60 : null)), name: 'Toplam süre', xFormat: levelX, color: () => s1,
+    format: (v, axis) => (axis ? nfc.format(v) : `${int(v)} dk`),
+    tipExtra: (i) => `<div class="tip-note">Toplam sürenin ${pct(L[i].timeShare)}'i</div>`,
+  });
+}
+
+// ---------- kaynak etiketleri ----------
+function sourceTag(source) {
+  if (source.kind === 'demo') return ['ÖRNEK', 'demo'];
+  if (source.kind === 'csv') return [`CSV · ${dayLabel(source.asOf.slice(0, 10))}`, 'csv'];
+  if (source.kind === 'api') return ['Canlı', 'live'];
+  return ['Veri yok', 'none'];
+}
+
+function renderSources() {
+  const s = data.sources;
+  const state = { live: 'Bağlı', partial: 'Eksik veri', error: 'Hata', off: 'Bağlı değil', demo: 'ÖRNEK VERİ' };
+  const chip = (name, st) => `<span class="src ${st.status}">${name}: <b>${state[st.status]}</b>${st.message ? ` · ${esc(st.message)}` : ''}</span>`;
+  const usingCsv = storedFiles.length > 0;
+  document.getElementById('sources').innerHTML = chip(`Meta Ads${data.account ? ` (${esc(data.account)})` : ''}`, s.meta)
+    + (usingCsv && s.ga.status === 'off' ? '' : chip('GameAnalytics', s.ga))
+    + (usingCsv ? `<span class="src live">GameAnalytics CSV: <b>${storedFiles.length} dosya</b> <button id="clearCsv" class="link">Temizle</button></span>` : '')
+    + (fileNote ? `<span class="src partial">${esc(fileNote)}</span>` : '')
+    + s.csvErrors.map((e) => `<span class="src error"><b>CSV hatası</b> · ${esc(e)}</span>`).join('');
+  document.querySelectorAll('[data-src]').forEach((el) => {
+    const [text, cls] = sourceTag(s[el.dataset.src]);
+    el.textContent = text;
+    el.className = `tag ${cls}`;
+  });
+}
+
+// ---------- ana çizim ----------
+function render() {
+  currency = data.currency || 'USD';
+  const m = derive();
+  document.getElementById('rangeText').textContent = `${dayLabel(data.range.from, true)} – ${dayLabel(data.range.to, true)} (UTC)`;
+  document.getElementById('demoBanner').hidden = !data.demo;
+  renderSources();
+  const sample = document.getElementById('sampleNote');
+  sample.hidden = data.demo || !ok(m.mau) || m.mau >= 100;
+  sample.textContent = `Son 30 günde yalnızca ${int(m.mau)} oyuncu var. Oranlar birkaç kişiyle değişir, karar için değil yön görmek için kullanın.`;
+
+  const churn = (v) => (ok(v) ? 100 - v : null);
+  kpis('kpiActive', [
+    ['Ort. günlük aktif', int(m.dau), 'DAU'],
+    ['Aylık aktif', int(m.mau), 'MAU, son 30 gün'],
+    ['Yapışkanlık', pct(m.stickiness), 'DAU ÷ MAU'],
+    ['Yeni oyuncu', int(m.newUsers), 'Seçili dönemde'],
+    ['Oturum / oyuncu / gün', ok(m.sessionsPerUser) ? nf1.format(m.sessionsPerUser) : '—'],
+  ]);
+  kpis('kpiRetention', [
+    ['D1 retention', pct(m.d1), `Churn ${pct(churn(m.d1))}`],
+    ['D3 retention', pct(m.d3), `Churn ${pct(churn(m.d3))}`],
+    ['D7 retention', pct(m.d7), `Churn ${pct(churn(m.d7))}`],
+    ['D14 retention', pct(m.d14), `Churn ${pct(churn(m.d14))}`],
+    ['D30 retention', pct(m.d30), `Churn ${pct(churn(m.d30))}`],
+  ]);
+  kpis('kpiPlay', [
+    ['Günlük oynama', mins(m.playtime), 'Aktif oyuncu başına'],
+    ['Ort. oturum süresi', secs(m.avgSession)],
+  ]);
+  kpis('kpiAcq', [
+    ['Harcama', money(m.spend, 0), `CPM ${money(m.cpm)}`],
+    ['Gösterim', int(m.impressions), `Sıklık ${ok(m.freq) ? nf1.format(m.freq) : '—'} / kişi`],
+    ['Erişilen kişi', int(m.reach), 'Reklamı gören tekil kişi'],
+    ['Tıklama', int(m.clicks), `CTR ${pct(m.ctr, 2)}`],
+    ['Meta kurulum', int(m.metaInstalls), `Tıklayanların ${pct(m.installRate)}'i`],
+    ['CPI', money(m.cpi), 'Kurulum başına maliyet'],
+    ['Reklam dışı oyuncu', ok(m.organic) ? `≈ ${int(m.organic)}` : '—', 'GA yeni − Meta kurulum, kaba tahmin'],
+  ]);
+  renderLevelSummary(m);
+  renderTables(m);
+  table('gapTable', [
+    { key: 'what', label: 'Ölçülemeyen', left: true, fmt: (g) => esc(g[0]) },
+    { key: 'why', label: 'Neden', left: true, fmt: (g) => esc(g[1]) },
+    { key: 'fix', label: 'Ne gerekiyor', left: true, fmt: (g) => esc(g[2]) },
+  ], GAPS);
+  renderCharts();
+  document.getElementById('footer').textContent = `Son güncelleme: ${new Date(data.generatedAt).toLocaleString('tr-TR')} · Günler UTC · GA yalnızca veri izni veren oyuncuları sayar`;
+}
+
+readStore();
+load();
+
+})();
+</script>
+</body>
+</html>
