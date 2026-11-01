@@ -63,6 +63,9 @@ Kod referansları: `Assets/Scripts/CollectionOrder.cs`, `ShipQueuePool.cs`, `Shi
 - Koordinatlar doku koordinatıdır (y aşağıdan). `m_MysteryCubeColor` paletteki hiçbir renge yakın olmamalı.
 - Kullanım: Zor levellerde ve bazı Ortalarda **küplerin ~%4–5'i**, iç bölgede renk sınırlarına denk gelen 2–3 küçük küme ("abartmadan"). Simülatör etkisini ölçemez.
 
+### 1.6 Güçlü Konteyner (isDualColor)
+İki rengi birden toplayan konteyner: `wagonColor` + `capacity` ve `secondaryColor` + `secondaryCapacity`. Sol yarısı 1. renk, sağ yarısı 2. renk görünür. Denizci önce ihtiyacı büyük olan yarıya küp getirir; iki yarı da dolunca kalkar. Her iki kapasite de kendi renginin toplamına sayılır. İki renk farklı olmalı ve ikisi de resimde bulunmalı. Halatlı ya da gizli yapılmaz.
+
 ---
 
 ## 2. Level dosyası (PixelLevelData) yapısı
@@ -197,6 +200,8 @@ cd docs/level-tasarim/tools && g++ -O2 -o sim sim.cpp && cd -
 | `tools/enrich.py` | Düz ikonu zenginleştirir (§3.4). |
 | `tools/sequence.py` | `show` (sıra + ihlaller), `suggest --from N` (kurallara uyan sıra önerisi). |
 
+Güçlü konteynerli level: `KEEP=/tam/yol/Level_X.asset COLS=4 ROWS=3 python3 design.py resim.png S out.json 1` level'ın gemilerini (kapasiteler ve Güçlü konteynerler) aynen korur, sadece sırayı, halatları ve gizlileri yeniden arar. Simülatör, `check` ve `export` bu mekaniği bilir.
+
 `design.py` birden çok tohumla paralel çalıştırılabilir; en iyi adayı seç (önce `pen`, sonra tap testinde smart'ın normalden ne kadar düştüğü, sonra hedef bandın ortası). 25 level × 2 tohum 16 çekirdekte ~15–25 dk sürer: uzun işleri arka planda çalıştır ve kullanıcıya haber ver (uzun süre sessiz kalmak "takıldı mı?" dedirtti).
 
 ---
@@ -299,6 +304,8 @@ Oyunda test (isteğe bağlı): Play'e girince LandFlow yükleme ekranı ~15 sn s
 - **Geçici klasörler silinebilir** (`/tmp` yeniden başlatmada gider) — kalıcı araçlar `docs/level-tasarim/tools/` altında.
 - Unity `[InitializeOnLoad]` editör kancaları sahneyi yeniden kurup kaydedebilir; sahneye dokunmuyorsan sorun değil.
 - Kullanıcının kendi commit'lerini (elle sıra değişikliği, bir halatı kaldırma vb.) **geri alma**; neden yaptığını düşün, gerekirse sor.
+
+- **Bir konteyneri sıradan silmek, sonrakilerin hepsini bir sıra kaydırır.** İki konteyneri tek Güçlü Konteyner'de birleştirirken sütunlar değişir, halatlar bozulur ve zorluk kayar: 24 level'lık böyle bir değişiklikte Tren çözümsüz kaldı, üç level'da dikkatli bot hiç kazanamadı. Elle birleştirdikten sonra `check` + simülatör çalıştır, gerekirse `KEEP=` ile kuyruğu yeniden kur.
 
 ## 12. Kullanıcıyla çalışma şekli
 

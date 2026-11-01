@@ -125,14 +125,17 @@ def cmd_apply(args):
     pal = ''.join(f'  - originalColor: {col(c)}\n    targetColor: {col(c)}\n    pixelCount: {n}\n    label: \n'
                   for c, n in zip(d['pal'], d['cnt']))
     wag = ''.join(f'  - wagonColor: {col(d["pal"][s["c"]])}\n    capacity: {s["cap"]}\n    paletteIndex: {s["c"]}\n'
-                  f'    label: Vagon\n    linkId: {s["link"]}\n    isHidden: {s["hid"]}\n' for s in d['seq'])
+                  f'    label: {"Güçlü Konteyner" if s.get("cap2") else "Vagon"}\n    linkId: {s["link"]}\n    isHidden: {s["hid"]}\n'
+                  f'    isDualColor: {1 if s.get("cap2") else 0}\n'
+                  f'    secondaryColor: {col(d["pal"][s["c2"]]) if s.get("cap2") else "{r: 0, g: 0, b: 0, a: 1}"}\n'
+                  f'    secondaryCapacity: {s.get("cap2", 0)}\n' for s in d['seq'])
     a = re.sub(r'  m_ColorPalette:\n.*?(?=  m_TintColor:)', lambda m: '  m_ColorPalette:\n' + pal, a, flags=re.S)
     a = re.sub(r'  m_WagonSequence:(?: \[\])?\n.*?(?=  m_FigureShadowTexture:)', lambda m: '  m_WagonSequence:\n' + wag, a, flags=re.S)
     cols = args.cols or d.get('cols', 4)
     tier = args.tier or {'S': 'Z'}.get(d['tier'], d['tier'])
     big = sum(d['cnt']) >= 900
     for k, v in [('m_PoolColumns', cols), ('m_PoolRows', 3), ('m_DifficultyTier', TIER[tier]), ('m_DifficultyManual', 1),
-                 ('m_UseCustomWagonSequence', 1), ('m_TruckCapacity', max(s['cap'] for s in d['seq'])), ('m_UseNativeResolution', 1)]:
+                 ('m_UseCustomWagonSequence', 1), ('m_TruckCapacity', max(max(s['cap'], s.get('cap2', 0)) for s in d['seq'])), ('m_UseNativeResolution', 1)]:
         a = re.sub(rf'{k}: \d+', f'{k}: {v}', a, count=1)
     open(path, 'w').write(a)
     print(f'yazıldı: {args.asset}  gemi {len(d["seq"])}  sütun {cols}  zorluk {tier}')
@@ -271,8 +274,9 @@ def cmd_check(args):
     odd = collections.Counter(w['c'] for w in ws if w['cap'] % 10)
     for k, v in odd.items():
         if v > 1: warns.append(f'renk {pal[k]}: {v} küsuratlı gemi (en fazla 1 önerilir)')
+    colors_of = lambda w: {w['own'], w['sc']} if w['sc'] is not None else {w['own']}
     for i in range(len(ws) - cols):
-        if ws[i]['c'] == ws[i + cols]['c']:
+        if colors_of(ws[i]) & colors_of(ws[i + cols]):
             errs.append(f'aynı sütunda aynı renk arka arkaya: sıra {i} ve {i + cols}')
     groups = collections.defaultdict(list)
     for i, w in enumerate(ws):
@@ -306,7 +310,7 @@ def cmd_check(args):
                                if any(n in air for n in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1))))
     near = lambda a, b: all(abs(a[k] - b[k]) <= 10 for k in range(3))
     outer = [c for c, n in expo.items() if n >= 6]
-    is_outer = lambda w: any(near(tuple(pal[w['c']]), c) for c in outer)
+    is_outer = lambda w: any(near(tuple(pal[k]), c) for k in colors_of(w) if k >= 0 for c in outer)
     f1 = sum(1 for w in ws[:cols] if is_outer(w)); f2 = sum(1 for w in ws[:2 * cols] if is_outer(w))
     if f1 > 1: warns.append(f'ön sıranın {f1}/{cols} gemisi dış katman rengi — en fazla 1 (yoksa level kendini oynar)')
     if f2 > 3: warns.append(f'ilk iki sırada {f2} dış katman gemisi — en fazla 3')
@@ -322,8 +326,6 @@ def cmd_check(args):
 
 def cmd_export(args):
     a, pal, ws, tex, cols, rows, _ = parse_asset(args.asset)
-    if any(w['sc'] is not None for w in ws):
-        sys.exit('HATA: bu levelde güçlü (çift renkli) konteyner var; simülatör bu mekaniği bilmiyor, sonuçlar yanlış olur')
     (W, H), px = png_pixels(png_for_guid(tex))
     near = lambda p: min(range(len(pal)), key=lambda i: sum((pal[i][k] - p[k]) ** 2 for k in range(3)))
     with open(args.out, 'w') as f:
@@ -331,7 +333,9 @@ def cmd_export(args):
         for y in range(H):
             f.write(' '.join(str(near(p)) if p[3] else '-1' for p in px[y * W:(y + 1) * W]) + '\n')
         f.write(f'{cols} {min(rows, 3)} 5\n{len(ws)}\n')
-        for w in ws: f.write(f'{w["c"]} {w["cap"]} {w["link"]} {w["hid"]}\n')
+        for w in ws:
+            dual = f' {w["sc"]} {w["scap"]}' if w['sc'] is not None else ''
+            f.write(f'{w["own"]} {w["cap"]} {w["link"]} {w["hid"]}{dual}\n')
     print('yazıldı', args.out)
 
 

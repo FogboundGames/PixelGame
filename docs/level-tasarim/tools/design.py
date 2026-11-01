@@ -1,6 +1,8 @@
 """Kuyruk tasarlayıcı: renkleri gemilere böler, sonra sıra/halat/gizli'yi hedef zorluk bandına göre arar.
 
 kullanım:  COLS=4 ROWS=3 ITERS=400 python3 design.py <resim.png> <K|O|S|Z> <çıktı.json> [tohum]
+  KEEP=<level.asset>: kapasiteleri bölme; o level'ın gemilerini (Güçlü konteynerler dahil) aynen kullanıp sadece
+  sırayı/halatları/gizlileri ara. Güçlü konteynerin halatı ve gizliliği olmaz.
   K = Kolay, O = Orta, S = Zor (adil, önerilen), Z = Zor (eski, sert — kullanma)
 çıktı.json: palette (piksel sayısına göre sıralı), gemi sırası, sim sonuçları. level_asset.py apply ile asset'e yazılır."""
 import sys, json, random, subprocess, os, collections, tempfile
@@ -71,7 +73,7 @@ def write_level(path, W, H, g, seq):
             f.write(' '.join(map(str, r)) + '\n')
         f.write(f'{COLS} {ROWS} 5\n{len(seq)}\n')
         for s in seq:
-            f.write(f"{s['c']} {s['cap']} {s['link']} {s['hid']}\n")
+            f.write(f"{s['c']} {s['cap']} {s['link']} {s['hid']} {s['c2']} {s['cap2']}\n")
 
 
 def run(W, H, g, seq, runs, dfs, seed=1, noise=None):
@@ -85,11 +87,18 @@ def run(W, H, g, seq, runs, dfs, seed=1, noise=None):
     return float(out[0]), float(out[1]), int(out[2])
 
 
+def is_outer(x):
+    return x['c'] in OUTER or (x['cap2'] and x['c2'] in OUTER)
+
+
 def valid_order(seq):
     n = len(seq)
     for i in range(n - COLS):
-        if seq[i]['c'] == seq[i + COLS]['c']:
+        a, b = seq[i], seq[i + COLS]
+        if a['c'] == b['c'] or (b['cap2'] and a['c'] == b['c2']) or (a['cap2'] and (a['c2'] == b['c'] or (b['cap2'] and a['c2'] == b['c2']))):
             return False
+    if any(x['cap2'] and (x['link'] or x['hid']) for x in seq):
+        return False
     lk = collections.defaultdict(set); cn = collections.Counter()
     for x in seq:
         if x['link']:
@@ -106,9 +115,9 @@ def valid_order(seq):
         return False
     if sum(1 for i in range(min(COLS, n)) if seq[i]['link']) > COLS // 2:
         return False
-    if sum(1 for i in range(min(COLS, n)) if seq[i]['c'] in OUTER) > FRONT_OUTER:
+    if sum(1 for i in range(min(COLS, n)) if is_outer(seq[i])) > FRONT_OUTER:
         return False
-    if sum(1 for i in range(min(2 * COLS, n)) if seq[i]['c'] in OUTER) > OPEN_OUTER:
+    if sum(1 for i in range(min(2 * COLS, n)) if is_outer(seq[i])) > OPEN_OUTER:
         return False
     return True
 
@@ -149,6 +158,12 @@ def structure_ok(seq, tier):
     return LINKS[tier][0] <= nl <= LINKS[tier][1] and HIDDEN[tier][0] <= nh <= HIDDEN[tier][1] and valid_order(seq)
 
 
+def swap_ships(a, b):
+    # halat ve gizlilik konuma aittir, yer değiştirmez
+    for k in ('c', 'cap', 'c2', 'cap2'):
+        a[k], b[k] = b[k], a[k]
+
+
 def mutate(seq, tier, rnd):
     s = [dict(x) for x in seq]
     n = len(s)
@@ -158,12 +173,10 @@ def mutate(seq, tier, rnd):
             i, j = rnd.randrange(n), rnd.randrange(n)
             if s[i]['c'] == s[j]['c']:
                 continue
-            s[i]['c'], s[j]['c'] = s[j]['c'], s[i]['c']
-            s[i]['cap'], s[j]['cap'] = s[j]['cap'], s[i]['cap']
+            swap_ships(s[i], s[j])
             if valid_order(s):
                 break
-            s[i]['c'], s[j]['c'] = s[j]['c'], s[i]['c']
-            s[i]['cap'], s[j]['cap'] = s[j]['cap'], s[i]['cap']
+            swap_ships(s[i], s[j])
     elif op < 0.8:
         nl, _ = counts(s)
         lo, hi = LINKS[tier]
@@ -176,7 +189,8 @@ def mutate(seq, tier, rnd):
             for _ in range(50):
                 i = rnd.randrange(n - 1)
                 j = i + 1 if rnd.random() < 0.7 else i + COLS
-                if j < n and pair_ok(i, j) and not s[i]['link'] and not s[j]['link'] and s[i]['c'] != s[j]['c']:
+                if j < n and pair_ok(i, j) and not s[i]['link'] and not s[j]['link'] and s[i]['c'] != s[j]['c'] \
+                        and not s[i]['cap2'] and not s[j]['cap2']:
                     s[i]['link'] = s[j]['link'] = 99
                     s[i]['hid'] = s[j]['hid'] = 0
                     break
@@ -186,15 +200,35 @@ def mutate(seq, tier, rnd):
         if nh > lo and (nh >= hi or rnd.random() < 0.5):
             rnd.choice([x for x in s if x['hid']])['hid'] = 0
         if counts(s)[1] < hi:
-            cands = [i for i in range(COLS, n) if not s[i]['link'] and not s[i]['hid']]
+            cands = [i for i in range(COLS, n) if not s[i]['link'] and not s[i]['hid'] and not s[i]['cap2']]
             if cands:
                 s[rnd.choice(cands)]['hid'] = 1
     norm_links(s)
     return s
 
 
-def initial(caps, tier, rnd):
-    ships = [{'c': c, 'cap': cap, 'link': 0, 'hid': 0} for c, cl in caps.items() for cap in cl]
+def kept_ships(asset, pal, cnt):
+    """Asset'teki gemiler, bu resmin palet sırasına çevrilmiş olarak (halat/gizli sıfırlanır)."""
+    sys.path.insert(0, D)
+    import level_asset
+    _, apal, ws, *_ = level_asset.parse_asset(asset)
+    near = lambda rgb: min(range(len(pal)), key=lambda i: sum((pal[i][k] - rgb[k]) ** 2 for k in range(3)))
+    ships, tot = [], collections.Counter()
+    for w in ws:
+        dual = w['sc'] is not None
+        c, c2 = near(apal[w['own']]), near(apal[w['sc']]) if dual else 0
+        ships.append({'c': c, 'cap': w['cap'], 'link': 0, 'hid': 0, 'c2': c2, 'cap2': w['scap'] if dual else 0})
+        tot[c] += w['cap']
+        if dual: tot[c2] += w['scap']
+    for i, n in enumerate(cnt):
+        if tot[i] != n:
+            sys.exit(f'HATA: renk {pal[i]} {n} küp ama gemiler {tot[i]} taşıyor')
+    return ships
+
+
+def initial(caps, tier, rnd, kept=None):
+    ships = [dict(x) for x in kept] if kept else \
+        [{'c': c, 'cap': cap, 'link': 0, 'hid': 0, 'c2': 0, 'cap2': 0} for c, cl in caps.items() for cap in cl]
     for _ in range(3000):
         rnd.shuffle(ships)
         if valid_order(ships):
@@ -219,9 +253,10 @@ def main():
     # kapasite sınırı: Kolay 30 (büyükte 40), Orta 40, Zor 50 — MAXC ile ezilebilir
     maxc = int(os.environ.get('MAXC', 0)) or (50 if tier in 'ZS' else 40 if tier == 'O' or sum(cnt) >= 900 else 30)
     caps = {i: split(n, maxc) for i, n in enumerate(cnt)}
+    kept = kept_ships(os.environ['KEEP'], pal, cnt) if os.environ.get('KEEP') else None
     best = None
     for restart in range(3):
-        s = initial(caps, tier, rnd)
+        s = initial(caps, tier, rnd, kept)
         r, sm, _ = run(W, H, g, s, 60, False, seed)
         p = penalty(r, sm, tier) + (0 if structure_ok(s, tier) else 1)
         for it in range(iters):

@@ -1187,8 +1187,7 @@ namespace PixelGame
                     // Slot gemiye yola çıkarken ayrılır; tren ancak gemi slota oturunca başlasın
                     if (ship != null && ship.IsDocked && !ship.IsMoving && ship.CanAcceptMore && !m_ActiveExtractingShips.Contains(ship))
                     {
-                        bool canLaunch = HasExposedMatchingCube(ship.ShipColor) || (ship.IsDualColor && HasExposedMatchingCube(ship.SecondaryColor));
-                        if (canLaunch)
+                        if (CanLaunchNow(ship))
                         {
                             StartCoroutine(ExtractMatchingCubesToShipRoutine(ship));
                         }
@@ -1222,11 +1221,7 @@ namespace PixelGame
                     }
 
                     // 2. Seviyede bu renkten hiç küp kalmadıysa:
-                    int totalRemaining = GetRemainingCountForColor(ship.ShipColor);
-                    if (ship.IsDualColor)
-                    {
-                        totalRemaining += GetRemainingCountForColor(ship.SecondaryColor);
-                    }
+                    int totalRemaining = GetRemainingNeededForShip(ship);
                     if (totalRemaining == 0)
                     {
                         yield return new WaitForSeconds(0.2f);
@@ -1279,7 +1274,7 @@ namespace PixelGame
                             bool newCubeExposed = false;
                             while (ship != null && ship.CanAcceptMore && (ship.HasPendingCargo || m_ActiveCargoFlightCount > 0))
                             {
-                                if (HasExposedMatchingCube(ship.ShipColor) || (ship.IsDualColor && HasExposedMatchingCube(ship.SecondaryColor)))
+                                if (CanLaunchNow(ship))
                                 {
                                     newCubeExposed = true;
                                     break;
@@ -1289,7 +1284,10 @@ namespace PixelGame
 
                             if (newCubeExposed)
                             {
-                                continue; // Yeni küp açıldı; hemen sıradaki gemiciyi gönder!
+                                // Yeni küp açıldı; sıradaki gemiciyi gönder. TryLaunchRope yine de false dönerse
+                                // bu döngü beklemeden dönüp oyunu dondurmasın diye bir kare beklenir.
+                                yield return null;
+                                continue;
                             }
                         }
 
@@ -1313,8 +1311,34 @@ namespace PixelGame
                 m_ActiveExtractingShips.Remove(ship);
             }
 
-            // Çekim bittikten sonra da genel kontrol yap
+            // Çekim bittikten sonra da genel kontrol yap. Bir kare sonra: kontrol bu rutini aynı gemi için yeniden
+            // başlatabilir, beklemeden çağrılırsa rutin kendini sonsuza kadar çağırıp oyunu donduruyordu.
+            yield return null;
             TriggerWaitingShipsCheck();
+        }
+
+        /// <summary>
+        /// Gemi şu an gerçekten gemici gönderebilir mi? Çift renkli konteynerde yalnızca YERİ OLAN yarının rengi sayılır:
+        /// dolu yarının rengi açıkta diye "gönderilebilir" demek, TryLaunchRope false dönerken döngüyü dondururdu.
+        /// </summary>
+        private bool CanLaunchNow(ShipController ship)
+        {
+            if (!ship.IsDualColor) return HasExposedMatchingCube(ship.ShipColor);
+            return (ship.CurrentCargo + ship.PendingCargo < ship.Capacity && HasExposedMatchingCube(ship.ShipColor))
+                || (ship.CurrentSecondaryCargo + ship.PendingSecondaryCargo < ship.SecondaryCapacity && HasExposedMatchingCube(ship.SecondaryColor));
+        }
+
+        /// <summary>
+        /// Geminin hâlâ alabileceği, panoda kalan küp sayısı. Çift renkli konteynerde dolmuş yarının rengi sayılmaz
+        /// (o renkteki küpler başka gemilerindir; sayılırsa konteyner slotta sonsuza kadar bekler).
+        /// </summary>
+        public int GetRemainingNeededForShip(ShipController ship)
+        {
+            if (!ship.IsDualColor) return GetRemainingCountForColor(ship.ShipColor);
+            int n = 0;
+            if (ship.CurrentCargo < ship.Capacity) n += GetRemainingCountForColor(ship.ShipColor);
+            if (ship.CurrentSecondaryCargo < ship.SecondaryCapacity) n += GetRemainingCountForColor(ship.SecondaryColor);
+            return n;
         }
 
         /// <summary>
@@ -3710,9 +3734,7 @@ namespace PixelGame
                     return false;
                 }
 
-                int remainingForShip = GetRemainingCountForColor(ship.ShipColor);
-                if (ship.IsDualColor) remainingForShip += GetRemainingCountForColor(ship.SecondaryColor);
-                if (remainingForShip == 0)
+                if (GetRemainingNeededForShip(ship) == 0)
                 {
                     return false;
                 }

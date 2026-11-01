@@ -5,6 +5,7 @@
 //    the partner must be visible and have only its own group ahead of it
 //  - docked ships take accessible cubes of their colour (4-neighbour touches outside air),
 //    pick order: bottom row first, then closest to the row's ends, left first, then x
+//  - a dual-colour ship takes both colours (the half needing more first) and is full when both halves are
 //  - a full ship departs; a full LINKED ship waits until its partner is full, then both depart
 //  - fail when nothing can be sent and nothing can be collected
 // Usage: sim <level.txt> <runs> [seed] [dfs 0|1|p] [noise n|m]
@@ -14,7 +15,7 @@ using namespace std;
 
 int W, H, COLS, ROWS, SLOTS;
 vector<int> grid0;  // y*W+x, y=0 bottom row (Unity GridY)
-struct Ship { int color, cap, link, hidden; };
+struct Ship { int color, cap, link, hidden, color2, cap2; };
 vector<Ship> ships;
 vector<int> partnerCache;
 mt19937 rng;
@@ -25,7 +26,7 @@ struct State {
     vector<uint8_t> air;
     vector<vector<int>> lanes;
     vector<int> head;
-    int slotShip[8], slotRem[8];
+    int slotShip[8], slotRem[8], slotRem2[8];
     int left;
 };
 
@@ -63,7 +64,7 @@ State initState() {
     s.lanes.assign(COLS, {});
     s.head.assign(COLS, 0);
     for (int i = 0; i < (int)ships.size(); i++) s.lanes[i % COLS].push_back(i);
-    for (int i = 0; i < 8; i++) { s.slotShip[i] = -1; s.slotRem[i] = 0; }
+    for (int i = 0; i < 8; i++) { s.slotShip[i] = -1; s.slotRem[i] = 0; s.slotRem2[i] = 0; }
     return s;
 }
 
@@ -93,10 +94,19 @@ int pick(const State& s, int k) {
     return -1;
 }
 
+// pick the next cube for a docked ship; like the game, the half needing more goes first
+int pickSlot(const State& s, int i, bool* second) {
+    const Ship& sh = ships[s.slotShip[i]];
+    int a = s.slotRem[i] > 0 ? pick(s, sh.color) : -1;
+    int b = s.slotRem2[i] > 0 ? pick(s, sh.color2) : -1;
+    if (a >= 0 && b >= 0) { *second = s.slotRem2[i] > s.slotRem[i]; return *second ? b : a; }
+    *second = b >= 0; return b >= 0 ? b : a;
+}
+inline bool slotDone(const State& s, int i) { return s.slotRem[i] == 0 && s.slotRem2[i] == 0; }
 void finishOne(State& s, int i) {
     int p = partnerCache[s.slotShip[i]];
     if (p < 0) { s.slotShip[i] = -1; return; }
-    for (int j = 0; j < SLOTS; j++) if (s.slotShip[j] == p && s.slotRem[j] == 0) { s.slotShip[j] = -1; s.slotShip[i] = -1; return; }
+    for (int j = 0; j < SLOTS; j++) if (s.slotShip[j] == p && slotDone(s, j)) { s.slotShip[j] = -1; s.slotShip[i] = -1; return; }
 }
 
 int collect(State& s) {
@@ -105,12 +115,13 @@ int collect(State& s) {
     while (prog) {
         prog = false;
         for (int i = 0; i < SLOTS; i++) {
-            if (s.slotShip[i] < 0 || s.slotRem[i] == 0) continue;
-            int c = pick(s, ships[s.slotShip[i]].color);
+            if (s.slotShip[i] < 0 || slotDone(s, i)) continue;
+            bool sec; int c = pickSlot(s, i, &sec);
             if (c < 0) continue;
             removeCube(s, c % W, c / W);
             total++; prog = true;
-            if (--s.slotRem[i] == 0) finishOne(s, i);
+            (sec ? s.slotRem2[i] : s.slotRem[i])--;
+            if (slotDone(s, i)) finishOne(s, i);
         }
     }
     return total;
@@ -121,15 +132,16 @@ int collectNoisy(State& s, int budget) {
     while (budget > 0) {
         int cand[8], nc = 0;
         for (int i = 0; i < SLOTS; i++)
-            if (s.slotShip[i] >= 0 && s.slotRem[i] > 0 && pick(s, ships[s.slotShip[i]].color) >= 0) cand[nc++] = i;
+            if (s.slotShip[i] >= 0 && !slotDone(s, i)) { bool sec; if (pickSlot(s, i, &sec) >= 0) cand[nc++] = i; }
         if (!nc) break;
         int i = cand[rng() % nc], trip = 1 + rng() % 5;
-        while (trip-- > 0 && budget > 0 && s.slotRem[i] > 0) {
-            int c = pick(s, ships[s.slotShip[i]].color);
+        while (trip-- > 0 && budget > 0 && !slotDone(s, i)) {
+            bool sec; int c = pickSlot(s, i, &sec);
             if (c < 0) break;
             removeCube(s, c % W, c / W);
             total++; budget--;
-            if (--s.slotRem[i] == 0) { finishOne(s, i); break; }
+            (sec ? s.slotRem2[i] : s.slotRem[i])--;
+            if (slotDone(s, i)) { finishOne(s, i); break; }
         }
     }
     return total;
@@ -158,7 +170,7 @@ vector<int> legal(const State& s) {
 }
 
 void dock(State& s, int id) {
-    for (int i = 0; i < SLOTS; i++) if (s.slotShip[i] < 0) { s.slotShip[i] = id; s.slotRem[i] = ships[id].cap; return; }
+    for (int i = 0; i < SLOTS; i++) if (s.slotShip[i] < 0) { s.slotShip[i] = id; s.slotRem[i] = ships[id].cap; s.slotRem2[i] = ships[id].cap2; return; }
 }
 
 void sendOnly(State& s, int c) {
@@ -222,7 +234,7 @@ uint64_t hashState(const State& s) {
     uint64_t h = 1469598103934665603ULL;
     for (int c = 0; c < COLS; c++) { h ^= s.head[c] + 1; h *= 1099511628211ULL; }
     vector<pair<int, int>> v;
-    for (int i = 0; i < SLOTS; i++) if (s.slotShip[i] >= 0) v.push_back({s.slotShip[i], s.slotRem[i]});
+    for (int i = 0; i < SLOTS; i++) if (s.slotShip[i] >= 0) v.push_back({s.slotShip[i], s.slotRem[i] * 1000 + s.slotRem2[i]});
     sort(v.begin(), v.end());
     for (auto& p : v) { h ^= p.first * 131 + p.second; h *= 1099511628211ULL; }
     return h;
@@ -279,7 +291,13 @@ int main(int argc, char** argv) {
     f >> COLS >> ROWS >> SLOTS;
     int n; f >> n;
     ships.resize(n);
-    for (auto& s : ships) f >> s.color >> s.cap >> s.link >> s.hidden;
+    string line; getline(f, line);
+    for (auto& s : ships) {
+        // color cap link hidden [color2 cap2]: last two only for a dual-colour (Güçlü) ship
+        getline(f, line); stringstream ss(line);
+        s.color2 = 0; s.cap2 = 0;
+        ss >> s.color >> s.cap >> s.link >> s.hidden >> s.color2 >> s.cap2;
+    }
     partnerCache.assign(n, -1);
     for (int i = 0; i < n; i++) if (ships[i].link)
         for (int j = 0; j < n; j++) if (j != i && ships[j].link == ships[i].link) partnerCache[i] = j;

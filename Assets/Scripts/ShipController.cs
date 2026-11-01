@@ -690,7 +690,7 @@ namespace PixelGame
                     if (m == null || m == this || !m.gameObject.activeInHierarchy || m.IsDeparting) continue;
                     if (!m.IsDocked || m.HasPendingCargo || m.ActiveWorkersOut > 0) return false;
                     if (m.IsFull) continue;
-                    if (ShipDispatcher.Instance != null && ShipDispatcher.Instance.GetRemainingCountForColor(m.ShipColor) == 0) continue;
+                    if (ShipDispatcher.Instance != null && ShipDispatcher.Instance.GetRemainingNeededForShip(m) == 0) continue;
                     return false;
                 }
                 return true;
@@ -751,7 +751,7 @@ namespace PixelGame
                 if (!m_IsDocked || m_IsDeparting) return false;
                 if (HasPendingCargo || m_ActiveWorkersOut > 0) return false;
 
-                bool isSelfReady = IsFull || (ShipDispatcher.Instance != null && ShipDispatcher.Instance.GetRemainingCountForColor(ShipColor) == 0);
+                bool isSelfReady = IsFull || (ShipDispatcher.Instance != null && ShipDispatcher.Instance.GetRemainingNeededForShip(this) == 0);
                 if (!isSelfReady) return false;
 
                 if (HasActiveLinkedPartner)
