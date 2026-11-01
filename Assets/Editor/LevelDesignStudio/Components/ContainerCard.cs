@@ -74,6 +74,7 @@ namespace PixelGame.Editor.Studio
         public void SetSelected(bool selected) => EnableInClassList("card--selected", selected);
         public void SetLinkTarget(bool on) => EnableInClassList("card--link-target", on);
         public void SetDropTarget(bool on) => EnableInClassList("card--drop", on);
+        public void SetMoved(bool on) => EnableInClassList("card--moved", on);
         public void SetSeverity(RuleSeverity? severity)
         {
             EnableInClassList("card--critical", severity == RuleSeverity.Critical);

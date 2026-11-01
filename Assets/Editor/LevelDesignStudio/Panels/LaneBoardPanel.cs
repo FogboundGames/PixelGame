@@ -25,6 +25,7 @@ namespace PixelGame.Editor.Studio
         private bool m_Dragging;
         private int m_PointerId = -1;
         private VisualElement m_Ghost;
+        private bool m_Interactive = true;
 
         public LaneBoardPanel()
         {
@@ -42,9 +43,11 @@ namespace PixelGame.Editor.Studio
             RegisterCallback<PointerCaptureOutEvent>(_ => EndDrag());
         }
 
-        public void Rebuild(List<WagonSequenceEntry> sequence, int columns, int poolRows, int selected, int linkFrom, List<RuleFinding> findings)
+        /// <param name="moved">Önizlemede sütunu değişen gemiler; verilirse pano sadece gösterim amaçlıdır.</param>
+        public void Rebuild(List<WagonSequenceEntry> sequence, int columns, int poolRows, int selected, int linkFrom, List<RuleFinding> findings, HashSet<int> moved = null)
         {
             EndDrag();
+            m_Interactive = moved == null;
             m_Sequence = sequence;
             m_Grid.Clear();
             m_Cards.Clear();
@@ -85,6 +88,7 @@ namespace PixelGame.Editor.Studio
                     var card = new ContainerCard(i, wagon);
                     card.SetSelected(i == selected);
                     card.SetLinkTarget(linkFrom >= 0 && i == linkFrom);
+                    card.SetMoved(moved != null && moved.Contains(i));
                     if (i < count && severity.TryGetValue(i, out var sev) && sev != RuleSeverity.Info) card.SetSeverity(sev);
                     card.RegisterCallback<PointerDownEvent>(e => OnCardDown(card, e));
                     m_Cards.Add(card);
@@ -155,7 +159,7 @@ namespace PixelGame.Editor.Studio
 
         private void OnCardDown(ContainerCard card, PointerDownEvent e)
         {
-            if (e.button != 0) return;
+            if (e.button != 0 || !m_Interactive) return;
             m_Pressed = card;
             m_PressPos = e.position;
             m_Dragging = false;

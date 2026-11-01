@@ -37,18 +37,6 @@ namespace PixelGame.Editor.Studio
             Edit("Gemi Takası", () => (Sequence[a], Sequence[b]) = (Sequence[b], Sequence[a]));
         }
 
-        /// <summary>Gemi sıranın sonuna gider, aradakiler bir sıra kayar.</summary>
-        public void MoveToEnd(int i)
-        {
-            if (!Valid(i) || i == Sequence.Count - 1) return;
-            Edit("Gemiyi Sona Taşı", () =>
-            {
-                var w = Sequence[i];
-                Sequence.RemoveAt(i);
-                Sequence.Add(w);
-            });
-        }
-
         /// <summary>Gemiyi çıkarır; sonrakiler bir sıra kayar, halat ortağı tek başına kalmaz.</summary>
         public void Remove(int i)
         {
@@ -57,6 +45,203 @@ namespace PixelGame.Editor.Studio
             {
                 Level.UnlinkWagon(i);
                 Sequence.RemoveAt(i);
+            });
+        }
+
+        /// <summary>Sırayı kaydıran bir değişikliğin uygulanmamış hâli: önizleme için, asset'e dokunmaz.</summary>
+        public sealed class PendingChange
+        {
+            public string title;
+            public List<WagonSequenceEntry> order;
+            public int droppedLink;     // bu değişiklikle kalkacak halat (0: yok)
+            public int focusIndex = -1; // uygulandıktan sonra seçilecek gemi
+            public Action apply;
+            public bool regenerated;    // sıra yeniden üretildi: gemiler mevcut girdilerle aynı değil
+            public Func<PendingChange> reroll; // rastgele işlemlerde "yeniden üret"
+        }
+
+        /// <summary>Gemiyi başka sıraya koyar; aradakiler kayar.</summary>
+        public PendingChange ProposeInsert(int from, int to)
+        {
+            if (!Valid(from) || !Valid(to) || from == to) return null;
+            var order = new List<WagonSequenceEntry>(Sequence);
+            var moved = order[from];
+            order.RemoveAt(from);
+            order.Insert(to, moved);
+            return new PendingChange
+            {
+                title = $"#{from + 1} gemiyi #{to + 1} sırasına ekle", order = order, focusIndex = to,
+                apply = () => ApplyOrder("Gemiyi Araya Ekle", order)
+            };
+        }
+
+        public PendingChange ProposeMoveToEnd(int from)
+        {
+            if (!Valid(from) || from == Sequence.Count - 1) return null;
+            var order = new List<WagonSequenceEntry>(Sequence);
+            var moved = order[from];
+            order.RemoveAt(from);
+            order.Add(moved);
+            return new PendingChange
+            {
+                title = $"#{from + 1} gemiyi sıranın sonuna taşı", order = order, focusIndex = order.Count - 1,
+                apply = () => ApplyOrder("Gemiyi Sona Taşı", order)
+            };
+        }
+
+        public PendingChange ProposeRemove(int index)
+        {
+            if (!Valid(index)) return null;
+            var order = new List<WagonSequenceEntry>(Sequence);
+            int link = order[index].linkId;
+            order.RemoveAt(index);
+            return new PendingChange
+            {
+                title = $"#{index + 1} gemiyi sil", order = order, droppedLink = link,
+                apply = () => Remove(index)
+            };
+        }
+
+        /// <summary>
+        /// Eski üreticileri level'ın geçici kopyasında çalıştırır; sonuç önizlemedir, asset'e uygulanana kadar dokunulmaz.
+        /// </summary>
+        private PendingChange ProposeFromCopy(string title, string undoName, Action<PixelLevelData> generate, bool random)
+        {
+            if (Level == null) return null;
+            var copy = UnityEngine.Object.Instantiate(Level);
+            copy.hideFlags = HideFlags.HideAndDontSave;
+            List<WagonSequenceEntry> order;
+            try
+            {
+                generate(copy);
+                order = new List<WagonSequenceEntry>(copy.WagonSequence);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(copy);
+            }
+            return new PendingChange
+            {
+                title = title, order = order, regenerated = true,
+                apply = () => ApplyOrder(undoName, order),
+                reroll = random ? () => ProposeFromCopy(title, undoName, generate, true) : (Func<PendingChange>)null
+            };
+        }
+
+        public PendingChange ProposeVaryCapacities()
+        {
+            bool empty = Sequence == null || Sequence.Count == 0;
+            return ProposeFromCopy(empty ? "Gemileri palete göre üret" : "Gemi sayılarını karıştır", "Gemi Sayılarını Karıştır", l =>
+            {
+                if (empty) l.GenerateInterleavedWagonSequenceFromPalette();
+                else l.VaryWagonCapacities();
+            }, true);
+        }
+
+        public PendingChange ProposeLinksAndHidden(float linkRatio, float hiddenRatio) =>
+            ProposeFromCopy("Halat ve gizli gemileri yeniden üret", "Halat ve Gizli Üret", l =>
+            {
+                l.GenerateLinksAndHidden(linkRatio, hiddenRatio, new System.Random(), out _, out _, out _);
+                // Güçlü Konteyner halatlı ya da gizli olmaz; üretici bunu bilmiyor
+                for (int i = 0; i < l.WagonSequence.Count; i++)
+                {
+                    var w = l.WagonSequence[i];
+                    if (w == null || !w.isDualColor) continue;
+                    l.UnlinkWagon(i);
+                    w.isHidden = false;
+                }
+            }, true);
+
+        public PendingChange ProposeSmartSort(SmartSortMode mode)
+        {
+            string[] names = { "Kolay", "Dengeli", "Zor" };
+            return ProposeFromCopy($"Akıllı sırala: {names[(int)mode]}", "Akıllı Sıralama", l => l.WagonSequence = SmartSequenceBuilder.Build(l, mode), false);
+        }
+
+        public PendingChange ProposeInterleaved() =>
+            ProposeFromCopy("Renkleri karışık dağıt", "Renkleri Karışık Dağıt", l => l.GenerateInterleavedWagonSequenceFromPalette(), true);
+
+        public PendingChange ProposeClear() =>
+            Sequence == null || Sequence.Count == 0 ? null
+                : new PendingChange { title = "Sırayı temizle", order = new List<WagonSequenceEntry>(), regenerated = true, apply = () => ApplyOrder("Sırayı Temizle", new List<WagonSequenceEntry>()) };
+
+        /// <summary>
+        /// Resmi değiştirir ve paleti yeniden tarar. Gemi sırası palete göre yeniden üretilir ya da korunur; korunursa
+        /// gemilerin palet numaraları yeni palete göre güncellenir, renkler ve kapasiteler değişmez.
+        /// </summary>
+        public void ReplaceImage(Texture2D texture, bool regenerateShips = true)
+        {
+            if (Level == null || texture == null) return;
+            Edit("Level Resmini Değiştir", () =>
+            {
+                if (Level.OriginalSourceTexture == null) Level.OriginalSourceTexture = Level.LevelTexture != null ? Level.LevelTexture : texture;
+                Level.LevelTexture = texture;
+                Level.ExtractPaletteFromTexture();
+                if (regenerateShips || Sequence == null || Sequence.Count == 0)
+                {
+                    Level.GenerateInterleavedWagonSequenceFromPalette();
+                    return;
+                }
+                foreach (var w in Sequence)
+                {
+                    if (w == null) continue;
+                    int index = LevelSnapshot.FindColor(Level.ColorPalette, w.wagonColor);
+                    if (index >= 0) w.paletteIndex = index;
+                }
+            });
+        }
+
+        public void RevertImage()
+        {
+            if (Level == null) return;
+            Edit("Orijinal Resme Dön", () => Level.RevertToOriginalTexture());
+        }
+
+        /// <summary>Gemi sırası dışındaki level ayarları: havuz boyutu, kapasite sınırları.</summary>
+        public void EditSettings(string undoName, Action<PixelLevelData> change)
+        {
+            if (Level == null) return;
+            Undo.RecordObject(Level, undoName);
+            change(Level);
+            EditorUtility.SetDirty(Level);
+            Changed?.Invoke();
+        }
+
+        /// <summary>Kapasitesi eksik küp sayısı (bütün renkler).</summary>
+        public int MissingCubes()
+        {
+            if (Level == null || Level.ColorPalette == null) return 0;
+            int missing = 0;
+            foreach (var e in Level.ColorPalette)
+                if (e != null && e.pixelCount > 0)
+                    missing += Mathf.Max(0, e.pixelCount - Level.GetTotalAssignedCapacityForColor(e.targetColor));
+            return missing;
+        }
+
+        /// <summary>Eksik renkler için sıranın sonuna gemi ekler; mevcut gemiler kaymaz.</summary>
+        public void AddMissingShips()
+        {
+            if (MissingCubes() == 0) return;
+            int cap = Mathf.Max(1, Level.TruckCapacity);
+            Edit("Eksikleri Tamamla", () =>
+            {
+                for (int p = 0; p < Level.ColorPalette.Count; p++)
+                {
+                    var e = Level.ColorPalette[p];
+                    if (e == null || e.pixelCount <= 0) continue;
+                    int diff = e.pixelCount - Level.GetTotalAssignedCapacityForColor(e.targetColor);
+                    for (; diff > 0; diff -= cap)
+                        Sequence.Add(new WagonSequenceEntry(e.targetColor, Mathf.Min(cap, diff), p));
+                }
+            });
+        }
+
+        private void ApplyOrder(string undoName, List<WagonSequenceEntry> order)
+        {
+            Edit(undoName, () =>
+            {
+                Sequence.Clear();
+                Sequence.AddRange(order);
             });
         }
 

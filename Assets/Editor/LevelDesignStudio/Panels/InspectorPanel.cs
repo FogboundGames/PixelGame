@@ -12,6 +12,7 @@ namespace PixelGame.Editor.Studio
         private readonly SequenceEditService m_Edit;
         public event Action<int> LinkModeRequested;
         public event Action<string> Notify;
+        public event Action<int> RemoveRequested;
 
         public InspectorPanel(SequenceEditService edit)
         {
@@ -76,11 +77,7 @@ namespace PixelGame.Editor.Studio
             var spacer = new VisualElement();
             spacer.style.flexGrow = 1;
             Add(spacer);
-            var remove = Action("Gemiyi sil", () =>
-            {
-                m_Edit.Remove(index);
-                Notify?.Invoke($"#{index + 1} silindi, sonraki gemiler bir sıra kaydı (Ctrl+Z geri alır)");
-            });
+            var remove = Action("Gemiyi sil", () => RemoveRequested?.Invoke(index));
             remove.AddToClassList("inspector__danger");
             Add(remove);
         }

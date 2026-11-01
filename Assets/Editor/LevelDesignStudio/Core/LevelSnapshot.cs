@@ -50,7 +50,11 @@ namespace PixelGame.Editor.Studio
             return -1;
         }
 
-        public static LevelSnapshot From(PixelLevelData level)
+        /// <summary>
+        /// Level'ın görüntüsü. <paramref name="order"/> verilirse gemi sırası yerine o liste kullanılır (önizleme);
+        /// <paramref name="droppedLink"/> numaralı halat kalkmış sayılır. Asset değişmez.
+        /// </summary>
+        public static LevelSnapshot From(PixelLevelData level, IList<WagonSequenceEntry> order = null, int droppedLink = 0)
         {
             var s = new LevelSnapshot();
             var palette = level.ColorPalette ?? new List<PaletteColorOverride>();
@@ -85,12 +89,13 @@ namespace PixelGame.Editor.Studio
                 }
             }
 
-            if (level.WagonSequence != null)
+            var sequence = order ?? level.WagonSequence;
+            if (sequence != null)
             {
-                foreach (var w in level.WagonSequence)
+                foreach (var w in sequence)
                 {
                     if (w == null || w.capacity <= 0) { s.ships.Add(new Ship { empty = true }); continue; }
-                    var ship = new Ship { color = FindColor(palette, w.wagonColor), capacity = w.capacity, link = w.linkId, hidden = w.isHidden };
+                    var ship = new Ship { color = FindColor(palette, w.wagonColor), capacity = w.capacity, link = w.linkId == droppedLink ? 0 : w.linkId, hidden = w.isHidden };
                     if (w.isDualColor)
                     {
                         ship.dual = true;
