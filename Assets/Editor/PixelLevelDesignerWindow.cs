@@ -78,6 +78,8 @@ namespace PixelGame.Editor
             m_GenHiddenPercent = EditorPrefs.GetInt("PixelGame_GenHiddenPercent", 15);
             EditorApplication.update -= OnEditorUpdate;
             EditorApplication.update += OnEditorUpdate;
+            Undo.undoRedoPerformed -= OnUndoRedo;
+            Undo.undoRedoPerformed += OnUndoRedo;
             // Açılışta sadece listeyi oku: tüm projeyi yeniden taramak (AssetDatabase.Refresh) ve sırayı/sahneyi
             // kaydetmek her açılışta (ve her derlemeden sonra) yapılıyordu; OneDrive gibi yavaş disklerde
             // pencereyi açar açmaz donduruyordu, ayrıca LevelSequence'teki elle yapılmış sırayı eziyordu.
@@ -87,6 +89,7 @@ namespace PixelGame.Editor
         private void OnDisable()
         {
             EditorApplication.update -= OnEditorUpdate;
+            Undo.undoRedoPerformed -= OnUndoRedo;
             // Pencere kapanırken bekleyen sahne senkronu kaybolmasın
             if (m_LiveUpdatePending)
             {
@@ -2526,8 +2529,21 @@ namespace PixelGame.Editor
             EditorGUILayout.EndVertical();
         }
 
+        /// <summary>Eski takaslardan etiketlerde kalan " (#5) (#5)" eklerini görüntüden atar (asset'e dokunmaz).</summary>
+        private static string StripSlotSuffix(string label)
+        {
+            while (!string.IsNullOrEmpty(label) && label.EndsWith(")"))
+            {
+                int open = label.LastIndexOf(" (#", System.StringComparison.Ordinal);
+                if (open < 0 || !int.TryParse(label.Substring(open + 3, label.Length - open - 4), out _)) break;
+                label = label.Substring(0, open);
+            }
+            return label;
+        }
+
         private string GetColorDisplayName(Color c, string existingLabel, int fallbackIndex)
         {
+            existingLabel = StripSlotSuffix(existingLabel);
             if (!string.IsNullOrEmpty(existingLabel) && 
                 existingLabel != "Renk" && 
                 !existingLabel.StartsWith("Renk #") &&
@@ -2949,17 +2965,7 @@ namespace PixelGame.Editor
                 // Silme [✕] (Slotu boşaltır)
                 if (GUI.Button(new Rect(topRect.xMax - 18, topRect.y + 1, 16, 16), "✕", EditorStyles.miniButton))
                 {
-                    Undo.RecordObject(m_SelectedLevel, "Clear Slot");
-                    sequence[slotIndex] = null;
-                    while (sequence.Count > 0 && sequence[sequence.Count - 1] == null)
-                    {
-                        sequence.RemoveAt(sequence.Count - 1);
-                    }
-                    m_SelectedSlotForSwap = -1;
-                    m_SelectedSlotForLink = -1;
-                    m_SelectedLevel.UseCustomWagonSequence = true;
-                    EditorUtility.SetDirty(m_SelectedLevel);
-                    NotifyShipQueueUpdate();
+                    RemoveWagonAt(slotIndex);
                     EditorGUILayout.EndVertical();
                     return;
                 }
@@ -3021,13 +3027,13 @@ namespace PixelGame.Editor
                     SwapWagons(slotIndex, slotIndex - cols);
                 }
 
-                GUI.enabled = true;
+                GUI.enabled = slotIndex + cols < sequence.Count;
                 if (GUILayout.Button(new GUIContent("▼", "Alt dalgadaki aynı kolonla yer değiştir"), EditorStyles.miniButton, GUILayout.Width(28), GUILayout.Height(18)))
                 {
                     SwapWagons(slotIndex, slotIndex + cols);
                 }
 
-                GUI.enabled = true;
+                GUI.enabled = slotIndex + 1 < sequence.Count;
                 if (GUILayout.Button(new GUIContent("▶", "Sağındaki vagonla yer değiştir"), EditorStyles.miniButton, GUILayout.Width(28), GUILayout.Height(18)))
                 {
                     SwapWagons(slotIndex, slotIndex + 1);
@@ -3114,6 +3120,7 @@ namespace PixelGame.Editor
 
                 if (GUILayout.Button("-", EditorStyles.miniButton, GUILayout.Width(18), GUILayout.Height(16)))
                 {
+                    Undo.RecordObject(m_SelectedLevel, "Change Wagon Capacity");
                     wagon.capacity = Mathf.Max(1, wagon.capacity - 1);
                     m_SelectedLevel.UseCustomWagonSequence = true;
                     EditorUtility.SetDirty(m_SelectedLevel);
@@ -3123,6 +3130,7 @@ namespace PixelGame.Editor
                 int newCap = EditorGUILayout.IntField(wagon.capacity, GUILayout.Width(28));
                 if (newCap != wagon.capacity)
                 {
+                    Undo.RecordObject(m_SelectedLevel, "Change Wagon Capacity");
                     wagon.capacity = Mathf.Max(1, newCap);
                     m_SelectedLevel.UseCustomWagonSequence = true;
                     EditorUtility.SetDirty(m_SelectedLevel);
@@ -3131,6 +3139,7 @@ namespace PixelGame.Editor
 
                 if (GUILayout.Button("+", EditorStyles.miniButton, GUILayout.Width(18), GUILayout.Height(16)))
                 {
+                    Undo.RecordObject(m_SelectedLevel, "Change Wagon Capacity");
                     wagon.capacity += 1;
                     m_SelectedLevel.UseCustomWagonSequence = true;
                     EditorUtility.SetDirty(m_SelectedLevel);
@@ -3146,6 +3155,7 @@ namespace PixelGame.Editor
                     GUI.backgroundColor = new Color(0.95f, 0.75f, 0.2f);
                     if (GUILayout.Button(new GUIContent("⚡", $"+{diff} küpü bu vagona yükle"), EditorStyles.miniButton, GUILayout.Width(18), GUILayout.Height(16)))
                     {
+                        Undo.RecordObject(m_SelectedLevel, "Change Wagon Capacity");
                         wagon.capacity += diff;
                         m_SelectedLevel.UseCustomWagonSequence = true;
                         EditorUtility.SetDirty(m_SelectedLevel);
@@ -3173,6 +3183,7 @@ namespace PixelGame.Editor
                         EditorGUI.DrawRect(dotRect, pEntry.targetColor);
                         if (Event.current.type == EventType.MouseDown && dotRect.Contains(Event.current.mousePosition))
                         {
+                            Undo.RecordObject(m_SelectedLevel, "Change Wagon Color");
                             wagon.wagonColor = pEntry.targetColor;
                             wagon.paletteIndex = p;
                             string dotName = GetColorDisplayName(pEntry.targetColor, pEntry.label, p);
@@ -3243,35 +3254,47 @@ namespace PixelGame.Editor
             }
         }
 
+        /// <summary>
+        /// Gemiyi sıradan çıkarır (boş slot bırakmaz). Sonraki gemiler bir sıra kayar: oyun da boşlukları atlayıp aynı
+        /// şekilde dizer, ayrıca null bırakılan girdi yeniden yüklenince varsayılan bir gemiye dönüşür.
+        /// </summary>
+        private void RemoveWagonAt(int slotIndex)
+        {
+            var sequence = m_SelectedLevel.WagonSequence;
+            if (sequence == null || slotIndex < 0 || slotIndex >= sequence.Count) return;
+
+            Undo.RecordObject(m_SelectedLevel, "Remove Wagon");
+            m_SelectedLevel.UnlinkWagon(slotIndex); // Halat ortağı tek başına kalmasın
+            sequence.RemoveAt(slotIndex);
+            m_SelectedSlotForSwap = -1;
+            m_SelectedSlotForLink = -1;
+            m_SelectedLevel.UseCustomWagonSequence = true;
+            EditorUtility.SetDirty(m_SelectedLevel);
+            NotifyShipQueueUpdate();
+            if (slotIndex < sequence.Count)
+                ShowNotification(new GUIContent($"#{slotIndex + 1} silindi, sonraki gemiler bir sıra kaydı"));
+        }
+
         private void SwapWagons(int a, int b)
         {
             var sequence = m_SelectedLevel.WagonSequence;
             if (sequence == null) sequence = m_SelectedLevel.WagonSequence = new List<WagonSequenceEntry>();
-            if (a < 0 || b < 0) return;
+            if (a < 0 || b < 0 || a >= sequence.Count) return;
 
             Undo.RecordObject(m_SelectedLevel, "Swap Wagons");
 
-            while (sequence.Count <= Mathf.Max(a, b))
+            if (b >= sequence.Count)
             {
-                sequence.Add(null);
+                // Hedef boş slot: araya boşluk konmaz, gemi listenin sonuna taşınır. Oyun boşlukları atladığı için
+                // boşluk bırakmak gemileri ekranda görünenden başka sütuna düşürüyordu.
+                var moved = sequence[a];
+                sequence.RemoveAt(a);
+                sequence.Add(moved);
+                ShowNotification(new GUIContent($"Gemi sıranın sonuna (#{sequence.Count}) taşındı, aradakiler bir sıra kaydı"));
             }
-
-            (sequence[a], sequence[b]) = (sequence[b], sequence[a]);
-
-            // Listenin sonundaki boşlukları temizle
-            while (sequence.Count > 0 && sequence[sequence.Count - 1] == null)
+            else
             {
-                sequence.RemoveAt(sequence.Count - 1);
-            }
-
-            // Etiketleri sıra numarasına göre güncelle (#1, #2, ...)
-            for (int i = 0; i < sequence.Count; i++)
-            {
-                if (sequence[i] != null)
-                {
-                    string cName = GetColorDisplayName(sequence[i].wagonColor, sequence[i].label, i);
-                    sequence[i].label = $"{cName} (#{i + 1})";
-                }
+                (sequence[a], sequence[b]) = (sequence[b], sequence[a]);
             }
 
             m_SelectedSlotForSwap = -1;
@@ -3296,10 +3319,10 @@ namespace PixelGame.Editor
                     ShowNotification(new GUIContent("Güçlü konteyner için bölümde en az 2 farklı renk olmalı"));
                     return;
                 }
-                while (sequence.Count <= slotIndex) sequence.Add(null);
                 entry.capacity = cap;
                 entry.secondaryCapacity = cap;
-                sequence[slotIndex] = entry;
+                if (slotIndex < sequence.Count) sequence[slotIndex] = entry;
+                else sequence.Add(entry); // Boş slot bırakılmaz: listenin sonuna eklenir
                 m_SelectedSlotForSwap = -1;
                 m_SelectedLevel.UseCustomWagonSequence = true;
                 EditorUtility.SetDirty(m_SelectedLevel);
@@ -3312,16 +3335,7 @@ namespace PixelGame.Editor
             {
                 if (slotIndex < sequence.Count && sequence[slotIndex] != null)
                 {
-                    Undo.RecordObject(m_SelectedLevel, "Erase Wagon");
-                    sequence[slotIndex] = null;
-                    while (sequence.Count > 0 && sequence[sequence.Count - 1] == null)
-                    {
-                        sequence.RemoveAt(sequence.Count - 1);
-                    }
-                    m_SelectedSlotForSwap = -1;
-                    m_SelectedLevel.UseCustomWagonSequence = true;
-                    EditorUtility.SetDirty(m_SelectedLevel);
-                    NotifyShipQueueUpdate();
+                    RemoveWagonAt(slotIndex);
                 }
                 return;
             }
@@ -3714,13 +3728,7 @@ namespace PixelGame.Editor
 
             int cap = capacity > 0 ? capacity : Mathf.Max(1, m_SelectedLevel.TruckCapacity);
 
-            while (sequence.Count < slotIndex)
-            {
-                Color padColor = GetNextMissingColorOrDefault();
-                string padName = GetColorDisplayName(padColor, "", sequence.Count);
-                sequence.Add(new WagonSequenceEntry(padColor, cap, 0, $"{padName} (#{sequence.Count + 1})"));
-            }
-
+            // Sıranın ötesindeki boş slota tıklanınca gemi listenin sonuna eklenir; araya istenmeyen gemi konmaz
             if (slotIndex < sequence.Count)
             {
                 sequence[slotIndex] = new WagonSequenceEntry(color, cap, 0, label);
@@ -4555,6 +4563,16 @@ namespace PixelGame.Editor
         private void NotifyShipQueueUpdate()
         {
             m_LiveUpdatePending = true;
+        }
+
+        private void OnUndoRedo()
+        {
+            // Geri alınan sırada seçili slot numaraları geçersiz kalabilir; uyarılar ve sahne de yenilensin
+            m_SelectedSlotForSwap = -1;
+            m_SelectedSlotForLink = -1;
+            m_Warnings = null;
+            NotifyShipQueueUpdate();
+            Repaint();
         }
 
         private void OnEditorUpdate()

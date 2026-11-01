@@ -1,0 +1,817 @@
+{
+ "scenarios": [
+  {
+   "name": "duzgun_level",
+   "cols": 4,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [
+    {
+     "c": 3,
+     "cap": 4
+    },
+    {
+     "c": 2,
+     "cap": 4
+    },
+    {
+     "c": 1,
+     "cap": 4
+    },
+    {
+     "c": 0,
+     "cap": 4
+    }
+   ],
+   "expect": [],
+   "forbid": [
+    "CAPACITY_MISMATCH",
+    "SEQUENCE_EMPTY",
+    "ROPE_POSITION"
+   ],
+   "solvable": 1
+  },
+  {
+   "name": "kapasite_eksik",
+   "cols": 4,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [
+    {
+     "c": 3,
+     "cap": 4
+    },
+    {
+     "c": 2,
+     "cap": 4
+    },
+    {
+     "c": 1,
+     "cap": 4
+    },
+    {
+     "c": 0,
+     "cap": 2
+    }
+   ],
+   "expect": [
+    "CAPACITY_MISMATCH"
+   ],
+   "forbid": [],
+   "solvable": -1
+  },
+  {
+   "name": "kapasite_fazla",
+   "cols": 4,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [
+    {
+     "c": 3,
+     "cap": 4
+    },
+    {
+     "c": 2,
+     "cap": 4
+    },
+    {
+     "c": 1,
+     "cap": 4
+    },
+    {
+     "c": 0,
+     "cap": 6
+    }
+   ],
+   "expect": [
+    "CAPACITY_MISMATCH"
+   ],
+   "forbid": [],
+   "solvable": -1
+  },
+  {
+   "name": "sira_bos",
+   "cols": 4,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [],
+   "expect": [
+    "SEQUENCE_EMPTY"
+   ],
+   "forbid": [],
+   "solvable": -1
+  },
+  {
+   "name": "bos_slot",
+   "cols": 4,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [
+    {
+     "c": 3,
+     "cap": 4
+    },
+    {
+     "c": 0,
+     "cap": 0
+    },
+    {
+     "c": 2,
+     "cap": 4
+    },
+    {
+     "c": 1,
+     "cap": 4
+    },
+    {
+     "c": 0,
+     "cap": 4
+    }
+   ],
+   "expect": [
+    "SLOT_EMPTY"
+   ],
+   "forbid": [
+    "CAPACITY_MISMATCH"
+   ],
+   "solvable": -1
+  },
+  {
+   "name": "palette_yok",
+   "cols": 4,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [
+    {
+     "c": -1,
+     "cap": 4
+    },
+    {
+     "c": 2,
+     "cap": 4
+    },
+    {
+     "c": 1,
+     "cap": 4
+    },
+    {
+     "c": 0,
+     "cap": 4
+    }
+   ],
+   "expect": [
+    "COLOR_NOT_IN_PALETTE",
+    "CAPACITY_MISMATCH"
+   ],
+   "forbid": [],
+   "solvable": -1
+  },
+  {
+   "name": "halat_yan_yana",
+   "cols": 4,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [
+    {
+     "c": 3,
+     "cap": 4,
+     "link": 1
+    },
+    {
+     "c": 2,
+     "cap": 4,
+     "link": 1
+    },
+    {
+     "c": 1,
+     "cap": 4
+    },
+    {
+     "c": 0,
+     "cap": 4
+    }
+   ],
+   "expect": [],
+   "forbid": [
+    "ROPE_POSITION",
+    "ROPE_SIZE"
+   ],
+   "solvable": 1
+  },
+  {
+   "name": "halat_uzak",
+   "cols": 4,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [
+    {
+     "c": 3,
+     "cap": 4,
+     "link": 1
+    },
+    {
+     "c": 2,
+     "cap": 4
+    },
+    {
+     "c": 1,
+     "cap": 4,
+     "link": 1
+    },
+    {
+     "c": 0,
+     "cap": 4
+    }
+   ],
+   "expect": [
+    "ROPE_POSITION"
+   ],
+   "forbid": [],
+   "solvable": -1
+  },
+  {
+   "name": "halat_sutun_sonu_komsu_degil",
+   "cols": 4,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [
+    {
+     "c": 3,
+     "cap": 2
+    },
+    {
+     "c": 3,
+     "cap": 2
+    },
+    {
+     "c": 2,
+     "cap": 2
+    },
+    {
+     "c": 1,
+     "cap": 2,
+     "link": 1
+    },
+    {
+     "c": 2,
+     "cap": 2,
+     "link": 1
+    },
+    {
+     "c": 1,
+     "cap": 2
+    },
+    {
+     "c": 0,
+     "cap": 2
+    },
+    {
+     "c": 0,
+     "cap": 2
+    }
+   ],
+   "expect": [
+    "ROPE_POSITION"
+   ],
+   "forbid": [],
+   "solvable": -1
+  },
+  {
+   "name": "halat_alt_alta",
+   "cols": 4,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [
+    {
+     "c": 3,
+     "cap": 2,
+     "link": 1
+    },
+    {
+     "c": 3,
+     "cap": 2
+    },
+    {
+     "c": 2,
+     "cap": 2
+    },
+    {
+     "c": 1,
+     "cap": 2
+    },
+    {
+     "c": 2,
+     "cap": 2,
+     "link": 1
+    },
+    {
+     "c": 1,
+     "cap": 2
+    },
+    {
+     "c": 0,
+     "cap": 2
+    },
+    {
+     "c": 0,
+     "cap": 2
+    }
+   ],
+   "expect": [],
+   "forbid": [
+    "ROPE_POSITION"
+   ],
+   "solvable": -1
+  },
+  {
+   "name": "halat_tek_gemi",
+   "cols": 4,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [
+    {
+     "c": 3,
+     "cap": 4,
+     "link": 1
+    },
+    {
+     "c": 2,
+     "cap": 4
+    },
+    {
+     "c": 1,
+     "cap": 4
+    },
+    {
+     "c": 0,
+     "cap": 4
+    }
+   ],
+   "expect": [
+    "ROPE_SIZE"
+   ],
+   "forbid": [],
+   "solvable": -1
+  },
+  {
+   "name": "halat_ayni_renk",
+   "cols": 4,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [
+    {
+     "c": 3,
+     "cap": 2,
+     "link": 1
+    },
+    {
+     "c": 3,
+     "cap": 2,
+     "link": 1
+    },
+    {
+     "c": 2,
+     "cap": 4
+    },
+    {
+     "c": 1,
+     "cap": 4
+    },
+    {
+     "c": 0,
+     "cap": 4
+    }
+   ],
+   "expect": [
+    "ROPE_SAME_COLOR"
+   ],
+   "forbid": [],
+   "solvable": -1
+  },
+  {
+   "name": "ayni_sutun_ayni_renk",
+   "cols": 4,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [
+    {
+     "c": 3,
+     "cap": 2
+    },
+    {
+     "c": 2,
+     "cap": 4
+    },
+    {
+     "c": 1,
+     "cap": 4
+    },
+    {
+     "c": 0,
+     "cap": 2
+    },
+    {
+     "c": 3,
+     "cap": 2
+    },
+    {
+     "c": 0,
+     "cap": 2
+    }
+   ],
+   "expect": [
+    "SAME_COLOR_IN_LANE"
+   ],
+   "forbid": [],
+   "solvable": -1
+  },
+  {
+   "name": "gizli_on_sira",
+   "cols": 4,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [
+    {
+     "c": 3,
+     "cap": 4,
+     "hid": 1
+    },
+    {
+     "c": 2,
+     "cap": 4
+    },
+    {
+     "c": 1,
+     "cap": 4
+    },
+    {
+     "c": 0,
+     "cap": 4
+    }
+   ],
+   "expect": [
+    "HIDDEN_IN_FRONT"
+   ],
+   "forbid": [],
+   "solvable": -1
+  },
+  {
+   "name": "gizli_arka_sira",
+   "cols": 4,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [
+    {
+     "c": 3,
+     "cap": 2
+    },
+    {
+     "c": 2,
+     "cap": 4
+    },
+    {
+     "c": 1,
+     "cap": 4
+    },
+    {
+     "c": 0,
+     "cap": 2
+    },
+    {
+     "c": 0,
+     "cap": 2,
+     "hid": 1
+    },
+    {
+     "c": 3,
+     "cap": 2
+    }
+   ],
+   "expect": [],
+   "forbid": [
+    "HIDDEN_IN_FRONT",
+    "HIDDEN_WITH_ROPE"
+   ],
+   "solvable": -1
+  },
+  {
+   "name": "guclu_dogru",
+   "cols": 4,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [
+    {
+     "c": 3,
+     "cap": 4,
+     "c2": 2,
+     "cap2": 4
+    },
+    {
+     "c": 1,
+     "cap": 4
+    },
+    {
+     "c": 0,
+     "cap": 4
+    }
+   ],
+   "expect": [],
+   "forbid": [
+    "CAPACITY_MISMATCH",
+    "DUAL_SECOND_MISSING",
+    "DUAL_SAME_COLOR"
+   ],
+   "solvable": 1
+  },
+  {
+   "name": "guclu_ikinci_renk_yok",
+   "cols": 4,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [
+    {
+     "c": 3,
+     "cap": 4,
+     "c2": -1,
+     "cap2": 4
+    },
+    {
+     "c": 2,
+     "cap": 4
+    },
+    {
+     "c": 1,
+     "cap": 4
+    },
+    {
+     "c": 0,
+     "cap": 4
+    }
+   ],
+   "expect": [
+    "DUAL_SECOND_MISSING"
+   ],
+   "forbid": [],
+   "solvable": -1
+  },
+  {
+   "name": "guclu_ayni_renk",
+   "cols": 4,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [
+    {
+     "c": 3,
+     "cap": 2,
+     "c2": 3,
+     "cap2": 2
+    },
+    {
+     "c": 2,
+     "cap": 4
+    },
+    {
+     "c": 1,
+     "cap": 4
+    },
+    {
+     "c": 0,
+     "cap": 4
+    }
+   ],
+   "expect": [
+    "DUAL_SAME_COLOR"
+   ],
+   "forbid": [
+    "CAPACITY_MISMATCH"
+   ],
+   "solvable": -1
+  },
+  {
+   "name": "kapasite_sinir_asimi",
+   "cols": 4,
+   "rows": 3,
+   "tier": 0,
+   "grid": [
+    "0 0 0 0 0 0 0",
+    "0 0 0 0 0 0 0",
+    "0 0 0 0 0 0 0",
+    "0 0 0 0 0 0 0",
+    "0 0 0 0 0 0 0"
+   ],
+   "ships": [
+    {
+     "c": 0,
+     "cap": 35
+    }
+   ],
+   "expect": [
+    "CAPACITY_LIMIT"
+   ],
+   "forbid": [],
+   "solvable": -1
+  },
+  {
+   "name": "kapasite_sinir_icinde",
+   "cols": 4,
+   "rows": 3,
+   "tier": 0,
+   "grid": [
+    "0 0 0 0 0 0 0",
+    "0 0 0 0 0 0 0",
+    "0 0 0 0 0 0 0",
+    "0 0 0 0 0 0 0",
+    "0 0 0 0 0 0 0"
+   ],
+   "ships": [
+    {
+     "c": 0,
+     "cap": 30
+    },
+    {
+     "c": 0,
+     "cap": 5
+    }
+   ],
+   "expect": [],
+   "forbid": [
+    "CAPACITY_LIMIT",
+    "CAPACITY_MISMATCH"
+   ],
+   "solvable": 1
+  },
+  {
+   "name": "guclu_ayni_sutun",
+   "cols": 2,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "0 0 0 0",
+    "1 1 1 1",
+    "2 2 2 2",
+    "3 3 3 3"
+   ],
+   "ships": [
+    {
+     "c": 3,
+     "cap": 2,
+     "c2": 2,
+     "cap2": 2
+    },
+    {
+     "c": 1,
+     "cap": 4
+    },
+    {
+     "c": 2,
+     "cap": 2
+    },
+    {
+     "c": 0,
+     "cap": 4
+    },
+    {
+     "c": 3,
+     "cap": 2
+    }
+   ],
+   "expect": [
+    "SAME_COLOR_IN_LANE"
+   ],
+   "forbid": [],
+   "solvable": -1
+  },
+  {
+   "name": "ic_renk_cozulebilir",
+   "cols": 2,
+   "rows": 3,
+   "tier": 1,
+   "grid": [
+    "1 1 1",
+    "1 0 1",
+    "1 1 1"
+   ],
+   "ships": [
+    {
+     "c": 1,
+     "cap": 8
+    },
+    {
+     "c": 0,
+     "cap": 1
+    }
+   ],
+   "expect": [],
+   "forbid": [],
+   "solvable": 1
+  }
+ ]
+}
