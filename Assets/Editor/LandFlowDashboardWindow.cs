@@ -4,6 +4,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
+using System.Security.Cryptography;
+using UnityEngine.Networking;
 using UnityEditor;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
@@ -239,11 +241,28 @@ namespace PixelGame.Editor
         private static string StartServer()
         {
             int port = Port;
+            string node = ResolveNode();
+            if (node == null)
+            {
+                if (!EditorUtility.DisplayDialog("LandFlow Analiz",
+                        "Panel için Node.js gerekiyor ve bu bilgisayarda bulunamadı.\n\n" +
+                        "Otomatik indirip kurayım mı? (~30 MB, nodejs.org)\n" +
+                        "Yalnızca bu projenin Library klasörüne kurulur; yönetici izni gerekmez, sisteme dokunmaz.",
+                        "İndir ve Kur", "Vazgeç"))
+                {
+                    return "Node.js kurulmadı.";
+                }
+                string installError = InstallNode();
+                if (installError != null) return installError;
+                node = ResolveNode();
+                if (node == null) return "Node.js kuruldu ama bulunamadı; Console'a bakın.";
+            }
+
             try
             {
                 var psi = new ProcessStartInfo
                 {
-                    FileName = "node",
+                    FileName = node,
                     Arguments = "server.mjs",
                     WorkingDirectory = DashboardDir,
                     UseShellExecute = false,
@@ -267,13 +286,154 @@ namespace PixelGame.Editor
                 }
                 return IsServerUp(port) ? null : "Sunucu başlamadı; Console'daki [LandFlow Analiz] satırlarına bakın.";
             }
-            catch (Win32Exception)
+            catch (Win32Exception e)
             {
-                return "Node.js bulunamadı. https://nodejs.org adresinden LTS sürümünü kurup Unity'yi yeniden başlatın.";
+                return $"Node.js çalıştırılamadı ({node}): {e.Message}";
             }
             catch (Exception e)
             {
                 return $"Sunucu başlatılamadı: {e.Message}";
+            }
+        }
+
+        // ---------- Node.js bulma / otomatik kurma ----------
+
+        private const string NodeVersion = "v22.11.0";
+
+        // nodejs.org/dist/v22.11.0/SHASUMS256.txt
+        private static readonly Dictionary<string, string> s_NodeSha256 = new Dictionary<string, string>
+        {
+            { "win-x64.zip", "905373a059aecaf7f48c1ce10ffbd5334457ca00f678747f19db5ea7d256c236" },
+            { "darwin-arm64.tar.gz", "2e89afe6f4e3aa6c7e21c560d8a0453d84807e97850bbb819b998531a22bdfde" },
+            { "darwin-x64.tar.gz", "668d30b9512137b5f5baeef6c1bb4c46efff9a761ba990a034fb6b28b9da2465" },
+        };
+
+        private static string LocalNodeRoot => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Library", "LandFlowNode"));
+
+        private static string PlatformSuffix()
+        {
+            switch (Application.platform)
+            {
+                case RuntimePlatform.WindowsEditor: return "win-x64.zip";
+                case RuntimePlatform.OSXEditor:
+                    return System.Runtime.InteropServices.RuntimeInformation.OSArchitecture == System.Runtime.InteropServices.Architecture.Arm64
+                        ? "darwin-arm64.tar.gz" : "darwin-x64.tar.gz";
+                default: return null;
+            }
+        }
+
+        /// <summary>Önce projeye kurulan, sonra sistemdeki Node.js'i bulur. Yoksa null.</summary>
+        private static string ResolveNode()
+        {
+            bool win = Application.platform == RuntimePlatform.WindowsEditor;
+            string suffix = PlatformSuffix();
+            var candidates = new List<string>();
+            if (suffix != null)
+            {
+                string dir = Path.Combine(LocalNodeRoot, $"node-{NodeVersion}-{suffix.Replace(".zip", "").Replace(".tar.gz", "")}");
+                candidates.Add(win ? Path.Combine(dir, "node.exe") : Path.Combine(dir, "bin", "node"));
+            }
+            if (win)
+            {
+                candidates.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "nodejs", "node.exe"));
+                candidates.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "nodejs", "node.exe"));
+            }
+            else
+            {
+                candidates.Add("/opt/homebrew/bin/node");
+                candidates.Add("/usr/local/bin/node");
+                candidates.Add("/usr/bin/node");
+            }
+            foreach (string c in candidates)
+            {
+                if (File.Exists(c)) return c;
+            }
+            return CanRun("node") ? "node" : null;
+        }
+
+        private static bool CanRun(string exe)
+        {
+            try
+            {
+                using (var p = Process.Start(new ProcessStartInfo(exe, "--version") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true }))
+                {
+                    if (p == null) return false;
+                    p.WaitForExit(3000);
+                    return p.HasExited && p.ExitCode == 0;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>Node.js'i nodejs.org'dan Library/LandFlowNode altına indirir, SHA-256 ile doğrular ve açar.</summary>
+        private static string InstallNode()
+        {
+            string suffix = PlatformSuffix();
+            if (suffix == null) return "Bu işletim sistemi için otomatik kurulum yok; https://nodejs.org adresinden kurun.";
+
+            string file = $"node-{NodeVersion}-{suffix}";
+            string url = $"https://nodejs.org/dist/{NodeVersion}/{file}";
+            Directory.CreateDirectory(LocalNodeRoot);
+            string archive = Path.Combine(LocalNodeRoot, file);
+
+            try
+            {
+                using (var req = new UnityWebRequest(url, UnityWebRequest.kHttpVerbGET))
+                {
+                    req.downloadHandler = new DownloadHandlerFile(archive) { removeFileOnAbort = true };
+                    var op = req.SendWebRequest();
+                    while (!op.isDone)
+                    {
+                        if (EditorUtility.DisplayCancelableProgressBar("Node.js indiriliyor", $"{url}  ({req.downloadProgress:P0})", req.downloadProgress))
+                        {
+                            req.Abort();
+                            return "İndirme iptal edildi.";
+                        }
+                        System.Threading.Thread.Sleep(50);
+                    }
+                    if (req.result != UnityWebRequest.Result.Success) return $"Node.js indirilemedi: {req.error}";
+                }
+
+                EditorUtility.DisplayProgressBar("Node.js kuruluyor", "Dosya doğrulanıyor…", 0.9f);
+                string hash;
+                using (var sha = SHA256.Create())
+                using (var fs = File.OpenRead(archive))
+                {
+                    hash = BitConverter.ToString(sha.ComputeHash(fs)).Replace("-", "").ToLowerInvariant();
+                }
+                if (hash != s_NodeSha256[suffix])
+                {
+                    File.Delete(archive);
+                    return "İndirilen Node.js dosyası doğrulanamadı (SHA-256 uyuşmuyor); güvenlik için silindi.";
+                }
+
+                EditorUtility.DisplayProgressBar("Node.js kuruluyor", "Arşiv açılıyor…", 0.95f);
+                // Windows 10+ ve macOS'ta tar hem zip hem tar.gz açar
+                string tar = Application.platform == RuntimePlatform.WindowsEditor
+                    ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "tar.exe")
+                    : "/usr/bin/tar";
+                using (var p = Process.Start(new ProcessStartInfo(tar, $"-xf \"{archive}\" -C \"{LocalNodeRoot}\"")
+                       { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true }))
+                {
+                    if (p == null) return "Arşiv açılamadı (tar çalışmadı).";
+                    string err = p.StandardError.ReadToEnd();
+                    p.WaitForExit(120000);
+                    if (!p.HasExited || p.ExitCode != 0) return $"Arşiv açılamadı: {err}";
+                }
+                File.Delete(archive);
+                Debug.Log($"[LandFlow Analiz] Node.js {NodeVersion} kuruldu: {LocalNodeRoot}");
+                return null;
+            }
+            catch (Exception e)
+            {
+                return $"Node.js kurulamadı: {e.Message}";
+            }
+            finally
+            {
+                EditorUtility.ClearProgressBar();
             }
         }
 

@@ -22,7 +22,8 @@ Unity'de üst menüden **PixelGame → 📈 LandFlow Analiz Paneli** penceresini
 2. **Başlat ve Aç** dediğinizde sunucu arka planda çalışır ve panel tarayıcıda açılır. Unity kapanınca sunucu da kapanır.
 
 Tek tıkla açmak için **PixelGame → 📈 LandFlow Analiz Panelini Tarayıcıda Aç** menüsünü kullanabilirsiniz.
-Bilgisayarda [Node.js](https://nodejs.org) (LTS) kurulu olmalı. Kurduktan sonra Unity'yi yeniden başlatın.
+Node.js gerekiyor. Bilgisayarda yoksa pencere **otomatik indirip kurmayı** önerir: nodejs.org'dan yaklaşık 30 MB iner ve SHA-256 ile doğrulanır.
+Yalnızca bu projenin `Library/LandFlowNode` klasörüne kurulur, yönetici izni gerekmez. Bu otomatik kurulum Windows ve macOS'ta çalışır.
 
 ## Elle çalıştırma
 
