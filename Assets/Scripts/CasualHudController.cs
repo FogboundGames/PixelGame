@@ -1201,7 +1201,7 @@ namespace PixelGame
             }
 
             bool isFailed = (ShipDispatcher.Instance != null && ShipDispatcher.Instance.IsLevelFailed);
-            if (!isFailed) LandFlowAnalytics.Design("Level:Restart");
+            if (!isFailed) LandFlowAnalytics.LevelRestart();
 
             LandFlowLoadingScreen screen = LandFlowLoadingScreen.Instance ?? LandFlowLoadingScreen.EnsureInstance();
             if (screen != null)

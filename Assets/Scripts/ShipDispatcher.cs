@@ -3829,6 +3829,7 @@ namespace PixelGame
         {
             m_LevelEndPending = true;
             LandFlowAnalytics.LevelComplete();
+            LandFlowMeta.LevelCompleted();
 
             var allShips = ShipController.ActiveShips;
             HashSet<ShipController> queueShips = m_QueuePool != null

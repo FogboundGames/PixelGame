@@ -1,4 +1,4 @@
-// LandFlow Analiz Paneli sunucusu. Yalnızca Meta ya da ücretli GameAnalytics API'si bağlanacaksa gerekir (Node 18+).
+// LandFlow Analiz Paneli sunucusu. Yalnızca Meta ya da GameAnalytics PipelineIQ API'si bağlanacaksa gerekir (Node 18+).
 // CSV ile kullanım için buna gerek yok: panel.html dosyasına çift tıklamak yeter.
 // Çalıştırma:  node dashboard/server.mjs   →  tarayıcıda açılır (kapatmak için --no-open)
 // API anahtarları yalnızca bu sunucuda (.env) durur; tarayıcıya gönderilmez. Yalnızca bu bilgisayardan erişilir.

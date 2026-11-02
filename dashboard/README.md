@@ -12,7 +12,7 @@ GameAnalytics CSV'lerini sayfaya sürükleyin ya da **CSV ekle** deyin. Tarayıc
 Hiç CSV yoksa panel baştan sona **ÖRNEK VERİ** gösterir ve üstte sarı şerit çıkar. İlk gerçek veriyle örnek tamamen kalkar; eksik kalan bölümler boş görünür, gerçek ve uydurma sayılar aynı sayfada asla karışmaz.
 Her bölümün yanındaki etiket verinin nereden geldiğini söyler: `Canlı`, `CSV · tarih`, `ÖRNEK`, `Veri yok`.
 
-**Meta reklam verisi ya da ücretli GameAnalytics API'si için** anahtarlar gizli kalsın diye küçük bir sunucu gerekir (Node.js 18+):
+**Meta reklam verisi ya da GameAnalytics PipelineIQ API'si için** anahtarlar gizli kalsın diye küçük bir sunucu gerekir (Node.js 18+):
 
 ```bash
 node dashboard/server.mjs
@@ -22,7 +22,7 @@ Windows'ta `dashboard/Panel.bat` de aynısını yapar. Sayfa aynıdır, CSV'ler 
 
 ## Hangi veri nereden gelir
 
-| İstenen | GA Explore CSV (ücretsiz) | GA Metrics API (ücretli) | Meta API |
+| İstenen | GA Explore CSV (Free ve Pro) | GA Metrics API (yalnızca PipelineIQ) | Meta API |
 |---|---|---|---|
 | DAU, MAU, yeni oyuncu, oturum, oynama süresi | ✓ | ✓ | |
 | Retention (kurulum gününe göre) | ✓ | ✓ | |
@@ -34,8 +34,9 @@ Windows'ta `dashboard/Panel.bat` de aynısını yapar. Sayfa aynıdır, CSV'ler 
 | Platform, olay kategorileri | panelde yok | ✓ | |
 | Reklam harcaması, kurulum, CPI, kampanya, ülke, yerleşim | | | ✓ |
 
-- **Ücretsiz planda veri elle güncellenir:** Explore'dan CSV indirip panele sürüklersiniz.
+- **Planımız AnalyticsIQ Pro:** API vermez, veri elle güncellenir: Explore'dan CSV indirip panele sürüklersiniz. `GA_API_KEY` boş kalır.
 - **Metrics API** yalnızca PipelineIQ planında var (fiyat listesinde "$499/ay'dan başlayan"). Olursa `.env` ile canlı gelir, ama level ve olay yine CSV ister. [API şeması](https://docs.gameanalytics.com/redocusaurus/metrics-api.yaml)
+- **Claude connector (`mcp.gameanalytics.com`):** AnalyticsIQ Pro ile çalışmaz. Bağlanır ama oyun listesi boş döner, sorgu `403: must have PipelineIQ access` verir (2 Kasım 2026, oyun 354324). MCP Access ($149/ay) ya da PipelineIQ Pro ister; level ve olay verisi onda da yok.
 - **Meta:** eski Facebook Analytics 2021'de kapandı. Oyunun Meta'ya gönderdiği olaylar Events Manager'da görünür; panel Meta'dan yalnızca reklam verisini okur.
 - **İki oyun:** GameAnalytics'te Android (`PixelGame`) ve iOS (`LandFlowIOS`) ayrı oyunlardır. Panel tek oyun gösterir; `data/` içine ikisini karıştırmayın.
 
@@ -48,14 +49,18 @@ Windows'ta `dashboard/Panel.bat` de aynısını yapar. Sayfa aynıdır, CSV'ler 
 | Level başladı | `Start:Level_015:Hayalet` | |
 | Level bitti | `Complete:Level_015:Hayalet`, score = geçen saniye | Level süresi buradan |
 | Level kaybedildi | `Fail:Level_015:Hayalet`, score = geçen saniye | |
-| Tasarım olayları | `Level:Restart`, `Speed:2X`, `Speed:3X`, `Speed:Depleted` | |
+| Tasarım olayları | `Speed:2X`, `Speed:3X`, `Speed:Depleted` | |
+| Level yeniden başlatıldı | `Level:Restart:Level_015`, değer = geçen saniye | Eski sürümler `Level:Restart` gönderir, süre ve level yok |
+| Level sürerken arka plana geçildi | `Level:Quit:Level_015`, değer = geçen saniye | Deneme başına bir kez; oyuncu dönüp devam etmiş olabilir |
 | Oturum | GA SDK'sı otomatik gönderir | DAU, süre ve retention buradan |
 
-`Assets/Scripts/LandFlowMeta.cs` (Meta): yalnızca `FB.ActivateApp()` ve SDK'nın otomatik olayları. Özel olay yok.
+`Assets/Scripts/LandFlowMeta.cs` (Meta): `FB.ActivateApp()`, SDK'nın otomatik olayları Level 5, 10, 20 bitince oyuncu başına birer kez `fb_mobile_level_achieved` (`fb_level` = level numarası) ve her denemede `LevelComplete`, `LevelFail`, `LevelRestart`, `LevelQuit` özel olayları (`fb_level` = `Level_015`, `valueToSum` = geçen saniye). Bu olaylar Events Manager'da görünür, panele gelmez; level bazında süre analizi için GameAnalytics kullanılır.
 
 Her ikisi de veri izni veren oyuncularla sınırlıdır (`LandFlowPrivacy`), bu yüzden sayılar mağaza indirmelerinden düşük olabilir.
 
-**Ölçülemeyenler ve oyuna eklenmesi gerekenler** panelin en altında listelidir: Restart ve yarıda bırakılan denemelerin süresi, kampanya kaynağı (MMP yok), gelir olayları, sabit `Build 0.1`.
+Süre arka planda geçen zamanı saymaz. Eski sürümlerde yeni oyuncunun ilk levelinde `Start` gitmiyor ve süre uygulama açılışından sayılıyordu; bu yüzden eski Level 1 süreleri şişiktir.
+
+**Ölçülemeyenler ve oyuna eklenmesi gerekenler** panelin en altında listelidir: kampanya kaynağı (MMP yok), gelir olayları, sabit `Build 0.1`.
 
 ## Anahtarlar
 
@@ -104,8 +109,12 @@ Dosya adı önemsiz, ne olduğu başlıktan anlaşılır; aynı metrik iki dosya
 | `Level attempts failed` | Event dimension → Progression 01 | Mean score per event | **Dosya adında `kayip` geçmeli** |
 | `Custom event count per user` | Event dimension → Event id 02 | Count | Olaylar |
 | `Custom event count per user` | Event dimension → Event id 02 | Unique users | Olay başına oyuncu |
+| `Custom event count per user` | Event dimension → Event id 03, filtre Event id 02 = `Restart` | Count | **Dosya adında `restart` geçmeli** |
+| `Custom event count per user` | Event dimension → Event id 03, filtre Event id 02 = `Restart` | Mean value | **Dosya adında `restart` geçmeli** |
+| `Custom event count per user` | Event dimension → Event id 03, filtre Event id 02 = `Quit` | Count | **Dosya adında `cikis` geçmeli** |
+| `Custom event count per user` | Event dimension → Event id 03, filtre Event id 02 = `Quit` | Mean value | **Dosya adında `cikis` geçmeli** |
 
-Ortalama skorun başlığı iki durumda da aynı olduğu için tek istisna o iki dosyanın adıdır. Aynı ada sahip dosyalar birbirinin yerine geçtiği için indirirken farklı adla kaydedin. Tanınmayan dosya panelin üstünde uyarı olarak görünür.
+Ortalama skorun başlığı iki durumda da aynı olduğu için tek istisna o iki dosyanın adıdır; Restart ve Quit dosyaları için de aynısı geçerlidir. Aynı ada sahip dosyalar birbirinin yerine geçtiği için indirirken farklı adla kaydedin. Tanınmayan dosya panelin üstünde uyarı olarak görünür.
 Sık kullanacağınız sorguları Explore'da **Save** ile saklayabilirsiniz. Level, olay ve ülke dosyaları indirirken seçilen dönemi gösterir; paneldeki tarih seçici onları etkilemez, etiketteki tarih dosyanın kaydedildiği gündür.
 
 ## Sayılar nasıl hesaplanıyor
@@ -116,7 +125,7 @@ Sık kullanacağınız sorguları Explore'da **Save** ile saklayabilirsiniz. Lev
 - **MAU:** dönemin son gününden geriye 30 gün içindeki tekil oyuncu.
 - **Günlük oynama:** `session_length_per_user`, gün içinde oyuncu başına toplam süre.
 - **Ulaşan:** levele başlayan tekil oyuncu; yoksa önceki leveli bitirenler (`~` ile işaretli).
-- **Toplam süre:** `bitirme × ort. süre + kayıp × ort. süre`. Restart ve yarıda bırakma dahil değildir.
+- **Toplam süre:** `bitirme × ort. süre + kayıp × ort. süre + restart × ort. süre`. Quit dahil değildir, çünkü dönüp devam eden oyuncunun süresi zaten bitirme ya da kayıpta sayılır.
 - **Tıkanma ve Kopma:** kazanma oranı %40 altı ya da ulaşanların %15'ten fazlasının bitirmemesi. Eşikler panelde işaret olsun diye seçildi, sektör ölçütü değildir.
 - **Reklam dışı oyuncu:** `GA yeni oyuncu − Meta kurulum`. İki kaynak farklı sayar, kaba tahmindir.
 
@@ -124,5 +133,6 @@ Sık kullanacağınız sorguları Explore'da **Save** ile saklayabilirsiniz. Lev
 
 - **GA CSV:** başlıklar, alt satırlar ve toplamlar gerçek hesaptan (`PixelGame`, Ekim 2026) görüldü. Sayıların saniye olduğu GA arayüzüyle karşılaştırıldı.
 - **Dosyadan açma:** Linux'ta Chrome ile `file://` üzerinden sürükle-bırak, yenileme ve temizleme denendi. Windows'ta ve Firefox'ta denenmedi.
+- **Restart ve Quit CSV'leri:** Yeni olaylar henüz yayında olmadığı için gerçek dosya görülmedi. `Event id 03` sütunu ve ortalama değer başlığı (`Design (mean…`) tahmindir, tanınmayan dosya panelde uyarı olarak çıkar. Örnek dosyayla sınandı.
 - **GA Metrics API ve Meta:** gerçek anahtarla **denenmedi**. İstekler API şemasına karşı denetlendi, panel şema biçiminde yanıt veren sahte sunucuyla sınandı.
 - İlk gerçek Meta bağlantısında `actions` içindeki kurulum türü (`mobile_app_install` ve benzerleri) kontrol edilmeli.

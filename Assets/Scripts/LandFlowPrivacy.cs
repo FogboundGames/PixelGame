@@ -8,7 +8,7 @@ namespace PixelGame
 {
     /// <summary>
     /// Veri izni: cihazda ilk açılışta bir kez sorulur, cevap kaydedilir. "Allow" seçilmeden GameAnalytics ve Meta SDK başlatılmaz.
-    /// Büyük "Allow" düğmesi ve altında küçük "Don't Allow" yazısı vardır; ekran koddan kurulur.
+    /// Tek "Allow" düğmesi vardır; ekran koddan kurulur.
     /// </summary>
     public static class LandFlowPrivacy
     {
@@ -79,8 +79,8 @@ namespace PixelGame
             cardImage.type = Image.Type.Sliced;
             cardImage.color = Color.white;
 
-            string body = "We use GameAnalytics and Meta to improve the game and measure our ads. They may receive device info and identifiers.\n\n"
-                + "The game works the same either way.";
+            string body = "We use GameAnalytics and Meta to improve the game and measure our ads. They may receive device info, identifiers and gameplay data like levels and play time.\n\n"
+                + "Tap Allow to continue.";
 
             TextMeshProUGUI title = CreateText("Title", card, new Vector2(0f, 340f), new Vector2(800f, 100f), "Your Privacy", 72f, font);
             title.color = s_TitleColor;
@@ -94,12 +94,6 @@ namespace PixelGame
             link.gameObject.AddComponent<Button>().onClick.AddListener(() => Application.OpenURL(PolicyUrl));
 
             CreateAllowButton(card, buttonSprite, font);
-
-            // Reddetme seçeneği: düğme değil, Allow'un altında küçük yazı
-            TextMeshProUGUI decline = CreateText("Btn_Decline", card, new Vector2(0f, -350f), new Vector2(420f, 70f), "Don't Allow", 32f, font);
-            decline.color = s_BodyColor;
-            decline.raycastTarget = true;
-            decline.gameObject.AddComponent<Button>().onClick.AddListener(() => Answer(false));
 
             overlayGroup.alpha = 0f;
             overlayGroup.DOFade(1f, 0.2f).SetUpdate(true).SetLink(s_Dialog);

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using Facebook.Unity;
 using Facebook.Unity.Settings;
 using GameAnalyticsSDK;
@@ -11,10 +12,17 @@ namespace PixelGame
     /// yoksa (Facebook → Edit Settings) hiçbir şey göndermez; böylece değerler girilmeden de oyun sorunsuz çalışır.
     /// Oyuncu veri izni vermeden başlatılmaz (LandFlowPrivacy). iOS'ta ardından ATT izni sorulur, SDK cevaptan sonra başlatılır.
     /// Ayar dosyasında otomatik olay ve reklam kimliği kapalıdır; yalnızca izin varsa burada açılır.
+    /// Reklam tarafı için Level 5, 10 ve 20 bitince, oyuncu başına birer kez "level achieved" olayı gönderir.
+    /// LevelComplete, LevelFail, LevelRestart ve LevelQuit özel olaylarını da level kimliği ve geçen saniyeyle gönderir.
     /// </summary>
     public sealed class LandFlowMeta : MonoBehaviour, IGameAnalyticsATTListener
     {
+        private const string MilestonePrefPrefix = "LandFlowMeta_LevelAchieved_";
+        private static readonly int[] LevelMilestones = { 5, 10, 20 };
+
         private static bool s_Initialized;
+        // Editörde ve masaüstünde SDK hiç başlatılmaz; FB API'sine yalnızca bu bayrak açıkken dokunulur
+        private static bool s_SdkReady;
 
         // ATT cevabı ana thread dışında gelebilir; bayraklar Start içinde ana thread'de okunur
         private volatile bool m_AttAnswered;
@@ -69,7 +77,41 @@ namespace PixelGame
                 return;
             }
 
+            s_SdkReady = true;
             ApplyConsent(LandFlowPrivacy.Allowed);
+        }
+
+        /// <summary>Özel level olayı: saniye olayın değeri (valueToSum), level kimliği parametresi olur.</summary>
+        public static void LogLevelEvent(string eventName, string levelId, int seconds)
+        {
+            if (!s_SdkReady || !LandFlowPrivacy.Allowed) return;
+
+            FB.LogAppEvent(eventName, seconds, new Dictionary<string, object>
+            {
+                { AppEventParameterName.Level, levelId },
+            });
+        }
+
+        /// <summary>
+        /// Level bitince çağrılır. O an gönderilemeyen dönüm noktası (SDK hazır değil, izin yok) sonraki bitirmede gider.
+        /// </summary>
+        public static void LevelCompleted()
+        {
+            if (!s_SdkReady || !LandFlowPrivacy.Allowed || LevelManager.Instance == null) return;
+
+            int levelNumber = LevelManager.Instance.CurrentLevelIndex + 1;
+            foreach (int milestone in LevelMilestones)
+            {
+                string key = MilestonePrefPrefix + milestone;
+                if (levelNumber < milestone || PlayerPrefs.HasKey(key)) continue;
+
+                FB.LogAppEvent(AppEventName.AchievedLevel, null, new Dictionary<string, object>
+                {
+                    { AppEventParameterName.Level, milestone.ToString() },
+                });
+                PlayerPrefs.SetInt(key, 1);
+                PlayerPrefs.Save();
+            }
         }
 
         private void ApplyConsent(bool allowed)

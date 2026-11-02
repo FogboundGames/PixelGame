@@ -239,7 +239,7 @@ body.dropping .drop-overlay { display: flex; }
 
     <section>
       <h2>Level analizi <span class="tag" data-src="levels"></span></h2>
-      <p class="hint">Süreler oyunun Complete ve Fail olaylarında gönderdiği saniyedir. Restart ile yarıda kesilen ve oyundan çıkılarak bırakılan denemelerin süresi gönderilmediği için dahil değildir.</p>
+      <p class="hint">Süreler oyunun Complete, Fail, Restart ve Quit olaylarında gönderdiği saniyedir. Restart ve Quit yalnızca bu olayları ekleyen sürümden itibaren dolar. Quit, level sürerken uygulamanın arka plana geçmesidir; oyuncu sonra dönüp devam etmiş olabilir. Eski sürümlerde yeni oyuncuların ilk leveli (genelde Level 1) uygulama açılışından sayıldığı için süresi şişiktir.</p>
       <div id="levelSummary" class="callouts"></div>
       <div class="grid2">
         <figure class="card"><figcaption>Kazanma oranı (bitirme ÷ başlama)</figcaption><div id="chWin" class="chart"></div></figure>
@@ -526,6 +526,16 @@ const LEVEL_COLUMNS = {
 const DESIGN_COLUMNS = { 'Design (count)': 'count', 'Design (unique users)': 'users' };
 const COUNTRY_USER_COLUMNS = ['All (unique users)', 'DAU'];
 
+/** "Event id 03" dosyası: hangi olay olduğu yalnızca dosya adından anlaşılır, sayı mı süre mi olduğu başlıktan. */
+function attemptField(file, column) {
+  const mean = /^Design \(mean/.test(column);
+  if (!mean && column !== 'Design (count)') return null;
+  const name = file.toLowerCase();
+  if (/restart/.test(name)) return mean ? 'restartAvgSec' : 'restarts';
+  if (/[cç][iı]k[iı][sş]|quit/.test(name)) return mean ? 'quitAvgSec' : 'quits';
+  return null;
+}
+
 function scoreField(file) {
   const name = file.toLowerCase();
   if (/bitir|complete/.test(name)) return 'avgCompleteSec';
@@ -570,6 +580,10 @@ function loadCsv(stored, from, to) {
   const errors = [];
   let retention = null, playtime = null;
   const stamp = (key, file) => { asOf[key] = new Date(file.at).toISOString(); };
+  const levelRow = (id) => {
+    if (!levels.has(id)) levels.set(id, { id, name: '', starts: 0, completes: 0, fails: 0, avgCompleteSec: null, avgFailSec: null, players: null, restarts: null, restartAvgSec: null, quits: null, quitAvgSec: null });
+    return levels.get(id);
+  };
 
   for (const file of files) {
     let table;
@@ -592,9 +606,13 @@ function loadCsv(stored, from, to) {
       if (!field) { errors.push(`${file.name}: ortalama skor dosyasının adında "bitirme" ya da "kayip" geçmeli`); continue; }
       for (const row of table.rows) {
         if (!row[0]) continue;
-        if (!levels.has(row[0])) levels.set(row[0], { id: row[0], name: '', starts: 0, completes: 0, fails: 0, avgCompleteSec: null, avgFailSec: null, players: null });
-        levels.get(row[0])[field] = num(row[1]);
+        levelRow(row[0])[field] = num(row[1]);
       }
+      stamp('levels', file);
+    } else if (first === 'Event id 03') {
+      const field = attemptField(file.name, second);
+      if (!field) { errors.push(`${file.name}: dosya adında "restart" ya da "cikis" geçmeli, başlık Design (count) ya da ortalama değer olmalı (başlık: ${second})`); continue; }
+      for (const row of table.rows) if (row[0]) levelRow(row[0])[field] = num(row[1]);
       stamp('levels', file);
     } else if (/^Event id \d+$/.test(first ?? '') && DESIGN_COLUMNS[second]) {
       for (const row of table.rows) {
@@ -719,6 +737,10 @@ function demoGA(from, to, metaDaily) {
       avgCompleteSec: Math.round(55 + i * 6 + (hard ? 40 : 0) + r() * 20),
       avgFailSec: Math.round(40 + i * 4 + r() * 15),
       players,
+      restarts: Math.round(starts * 0.12),
+      restartAvgSec: Math.round(25 + i * 2 + r() * 10),
+      quits: Math.round(players * (hard ? 0.14 : 0.04)),
+      quitAvgSec: Math.round(30 + i * 3 + r() * 15),
     };
     players = completes;
     return lv;
@@ -978,7 +1000,8 @@ function derive() {
 
 function deriveLevels(levels) {
   const out = [];
-  const totalSec = (l) => (l.completes * (l.avgCompleteSec ?? 0)) + (l.fails * (l.avgFailSec ?? 0));
+  // Quit dahil değil: arka plana alıp dönen oyuncunun süresi Complete ya da Fail içinde zaten sayılıyor
+  const totalSec = (l) => (l.completes * (l.avgCompleteSec ?? 0)) + (l.fails * (l.avgFailSec ?? 0)) + ((l.restarts ?? 0) * (l.restartAvgSec ?? 0));
   const allSec = levels.reduce((a, l) => a + totalSec(l), 0);
   let base = null;
   levels.forEach((l, i) => {
@@ -1037,7 +1060,7 @@ const share = (value, max, text) => `<span class="share"><i style="width:${ok(va
 
 const CSV_HINT = "GameAnalytics Explore'dan indirdiğiniz CSV'leri bu sayfaya sürükleyin (README).";
 const NO_GA = CSV_HINT;
-const API_ONLY = 'Yalnızca ücretli GameAnalytics API ile gelir.';
+const API_ONLY = 'Yalnızca GameAnalytics PipelineIQ API ile gelir; AnalyticsIQ Pro planında API yok.';
 const NO_META = 'Meta reklam verisi anahtar ve sunucu gerektirir (README).';
 
 function renderTables(m) {
@@ -1053,7 +1076,11 @@ function renderTables(m) {
     { key: 'attempts', label: 'Deneme / bitirme', fmt: (l) => (ok(l.attempts) ? nf1.format(l.attempts) : '—'), cls: (l) => (l.attempts >= 2.5 ? 'v-bad' : l.attempts >= 1.8 ? 'v-warn' : ''), help: 'Bir kez bitirmek için ortalama kaç kez başlanıyor' },
     { key: 'avgCompleteSec', label: 'Ort. bitirme', fmt: (l) => secs(l.avgCompleteSec) },
     { key: 'avgFailSec', label: 'Ort. kayıp', fmt: (l) => secs(l.avgFailSec) },
-    { key: 'totalSec', label: 'Toplam süre', fmt: (l) => (ok(l.totalSec) ? `${int(l.totalSec / 60)} dk` : '—'), help: 'Bitirme ve kayıp denemelerinin toplamı' },
+    { key: 'restarts', label: 'Restart', fmt: (l) => int(l.restarts), help: 'Bitirmeden yeniden başlatma' },
+    { key: 'restartAvgSec', label: 'Ort. restart', fmt: (l) => secs(l.restartAvgSec), help: 'Restart atılana kadar geçen süre' },
+    { key: 'quits', label: 'Çıkış', fmt: (l) => int(l.quits), help: 'Level sürerken uygulamanın arka plana geçmesi, deneme başına bir kez; oyuncu sonra dönmüş olabilir' },
+    { key: 'quitAvgSec', label: 'Ort. çıkış', fmt: (l) => secs(l.quitAvgSec), help: 'Levelin kaçıncı saniyesinde çıkıldı' },
+    { key: 'totalSec', label: 'Toplam süre', fmt: (l) => (ok(l.totalSec) ? `${int(l.totalSec / 60)} dk` : '—'), help: 'Bitirme, kayıp ve restart denemelerinin toplamı' },
     { key: 'drop', label: 'Bırakan %', fmt: (l) => pct(l.drop, 0), cls: (l) => (l.drop >= 15 ? 'v-bad' : l.drop >= 8 ? 'v-warn' : ''), help: 'Levele ulaşıp bitirmeyenler' },
     { key: 'flags', label: 'Durum', left: true, sort: (l) => l.flags.length, fmt: (l) => l.flags.map(([c, t]) => `<span class="flag ${c}">${c === 'bad' ? '✕' : '!'} ${t}</span>`).join('') || '<span class="flag good">✓ Normal</span>' },
   ], m.levels, { rowTitle: (l) => l.flags.map((f) => f[2]).join(' · '), empty: CSV_HINT });
@@ -1108,10 +1135,8 @@ function renderTables(m) {
 }
 
 const GAPS = [
-  ['Restart ile bırakılan denemenin süresi', 'Level:Restart süre taşımıyor, Fail da gitmiyor', 'Restart olayına geçen saniyeyi değer olarak ekle'],
-  ['Oyundan çıkarak bırakılan level', 'Yarıda kalan deneme için olay gitmiyor, yalnızca Start kalıyor', 'Uygulama arka plana geçerken "Level:Quit" olayı gönder'],
   ['Kampanya ve kaynak (organik dahil)', 'Oyunda atıf aracı yok; GA install_publisher boyutu dolmaz', 'AppsFlyer veya Adjust gibi bir MMP ekle'],
-  ['Meta tarafında oyuncu davranışı', 'Oyun Meta\'ya yalnızca uygulama açılışı ve SDK\'nın otomatik olaylarını gönderiyor; Meta bunları API ile vermiyor (Events Manager\'da görünür)', 'Kampanyaya göre level kıyası için MMP ya da Meta\'ya özel olay gerekir'],
+  ['Meta tarafında oyuncu davranışı', 'Oyun Meta\'ya uygulama açılışı, SDK\'nın otomatik olayları, Level 5, 10, 20 olayları ve süreli level olaylarını gönderiyor; panel bunları okumuyor (Events Manager\'da görünür)', 'Kampanyaya göre level kıyası için MMP ya da kampanya raporunda bu olayların doğrulanması gerekir'],
   ['Gelir (ARPU, reklam ve satın alma)', 'Oyun reklam veya satın alma olayı göndermiyor', 'Satışa ve reklama başlanınca Business ve Ad olayları ekle'],
   ['Sürümler arası karşılaştırma', 'GA ayarlarında Build sabit 0.1, oyun sürümü 1.4; bütün sürümler 0.1 görünür', 'GA ayarında sürüm numarasını güncelle ya da "Use Player Settings" aç'],
 ];
@@ -1125,11 +1150,13 @@ function renderLevelSummary(m) {
   const leaker = [...L].filter((l) => ok(l.drop)).sort((a, b) => b.drop - a.drop)[0];
   const half = L.find((l) => ok(l.funnel) && l.funnel < 50);
   const longest = [...L].filter((l) => ok(l.avgCompleteSec)).sort((a, b) => b.avgCompleteSec - a.avgCompleteSec)[0];
+  const mostQuit = [...L].filter((l) => l.quits > 0).sort((a, b) => b.quits - a.quits)[0];
   host.innerHTML = [
     hardest && ['En zor level', `${name(hardest)}: kazanma ${pct(hardest.winRate, 0)}, ortalama ${nf1.format(hardest.attempts || 0)} deneme`],
     leaker && ['En çok oyuncu kaybettiren', `${name(leaker)}: ulaşanların ${pct(leaker.drop, 0)}'i bırakıyor`],
     ['Oyuncuların yarısı', half ? `${name(half)} seviyesine gelmeden bırakıyor` : `son levele (${esc(L.at(-1).id)}) kadar devam ediyor`],
     longest && ['En uzun süren level', `${name(longest)}: ortalama ${secs(longest.avgCompleteSec)}`],
+    mostQuit && ['En çok çıkılan level', `${name(mostQuit)}: ${int(mostQuit.quits)} çıkış${ok(mostQuit.quitAvgSec) ? `, ortalama ${secs(mostQuit.quitAvgSec)} sonra` : ''}`],
   ].filter(Boolean).map(([t, v]) => `<div class="callout"><b>${t}</b>${v}</div>`).join('');
 }
 
