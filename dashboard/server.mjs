@@ -81,6 +81,10 @@ const server = createServer(async (req, res) => {
       if (!firebaseConfigured()) return sendJson(res, 400, { error: 'FIREBASE_KEY_FILE ve FIREBASE_PROPERTY_ID gerekli' });
       return sendJson(res, 200, await firebaseCheck());
     }
+    if (url.pathname === '/data/csv-paket.js') {
+      res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-cache' });
+      return res.end(await readFile(join(ROOT, 'data/csv-paket.js')).catch(() => ''));
+    }
     if (url.pathname !== '/') { res.writeHead(404); return res.end('Bulunamadı'); }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
     res.end(await readFile(join(ROOT, 'panel.html')));

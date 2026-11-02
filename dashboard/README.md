@@ -7,7 +7,9 @@ Kurulum yok, npm paketi yok. Sadece **Node.js 18+** gerekir.
 
 **`dashboard/panel.html` dosyasına çift tıklayın.** Kurulum ve sunucu gerekmez, Windows ve Linux'ta aynı çalışır, Unity'ye dokunmaz. Yeni sürümü oynayanların verisi Firestore'dan kendiliğinden gelir (internet gerekir), **Yenile** günceller.
 
-GameAnalytics CSV'lerini sayfaya sürükleyin ya da **CSV ekle** deyin. Tarayıcı onları hatırlar: sonraki açılışta yeniden eklemeniz gerekmez. Aynı adla eklenen dosya eskisinin yerine geçer, **Temizle** hepsini siler. Veri bilgisayarınızdan çıkmaz.
+GameAnalytics CSV'leri `dashboard/data/csv-paket.js` ile repodan gelir, herkes aynısını görür. Repo herkese açık olduğu için bu sayılar da herkese açıktır. Yeni CSV'leri paylaşmak için `dashboard/data/` içine koyun, `node dashboard/csv-paket.mjs` çalıştırın, commit edip push edin.
+
+Yalnızca kendinize dosya eklemek için sayfaya sürükleyin ya da **CSV ekle** deyin. Tarayıcı onları hatırlar, aynı adlı dosya paketteki dosyanın yerine geçer. **Eklenenleri temizle** yalnızca bunları siler.
 
 Hiç CSV yoksa panel baştan sona **ÖRNEK VERİ** gösterir ve üstte sarı şerit çıkar. İlk gerçek veriyle örnek tamamen kalkar; eksik kalan bölümler boş görünür, gerçek ve uydurma sayılar aynı sayfada asla karışmaz.
 Her bölümün yanındaki etiket verinin nereden geldiğini söyler: `Canlı`, `CSV · tarih`, `ÖRNEK`, `Veri yok`.
@@ -87,6 +89,10 @@ Panel sunucuyla açılınca Firebase verisini kendisi çeker, CSV gerekmez. Ayn�
 - **Az oyuncu:** Google bazı satırları gizleyebilir; olursa panelin üstünde yazar.
 - **Sayılar:** GameAnalytics ile birebir tutmaz, iki servis farklı sayar. Oynama süresi Firebase'te ön planda geçen süredir.
 - **Level alanları:** Google Analytics → Custom definitions'ta `level_id` (Event boyutu) ve `seconds` (Event metriği, Seconds) tanımlı olmalı. `http://localhost:5173/api/firebase/check` son 30 dakikanın olaylarını ve tanımları gösterir.
+
+## Meta Ads
+
+Sunucu gerekmez: üstteki **Meta Ads** satırından **Bağla** deyin, erişim anahtarını ve reklam hesabı kimliğini girin. Anahtar yalnızca o tarayıcıda saklanır, repoya girmez, istekler doğrudan Meta'ya gider. Her kişi ve her tarayıcı ayrı girer. Paylaşılan bilgisayarda kullanmayın, **Bağlantıyı kes** anahtarı siler. Sunucu `.env` içinde Meta anahtarı bulursa o kullanılır.
 
 ## Anahtarlar
 

@@ -293,6 +293,7 @@ tr.selected td { background: var(--wash); font-weight: 600; }
 
     <footer class="muted" id="footer"></footer>
   </main>
+  <script src="data/csv-paket.js"></script>
   <script>
 (() => {
 'use strict';
@@ -882,7 +883,7 @@ function deviceRows(players) {
 /** "Tümü" için ilk veri günü: Firestore ve CSV'nin en eskisi, ikisi de yoksa 90 gün öncesi. */
 function earliestDate(players, to) {
   const dates = (players ?? []).map((p) => p.firstSeen).filter(Boolean);
-  const csvFirst = loadCsv(storedFiles, '0000-01-01', to).daily[0]?.date;
+  const csvFirst = loadCsv(allCsvFiles(), '0000-01-01', to).daily[0]?.date;
   if (csvFirst) dates.push(csvFirst);
   return dates.length ? dates.sort()[0] : addDays(to, -89);
 }
@@ -909,6 +910,69 @@ function withLevelGaps(levels) {
     rows.push(known.get(n) ?? { id: `Level_${String(n).padStart(3, '0')}`, name: '', noData: true, starts: null, completes: null, fails: null, avgCompleteSec: null, avgFailSec: null, players: null, restarts: null, restartAvgSec: null, quits: null, quitAvgSec: null });
   }
   return rows;
+}
+
+// ---------- Meta Ads ----------
+// Sunucusuz bağlantı: anahtar yalnızca bu tarayıcıda durur, repoya girmez, istekler doğrudan Meta'ya gider.
+const META_STORE_KEY = 'landflow-meta';
+const META_GRAPH = 'https://graph.facebook.com/v26.0';
+const INSTALL_ACTIONS = ['mobile_app_install', 'omni_app_install', 'app_install'];
+
+async function graphJson(url, token) {
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || body.error) throw new Error(`Meta API: ${body.error?.message || `HTTP ${res.status}`}`);
+  return body;
+}
+
+async function graphAll(path, params, token) {
+  const url = new URL(`${META_GRAPH}/${path}`);
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, typeof v === 'string' ? v : JSON.stringify(v));
+  const rows = [];
+  let next = url.toString();
+  for (let page = 0; next && page < 20; page++) {
+    const body = await graphJson(next, token);
+    rows.push(...(body.data ?? []));
+    next = body.paging?.next;
+  }
+  return rows;
+}
+
+function metaRow(row) {
+  const actions = row.actions ?? [];
+  // Aynı kurulum birden fazla action_type altında görünebilir; çift saymamak için ilk bulunan alınır
+  const install = INSTALL_ACTIONS.map((type) => actions.find((a) => a.action_type === type)).find(Boolean);
+  return {
+    spend: Number(row.spend) || 0,
+    impressions: Number(row.impressions) || 0,
+    reach: Number(row.reach) || 0,
+    clicks: Number(row.clicks) || 0,
+    installs: Number(install?.value) || 0,
+  };
+}
+
+async function fetchMetaDirect(from, to, { token, account }) {
+  const id = account.startsWith('act_') ? account : `act_${account}`;
+  const base = { time_range: { since: from, until: to }, fields: 'spend,impressions,reach,clicks,actions', limit: '500' };
+  const path = `${id}/insights`;
+  const [info, daily, totals, campaigns, countries, placements] = await Promise.all([
+    graphJson(`${META_GRAPH}/${id}?fields=name,currency`, token),
+    graphAll(path, { ...base, level: 'account', time_increment: '1' }, token),
+    graphAll(path, { ...base, level: 'account' }, token),
+    graphAll(path, { ...base, level: 'campaign', fields: 'campaign_name,spend,impressions,reach,clicks,actions' }, token),
+    graphAll(path, { ...base, level: 'account', breakdowns: 'country' }, token),
+    graphAll(path, { ...base, level: 'account', breakdowns: 'publisher_platform' }, token),
+  ]);
+  const bySpend = (a, b) => b.spend - a.spend;
+  return {
+    account: info.name,
+    currency: info.currency,
+    daily: daily.map((r) => ({ date: r.date_start, ...metaRow(r) })),
+    totals: totals[0] ? metaRow(totals[0]) : metaRow({}),
+    campaigns: campaigns.map((r) => ({ name: r.campaign_name, ...metaRow(r) })).sort(bySpend),
+    countries: countries.map((r) => ({ code: r.country, ...metaRow(r) })).sort(bySpend),
+    placements: placements.map((r) => ({ name: r.publisher_platform, ...metaRow(r) })).sort(bySpend),
+  };
 }
 
 // ---------- örnek veri ----------
@@ -1026,17 +1090,17 @@ const EMPTY_META = { account: null, currency: null, daily: [], totals: null, cam
 const EMPTY_GA = { daily: [], mau: null, retention: [], retentionTrend: [], countries: [], platforms: [], categories: [], cumulativePlaytime: [], errors: [] };
 
 /** API verisini (sunucuyla açıldıysa) ve CSV'leri tek veri kümesinde birleştirir. Sayfa ya tamamen örnek ya tamamen gerçek veri gösterir. */
-function buildDashboard(from, to, api, players, playersError) {
-  const csv = loadCsv(storedFiles, from, to);
-  const metaOn = api && api.metaState.status !== 'off';
+function buildDashboard(from, to, api, players, playersError, directMeta) {
+  const csv = loadCsv(allCsvFiles(), from, to);
+  const metaOn = (api && api.metaState.status !== 'off') || directMeta?.data;
   const gaOn = api && (api.gaState.status !== 'off' || api.firebaseState.status !== 'off');
   const live = players?.length ? summarizePlayers(players, from, to) : null;
   const demo = !metaOn && !gaOn && !csv.any && !live;
-  const meta = demo ? demoMeta(from, to) : (api?.meta ?? EMPTY_META);
+  const meta = demo ? demoMeta(from, to) : (api?.meta ?? directMeta?.data ?? EMPTY_META);
   const ga = demo ? demoGA(from, to, meta.daily) : (api?.ga ?? api?.firebase ?? EMPTY_GA);
-  const noServer = 'Bu sayfa dosyadan açıldı; anahtarla bağlanmak için sunucu gerekir (README)';
-  const metaState = demo ? { status: 'demo' } : (api?.metaState ?? { status: 'off', message: noServer });
-  const gaState = demo ? { status: 'demo' } : (api?.gaState ?? { status: 'off', message: noServer });
+  const directState = directMeta && (directMeta.data ? { status: 'live' } : { status: 'error', message: directMeta.error });
+  const metaState = demo ? { status: 'demo' } : (api?.meta ? api.metaState : directState ?? api?.metaState ?? { status: 'off' });
+  const gaState = demo ? { status: 'demo' } : (api?.gaState ?? { status: 'off', message: 'API yalnızca PipelineIQ planında var' });
   const firebaseState = demo || !api ? { status: 'off' } : api.firebaseState;
   const apiKind = demo ? 'demo' : 'api';
 
@@ -1166,6 +1230,49 @@ let data = null;
 const hasServer = location.protocol.startsWith('http');
 const STORE_KEY = 'landflow-panel-csv';
 let storedFiles = [];
+let metaConfig = null;
+const directMetaCache = new Map();
+
+/** Repodan gelen CSV paketi + bu tarayıcıda eklenenler; aynı adlı dosyada eklenen kazanır. */
+function allCsvFiles() {
+  const added = new Set(storedFiles.map((f) => f.name));
+  return [...(window.LANDFLOW_CSV ?? []).filter((f) => !added.has(f.name)), ...storedFiles];
+}
+
+function readMetaConfig() {
+  try { metaConfig = JSON.parse(localStorage.getItem(META_STORE_KEY)); } catch { metaConfig = null; }
+}
+
+function connectMeta() {
+  const token = prompt('Meta erişim anahtarı (ads_read izinli). Yalnızca bu tarayıcıda saklanır:')?.trim();
+  if (!token) return;
+  const account = prompt('Reklam hesabı kimliği (Ads Manager adres çubuğundaki act= değeri):')?.trim();
+  if (!account) return;
+  metaConfig = { token, account };
+  try { localStorage.setItem(META_STORE_KEY, JSON.stringify(metaConfig)); } catch { fileNote = 'Tarayıcı Meta anahtarını saklayamadı; sayfayı kapatınca yeniden girmeniz gerekir.'; }
+  directMetaCache.clear();
+  load();
+}
+
+function disconnectMeta() {
+  metaConfig = null;
+  directMetaCache.clear();
+  try { localStorage.removeItem(META_STORE_KEY); } catch { /* saklanmamış olabilir */ }
+  load();
+}
+
+/** Aynı tarih aralığı için Meta'ya tekrar gitmez; hata saklanmaz, düzeltip yenileyince yeniden denenir. */
+async function loadDirectMeta(from, to, refresh) {
+  const key = `${from}_${to}`;
+  if (!refresh && directMetaCache.has(key)) return directMetaCache.get(key);
+  try {
+    const result = { data: await fetchMetaDirect(from, to, metaConfig) };
+    directMetaCache.set(key, result);
+    return result;
+  } catch (e) {
+    return { error: e.message };
+  }
+}
 
 function readStore() {
   try { storedFiles = JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch { storedFiles = []; }
@@ -1216,7 +1323,8 @@ async function load(refresh = false) {
       if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
       api = body;
     }
-    data = buildDashboard(from, to, api, players, playersError);
+    const directMeta = metaConfig && !api?.meta ? await loadDirectMeta(from, to, refresh) : null;
+    data = buildDashboard(from, to, api, players, playersError, directMeta);
     box.hidden = true;
     render();
   } catch (e) {
@@ -1237,6 +1345,8 @@ window.addEventListener('drop', (e) => {
   if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files);
 });
 document.getElementById('sources').addEventListener('click', (e) => {
+  if (e.target.id === 'metaConnect') { connectMeta(); return; }
+  if (e.target.id === 'metaDisconnect') { disconnectMeta(); return; }
   if (e.target.id !== 'clearCsv') return;
   storedFiles = [];
   writeStore();
@@ -1353,7 +1463,7 @@ const share = (value, max, text) => `<span class="share"><i style="width:${ok(va
 const CSV_HINT = "Veri yok. Yeni sürümü oynayanların verisi Firestore'dan kendiliğinden gelir; GameAnalytics Explore CSV'lerini de bu sayfaya sürükleyebilirsiniz (README).";
 const NO_GA = CSV_HINT;
 const API_ONLY = 'Firestore\'dan ya da sunucuyla açınca Firebase\'ten gelir (README).';
-const NO_META = 'Meta reklam verisi anahtar ve sunucu gerektirir (README).';
+const NO_META = "Meta reklam verisi için üstteki Meta Ads satırından Bağla'ya basın (README).";
 
 function renderTables(m) {
   const levelNum = (l) => Number(String(l.id).replace(/\D/g, '')) || 0;
@@ -1662,12 +1772,16 @@ function renderSources() {
   const s = data.sources;
   const state = { live: 'Bağlı', partial: 'Eksik veri', error: 'Hata', off: 'Bağlı değil', demo: 'ÖRNEK VERİ' };
   const chip = (name, st) => `<span class="src ${st.status}">${name}: <b>${state[st.status]}</b>${st.message ? ` · ${esc(st.message)}` : ''}</span>`;
-  const usingCsv = storedFiles.length > 0;
+  const csvCount = allCsvFiles().length;
+  const usingCsv = csvCount > 0;
+  const metaLink = metaConfig
+    ? ' <button id="metaDisconnect" class="link">Bağlantıyı kes</button>'
+    : (s.meta.status === 'live' ? '' : ' <button id="metaConnect" class="link">Bağla</button>');
   document.getElementById('sources').innerHTML = (s.firestore.status !== 'off' ? chip('Firestore', s.firestore) : '')
-    + chip(`Meta Ads${data.account ? ` (${esc(data.account)})` : ''}`, s.meta)
+    + chip(`Meta Ads${data.account ? ` (${esc(data.account)})` : ''}`, s.meta).replace(/<\/span>$/, `${metaLink}</span>`)
     + (s.firebase.status !== 'off' ? chip('Firebase', s.firebase) : '')
     + ((usingCsv || s.firebase.status !== 'off') && s.ga.status === 'off' ? '' : chip('GameAnalytics', s.ga))
-    + (usingCsv ? `<span class="src live">GameAnalytics CSV: <b>${storedFiles.length} dosya</b> <button id="clearCsv" class="link">Temizle</button></span>` : '')
+    + (usingCsv ? `<span class="src live">GameAnalytics CSV: <b>${csvCount} dosya</b>${storedFiles.length ? ' <button id="clearCsv" class="link">Eklenenleri temizle</button>' : ''}</span>` : '')
     + (fileNote ? `<span class="src partial">${esc(fileNote)}</span>` : '')
     + s.csvErrors.map((e) => `<span class="src error"><b>CSV hatası</b> · ${esc(e)}</span>`).join('');
   document.querySelectorAll('[data-src]').forEach((el) => {
@@ -1729,6 +1843,7 @@ function render() {
 }
 
 readStore();
+readMetaConfig();
 load();
 
 })();
