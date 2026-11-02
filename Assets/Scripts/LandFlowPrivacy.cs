@@ -7,8 +7,8 @@ using UnityEngine.UI;
 namespace PixelGame
 {
     /// <summary>
-    /// Veri izni: "Allow" seçilmeden GameAnalytics ve Meta SDK başlatılmaz. İlk açılışta tek düğmeli ekran gösterilir;
-    /// veri gönderimi HUD'daki "i" düğmesiyle (LandFlowPrivacyButton) her zaman kapatılabilir. İzin ekranı koddan kurulur.
+    /// Veri izni: cihazda ilk açılışta bir kez sorulur, cevap kaydedilir. "Allow" seçilmeden GameAnalytics ve Meta SDK başlatılmaz.
+    /// Büyük "Allow" düğmesi ve altında küçük "Don't Allow" yazısı vardır; ekran koddan kurulur.
     /// </summary>
     public static class LandFlowPrivacy
     {
@@ -73,30 +73,33 @@ namespace PixelGame
             CanvasGroup overlayGroup = overlayRect.gameObject.AddComponent<CanvasGroup>();
 
             Vector2 center = new Vector2(0.5f, 0.5f);
-            RectTransform card = CreateRect("Card", overlay.transform, center, center, Vector2.zero, new Vector2(900f, 780f));
+            RectTransform card = CreateRect("Card", overlay.transform, center, center, Vector2.zero, new Vector2(900f, 860f));
             Image cardImage = card.gameObject.AddComponent<Image>();
             cardImage.sprite = GetCardSprite();
             cardImage.type = Image.Type.Sliced;
             cardImage.color = Color.white;
 
-            // İlk açılışta tek düğme var; kapatma seçeneği "i" düğmesiyle açılan ekranda
-            bool firstRun = !HasAnswered;
             string body = "We use GameAnalytics and Meta to improve the game and measure our ads. They may receive device info and identifiers.\n\n"
-                + (firstRun ? "You can turn this off anytime with the \"i\" button." : "The game works the same either way. Change your choice anytime here.");
+                + "The game works the same either way.";
 
-            TextMeshProUGUI title = CreateText("Title", card, new Vector2(0f, 300f), new Vector2(800f, 100f), "Your Privacy", 72f, font);
+            TextMeshProUGUI title = CreateText("Title", card, new Vector2(0f, 340f), new Vector2(800f, 100f), "Your Privacy", 72f, font);
             title.color = s_TitleColor;
-            TextMeshProUGUI bodyText = CreateText("Body", card, new Vector2(0f, 75f), new Vector2(780f, 320f), body, 38f, font);
+            TextMeshProUGUI bodyText = CreateText("Body", card, new Vector2(0f, 115f), new Vector2(780f, 320f), body, 38f, font);
             bodyText.color = s_BodyColor;
 
             string footer = HasAnswered ? (Allowed ? "Currently: Allowed" : "Currently: Not allowed") + "  |  " : "";
-            TextMeshProUGUI link = CreateText("PolicyLink", card, new Vector2(0f, -135f), new Vector2(800f, 60f), footer + "<u>Privacy Policy</u>", 32f, font);
+            TextMeshProUGUI link = CreateText("PolicyLink", card, new Vector2(0f, -95f), new Vector2(800f, 60f), footer + "<u>Privacy Policy</u>", 32f, font);
             link.color = s_BodyColor;
             link.raycastTarget = true;
             link.gameObject.AddComponent<Button>().onClick.AddListener(() => Application.OpenURL(PolicyUrl));
 
-            if (!firstRun) CreateChoiceButton("Btn_Decline", card, -205f, "Don't Allow", false, buttonSprite, font);
-            CreateChoiceButton("Btn_Allow", card, firstRun ? 0f : 205f, "Allow", true, buttonSprite, font);
+            CreateAllowButton(card, buttonSprite, font);
+
+            // Reddetme seçeneği: düğme değil, Allow'un altında küçük yazı
+            TextMeshProUGUI decline = CreateText("Btn_Decline", card, new Vector2(0f, -350f), new Vector2(420f, 70f), "Don't Allow", 32f, font);
+            decline.color = s_BodyColor;
+            decline.raycastTarget = true;
+            decline.gameObject.AddComponent<Button>().onClick.AddListener(() => Answer(false));
 
             overlayGroup.alpha = 0f;
             overlayGroup.DOFade(1f, 0.2f).SetUpdate(true).SetLink(s_Dialog);
@@ -104,18 +107,20 @@ namespace PixelGame
             card.DOScale(1f, 0.28f).SetEase(Ease.OutBack).SetUpdate(true).SetLink(s_Dialog);
         }
 
-        private static void CreateChoiceButton(string name, RectTransform parent, float x, string label, bool allow, Sprite sprite, TMP_FontAsset font)
+        private static void CreateAllowButton(RectTransform parent, Sprite sprite, TMP_FontAsset font)
         {
-            RectTransform rect = CreateRect(name, parent, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(x, -265f), new Vector2(380f, 147f));
+            RectTransform rect = CreateRect("Btn_Allow", parent, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -220f), new Vector2(560f, 147f));
             Image image = rect.gameObject.AddComponent<Image>();
             image.sprite = sprite;
-            rect.gameObject.AddComponent<Button>().onClick.AddListener(() =>
-            {
-                UnityEngine.Object.Destroy(s_Dialog);
-                s_Dialog = null;
-                SetConsent(allow);
-            });
-            CreateText("Label", rect, new Vector2(0f, 7f), new Vector2(340f, 110f), label, 46f, font);
+            rect.gameObject.AddComponent<Button>().onClick.AddListener(() => Answer(true));
+            CreateText("Label", rect, new Vector2(0f, 7f), new Vector2(520f, 110f), "Allow", 56f, font);
+        }
+
+        private static void Answer(bool allow)
+        {
+            UnityEngine.Object.Destroy(s_Dialog);
+            s_Dialog = null;
+            SetConsent(allow);
         }
 
         // Paketteki panel görselleri 9-slice'a uygun değil; yuvarlak köşeli kart koddan üretilir

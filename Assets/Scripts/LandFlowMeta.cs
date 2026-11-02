@@ -26,9 +26,10 @@ namespace PixelGame
             if (s_Initialized) return;
             s_Initialized = true;
 
-#if !UNITY_EDITOR && !UNITY_ANDROID && !UNITY_IOS
-            // Meta SDK'yı yalnızca mobilde kullanıyoruz. Windows/Mac build'de SDK'nın masaüstü (FBG) native
-            // katmanı devreye girip oyunu açılışta çökertebiliyor; bu platformlarda hiç başlatma.
+#if UNITY_EDITOR || (!UNITY_ANDROID && !UNITY_IOS)
+            // Meta SDK'yı yalnızca mobil cihazda kullanıyoruz. Windows/Mac build'de SDK'nın masaüstü (FBG) native
+            // katmanı oyunu açılışta çökertebiliyor. Editörde de SDK Windows katmanını arıyor; bu eklentiler kapalı
+            // olduğu için FB.Init her karede NullReferenceException üretiyordu. Bu ortamlarda hiç başlatma.
 #else
 
             if (!FacebookSettings.IsValidAppId || string.IsNullOrEmpty(FacebookSettings.ClientToken))
