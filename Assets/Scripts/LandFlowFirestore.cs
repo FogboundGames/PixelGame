@@ -11,6 +11,8 @@ namespace PixelGame
     /// dashboard/panel.html'in doğrudan okuduğu oyuncu özeti: players/{playerId} altında gün ve level sayaçları.
     /// Ülke, cihazın bölge ayarından gelir (konum ya da IP kullanılmaz). playerId cihazda üretilen rastgele kimliktir. Yalnızca veri izni varsa ve mobil cihazda yazar.
     /// Firestore SDK'sı yerine REST kullanılır: SDK build'e yerel kütüphane ekliyor, bize giriş ya da canlı okuma gerekmiyor.
+    /// Saatli akış players/{playerId}/activity/{gün} altında "SS:dd:ss|olay|level|saniye" satırları olarak durur (saat UTC);
+    /// panel bunu yalnızca oyuncu seçilince okur. Bir yazma isteği özeti ve akışı birlikte gönderir, kotadan iki yazma düşer.
     /// Ücretsiz yazma kotası için olay başına değil, deneme bitince ya da uygulama arka plana geçince tek yazma yapar.
     /// Yazmalar önce cihaza kaydedilir, gönderilince silinir; böylece internet yokken ya da uygulama kapanırken kaybolmaz.
     /// </summary>
@@ -31,6 +33,7 @@ namespace PixelGame
         private static readonly Dictionary<string, Dictionary<string, long>> s_PendingLevels = new Dictionary<string, Dictionary<string, long>>();
         private static readonly Dictionary<string, string> s_PendingLevelNames = new Dictionary<string, string>();
         private static readonly Dictionary<string, long> s_PendingEvents = new Dictionary<string, long>();
+        private static readonly Dictionary<string, List<string>> s_PendingActivity = new Dictionary<string, List<string>>();
         private static readonly List<string> s_Outbox = new List<string>();
         private static long s_PendingSessions;
         private static float s_PendingSeconds;
@@ -61,7 +64,20 @@ namespace PixelGame
             s_Tracker = host.AddComponent<Tracker>();
 
             s_PendingSessions++;
+            RecordActivity("session", "", 0);
             Flush();
+        }
+
+        private static void RecordActivity(string action, string levelId, int seconds)
+        {
+            DateTime now = DateTime.UtcNow;
+            string day = now.ToString("yyyy-MM-dd");
+            if (!s_PendingActivity.TryGetValue(day, out List<string> lines))
+            {
+                lines = new List<string>();
+                s_PendingActivity[day] = lines;
+            }
+            lines.Add($"{now:HH:mm:ss}|{action}|{levelId}|{seconds}");
         }
 
         /// <summary>eventName ör. "level_complete": "complete" sayacını ve "completeSec" toplamını artırır.</summary>
@@ -76,6 +92,7 @@ namespace PixelGame
             string action = eventName.Substring(EventPrefix.Length);
             counters.TryGetValue(action, out long count);
             counters[action] = count + 1;
+            RecordActivity(action, levelId, seconds);
 
             if (eventName == StartEvent) return;
 
@@ -97,6 +114,7 @@ namespace PixelGame
             if (!s_Started) return;
             s_PendingEvents.TryGetValue(eventId, out long count);
             s_PendingEvents[eventId] = count + 1;
+            RecordActivity(eventId, "", 0);
         }
 
         private static void Flush()
@@ -114,6 +132,7 @@ namespace PixelGame
                 s_PendingLevels.Clear();
                 s_PendingLevelNames.Clear();
                 s_PendingEvents.Clear();
+                s_PendingActivity.Clear();
                 s_PendingSessions = 0;
                 s_PendingSeconds -= seconds;
             }
@@ -146,8 +165,9 @@ namespace PixelGame
                 StringField("lastSeen", today),
                 StringField("platform", platform),
                 StringField("version", Application.version),
+                StringField("device", SystemInfo.deviceModel),
             };
-            var mask = new List<string> { "\"firstSeen\"", "\"lastSeen\"", "\"platform\"", "\"version\"" };
+            var mask = new List<string> { "\"firstSeen\"", "\"lastSeen\"", "\"platform\"", "\"version\"", "\"device\"" };
 
             string country = DeviceCountry();
             if (country.Length > 0)
@@ -167,10 +187,23 @@ namespace PixelGame
                 fields.Add("\"levels\":{\"mapValue\":{\"fields\":{" + string.Join(",", names) + "}}}");
             }
 
-            return "{\"writes\":[{\"update\":{\"name\":\"" + DocumentPrefix + PlayerId() + "\",\"fields\":{"
+            var writes = new List<string>
+            {
+                "{\"update\":{\"name\":\"" + DocumentPrefix + PlayerId() + "\",\"fields\":{"
                 + string.Join(",", fields)
                 + "}},\"updateMask\":{\"fieldPaths\":[" + string.Join(",", mask) + "]},\"updateTransforms\":["
-                + string.Join(",", transforms) + "]}]}";
+                + string.Join(",", transforms) + "]}",
+            };
+
+            foreach (KeyValuePair<string, List<string>> day in s_PendingActivity)
+            {
+                var values = new List<string>();
+                foreach (string line in day.Value) values.Add("{\"stringValue\":\"" + line.Replace("\\", "").Replace("\"", "") + "\"}");
+                writes.Add("{\"update\":{\"name\":\"" + DocumentPrefix + PlayerId() + "/activity/" + day.Key + "\",\"fields\":{}},\"updateMask\":{\"fieldPaths\":[]},\"updateTransforms\":[{\"fieldPath\":\"events\",\"appendMissingElements\":{\"values\":["
+                    + string.Join(",", values) + "]}}]}");
+            }
+
+            return "{\"writes\":[" + string.Join(",", writes) + "]}";
         }
 
         /// <summary>Cihazın bölge ayarı, ör. "TR". Okunamazsa boş döner ve ülke yazılmaz.</summary>

@@ -166,6 +166,9 @@ footer { margin-top: 32px; font-size: 12px; }
 .drop-overlay div { padding: 24px 40px; border: 2px dashed var(--s1); border-radius: 12px; background: var(--surface); font-size: 16px; font-weight: 600; }
 body.dropping .drop-overlay { display: flex; }
 [hidden] { display: none !important; }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: var(--wash); }
+tr.selected td { background: var(--wash); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -185,6 +188,7 @@ body.dropping .drop-overlay { display: flex; }
           <button data-days="14">14 gün</button>
           <button data-days="30" class="on">30 gün</button>
           <button data-days="90">90 gün</button>
+          <button data-days="0">Tümü</button>
         </div>
         <button id="addCsv" class="btn primary">CSV ekle</button>
         <input id="csvInput" type="file" accept=".csv" multiple hidden>
@@ -251,6 +255,19 @@ body.dropping .drop-overlay { display: flex; }
         <figcaption>Level tablosu <span class="muted">— sütun başlığına tıklayınca sıralar</span></figcaption>
         <div id="levelTable" class="tablewrap"></div>
       </figure>
+    </section>
+
+    <section>
+      <h2>Cihazlar <span class="tag" data-src="devices"></span></h2>
+      <p class="hint">Firestore'a yazan her cihaz, ekip cihazları ve testler dahil. Tarih seçiciden etkilenmez. Kimlik cihazda üretilen rastgele numaranın başıdır.</p>
+      <figure class="card wide"><figcaption>Cihaz listesi <span class="muted">— ayrıntı için satıra tıklayın</span></figcaption><div id="deviceTable" class="tablewrap"></div></figure>
+      <div id="deviceDetail" hidden>
+        <h3 id="deviceTitle"></h3>
+        <div id="kpiDevice" class="kpis"></div>
+        <figure class="card wide"><figcaption>Aktivite akışı <span class="muted">— saatler bu bilgisayarın saatine göre; yeni sürümden itibaren dolar</span></figcaption><div id="deviceActivity" class="tablewrap"></div></figure>
+        <figure class="card wide"><figcaption>Leveller <span class="muted">— tüm zamanların toplamı</span></figcaption><div id="deviceLevels" class="tablewrap"></div></figure>
+        <figure class="card wide"><figcaption>Günler</figcaption><div id="deviceDays" class="tablewrap"></div></figure>
+      </div>
     </section>
 
     <section>
@@ -669,6 +686,7 @@ function firestoreValue(v) {
   if ('mapValue' in v) return firestoreFields(v.mapValue.fields ?? {});
   if ('integerValue' in v) return Number(v.integerValue);
   if ('doubleValue' in v) return v.doubleValue;
+  if ('arrayValue' in v) return (v.arrayValue.values ?? []).map(firestoreValue);
   return v.stringValue ?? null;
 }
 
@@ -683,7 +701,7 @@ async function fetchPlayers() {
     const res = await fetch(`${FIRESTORE_URL}?pageSize=300${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`);
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(body.error?.message || `HTTP ${res.status}`);
-    for (const doc of body.documents ?? []) players.push(firestoreFields(doc.fields ?? {}));
+    for (const doc of body.documents ?? []) players.push({ ...firestoreFields(doc.fields ?? {}), id: doc.name.split('/').pop() });
     pageToken = body.nextPageToken ?? '';
   } while (pageToken);
   return players;
@@ -812,6 +830,61 @@ function mergeLevels(csvLevels, liveLevels) {
     if (live.name) level.name = live.name;
   }
   return sortLevels([...merged.values()]);
+}
+
+/** Bir oyuncunun saatli akışı; günlük kayıtları birleştirir. Oyuncu başına gün sayısı kadar okuma yapar. */
+async function fetchActivity(playerId) {
+  const days = [];
+  let pageToken = '';
+  do {
+    const res = await fetch(`${FIRESTORE_URL}/${encodeURIComponent(playerId)}/activity?pageSize=100${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`);
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error?.message || `HTTP ${res.status}`);
+    days.push(...(body.documents ?? []));
+    pageToken = body.nextPageToken ?? '';
+  } while (pageToken);
+
+  const rows = [];
+  for (const doc of days) {
+    const date = doc.name.split('/').pop();
+    for (const line of firestoreFields(doc.fields ?? {}).events ?? []) {
+      const [time, action, level, seconds] = String(line).split('|');
+      rows.push({ at: `${date}T${time}Z`, action, level, seconds: Number(seconds) || 0 });
+    }
+  }
+  return rows;
+}
+
+/** Cihaz tablosu: oyuncu başına tüm zamanların özeti. */
+function deviceRows(players) {
+  return players.filter((p) => p.firstSeen).map((p) => {
+    const dayValues = Object.values(p.days ?? {});
+    const levels = Object.entries(p.levels ?? {});
+    return {
+      id: p.id.slice(0, 8),
+      player: p,
+      device: p.device ?? '',
+      country: p.country ?? '',
+      platform: p.platform ?? '',
+      version: p.version ?? '',
+      firstSeen: p.firstSeen,
+      lastSeen: p.lastSeen ?? p.firstSeen,
+      activeDays: dayValues.length,
+      sessions: dayValues.reduce((a, d) => a + (d.sessions ?? 0), 0),
+      seconds: dayValues.reduce((a, d) => a + (d.seconds ?? 0), 0),
+      attempts: levels.reduce((a, [, c]) => a + (c.start ?? 0), 0),
+      completes: levels.reduce((a, [, c]) => a + (c.complete ?? 0), 0),
+      furthest: Math.max(0, ...levels.map(([id]) => Number(String(id).replace(/\D/g, '')) || 0)),
+    };
+  });
+}
+
+/** "Tümü" için ilk veri günü: Firestore ve CSV'nin en eskisi, ikisi de yoksa 90 gün öncesi. */
+function earliestDate(players, to) {
+  const dates = (players ?? []).map((p) => p.firstSeen).filter(Boolean);
+  const csvFirst = loadCsv(storedFiles, '0000-01-01', to).daily[0]?.date;
+  if (csvFirst) dates.push(csvFirst);
+  return dates.length ? dates.sort()[0] : addDays(to, -89);
 }
 
 /** Aynı anahtarlı satırların sayılarını toplar; eski CSV ile Firestore'daki ülke ve olaylar için. */
@@ -1028,6 +1101,7 @@ function buildDashboard(from, to, api, players, playersError) {
       retention: retention.source,
       retentionTrend: retentionTrend.source,
       countries: countries.source,
+      devices: { kind: players?.some((p) => p.firstSeen) ? 'api' : 'none' },
       platforms: { kind: live?.platforms.length ? 'api' : ga.platforms.length ? apiKind : 'none' },
       categories: { kind: ga.categories.length ? apiKind : 'none' },
       cumulativePlaytime: cumulativePlaytime.source,
@@ -1045,6 +1119,7 @@ function buildDashboard(from, to, api, players, playersError) {
     retentionTrend: retentionTrend.rows,
     countries: countries.rows,
     platforms: live?.platforms.length ? live.platforms : ga.platforms,
+    devices: deviceRows(players ?? []),
     categories: ga.categories,
     cumulativePlaytime: cumulativePlaytime.rows,
     levels: withLevelGaps(levels.rows),
@@ -1129,11 +1204,12 @@ async function load(refresh = false) {
   try {
     btn.disabled = true; btn.textContent = 'Yükleniyor…';
     if (refresh || !players) {
+      activityCache.clear();
       try { players = await fetchPlayers(); } catch (e) { playersError = e.message; }
     }
     // Firestore anında yazıldığı için bugün de gösterilir; diğer kaynaklar raporlarını gecikmeli verir
     const to = players?.length ? today : addDays(today, -1);
-    const from = addDays(to, -(days - 1));
+    const from = days === 0 ? earliestDate(players, to) : addDays(to, -(days - 1));
     if (hasServer) {
       const res = await fetch(`/api/sources?from=${from}&to=${to}${refresh ? '&refresh=1' : ''}`);
       const body = await res.json();
@@ -1250,7 +1326,7 @@ function kpis(id, items) {
 }
 
 // ---------- tablolar ----------
-function table(containerId, columns, rows, { sortKey, desc = true, rowTitle, empty = 'Veri yok' } = {}) {
+function table(containerId, columns, rows, { sortKey, desc = true, rowTitle, empty = 'Veri yok', onRow, isSelected } = {}) {
   const host = document.getElementById(containerId);
   if (!rows.length) { host.innerHTML = `<p class="empty">${empty}</p>`; return; }
   let key = sortKey, isDesc = desc;
@@ -1262,11 +1338,12 @@ function table(containerId, columns, rows, { sortKey, desc = true, rowTitle, emp
       return isDesc ? -cmp : cmp;
     }) : rows;
     host.innerHTML = `<table><thead><tr>${columns.map((c) => `<th data-k="${c.key}" class="${c.left ? 'l' : ''} ${c.key === key ? `sorted ${isDesc ? '' : 'asc'}` : ''}" title="${esc(c.help || '')}">${c.label}</th>`).join('')}</tr></thead>
-      <tbody>${sorted.map((r) => `<tr title="${esc(rowTitle ? rowTitle(r) : '')}">${columns.map((c) => `<td class="${c.left ? 'l' : ''} ${c.cls ? c.cls(r) : ''}">${c.fmt ? c.fmt(r) : esc(r[c.key])}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+      <tbody>${sorted.map((r) => `<tr class="${onRow ? 'clickable' : ''} ${isSelected?.(r) ? 'selected' : ''}" title="${esc(rowTitle ? rowTitle(r) : '')}">${columns.map((c) => `<td class="${c.left ? 'l' : ''} ${c.cls ? c.cls(r) : ''}">${c.fmt ? c.fmt(r) : esc(r[c.key])}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
     host.querySelectorAll('th').forEach((th) => th.addEventListener('click', () => {
       if (key === th.dataset.k) isDesc = !isDesc; else { key = th.dataset.k; isDesc = true; }
       draw();
     }));
+    if (onRow) host.querySelectorAll('tbody tr').forEach((tr, i) => tr.addEventListener('click', () => onRow(sorted[i])));
   };
   draw();
 }
@@ -1310,6 +1387,28 @@ function renderTables(m) {
     { key: 'churn', label: 'D1 churn', sort: (c) => (ok(c.d1) ? 100 - c.d1 : null), fmt: (c) => pct(ok(c.d1) ? 100 - c.d1 : null) },
   ], data.countries.slice(0, 15), { sortKey: 'users', empty: NO_GA });
 
+  table('deviceTable', [
+    { key: 'id', label: 'Kimlik', left: true },
+    { key: 'device', label: 'Model', left: true, fmt: (p) => esc(p.device || '—') },
+    { key: 'country', label: 'Ülke', left: true, sort: (p) => country(p.country), fmt: (p) => (p.country ? esc(country(p.country)) : '—') },
+    { key: 'platform', label: 'Platform', left: true },
+    { key: 'version', label: 'Sürüm', left: true },
+    { key: 'firstSeen', label: 'İlk görülme', left: true, fmt: (p) => dayLabel(p.firstSeen) },
+    { key: 'lastSeen', label: 'Son görülme', left: true, fmt: (p) => dayLabel(p.lastSeen) },
+    { key: 'activeDays', label: 'Aktif gün', fmt: (p) => int(p.activeDays) },
+    { key: 'sessions', label: 'Oturum', fmt: (p) => int(p.sessions) },
+    { key: 'seconds', label: 'Toplam süre', fmt: (p) => mins(p.seconds) },
+    { key: 'attempts', label: 'Level denemesi', fmt: (p) => int(p.attempts) },
+    { key: 'completes', label: 'Bitirme', fmt: (p) => int(p.completes) },
+    { key: 'furthest', label: 'En ileri level', fmt: (p) => (p.furthest ? int(p.furthest) : '—') },
+  ], data.devices, {
+    sortKey: 'lastSeen',
+    empty: "Henüz Firestore'a yazan cihaz yok.",
+    onRow: (row) => { selectedDevice = row.player.id === selectedDevice ? null : row.player.id; renderTables(m); },
+    isSelected: (row) => row.player.id === selectedDevice,
+  });
+  renderDeviceDetail();
+
   table('platformTable', [
     { key: 'name', label: 'Platform', left: true },
     { key: 'users', label: 'Oyuncu', fmt: (p) => int(p.users) },
@@ -1347,6 +1446,87 @@ function renderTables(m) {
     { key: 'id', label: 'Kategori', left: true },
     { key: 'count', label: 'Olay sayısı', fmt: (e) => int(e.count) },
   ], data.categories || [], { sortKey: 'count', empty: API_ONLY });
+}
+
+let selectedDevice = null;
+const activityCache = new Map();
+const ACTIVITY_LABELS = { session: 'Oyunu açtı', start: 'Levele başladı', complete: 'Bitirdi', fail: 'Kaybetti', restart: 'Yeniden başlattı', quit: 'Arka plana aldı' };
+
+async function renderDeviceActivity(player) {
+  const hostId = 'deviceActivity';
+  const levelName = (id) => player.levels?.[id]?.name ?? '';
+  const draw = (rows) => table(hostId, [
+    { key: 'at', label: 'Zaman', left: true, fmt: (r) => new Date(r.at).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' }) },
+    { key: 'action', label: 'Olay', left: true, sort: (r) => ACTIVITY_LABELS[r.action] ?? r.action, fmt: (r) => esc(ACTIVITY_LABELS[r.action] ?? r.action) },
+    { key: 'level', label: 'Level', left: true, fmt: (r) => (r.level ? `${esc(r.level)}${levelName(r.level) ? ` <span class="muted">${esc(levelName(r.level))}</span>` : ''}` : '—') },
+    { key: 'seconds', label: 'Süre', fmt: (r) => (r.seconds > 0 ? secs(r.seconds) : '—'), help: 'Olaya kadar o denemede geçen süre' },
+  ], rows, { sortKey: 'at', empty: 'Bu cihazda aktivite kaydı yok; kayıt yeni sürümle başlar.' });
+
+  if (activityCache.has(player.id)) { draw(activityCache.get(player.id)); return; }
+  document.getElementById(hostId).innerHTML = '<p class="empty">Yükleniyor…</p>';
+  try {
+    const rows = await fetchActivity(player.id);
+    activityCache.set(player.id, rows);
+    if (selectedDevice === player.id) draw(rows);
+  } catch (e) {
+    if (selectedDevice === player.id) document.getElementById(hostId).innerHTML = `<p class="empty">Akış okunamadı: ${esc(e.message)}</p>`;
+  }
+}
+
+/** Seçili cihaz: saatli akışı, günleri ve level başına toplamları. */
+function renderDeviceDetail() {
+  const host = document.getElementById('deviceDetail');
+  const row = data.devices.find((d) => d.player.id === selectedDevice);
+  host.hidden = !row;
+  if (!row) return;
+
+  document.getElementById('deviceTitle').textContent = `${row.id}${row.device ? ` · ${row.device}` : ''}`;
+  renderDeviceActivity(row.player);
+  kpis('kpiDevice', [
+    ['Toplam süre', mins(row.seconds), `${int(row.activeDays)} aktif gün`],
+    ['Oturum', int(row.sessions)],
+    ['En ileri level', row.furthest ? int(row.furthest) : '—'],
+    ['Level denemesi', int(row.attempts), `${int(row.completes)} bitirme`],
+    ['Ülke', row.country ? esc(country(row.country)) : '—', `${esc(row.platform)} · sürüm ${esc(row.version)}`],
+    ['İlk ve son görülme', dayLabel(row.lastSeen), `İlk: ${dayLabel(row.firstSeen)}`],
+  ]);
+
+  const levelNumber = (l) => Number(String(l.id).replace(/\D/g, '')) || 0;
+  const avgOf = (seconds, count) => (count > 0 ? seconds / count : null);
+  const levels = Object.entries(row.player.levels ?? {}).map(([id, c]) => ({
+    id,
+    name: c.name ?? '',
+    starts: c.start ?? 0,
+    completes: c.complete ?? 0,
+    fails: c.fail ?? 0,
+    restarts: c.restart ?? 0,
+    quits: c.quit ?? 0,
+    completeAvg: avgOf(c.completeSec ?? 0, c.complete ?? 0),
+    failAvg: avgOf(c.failSec ?? 0, c.fail ?? 0),
+    restartAvg: avgOf(c.restartSec ?? 0, c.restart ?? 0),
+    quitAvg: avgOf(c.quitSec ?? 0, c.quit ?? 0),
+    total: (c.completeSec ?? 0) + (c.failSec ?? 0) + (c.restartSec ?? 0),
+  }));
+  table('deviceLevels', [
+    { key: 'id', label: 'Level', left: true, sort: levelNumber, fmt: (l) => `${esc(l.id)}${l.name ? ` <span class="muted">${esc(l.name)}</span>` : ''}` },
+    { key: 'starts', label: 'Başlama', fmt: (l) => int(l.starts) },
+    { key: 'completes', label: 'Bitirme', fmt: (l) => int(l.completes) },
+    { key: 'fails', label: 'Kayıp', fmt: (l) => int(l.fails) },
+    { key: 'restarts', label: 'Restart', fmt: (l) => int(l.restarts) },
+    { key: 'quits', label: 'Çıkış', fmt: (l) => int(l.quits), help: 'Level sürerken uygulama arka plana geçti; oyuncu sonra dönmüş olabilir' },
+    { key: 'completeAvg', label: 'Ort. bitirme', fmt: (l) => secs(l.completeAvg) },
+    { key: 'failAvg', label: 'Ort. kayıp', fmt: (l) => secs(l.failAvg) },
+    { key: 'restartAvg', label: 'Ort. restart', fmt: (l) => secs(l.restartAvg) },
+    { key: 'quitAvg', label: 'Ort. çıkış', fmt: (l) => secs(l.quitAvg), help: 'Levelin kaçıncı saniyesinde arka plana geçildi' },
+    { key: 'total', label: 'Toplam süre', fmt: (l) => (l.total > 0 ? secs(l.total) : '—'), help: 'Bitirme, kayıp ve restart denemeleri' },
+  ], levels, { sortKey: 'id', desc: false, empty: 'Bu cihazda level kaydı yok.' });
+
+  const dayRows = Object.entries(row.player.days ?? {}).map(([date, d]) => ({ date, sessions: d.sessions ?? 0, seconds: d.seconds ?? 0 }));
+  table('deviceDays', [
+    { key: 'date', label: 'Gün', left: true, fmt: (d) => dayLabel(d.date, true) },
+    { key: 'sessions', label: 'Oturum', fmt: (d) => int(d.sessions) },
+    { key: 'seconds', label: 'Oynama', fmt: (d) => mins(d.seconds) },
+  ], dayRows, { sortKey: 'date' });
 }
 
 const GAPS = [

@@ -66,14 +66,16 @@ Süre arka planda geçen zamanı saymaz. Eski sürümlerde yeni oyuncunun ilk le
 
 ## Firestore
 
-Oyun, Firestore SDK'sı olmadan REST ile oyuncu başına özet yazar ([LandFlowFirestore.cs](../Assets/Scripts/LandFlowFirestore.cs)): `players/{rastgele kimlik}` içinde `firstSeen`, `lastSeen`, `platform`, `version`, `country` (cihazın bölge ayarı, konum değil), `events` (`Speed:2X` gibi olay sayıları), gün başına oturum ve süre, level başına ad, `start`, `complete`, `fail`, `restart`, `quit` sayıları ve saniye toplamları. Panel bunu doğrudan okur.
+Oyun, Firestore SDK'sı olmadan REST ile oyuncu başına özet yazar ([LandFlowFirestore.cs](../Assets/Scripts/LandFlowFirestore.cs)): `players/{rastgele kimlik}` içinde `firstSeen`, `lastSeen`, `platform`, `version`, `device` (telefon modeli), `country` (cihazın bölge ayarı, konum değil), `events` (`Speed:2X` gibi olay sayıları), gün başına oturum ve süre, level başına ad, `start`, `complete`, `fail`, `restart`, `quit` sayıları ve saniye toplamları. Panel bunu doğrudan okur.
 
+- **Cihazlar:** Firestore'a yazan her cihaz ekip cihazları dahil ayrı satırda görünür, tarih seçiciden etkilenmez. Satıra tıklayınca o cihazın saatli aktivite akışı, günleri ve level başına toplamları açılır. **Tümü** ilk veri gününden bugüne kadar gösterir.
 - **Birleştirme:** Günlük veride Firestore'un olduğu günler onu, diğer günler CSV'yi gösterir. Level tablosunda CSV ve Firestore toplanır; bu yüzden yeni sürüm yayınlandıktan sonraki dönemi kapsayan CSV eklemeyin, aynı oyunlar iki kez sayılır. Verisi olmayan leveller tabloda `Veri yok` görünür.
 - **Retention:** Dönemde en az 10 yeni oyuncu olana kadar CSV'den gelir, sonra Firestore'dan. Firestore verisi varsa panel bugünü de gösterir; retention ve kurulumdan sonraki oynama yalnızca bitmiş günleri sayar.
 - **Birleşen:** Ülke ve olay tabloları CSV ile toplanır; ülkede oynama süresi ve D1 yalnızca kendi kaynağından gelir.
 - **Güvenlik:** Giriş (Auth) bilinçli olarak kullanılmıyor. Kurallar silmeyi ve başka alanlara yazmayı kapatır, ama **proje kimliğini bilen herkes bu kayıtları okuyabilir ve değiştirebilir**, panel sayıları sahte veriyle bozulabilir. Oyuncu verisinde ad, e-posta gibi kişisel alan tutulmaz.
-- **Kota:** Ücretsiz planda günde 50.000 okuma ve 20.000 yazma. Panel her açılışta oyuncu başına bir okuma yapar, oyun deneme başına en çok bir yazma yapar.
-- **Kurallar:** Firebase Console → Firestore → Rules, repoda değil. İzinli alanlar: `firstSeen`, `lastSeen`, `platform`, `version`, `country`, `events`, `days`, `levels`. Oyuna yeni kök alan eklerken önce kuralı güncelleyin, yoksa yazma reddedilir.
+- **Aktivite akışı:** `players/{kimlik}/activity/{gün}` içinde `SS:dd:ss|olay|level|saniye` satırları (saat UTC). Panel yalnızca satıra tıklayınca okur. Herkes okuyabildiği için kişisel bilgi yazılmaz.
+- **Kota:** Ücretsiz planda günde 50.000 okuma ve 20.000 yazma. Panel her açılışta oyuncu başına bir, satıra tıklayınca aktif gün başına bir okuma yapar. Oyun deneme başına bir istek atar, kotadan iki yazma düşer; günde yaklaşık 10.000 deneme yazılabilir.
+- **Kurallar:** Firebase Console → Firestore → Rules, repoda değil. `activity` için yalnızca `events` izinlidir. İzinli alanlar: `firstSeen`, `lastSeen`, `platform`, `version`, `device`, `country`, `events`, `days`, `levels`. Oyuna yeni kök alan eklerken önce kuralı güncelleyin, yoksa yazma reddedilir.
 
 ## Firebase
 
