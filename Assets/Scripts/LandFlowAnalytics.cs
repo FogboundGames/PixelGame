@@ -115,6 +115,7 @@ namespace PixelGame
             string id = ProgressionId(level, out string name);
             GameAnalytics.NewProgressionEvent(GAProgressionStatus.Start, id, name);
             LandFlowFirebase.LogLevelEvent("level_start", id, 0);
+            LandFlowFirestore.RecordLevelName(id, level != null ? level.LevelName : "");
         }
 
         /// <summary>Level izin ekranı açıkken yüklendiyse Start şimdi gider; süre de oyuncu oynamaya başladığı andan sayılır.</summary>
@@ -179,6 +180,7 @@ namespace PixelGame
         {
             if (!s_Enabled) return;
             GameAnalytics.NewDesignEvent(eventId, value);
+            LandFlowFirestore.RecordEvent(eventId);
         }
 
         /// <summary>Deneme süresini kare kare toplar; arka planda geçen süre sayılmaz. Uygulamanın arka plana geçişini de bildirir.</summary>

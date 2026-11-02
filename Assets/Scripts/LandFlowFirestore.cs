@@ -9,7 +9,7 @@ namespace PixelGame
 {
     /// <summary>
     /// dashboard/panel.html'in doğrudan okuduğu oyuncu özeti: players/{playerId} altında gün ve level sayaçları.
-    /// playerId cihazda üretilen rastgele kimliktir. Yalnızca veri izni varsa ve mobil cihazda yazar.
+    /// Ülke, cihazın bölge ayarından gelir (konum ya da IP kullanılmaz). playerId cihazda üretilen rastgele kimliktir. Yalnızca veri izni varsa ve mobil cihazda yazar.
     /// Firestore SDK'sı yerine REST kullanılır: SDK build'e yerel kütüphane ekliyor, bize giriş ya da canlı okuma gerekmiyor.
     /// Ücretsiz yazma kotası için olay başına değil, deneme bitince ya da uygulama arka plana geçince tek yazma yapar.
     /// Yazmalar önce cihaza kaydedilir, gönderilince silinir; böylece internet yokken ya da uygulama kapanırken kaybolmaz.
@@ -29,6 +29,8 @@ namespace PixelGame
         private const int RequestTimeoutSeconds = 15;
 
         private static readonly Dictionary<string, Dictionary<string, long>> s_PendingLevels = new Dictionary<string, Dictionary<string, long>>();
+        private static readonly Dictionary<string, string> s_PendingLevelNames = new Dictionary<string, string>();
+        private static readonly Dictionary<string, long> s_PendingEvents = new Dictionary<string, long>();
         private static readonly List<string> s_Outbox = new List<string>();
         private static long s_PendingSessions;
         private static float s_PendingSeconds;
@@ -83,12 +85,26 @@ namespace PixelGame
             Flush();
         }
 
+        /// <summary>Panelde "Level_015 Hayalet" görünsün diye ad, level başlarken bir sonraki yazmaya eklenir.</summary>
+        public static void RecordLevelName(string levelId, string levelName)
+        {
+            if (!string.IsNullOrEmpty(levelName)) s_PendingLevelNames[levelId] = levelName;
+        }
+
+        /// <summary>Serbest olay sayacı, ör. "Speed:2X". Sonraki yazmayla gider, tek başına yazma yapmaz.</summary>
+        public static void RecordEvent(string eventId)
+        {
+            if (!s_Started) return;
+            s_PendingEvents.TryGetValue(eventId, out long count);
+            s_PendingEvents[eventId] = count + 1;
+        }
+
         private static void Flush()
         {
             if (!s_Started || !LandFlowPrivacy.Allowed) return;
 
             long seconds = (long)s_PendingSeconds;
-            if (s_PendingLevels.Count > 0 || s_PendingSessions > 0 || seconds > 0)
+            if (s_PendingLevels.Count > 0 || s_PendingLevelNames.Count > 0 || s_PendingEvents.Count > 0 || s_PendingSessions > 0 || seconds > 0)
             {
                 string today = DateTime.UtcNow.ToString("yyyy-MM-dd");
                 s_Outbox.Add(BuildCommit(today, seconds));
@@ -96,6 +112,8 @@ namespace PixelGame
                 SaveOutbox();
 
                 s_PendingLevels.Clear();
+                s_PendingLevelNames.Clear();
+                s_PendingEvents.Clear();
                 s_PendingSessions = 0;
                 s_PendingSeconds -= seconds;
             }
@@ -116,14 +134,69 @@ namespace PixelGame
                 }
             }
 
+            foreach (KeyValuePair<string, long> counter in s_PendingEvents)
+            {
+                AddIncrement(transforms, $"events.`{counter.Key}`", counter.Value);
+            }
+
             string platform = Application.platform == RuntimePlatform.IPhonePlayer ? "ios" : "android";
+            var fields = new List<string>
+            {
+                StringField("firstSeen", FirstSeen(today)),
+                StringField("lastSeen", today),
+                StringField("platform", platform),
+                StringField("version", Application.version),
+            };
+            var mask = new List<string> { "\"firstSeen\"", "\"lastSeen\"", "\"platform\"", "\"version\"" };
+
+            string country = DeviceCountry();
+            if (country.Length > 0)
+            {
+                fields.Add(StringField("country", country));
+                mask.Add("\"country\"");
+            }
+
+            if (s_PendingLevelNames.Count > 0)
+            {
+                var names = new List<string>();
+                foreach (KeyValuePair<string, string> level in s_PendingLevelNames)
+                {
+                    names.Add("\"" + level.Key + "\":{\"mapValue\":{\"fields\":{" + StringField("name", level.Value) + "}}}");
+                    mask.Add("\"levels.`" + level.Key + "`.name\"");
+                }
+                fields.Add("\"levels\":{\"mapValue\":{\"fields\":{" + string.Join(",", names) + "}}}");
+            }
+
             return "{\"writes\":[{\"update\":{\"name\":\"" + DocumentPrefix + PlayerId() + "\",\"fields\":{"
-                + StringField("firstSeen", FirstSeen(today)) + ","
-                + StringField("lastSeen", today) + ","
-                + StringField("platform", platform) + ","
-                + StringField("version", Application.version)
-                + "}},\"updateMask\":{\"fieldPaths\":[\"firstSeen\",\"lastSeen\",\"platform\",\"version\"]},\"updateTransforms\":["
+                + string.Join(",", fields)
+                + "}},\"updateMask\":{\"fieldPaths\":[" + string.Join(",", mask) + "]},\"updateTransforms\":["
                 + string.Join(",", transforms) + "]}]}";
+        }
+
+        /// <summary>Cihazın bölge ayarı, ör. "TR". Okunamazsa boş döner ve ülke yazılmaz.</summary>
+        private static string DeviceCountry()
+        {
+            try
+            {
+#if UNITY_ANDROID && !UNITY_EDITOR
+                using (var locale = new AndroidJavaClass("java.util.Locale"))
+                using (AndroidJavaObject current = locale.CallStatic<AndroidJavaObject>("getDefault"))
+                {
+                    return ValidCountry(current.Call<string>("getCountry"));
+                }
+#else
+                return ValidCountry(System.Globalization.RegionInfo.CurrentRegion.TwoLetterISORegionName);
+#endif
+            }
+            catch (Exception)
+            {
+                return "";
+            }
+        }
+
+        private static string ValidCountry(string code)
+        {
+            return code != null && code.Length == 2 && char.IsLetter(code[0]) && char.IsLetter(code[1]) ? code.ToUpperInvariant() : "";
         }
 
         private static void AddIncrement(List<string> transforms, string fieldPath, long amount)
