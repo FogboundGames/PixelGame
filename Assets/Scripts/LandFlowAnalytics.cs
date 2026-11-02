@@ -1,3 +1,4 @@
+using System.Text;
 using GameAnalyticsSDK;
 using UnityEngine;
 
@@ -12,6 +13,10 @@ namespace PixelGame
     /// </summary>
     public static class LandFlowAnalytics
     {
+        private const string TurkishLetters = "çÇğĞıİöÖşŞüÜéÉ";
+        private const string AsciiLetters = "cCgGiIoOsSuUeE";
+        private const string AllowedSymbols = " -_.,()!?";
+
         private static bool s_Enabled;
         private static bool s_Initialized;
         private static bool s_Started;
@@ -69,8 +74,23 @@ namespace PixelGame
         private static string ProgressionId(PixelLevelData level, out string levelName)
         {
             int number = LevelManager.Instance != null ? LevelManager.Instance.CurrentLevelIndex + 1 : (level != null ? level.LevelIndex : 0);
-            levelName = level != null && !string.IsNullOrEmpty(level.LevelName) ? level.LevelName.Replace(":", "") : "Unknown";
+            levelName = level != null ? AllowedLevelName(level.LevelName) : "Unknown";
             return $"Level_{number:000}";
+        }
+
+        /// <summary>GameAnalytics Türkçe harf içeren progression olayını tümüyle reddeder ("Balık" → "Balik").</summary>
+        private static string AllowedLevelName(string levelName)
+        {
+            if (string.IsNullOrEmpty(levelName)) return "Unknown";
+
+            var allowed = new StringBuilder(levelName.Length);
+            foreach (char c in levelName)
+            {
+                int turkish = TurkishLetters.IndexOf(c);
+                if (turkish >= 0) allowed.Append(AsciiLetters[turkish]);
+                else if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || AllowedSymbols.IndexOf(c) >= 0) allowed.Append(c);
+            }
+            return allowed.Length > 0 ? allowed.ToString() : "Unknown";
         }
 
         private static PixelLevelData CurrentLevel => LevelManager.Instance != null ? LevelManager.Instance.CurrentLevel : null;
@@ -94,6 +114,7 @@ namespace PixelGame
         {
             string id = ProgressionId(level, out string name);
             GameAnalytics.NewProgressionEvent(GAProgressionStatus.Start, id, name);
+            LandFlowFirebase.LogLevelEvent("level_start", id, 0);
         }
 
         /// <summary>Level izin ekranı açıkken yüklendiyse Start şimdi gider; süre de oyuncu oynamaya başladığı andan sayılır.</summary>
@@ -113,6 +134,7 @@ namespace PixelGame
             string id = ProgressionId(CurrentLevel, out string name);
             GameAnalytics.NewProgressionEvent(GAProgressionStatus.Complete, id, name, Mathf.RoundToInt(s_LevelElapsed));
             LandFlowMeta.LogLevelEvent("LevelComplete", id, Mathf.RoundToInt(s_LevelElapsed));
+            LandFlowFirebase.LogLevelEvent("level_complete", id, Mathf.RoundToInt(s_LevelElapsed));
         }
 
         /// <summary>Slotlar dolup hamle kalmadığında.</summary>
@@ -123,6 +145,7 @@ namespace PixelGame
             string id = ProgressionId(CurrentLevel, out string name);
             GameAnalytics.NewProgressionEvent(GAProgressionStatus.Fail, id, name, Mathf.RoundToInt(s_LevelElapsed));
             LandFlowMeta.LogLevelEvent("LevelFail", id, Mathf.RoundToInt(s_LevelElapsed));
+            LandFlowFirebase.LogLevelEvent("level_fail", id, Mathf.RoundToInt(s_LevelElapsed));
         }
 
         /// <summary>Oyuncu leveli bitirmeden yeniden başlattığında.</summary>
@@ -148,6 +171,7 @@ namespace PixelGame
             string id = ProgressionId(CurrentLevel, out _);
             GameAnalytics.NewDesignEvent($"Level:{action}:{id}", Mathf.RoundToInt(s_LevelElapsed));
             LandFlowMeta.LogLevelEvent($"Level{action}", id, Mathf.RoundToInt(s_LevelElapsed));
+            LandFlowFirebase.LogLevelEvent($"level_{action.ToLowerInvariant()}", id, Mathf.RoundToInt(s_LevelElapsed));
         }
 
         /// <summary>Serbest tasarım olayı, ör. "Speed:2X" veya "Level:Restart".</summary>

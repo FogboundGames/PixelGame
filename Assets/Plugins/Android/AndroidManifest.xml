@@ -23,6 +23,8 @@
     <meta-data android:name="com.facebook.sdk.AutoLogProductImprovementEnabled" android:value="false" />
     <meta-data android:name="com.facebook.sdk.AutoLogMetaDataEnabled" android:value="false" />
     <meta-data android:name="com.facebook.sdk.AdvertiserIDCollectionEnabled" android:value="false" />
+    <meta-data android:name="firebase_analytics_collection_enabled" android:value="false" />
+    <meta-data android:name="google_analytics_adid_collection_enabled" android:value="false" />
     <provider android:name="com.facebook.FacebookContentProvider" android:authorities="com.facebook.app.FacebookContentProvider1406362561248360" android:exported="true" />
   </application>
 </manifest>

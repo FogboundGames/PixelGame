@@ -1,4 +1,4 @@
-// LandFlow Analiz Paneli sunucusu. Yalnızca Meta ya da GameAnalytics PipelineIQ API'si bağlanacaksa gerekir (Node 18+).
+// LandFlow Analiz Paneli sunucusu. Firebase, Meta ya da GameAnalytics PipelineIQ API'si bağlanacaksa gerekir (Node 18+).
 // CSV ile kullanım için buna gerek yok: panel.html dosyasına çift tıklamak yeter.
 // Çalıştırma:  node dashboard/server.mjs   →  tarayıcıda açılır (kapatmak için --no-open)
 // API anahtarları yalnızca bu sunucuda (.env) durur; tarayıcıya gönderilmez. Yalnızca bu bilgisayardan erişilir.
@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { loadEnv, env } from './lib/env.mjs';
 import { fetchMeta, metaConfigured } from './lib/meta.mjs';
 import { fetchGA, gaConfigured, gaCheck } from './lib/gameanalytics.mjs';
+import { fetchFirebase, firebaseConfigured, firebaseCheck } from './lib/firebase.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 loadEnv(join(ROOT, '.env'));
@@ -46,7 +47,14 @@ async function loadSources(from, to, force) {
     if (r.allFailed) gaState = { status: 'error', message: r.errors[0] };
     else { ga = r; gaState = r.errors.length ? { status: 'partial', message: r.errors.join(' · ') } : { status: 'live' }; }
   }
-  return { meta, ga, metaState, gaState };
+
+  let firebase = null, firebaseState = { status: 'off', message: '.env içinde FIREBASE_KEY_FILE ve FIREBASE_PROPERTY_ID yok' };
+  if (firebaseConfigured()) {
+    const r = await cached(`firebase_${from}_${to}`, force, () => fetchFirebase(from, to, today()).catch((e) => ({ errors: [e.message], allFailed: true })));
+    if (r.allFailed) firebaseState = { status: 'error', message: r.errors[0] };
+    else { firebase = r; firebaseState = r.errors.length ? { status: 'partial', message: r.errors.join(' · ') } : { status: 'live' }; }
+  }
+  return { meta, ga, firebase, metaState, gaState, firebaseState };
 }
 
 function sendJson(res, status, body) {
@@ -67,6 +75,11 @@ const server = createServer(async (req, res) => {
     if (url.pathname === '/api/ga/check') {
       if (!gaConfigured()) return sendJson(res, 400, { error: 'GA_API_KEY ve GA_GAME_ID gerekli' });
       return sendJson(res, 200, await gaCheck());
+    }
+    // Firebase anahtarı doğru mu: son 30 dakikanın olayları ve tanımlı level alanları
+    if (url.pathname === '/api/firebase/check') {
+      if (!firebaseConfigured()) return sendJson(res, 400, { error: 'FIREBASE_KEY_FILE ve FIREBASE_PROPERTY_ID gerekli' });
+      return sendJson(res, 200, await firebaseCheck());
     }
     if (url.pathname !== '/') { res.writeHead(404); return res.end('Bulunamadı'); }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
@@ -93,6 +106,6 @@ server.on('error', (e) => {
 });
 server.listen(PORT, HOST, () => {
   console.log(`LandFlow Analiz Paneli → ${address}  (kapatmak için Ctrl+C)`);
-  console.log(`  Meta: ${metaConfigured() ? 'bağlı' : 'anahtar yok'}  ·  GameAnalytics: ${gaConfigured() ? 'bağlı' : 'anahtar yok'}`);
+  console.log(`  Meta: ${metaConfigured() ? 'bağlı' : 'anahtar yok'}  ·  GameAnalytics: ${gaConfigured() ? 'bağlı' : 'anahtar yok'}  ·  Firebase: ${firebaseConfigured() ? 'bağlı' : 'anahtar yok'}`);
   openBrowser(address);
 });

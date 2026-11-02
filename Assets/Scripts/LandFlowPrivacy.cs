@@ -7,7 +7,7 @@ using UnityEngine.UI;
 namespace PixelGame
 {
     /// <summary>
-    /// Veri izni: cihazda ilk açılışta bir kez sorulur, cevap kaydedilir. "Allow" seçilmeden GameAnalytics ve Meta SDK başlatılmaz.
+    /// Veri izni: cihazda ilk açılışta bir kez sorulur, cevap kaydedilir. "Allow" seçilmeden GameAnalytics, Meta ve Firebase SDK başlatılmaz.
     /// Tek "Allow" düğmesi vardır; ekran koddan kurulur.
     /// </summary>
     public static class LandFlowPrivacy
@@ -79,7 +79,7 @@ namespace PixelGame
             cardImage.type = Image.Type.Sliced;
             cardImage.color = Color.white;
 
-            string body = "We use GameAnalytics and Meta to improve the game and measure our ads. They may receive device info, identifiers and gameplay data like levels and play time.\n\n"
+            string body = "We use GameAnalytics, Meta and Google Analytics to improve the game and measure our ads. They may receive device info, identifiers and gameplay data like levels and play time.\n\n"
                 + "Tap Allow to continue.";
 
             TextMeshProUGUI title = CreateText("Title", card, new Vector2(0f, 340f), new Vector2(800f, 100f), "Your Privacy", 72f, font);

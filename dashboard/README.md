@@ -5,14 +5,14 @@ Kurulum yok, npm paketi yok. Sadece **Node.js 18+** gerekir.
 
 ## Açma
 
-**`dashboard/panel.html` dosyasına çift tıklayın.** Kurulum ve sunucu gerekmez, Windows ve Linux'ta aynı çalışır, Unity'ye dokunmaz.
+**`dashboard/panel.html` dosyasına çift tıklayın.** Kurulum ve sunucu gerekmez, Windows ve Linux'ta aynı çalışır, Unity'ye dokunmaz. Yeni sürümü oynayanların verisi Firestore'dan kendiliğinden gelir (internet gerekir), **Yenile** günceller.
 
 GameAnalytics CSV'lerini sayfaya sürükleyin ya da **CSV ekle** deyin. Tarayıcı onları hatırlar: sonraki açılışta yeniden eklemeniz gerekmez. Aynı adla eklenen dosya eskisinin yerine geçer, **Temizle** hepsini siler. Veri bilgisayarınızdan çıkmaz.
 
 Hiç CSV yoksa panel baştan sona **ÖRNEK VERİ** gösterir ve üstte sarı şerit çıkar. İlk gerçek veriyle örnek tamamen kalkar; eksik kalan bölümler boş görünür, gerçek ve uydurma sayılar aynı sayfada asla karışmaz.
 Her bölümün yanındaki etiket verinin nereden geldiğini söyler: `Canlı`, `CSV · tarih`, `ÖRNEK`, `Veri yok`.
 
-**Meta reklam verisi ya da GameAnalytics PipelineIQ API'si için** anahtarlar gizli kalsın diye küçük bir sunucu gerekir (Node.js 18+):
+**Firebase'ten otomatik veri, Meta reklam verisi ya da GameAnalytics PipelineIQ API'si için** anahtarlar gizli kalsın diye küçük bir sunucu gerekir (Node.js 18+):
 
 ```bash
 node dashboard/server.mjs
@@ -56,11 +56,34 @@ Windows'ta `dashboard/Panel.bat` de aynısını yapar. Sayfa aynıdır, CSV'ler 
 
 `Assets/Scripts/LandFlowMeta.cs` (Meta): `FB.ActivateApp()`, SDK'nın otomatik olayları Level 5, 10, 20 bitince oyuncu başına birer kez `fb_mobile_level_achieved` (`fb_level` = level numarası) ve her denemede `LevelComplete`, `LevelFail`, `LevelRestart`, `LevelQuit` özel olayları (`fb_level` = `Level_015`, `valueToSum` = geçen saniye). Bu olaylar Events Manager'da görünür, panele gelmez; level bazında süre analizi için GameAnalytics kullanılır.
 
-Her ikisi de veri izni veren oyuncularla sınırlıdır (`LandFlowPrivacy`), bu yüzden sayılar mağaza indirmelerinden düşük olabilir.
+`Assets/Scripts/LandFlowFirebase.cs` (Firebase / Google Analytics): `level_start`, `level_complete`, `level_fail`, `level_restart`, `level_quit`, parametreleri `level_id` ve `seconds`. Veri toplama izin gelene kadar kapalıdır, reklam kimliği toplanmaz (Android). Panele bağlantısı henüz yok.
 
-Süre arka planda geçen zamanı saymaz. Eski sürümlerde yeni oyuncunun ilk levelinde `Start` gitmiyor ve süre uygulama açılışından sayılıyordu; bu yüzden eski Level 1 süreleri şişiktir.
+Hepsi veri izni veren oyuncularla sınırlıdır (`LandFlowPrivacy`), bu yüzden sayılar mağaza indirmelerinden düşük olabilir.
+
+Süre arka planda geçen zamanı saymaz. Eski sürümlerde yeni oyuncunun ilk levelinde `Start` gitmiyor ve süre uygulama açılışından sayılıyordu; bu yüzden eski Level 1 süreleri şişiktir. Eski sürümlerde adında Türkçe harf olan levellerin (111 adın 41'i, ör. `Balık`) `Start`, `Complete` ve `Fail` olayları GameAnalytics tarafından reddediliyordu; bu levellerin verisi eski CSV'lerde eksiktir, ad artık `Balik` biçiminde gider.
 
 **Ölçülemeyenler ve oyuna eklenmesi gerekenler** panelin en altında listelidir: kampanya kaynağı (MMP yok), gelir olayları, sabit `Build 0.1`.
+
+## Firestore
+
+Oyun, Firestore SDK'sı olmadan REST ile oyuncu başına özet yazar ([LandFlowFirestore.cs](../Assets/Scripts/LandFlowFirestore.cs)): `players/{rastgele kimlik}` içinde `firstSeen`, `lastSeen`, `platform`, `version`, gün başına oturum ve süre, level başına `start`, `complete`, `fail`, `restart`, `quit` sayıları ve saniye toplamları. Panel bunu doğrudan okur.
+
+- **Öncelik:** Bir veri Firestore'da varsa panel onu gösterir, CSV'yi kullanmaz. Level sayıları tüm zamanların toplamıdır. Firestore verisi varsa panel bugünü de gösterir; retention ve kurulumdan sonraki oynama yalnızca bitmiş günleri sayar.
+- **Gelmeyen:** Ülke ve `Speed` olayları; bunlar CSV ya da sunucuyla Firebase üzerinden gelir.
+- **Güvenlik:** Giriş (Auth) bilinçli olarak kullanılmıyor. Kurallar silmeyi ve başka alanlara yazmayı kapatır, ama **proje kimliğini bilen herkes bu kayıtları okuyabilir ve değiştirebilir**, panel sayıları sahte veriyle bozulabilir. Oyuncu verisinde ad, e-posta gibi kişisel alan tutulmaz.
+- **Kota:** Ücretsiz planda günde 50.000 okuma ve 20.000 yazma. Panel her açılışta oyuncu başına bir okuma yapar, oyun deneme başına en çok bir yazma yapar.
+- **Kurallar:** Firebase Console → Firestore → Rules, repoda değil.
+
+## Firebase
+
+Panel sunucuyla açılınca Firebase verisini kendisi çeker, CSV gerekmez. Aynı veri CSV'de de varsa CSV önceliklidir: bu adreste eski CSV kaldıysa **Temizle** deyin.
+
+- **Gelen:** DAU, MAU, yeni oyuncu, oturum, oynama süresi, retention, ülke, platform, olay sayıları, level başına başlama, bitirme, kayıp, Restart, Quit ve süreler.
+- **Gelmeyen:** Kurulumdan N gün sonra toplam oynama ve `Speed` olayları; ülke başına D1. Bunlar için CSV kullanılır.
+- **Gecikme:** Raporlar gecikmeli dolar, bugünün verisi genelde ertesi gün görünür. Olaylar da toplu gönderilir.
+- **Az oyuncu:** Google bazı satırları gizleyebilir; olursa panelin üstünde yazar.
+- **Sayılar:** GameAnalytics ile birebir tutmaz, iki servis farklı sayar. Oynama süresi Firebase'te ön planda geçen süredir.
+- **Level alanları:** Google Analytics → Custom definitions'ta `level_id` (Event boyutu) ve `seconds` (Event metriği, Seconds) tanımlı olmalı. `http://localhost:5173/api/firebase/check` son 30 dakikanın olaylarını ve tanımları gösterir.
 
 ## Anahtarlar
 
@@ -134,5 +157,7 @@ Sık kullanacağınız sorguları Explore'da **Save** ile saklayabilirsiniz. Lev
 - **GA CSV:** başlıklar, alt satırlar ve toplamlar gerçek hesaptan (`PixelGame`, Ekim 2026) görüldü. Sayıların saniye olduğu GA arayüzüyle karşılaştırıldı.
 - **Dosyadan açma:** Linux'ta Chrome ile `file://` üzerinden sürükle-bırak, yenileme ve temizleme denendi. Windows'ta ve Firefox'ta denenmedi.
 - **Restart ve Quit CSV'leri:** Yeni olaylar henüz yayında olmadığı için gerçek dosya görülmedi. `Event id 03` sütunu ve ortalama değer başlığı (`Design (mean…`) tahmindir, tanınmayan dosya panelde uyarı olarak çıkar. Örnek dosyayla sınandı.
+- **Firestore:** Okuma ve hesaplar örnek veriyle sınandı. Oyunun yazması henüz gerçek cihazda görülmedi.
+- **Firebase:** olaylar Waydroid'den Realtime'a ulaştı ve servis hesabıyla giriş çalıştı (Kasım 2026). Panelin Data API'den veri okuması henüz doğrulanmadı.
 - **GA Metrics API ve Meta:** gerçek anahtarla **denenmedi**. İstekler API şemasına karşı denetlendi, panel şema biçiminde yanıt veren sahte sunucuyla sınandı.
 - İlk gerçek Meta bağlantısında `actions` içindeki kurulum türü (`mobile_app_install` ve benzerleri) kontrol edilmeli.

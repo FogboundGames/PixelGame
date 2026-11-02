@@ -81,3 +81,11 @@ denemepixel_BackUpThisFolder_ButDontShipItWithYourGame/
 # Unity iOS build çıktıları (Xcode projesi)
 /landflowios*/
 *_BurstDebugInformation_DoNotShip/
+
+# Firebase yapılandırması (repo herkese açık)
+Assets/google-services.json
+Assets/google-services.json.meta
+Assets/GoogleService-Info.plist
+Assets/GoogleService-Info.plist.meta
+Assets/Plugins/Android/FirebaseApp.androidlib/
+Assets/Plugins/Android/FirebaseApp.androidlib.meta

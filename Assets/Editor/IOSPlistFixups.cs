@@ -12,6 +12,7 @@ namespace PixelGame.Editor
     /// - NSUserTrackingUsageDescription oyunun kendi metniyle yazılır: Meta SDK için ATT izni isteniyor (LandFlowMeta);
     ///   GameAnalytics'in varsayılan metninin yerine geçer. App Store Connect'te "tracking" beyanı buna uygun olmalı.
     /// - SKAdNetworkItems'a Meta'nın kimlikleri eklenir (ATT reddedilse de reklam atfı için).
+    /// - FIREBASE_ANALYTICS_COLLECTION_ENABLED = NO: Firebase oyuncu izin verene kadar veri toplamaz (LandFlowFirebase).
     /// - ITSAppUsesNonExemptEncryption = NO: yalnızca standart HTTPS kullanılıyor; her yüklemede
     ///   App Store Connect'te şifreleme sorusu çıkmasın.
     /// </summary>
@@ -35,6 +36,7 @@ namespace PixelGame.Editor
             root.SetString("NSUserTrackingUsageDescription", TrackingUsageDescription);
             AddSkAdNetworkIds(root);
 
+            root.SetBoolean("FIREBASE_ANALYTICS_COLLECTION_ENABLED", false);
             root.SetBoolean("ITSAppUsesNonExemptEncryption", false);
 
             plist.WriteToFile(plistPath);

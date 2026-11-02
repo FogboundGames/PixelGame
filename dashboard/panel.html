@@ -239,7 +239,7 @@ body.dropping .drop-overlay { display: flex; }
 
     <section>
       <h2>Level analizi <span class="tag" data-src="levels"></span></h2>
-      <p class="hint">Süreler oyunun Complete, Fail, Restart ve Quit olaylarında gönderdiği saniyedir. Restart ve Quit yalnızca bu olayları ekleyen sürümden itibaren dolar. Quit, level sürerken uygulamanın arka plana geçmesidir; oyuncu sonra dönüp devam etmiş olabilir. Eski sürümlerde yeni oyuncuların ilk leveli (genelde Level 1) uygulama açılışından sayıldığı için süresi şişiktir.</p>
+      <p class="hint">Firestore'dan gelen level sayıları tüm zamanların toplamıdır, tarih seçici onları etkilemez. Süreler oyunun Complete, Fail, Restart ve Quit olaylarında gönderdiği saniyedir. Restart ve Quit yalnızca bu olayları ekleyen sürümden itibaren dolar. Quit, level sürerken uygulamanın arka plana geçmesidir; oyuncu sonra dönüp devam etmiş olabilir. Eski sürümlerde yeni oyuncuların ilk leveli (genelde Level 1) uygulama açılışından sayıldığı için süresi şişiktir; adında Türkçe harf olan levellerin (ör. Balık) Start, Complete ve Fail olayları da GameAnalytics'e hiç ulaşmadığı için bu levellerde sayılar eksik, huni ve Bırakan % yanıltıcıdır.</p>
       <div id="levelSummary" class="callouts"></div>
       <div class="grid2">
         <figure class="card"><figcaption>Kazanma oranı (bitirme ÷ başlama)</figcaption><div id="chWin" class="chart"></div></figure>
@@ -657,6 +657,113 @@ function loadCsv(stored, from, to) {
   };
 }
 
+// ---------- Firestore ----------
+// Oyun oyuncu başına özet yazar (LandFlowFirestore.cs); panel sunucusuz, doğrudan okur. Bir oyuncu bir okuma sayılır.
+const FIRESTORE_URL = 'https://firestore.googleapis.com/v1/projects/landflow-385da/databases/(default)/documents/players';
+const FIRESTORE_RETENTION_DAYS = [1, 3, 7, 14, 30];
+const FIRESTORE_PLAYTIME_DAYS = [0, 1, 3, 7, 14, 30];
+const LEVEL_ACTIONS = [['start', 'starts'], ['complete', 'completes', 'avgCompleteSec'], ['fail', 'fails', 'avgFailSec'], ['restart', 'restarts', 'restartAvgSec'], ['quit', 'quits', 'quitAvgSec']];
+
+function firestoreValue(v) {
+  if ('mapValue' in v) return firestoreFields(v.mapValue.fields ?? {});
+  if ('integerValue' in v) return Number(v.integerValue);
+  if ('doubleValue' in v) return v.doubleValue;
+  return v.stringValue ?? null;
+}
+
+function firestoreFields(fields) {
+  return Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, firestoreValue(v)]));
+}
+
+async function fetchPlayers() {
+  const players = [];
+  let pageToken = '';
+  do {
+    const res = await fetch(`${FIRESTORE_URL}?pageSize=300${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`);
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error?.message || `HTTP ${res.status}`);
+    for (const doc of body.documents ?? []) players.push(firestoreFields(doc.fields ?? {}));
+    pageToken = body.nextPageToken ?? '';
+  } while (pageToken);
+  return players;
+}
+
+/** Oyuncu özetlerinden panelin veri biçimini çıkarır. Level sayıları tüm zamanların toplamıdır. Bugün henüz bitmediği için N. gün hesaplarına girmez. */
+function summarizePlayers(players, from, to) {
+  const lastFullDay = addDays(to, -1);
+  const known = players.filter((p) => p.firstSeen);
+  const activeOn = (p, date) => Boolean(p.days?.[date]);
+  const cohort = (date) => known.filter((p) => p.firstSeen === date);
+
+  const daily = enumerateDays(from, to).map((date) => {
+    const active = known.filter((p) => activeOn(p, date));
+    const sessions = active.reduce((a, p) => a + (p.days[date].sessions ?? 0), 0);
+    const seconds = active.reduce((a, p) => a + (p.days[date].seconds ?? 0), 0);
+    return {
+      date,
+      dau: active.length,
+      newUsers: cohort(date).length,
+      sessions,
+      avgSessionSec: sessions > 0 ? seconds / sessions : null,
+      playtimeSec: active.length > 0 ? seconds / active.length : null,
+    };
+  }).filter((d) => d.dau > 0 || d.newUsers > 0);
+
+  const inPeriod = known.filter((p) => p.firstSeen >= from && p.firstSeen <= to);
+  const retention = [];
+  for (const day of FIRESTORE_RETENTION_DAYS) {
+    const eligible = inPeriod.filter((p) => addDays(p.firstSeen, day) <= lastFullDay);
+    if (eligible.length) retention.push({ day, pct: (eligible.filter((p) => activeOn(p, addDays(p.firstSeen, day))).length / eligible.length) * 100 });
+  }
+  const trendPct = (date, day) => {
+    if (addDays(date, day) > lastFullDay || !cohort(date).length) return null;
+    return (cohort(date).filter((p) => activeOn(p, addDays(date, day))).length / cohort(date).length) * 100;
+  };
+
+  const cumulativePlaytime = [];
+  for (const day of FIRESTORE_PLAYTIME_DAYS) {
+    const eligible = inPeriod.filter((p) => addDays(p.firstSeen, day) <= lastFullDay);
+    if (!eligible.length) continue;
+    const total = eligible.reduce((sum, p) => sum + Object.entries(p.days ?? {})
+      .filter(([date]) => date <= addDays(p.firstSeen, day))
+      .reduce((a, [, d]) => a + (d.seconds ?? 0), 0), 0);
+    cumulativePlaytime.push({ day, sec: total / eligible.length });
+  }
+
+  const levels = new Map();
+  for (const p of known) {
+    for (const [id, c] of Object.entries(p.levels ?? {})) {
+      if (!levels.has(id)) levels.set(id, { id, name: '', starts: 0, completes: 0, fails: 0, avgCompleteSec: null, avgFailSec: null, players: 0, restarts: 0, restartAvgSec: null, quits: 0, quitAvgSec: null, seconds: {} });
+      const level = levels.get(id);
+      if (c.start > 0) level.players++;
+      for (const [action, countField] of LEVEL_ACTIONS) {
+        level[countField] += c[action] ?? 0;
+        level.seconds[action] = (level.seconds[action] ?? 0) + (c[`${action}Sec`] ?? 0);
+      }
+    }
+  }
+  for (const level of levels.values()) {
+    for (const [action, countField, avgField] of LEVEL_ACTIONS) {
+      if (avgField && level[countField] > 0) level[avgField] = level.seconds[action] / level[countField];
+    }
+    delete level.seconds;
+  }
+
+  const platforms = new Map();
+  for (const p of known) platforms.set(p.platform, (platforms.get(p.platform) ?? 0) + 1);
+
+  return {
+    count: known.length,
+    daily,
+    mau: known.filter((p) => Object.keys(p.days ?? {}).some((date) => date >= addDays(to, -29) && date <= to)).length,
+    retention,
+    retentionTrend: enumerateDays(from, to).map((date) => ({ date, d1: trendPct(date, 1), d7: trendPct(date, 7) })),
+    cumulativePlaytime,
+    levels: sortLevels([...levels.values()]),
+    platforms: [...platforms].map(([name, users]) => ({ name, users })),
+  };
+}
+
 // ---------- örnek veri ----------
 // Anahtarlar girilmeden önce paneli denemek için örnek veri. Arayüzde "ÖRNEK VERİ" etiketiyle gösterilir.
 const NAMES = ['Kedi', 'Balon', 'Ok', 'Pizza', 'Gemi', 'Karpuz', 'Hayalet', 'Burger', 'Balina', 'Ada', 'Dolunay', 'Kilic',
@@ -772,20 +879,23 @@ const EMPTY_META = { account: null, currency: null, daily: [], totals: null, cam
 const EMPTY_GA = { daily: [], mau: null, retention: [], retentionTrend: [], countries: [], platforms: [], categories: [], cumulativePlaytime: [], errors: [] };
 
 /** API verisini (sunucuyla açıldıysa) ve CSV'leri tek veri kümesinde birleştirir. Sayfa ya tamamen örnek ya tamamen gerçek veri gösterir. */
-function buildDashboard(from, to, api) {
+function buildDashboard(from, to, api, players, playersError) {
   const csv = loadCsv(storedFiles, from, to);
   const metaOn = api && api.metaState.status !== 'off';
-  const gaOn = api && api.gaState.status !== 'off';
-  const demo = !metaOn && !gaOn && !csv.any;
+  const gaOn = api && (api.gaState.status !== 'off' || api.firebaseState.status !== 'off');
+  const live = players?.length ? summarizePlayers(players, from, to) : null;
+  const demo = !metaOn && !gaOn && !csv.any && !live;
   const meta = demo ? demoMeta(from, to) : (api?.meta ?? EMPTY_META);
-  const ga = demo ? demoGA(from, to, meta.daily) : (api?.ga ?? EMPTY_GA);
+  const ga = demo ? demoGA(from, to, meta.daily) : (api?.ga ?? api?.firebase ?? EMPTY_GA);
   const noServer = 'Bu sayfa dosyadan açıldı; anahtarla bağlanmak için sunucu gerekir (README)';
   const metaState = demo ? { status: 'demo' } : (api?.metaState ?? { status: 'off', message: noServer });
   const gaState = demo ? { status: 'demo' } : (api?.gaState ?? { status: 'off', message: noServer });
+  const firebaseState = demo || !api ? { status: 'off' } : api.firebaseState;
   const apiKind = demo ? 'demo' : 'api';
 
-  // CSV varsa o veri için önceliklidir. Her veri kümesi nereden geldiğini kendi söyler.
+  // Firestore verisi varsa önce o, sonra CSV, en son sunucu API'si. Her veri kümesi nereden geldiğini kendi söyler.
   const pick = (name, apiRows) => {
+    if (live?.[name]?.length) return { rows: live[name], source: { kind: 'api' } };
     if (csv[name]?.length) return { rows: csv[name], source: { kind: 'csv', asOf: csv.asOf[name] } };
     if (apiRows?.length) return { rows: apiRows, source: { kind: apiKind } };
     return { rows: [], source: { kind: 'none' } };
@@ -813,7 +923,9 @@ function buildDashboard(from, to, api) {
   const design = pick('design', ga.design);
   const cumulativePlaytime = pick('cumulativePlaytime', ga.cumulativePlaytime);
   const trendHasData = (rows) => rows?.some((d) => d.d1 !== null || d.d7 !== null);
-  const retentionTrend = trendHasData(csv.retentionTrend)
+  const retentionTrend = trendHasData(live?.retentionTrend)
+    ? { rows: live.retentionTrend, source: { kind: 'api' } }
+    : trendHasData(csv.retentionTrend)
     ? { rows: csv.retentionTrend, source: { kind: 'csv', asOf: csv.asOf.retention } }
     : { rows: ga.retentionTrend, source: { kind: trendHasData(ga.retentionTrend) ? apiKind : 'none' } };
 
@@ -826,12 +938,14 @@ function buildDashboard(from, to, api) {
     sources: {
       meta: metaState,
       ga: gaState,
+      firebase: firebaseState,
+      firestore: playersError ? { status: 'error', message: playersError } : { status: live ? 'live' : 'off', message: live ? `${live.count} oyuncu` : '' },
       csvErrors: csv.errors,
       daily: dailyPick.source,
       retention: retention.source,
       retentionTrend: retentionTrend.source,
       countries: countries.source,
-      platforms: { kind: ga.platforms.length ? apiKind : 'none' },
+      platforms: { kind: live?.platforms.length ? 'api' : ga.platforms.length ? apiKind : 'none' },
       categories: { kind: ga.categories.length ? apiKind : 'none' },
       cumulativePlaytime: cumulativePlaytime.source,
       levels: levels.source,
@@ -839,7 +953,7 @@ function buildDashboard(from, to, api) {
       adSpend: { kind: meta.totals ? apiKind : 'none' },
     },
     daily,
-    mau: csvDaily ? csvMau : ga.mau,
+    mau: live?.daily.length ? live.mau : csvDaily ? csvMau : ga.mau,
     metaTotals: meta.totals,
     campaigns: meta.campaigns,
     metaCountries: meta.countries,
@@ -847,7 +961,7 @@ function buildDashboard(from, to, api) {
     retention: retention.rows,
     retentionTrend: retentionTrend.rows,
     countries: countries.rows,
-    platforms: ga.platforms,
+    platforms: live?.platforms.length ? live.platforms : ga.platforms,
     categories: ga.categories,
     cumulativePlaytime: cumulativePlaytime.rows,
     levels: levels.rows,
@@ -915,22 +1029,29 @@ async function addFiles(fileList) {
 }
 
 let fileNote = '';
+let players = null;
 
 async function load(refresh = false) {
   const btn = document.getElementById('refresh');
   const box = document.getElementById('errorBox');
-  const to = addDays(new Date().toISOString().slice(0, 10), -1);
-  const from = addDays(to, -(days - 1));
+  const today = new Date().toISOString().slice(0, 10);
   let api = null;
+  let playersError = '';
   try {
+    btn.disabled = true; btn.textContent = 'Yükleniyor…';
+    if (refresh || !players) {
+      try { players = await fetchPlayers(); } catch (e) { playersError = e.message; }
+    }
+    // Firestore anında yazıldığı için bugün de gösterilir; diğer kaynaklar raporlarını gecikmeli verir
+    const to = players?.length ? today : addDays(today, -1);
+    const from = addDays(to, -(days - 1));
     if (hasServer) {
-      btn.disabled = true; btn.textContent = 'Yükleniyor…';
       const res = await fetch(`/api/sources?from=${from}&to=${to}${refresh ? '&refresh=1' : ''}`);
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
       api = body;
     }
-    data = buildDashboard(from, to, api);
+    data = buildDashboard(from, to, api, players, playersError);
     box.hidden = true;
     render();
   } catch (e) {
@@ -957,7 +1078,6 @@ document.getElementById('sources').addEventListener('click', (e) => {
   fileNote = '';
   load();
 });
-document.getElementById('refresh').hidden = !hasServer;
 
 document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
   document.querySelectorAll('.seg button').forEach((x) => x.classList.toggle('on', x === b));
@@ -1058,9 +1178,9 @@ function table(containerId, columns, rows, { sortKey, desc = true, rowTitle, emp
 
 const share = (value, max, text) => `<span class="share"><i style="width:${ok(value) && max > 0 ? (value / max) * 100 : 0}%"></i></span>${text}`;
 
-const CSV_HINT = "GameAnalytics Explore'dan indirdiğiniz CSV'leri bu sayfaya sürükleyin (README).";
+const CSV_HINT = "Veri yok. Yeni sürümü oynayanların verisi Firestore'dan kendiliğinden gelir; GameAnalytics Explore CSV'lerini de bu sayfaya sürükleyebilirsiniz (README).";
 const NO_GA = CSV_HINT;
-const API_ONLY = 'Yalnızca GameAnalytics PipelineIQ API ile gelir; AnalyticsIQ Pro planında API yok.';
+const API_ONLY = 'Firestore\'dan ya da sunucuyla açınca Firebase\'ten gelir (README).';
 const NO_META = 'Meta reklam verisi anahtar ve sunucu gerektirir (README).';
 
 function renderTables(m) {
@@ -1267,8 +1387,10 @@ function renderSources() {
   const state = { live: 'Bağlı', partial: 'Eksik veri', error: 'Hata', off: 'Bağlı değil', demo: 'ÖRNEK VERİ' };
   const chip = (name, st) => `<span class="src ${st.status}">${name}: <b>${state[st.status]}</b>${st.message ? ` · ${esc(st.message)}` : ''}</span>`;
   const usingCsv = storedFiles.length > 0;
-  document.getElementById('sources').innerHTML = chip(`Meta Ads${data.account ? ` (${esc(data.account)})` : ''}`, s.meta)
-    + (usingCsv && s.ga.status === 'off' ? '' : chip('GameAnalytics', s.ga))
+  document.getElementById('sources').innerHTML = (s.firestore.status !== 'off' ? chip('Firestore', s.firestore) : '')
+    + chip(`Meta Ads${data.account ? ` (${esc(data.account)})` : ''}`, s.meta)
+    + (s.firebase.status !== 'off' ? chip('Firebase', s.firebase) : '')
+    + ((usingCsv || s.firebase.status !== 'off') && s.ga.status === 'off' ? '' : chip('GameAnalytics', s.ga))
     + (usingCsv ? `<span class="src live">GameAnalytics CSV: <b>${storedFiles.length} dosya</b> <button id="clearCsv" class="link">Temizle</button></span>` : '')
     + (fileNote ? `<span class="src partial">${esc(fileNote)}</span>` : '')
     + s.csvErrors.map((e) => `<span class="src error"><b>CSV hatası</b> · ${esc(e)}</span>`).join('');
@@ -1326,7 +1448,7 @@ function render() {
     { key: 'fix', label: 'Ne gerekiyor', left: true, fmt: (g) => esc(g[2]) },
   ], GAPS);
   renderCharts();
-  document.getElementById('footer').textContent = `Son güncelleme: ${new Date(data.generatedAt).toLocaleString('tr-TR')} · Günler UTC · GA yalnızca veri izni veren oyuncuları sayar`;
+  document.getElementById('footer').textContent = `Son güncelleme: ${new Date(data.generatedAt).toLocaleString('tr-TR')} · Günler UTC · Yalnızca veri izni veren oyuncular sayılır`;
 }
 
 readStore();
