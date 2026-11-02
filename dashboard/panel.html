@@ -190,6 +190,7 @@ tr.selected td { background: var(--wash); font-weight: 600; }
           <button data-days="90">90 gün</button>
           <button data-days="0">Tümü</button>
         </div>
+        <button id="testToggle" class="btn"></button>
         <button id="addCsv" class="btn primary">CSV ekle</button>
         <input id="csvInput" type="file" accept=".csv" multiple hidden>
         <button id="refresh" class="btn">Yenile</button>
@@ -243,10 +244,14 @@ tr.selected td { background: var(--wash); font-weight: 600; }
 
     <section>
       <h2>Level analizi <span class="tag" data-src="levels"></span></h2>
-      <p class="hint">Level sayıları Firestore toplamı ile eklenen CSV'lerin toplamıdır, tarih seçici onları etkilemez. Yeni sürüm yayınlandıktan sonraki bir dönemi kapsayan CSV eklerseniz aynı oyunlar iki kez sayılır. Süreler oyunun Complete, Fail, Restart ve Quit olaylarında gönderdiği saniyedir. Restart ve Quit yalnızca bu olayları ekleyen sürümden itibaren dolar. Quit, level sürerken uygulamanın arka plana geçmesidir; oyuncu sonra dönüp devam etmiş olabilir. Eski sürümlerde yeni oyuncuların ilk leveli (genelde Level 1) uygulama açılışından sayıldığı için süresi şişiktir; adında Türkçe harf olan levellerin (ör. Balık) Start, Complete ve Fail olayları da GameAnalytics'e hiç ulaşmadığı için bu levellerde sayılar eksik, huni ve Bırakan % yanıltıcıdır.</p>
+      <div id="levelView" class="seg" role="group" aria-label="Level verisi">
+        <button data-view="live" class="on">Güncel sıra</button>
+        <button data-view="csv">Eski CSV (eski sıra)</button>
+      </div>
+      <p class="hint">Güncel sıra Firestore'dan gelir, tüm zamanların toplamıdır, tarih seçici etkilemez. Eski CSV Ekim'deki level sırasındandır: numaraları bugünkü levellerle eşleşmez, bu yüzden güncel veriyle toplanmaz. Süreler oyunun Complete, Fail, Restart ve Quit olaylarında gönderdiği saniyedir. Quit, level sürerken uygulamanın arka plana geçmesidir; oyuncu sonra dönüp devam etmiş olabilir.</p>
       <div id="levelSummary" class="callouts"></div>
       <div class="grid2">
-        <figure class="card"><figcaption>Kazanma oranı (bitirme ÷ başlama)</figcaption><div id="chWin" class="chart"></div></figure>
+        <figure class="card"><figcaption>Kazanma oranı (bitirme ÷ bitirme + kayıp)</figcaption><div id="chWin" class="chart"></div></figure>
         <figure class="card"><figcaption>Ortalama bitirme süresi (sn)</figcaption><div id="chLevelTime" class="chart"></div></figure>
         <figure class="card"><figcaption>Oyuncu hunisi (levele ulaşan %)</figcaption><div id="chFunnel" class="chart"></div></figure>
         <figure class="card"><figcaption>Levelde geçen toplam süre (dk)</figcaption><div id="chLevelTotal" class="chart"></div></figure>
@@ -680,6 +685,9 @@ function loadCsv(stored, from, to) {
 const FIRESTORE_URL = 'https://firestore.googleapis.com/v1/projects/landflow-385da/databases/(default)/documents/players';
 const FIRESTORE_RETENTION_DAYS = [1, 3, 7, 14, 30];
 const FIRESTORE_PLAYTIME_DAYS = [0, 1, 3, 7, 14, 30];
+// Ekip cihazları: Cihazlar tablosundaki Kimlik değerini buraya ekleyin. Oyun silinip kurulunca kimlik değişir.
+const TEST_DEVICE_IDS = ['b9d8182c', 'test-sil'];
+const isTestDevice = (p) => TEST_DEVICE_IDS.some((id) => String(p.id ?? '').startsWith(id));
 const FIRESTORE_MIN_COHORT = 10; // bundan az yeni oyuncuyla retention CSV'nin yerine geçmez
 const LEVEL_ACTIONS = [['start', 'starts'], ['complete', 'completes', 'avgCompleteSec'], ['fail', 'fails', 'avgFailSec'], ['restart', 'restarts', 'restartAvgSec'], ['quit', 'quits', 'quitAvgSec']];
 
@@ -815,24 +823,6 @@ function summarizePlayers(players, from, to) {
   };
 }
 
-/** Eski CSV ile Firestore'u level başına birleştirir: sayılar toplanır, süreler deneme sayısıyla ağırlıklanır. */
-function mergeLevels(csvLevels, liveLevels) {
-  const merged = new Map(csvLevels.map((l) => [l.id, { ...l }]));
-  for (const live of liveLevels) {
-    const level = merged.get(live.id);
-    if (!level) { merged.set(live.id, { ...live }); continue; }
-    for (const [, countField, avgField] of LEVEL_ACTIONS) {
-      const a = level[countField] ?? 0, b = live[countField] ?? 0;
-      if (avgField && a + b > 0) level[avgField] = ((level[avgField] ?? 0) * a + (live[avgField] ?? 0) * b) / (a + b);
-      level[countField] = a + b;
-    }
-    // CSV'de tekil oyuncu yoksa toplam yarım kalır; huni önceki levelden tahmin etsin
-    level.players = ok(level.players) ? level.players + (live.players ?? 0) : null;
-    if (live.name) level.name = live.name;
-  }
-  return sortLevels([...merged.values()]);
-}
-
 /** Bir oyuncunun saatli akışı; günlük kayıtları birleştirir. Oyuncu başına gün sayısı kadar okuma yapar. */
 async function fetchActivity(playerId) {
   const days = [];
@@ -863,6 +853,7 @@ function deviceRows(players) {
     const levels = Object.entries(p.levels ?? {});
     return {
       id: p.id.slice(0, 8),
+      test: isTestDevice(p),
       player: p,
       device: p.device ?? '',
       country: p.country ?? '',
@@ -1094,7 +1085,8 @@ function buildDashboard(from, to, api, players, playersError, directMeta) {
   const csv = loadCsv(allCsvFiles(), from, to);
   const metaOn = (api && api.metaState.status !== 'off') || directMeta?.data;
   const gaOn = api && (api.gaState.status !== 'off' || api.firebaseState.status !== 'off');
-  const live = players?.length ? summarizePlayers(players, from, to) : null;
+  const counted = (players ?? []).filter((p) => includeTestDevices || !isTestDevice(p));
+  const live = counted.length ? summarizePlayers(counted, from, to) : null;
   const demo = !metaOn && !gaOn && !csv.any && !live;
   const meta = demo ? demoMeta(from, to) : (api?.meta ?? directMeta?.data ?? EMPTY_META);
   const ga = demo ? demoGA(from, to, meta.daily) : (api?.ga ?? api?.firebase ?? EMPTY_GA);
@@ -1135,9 +1127,12 @@ function buildDashboard(from, to, api, players, playersError, directMeta) {
   const countries = live?.countries.length && csv.countries?.length
     ? { rows: mergeRows(csv.countries, live.countries, 'code', ['users', 'newUsers']).sort((a, b) => (b.users ?? 0) - (a.users ?? 0)), source: { kind: 'mix' } }
     : pick('countries', ga.countries);
-  const levels = live?.levels.length && csv.levels?.length
-    ? { rows: mergeLevels(csv.levels, live.levels), source: { kind: 'mix' } }
-    : pick('levels', ga.levels);
+  // Level numarası o anki sıradan gelir; eski CSV ile güncel sıra aynı leveli göstermediği için toplanmaz
+  const levels = levelView === 'csv'
+    ? { rows: csv.levels ?? [], source: csv.levels?.length ? { kind: 'csv', asOf: csv.asOf.levels } : { kind: 'none' } }
+    : live?.levels.length
+      ? { rows: live.levels, source: { kind: 'api' } }
+      : { rows: ga.levels ?? [], source: { kind: ga.levels?.length ? apiKind : 'none' } };
   const design = live?.design.length && csv.design?.length
     ? { rows: mergeRows(csv.design, live.design, 'id', ['count', 'users']).sort((a, b) => (b.count ?? 0) - (a.count ?? 0)), source: { kind: 'mix' } }
     : pick('design', ga.design);
@@ -1159,7 +1154,7 @@ function buildDashboard(from, to, api, players, playersError, directMeta) {
       meta: metaState,
       ga: gaState,
       firebase: firebaseState,
-      firestore: playersError ? { status: 'error', message: playersError } : { status: live ? 'live' : 'off', message: live ? `${live.count} oyuncu` : '' },
+      firestore: playersError ? { status: 'error', message: playersError } : { status: players?.length ? 'live' : 'off', message: players?.length ? `${counted.length} oyuncu${counted.length < players.length ? ` (${players.length - counted.length} test hariç)` : ''}` : '' },
       csvErrors: csv.errors,
       daily: dailyPick.source,
       retention: retention.source,
@@ -1231,6 +1226,13 @@ const hasServer = location.protocol.startsWith('http');
 const STORE_KEY = 'landflow-panel-csv';
 let storedFiles = [];
 let metaConfig = null;
+let levelView = 'live';
+const TEST_TOGGLE_KEY = 'landflow-include-tests';
+let includeTestDevices = false;
+
+function renderTestToggle() {
+  document.getElementById('testToggle').textContent = includeTestDevices ? 'Test cihazları: dahil' : 'Test cihazları: hariç';
+}
 const directMetaCache = new Map();
 
 /** Repodan gelen CSV paketi + bu tarayıcıda eklenenler; aynı adlı dosyada eklenen kazanır. */
@@ -1344,6 +1346,12 @@ window.addEventListener('drop', (e) => {
   document.body.classList.remove('dropping');
   if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files);
 });
+document.getElementById('testToggle').addEventListener('click', () => {
+  includeTestDevices = !includeTestDevices;
+  try { localStorage.setItem(TEST_TOGGLE_KEY, includeTestDevices ? '1' : '0'); } catch { /* yalnızca bu oturumda geçerli olur */ }
+  renderTestToggle();
+  load();
+});
 document.getElementById('sources').addEventListener('click', (e) => {
   if (e.target.id === 'metaConnect') { connectMeta(); return; }
   if (e.target.id === 'metaDisconnect') { disconnectMeta(); return; }
@@ -1354,8 +1362,13 @@ document.getElementById('sources').addEventListener('click', (e) => {
   load();
 });
 
-document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
-  document.querySelectorAll('.seg button').forEach((x) => x.classList.toggle('on', x === b));
+document.querySelectorAll('#levelView button').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('#levelView button').forEach((x) => x.classList.toggle('on', x === b));
+  levelView = b.dataset.view;
+  load();
+}));
+document.querySelectorAll('.controls .seg button').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('.controls .seg button').forEach((x) => x.classList.toggle('on', x === b));
   days = Number(b.dataset.days);
   load();
 }));
@@ -1394,7 +1407,9 @@ function derive() {
   };
 }
 
-const MIN_LEVEL_SAMPLE = 5; // bundan az başlamada Tıkanma, Kopma ve özet kutuları yanıltır
+const MIN_LEVEL_SAMPLE = 5; // sonucu belli bundan az denemede Tıkanma, Kopma ve özet kutuları yanıltır
+// Kazanma ve deneme yalnızca sonucu belli denemeleri sayar: oyunu açıp kapatmak ve Restart da Start üretir
+const finishedAttempts = (l) => (l.completes ?? 0) + (l.fails ?? 0);
 
 function deriveLevels(levels) {
   const out = [];
@@ -1413,14 +1428,14 @@ function deriveLevels(levels) {
       reached,
       estimated: !ok(l.players),
       funnel: times100(div(reached, base)),
-      winRate: times100(div(l.completes, l.starts)),
-      attempts: div(l.starts, l.completes),
+      winRate: times100(div(l.completes, finishedAttempts(l))),
+      attempts: div(finishedAttempts(l), l.completes),
       drop: ok(reached) && reached > 0 ? Math.max(0, ((reached - l.completes) / reached) * 100) : null,
       totalSec: totalSec(l) > 0 ? totalSec(l) : null,
       timeShare: times100(div(totalSec(l), allSec)),
     };
     lv.flags = [];
-    if (!(l.starts >= MIN_LEVEL_SAMPLE)) { out.push(lv); return; }
+    if (finishedAttempts(l) < MIN_LEVEL_SAMPLE) { out.push(lv); return; }
     if (ok(lv.winRate) && lv.winRate < 40) lv.flags.push(['bad', 'Tıkanma', `Başlayanların yalnızca ${pct(lv.winRate, 0)}'i bitiriyor`]);
     else if (ok(lv.winRate) && lv.winRate < 55) lv.flags.push(['warn', 'Zor', `Kazanma oranı ${pct(lv.winRate, 0)}`]);
     if (ok(lv.drop) && lv.drop >= 15) lv.flags.push(['bad', 'Kopma', `Ulaşanların ${pct(lv.drop, 0)}'i bu leveli bitirmeden bırakıyor`]);
@@ -1460,6 +1475,7 @@ function table(containerId, columns, rows, { sortKey, desc = true, rowTitle, emp
 
 const share = (value, max, text) => `<span class="share"><i style="width:${ok(value) && max > 0 ? (value / max) * 100 : 0}%"></i></span>${text}`;
 
+const LEVEL_HINT = "Güncel sırada henüz level verisi yok; yeni sürümü oynayanlardan gelir. Eski dönem için Eski CSV'yi seçin.";
 const CSV_HINT = "Veri yok. Yeni sürümü oynayanların verisi Firestore'dan kendiliğinden gelir; GameAnalytics Explore CSV'lerini de bu sayfaya sürükleyebilirsiniz (README).";
 const NO_GA = CSV_HINT;
 const API_ONLY = 'Firestore\'dan ya da sunucuyla açınca Firebase\'ten gelir (README).';
@@ -1471,11 +1487,11 @@ function renderTables(m) {
     { key: 'id', label: 'Level', left: true, sort: levelNum, fmt: (l) => `${esc(l.id)}${l.name ? ` <span class="muted">${esc(l.name)}</span>` : ''}` },
     { key: 'reached', label: 'Ulaşan', fmt: (l) => `${int(l.reached)}${ok(l.reached) && l.estimated ? ' <span class="muted">~</span>' : ''}`, help: 'Tekil oyuncu; ~ işareti önceki leveli bitirenlerden tahmin edildi demek' },
     { key: 'funnel', label: 'Ulaşan %', fmt: (l) => pct(l.funnel, 0) },
-    { key: 'starts', label: 'Başlama', fmt: (l) => int(l.starts), help: 'Tekrar denemeler dahil' },
+    { key: 'starts', label: 'Başlama', fmt: (l) => int(l.starts), help: 'Oyunu açıp kapatma ve Restart da sayılır; kazanma oranına girmez' },
     { key: 'completes', label: 'Bitirme', fmt: (l) => int(l.completes) },
     { key: 'fails', label: 'Kayıp', fmt: (l) => int(l.fails), help: 'Slotlar dolup kaybedilen oyun' },
-    { key: 'winRate', label: 'Kazanma %', fmt: (l) => pct(l.winRate, 0), cls: (l) => (l.winRate < 40 ? 'v-bad' : l.winRate < 55 ? 'v-warn' : '') },
-    { key: 'attempts', label: 'Deneme / bitirme', fmt: (l) => (ok(l.attempts) ? nf1.format(l.attempts) : '—'), cls: (l) => (l.attempts >= 2.5 ? 'v-bad' : l.attempts >= 1.8 ? 'v-warn' : ''), help: 'Bir kez bitirmek için ortalama kaç kez başlanıyor' },
+    { key: 'winRate', label: 'Kazanma %', help: 'Bitirme ÷ (bitirme + kayıp). Restart ve yarıda bırakma dahil değildir', fmt: (l) => pct(l.winRate, 0), cls: (l) => (l.winRate < 40 ? 'v-bad' : l.winRate < 55 ? 'v-warn' : '') },
+    { key: 'attempts', label: 'Deneme / bitirme', fmt: (l) => (ok(l.attempts) ? nf1.format(l.attempts) : '—'), cls: (l) => (l.attempts >= 2.5 ? 'v-bad' : l.attempts >= 1.8 ? 'v-warn' : ''), help: 'Bir kez bitirmek için ortalama kaç deneme gerekiyor; yalnızca bitirme ve kayıp sayılır' },
     { key: 'avgCompleteSec', label: 'Ort. bitirme', fmt: (l) => secs(l.avgCompleteSec) },
     { key: 'avgFailSec', label: 'Ort. kayıp', fmt: (l) => secs(l.avgFailSec) },
     { key: 'restarts', label: 'Restart', fmt: (l) => int(l.restarts), help: 'Bitirmeden yeniden başlatma' },
@@ -1484,8 +1500,8 @@ function renderTables(m) {
     { key: 'quitAvgSec', label: 'Ort. çıkış', fmt: (l) => secs(l.quitAvgSec), help: 'Levelin kaçıncı saniyesinde çıkıldı' },
     { key: 'totalSec', label: 'Toplam süre', fmt: (l) => (ok(l.totalSec) ? `${int(l.totalSec / 60)} dk` : '—'), help: 'Bitirme, kayıp ve restart denemelerinin toplamı' },
     { key: 'drop', label: 'Bırakan %', fmt: (l) => pct(l.drop, 0), cls: (l) => (l.drop >= 15 ? 'v-bad' : l.drop >= 8 ? 'v-warn' : ''), help: 'Levele ulaşıp bitirmeyenler' },
-    { key: 'flags', label: 'Durum', left: true, sort: (l) => l.flags.length, fmt: (l) => (l.noData ? '<span class="flag">Veri yok</span>' : l.starts < MIN_LEVEL_SAMPLE ? '<span class="flag">Az veri</span>' : l.flags.map(([c, t]) => `<span class="flag ${c}">${c === 'bad' ? '✕' : '!'} ${t}</span>`).join('') || '<span class="flag good">✓ Normal</span>'), help: 'Veri yok: eski sürümlerde adında Türkçe harf olan levellerin olayları ulaşmadı ya da level henüz oynanmadı' },
-  ], m.levels, { rowTitle: (l) => l.flags.map((f) => f[2]).join(' · '), empty: CSV_HINT });
+    { key: 'flags', label: 'Durum', left: true, sort: (l) => l.flags.length, fmt: (l) => (l.noData ? '<span class="flag">Veri yok</span>' : finishedAttempts(l) < MIN_LEVEL_SAMPLE ? '<span class="flag">Az veri</span>' : l.flags.map(([c, t]) => `<span class="flag ${c}">${c === 'bad' ? '✕' : '!'} ${t}</span>`).join('') || '<span class="flag good">✓ Normal</span>'), help: 'Veri yok: eski sürümlerde adında Türkçe harf olan levellerin olayları ulaşmadı ya da level henüz oynanmadı' },
+  ], m.levels, { rowTitle: (l) => l.flags.map((f) => f[2]).join(' · '), empty: LEVEL_HINT });
 
   const maxUsers = Math.max(0, ...data.countries.map((c) => c.users ?? 0));
   table('countryTable', [
@@ -1498,7 +1514,7 @@ function renderTables(m) {
   ], data.countries.slice(0, 15), { sortKey: 'users', empty: NO_GA });
 
   table('deviceTable', [
-    { key: 'id', label: 'Kimlik', left: true },
+    { key: 'id', label: 'Kimlik', left: true, fmt: (p) => `${esc(p.id)}${p.test ? ' <span class="flag">Test</span>' : ''}` },
     { key: 'device', label: 'Model', left: true, fmt: (p) => esc(p.device || '—') },
     { key: 'country', label: 'Ülke', left: true, sort: (p) => country(p.country), fmt: (p) => (p.country ? esc(country(p.country)) : '—') },
     { key: 'platform', label: 'Platform', left: true },
@@ -1651,10 +1667,10 @@ function renderLevelSummary(m) {
   const host = document.getElementById('levelSummary');
   if (!L.length) { host.innerHTML = ''; return; }
   const name = (l) => `${esc(l.id)}${l.name ? ` (${esc(l.name)})` : ''}`;
-  const hardest = [...L].filter((l) => ok(l.winRate) && l.starts >= MIN_LEVEL_SAMPLE).sort((a, b) => a.winRate - b.winRate)[0];
-  const leaker = [...L].filter((l) => ok(l.drop) && l.starts >= MIN_LEVEL_SAMPLE).sort((a, b) => b.drop - a.drop)[0];
-  const half = L.find((l) => ok(l.funnel) && l.funnel < 50 && l.starts >= MIN_LEVEL_SAMPLE);
-  const longest = [...L].filter((l) => ok(l.avgCompleteSec) && l.starts >= MIN_LEVEL_SAMPLE).sort((a, b) => b.avgCompleteSec - a.avgCompleteSec)[0];
+  const hardest = [...L].filter((l) => ok(l.winRate) && finishedAttempts(l) >= MIN_LEVEL_SAMPLE).sort((a, b) => a.winRate - b.winRate)[0];
+  const leaker = [...L].filter((l) => ok(l.drop) && finishedAttempts(l) >= MIN_LEVEL_SAMPLE).sort((a, b) => b.drop - a.drop)[0];
+  const half = L.find((l) => ok(l.funnel) && l.funnel < 50 && finishedAttempts(l) >= MIN_LEVEL_SAMPLE);
+  const longest = [...L].filter((l) => ok(l.avgCompleteSec) && finishedAttempts(l) >= MIN_LEVEL_SAMPLE).sort((a, b) => b.avgCompleteSec - a.avgCompleteSec)[0];
   const mostQuit = [...L].filter((l) => l.quits > 0).sort((a, b) => b.quits - a.quits)[0];
   host.innerHTML = [
     hardest && ['En zor level', `${name(hardest)}: kazanma ${pct(hardest.winRate, 0)}, ortalama ${nf1.format(hardest.attempts || 0)} deneme`],
@@ -1728,7 +1744,7 @@ function renderCharts() {
 
   const L = m.levels;
   const levelCharts = ['chWin', 'chFunnel', 'chLevelTime', 'chLevelTotal'];
-  if (!L.length) { levelCharts.forEach((id) => emptyHint(id, CSV_HINT)); return; }
+  if (!L.length) { levelCharts.forEach((id) => emptyHint(id, LEVEL_HINT)); return; }
   const shortId = (id) => String(id).replace(/^Level_0*/, '');
   const levelX = (id, long) => {
     if (!long) return shortId(id);
@@ -1844,6 +1860,8 @@ function render() {
 
 readStore();
 readMetaConfig();
+try { includeTestDevices = localStorage.getItem(TEST_TOGGLE_KEY) === '1'; } catch { includeTestDevices = false; }
+renderTestToggle();
 load();
 
 })();

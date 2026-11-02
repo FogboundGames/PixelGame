@@ -71,7 +71,9 @@ Süre arka planda geçen zamanı saymaz. Eski sürümlerde yeni oyuncunun ilk le
 Oyun, Firestore SDK'sı olmadan REST ile oyuncu başına özet yazar ([LandFlowFirestore.cs](../Assets/Scripts/LandFlowFirestore.cs)): `players/{rastgele kimlik}` içinde `firstSeen`, `lastSeen`, `platform`, `version`, `device` (telefon modeli), `country` (cihazın bölge ayarı, konum değil), `events` (`Speed:2X` gibi olay sayıları), gün başına oturum ve süre, level başına ad, `start`, `complete`, `fail`, `restart`, `quit` sayıları ve saniye toplamları. Panel bunu doğrudan okur.
 
 - **Cihazlar:** Firestore'a yazan her cihaz ekip cihazları dahil ayrı satırda görünür, tarih seçiciden etkilenmez. Satıra tıklayınca o cihazın saatli aktivite akışı, günleri ve level başına toplamları açılır. **Tümü** ilk veri gününden bugüne kadar gösterir.
-- **Birleştirme:** Günlük veride Firestore'un olduğu günler onu, diğer günler CSV'yi gösterir. Level tablosunda CSV ve Firestore toplanır; bu yüzden yeni sürüm yayınlandıktan sonraki dönemi kapsayan CSV eklemeyin, aynı oyunlar iki kez sayılır. Verisi olmayan leveller tabloda `Veri yok` görünür.
+- **Test cihazları:** `panel.html` içindeki `TEST_DEVICE_IDS` listesindeki cihazlar sayılardan çıkarılır, Cihazlar tablosunda `Test` etiketiyle görünür. Üstteki düğme dahil ya da hariç seçer. Eski CSV'lerde cihaz bilgisi olmadığı için oradaki test denemeleri çıkarılamaz.
+- **Level sırası:** Level kimliği (`Level_001`) o anki sıradan gelir, sıra değişince başka bir leveli gösterir. Bu yüzden level tablosu varsayılan olarak yalnızca güncel sırayı (Firestore) gösterir; **Eski CSV** ayrı seçenektir ve toplanmaz. Sıra yeniden değişirse Firestore kayıtları da karışır.
+- **Birleştirme:** Günlük veride Firestore'un olduğu günler onu, diğer günler CSV'yi gösterir. Ülke ve olay tabloları CSV ile toplanır, sıradan etkilenmez.
 - **Retention:** Dönemde en az 10 yeni oyuncu olana kadar CSV'den gelir, sonra Firestore'dan. Firestore verisi varsa panel bugünü de gösterir; retention ve kurulumdan sonraki oynama yalnızca bitmiş günleri sayar.
 - **Birleşen:** Ülke ve olay tabloları CSV ile toplanır; ülkede oynama süresi ve D1 yalnızca kendi kaynağından gelir.
 - **Güvenlik:** Giriş (Auth) bilinçli olarak kullanılmıyor. Kurallar silmeyi ve başka alanlara yazmayı kapatır, ama **proje kimliğini bilen herkes bu kayıtları okuyabilir ve değiştirebilir**, panel sayıları sahte veriyle bozulabilir. Oyuncu verisinde ad, e-posta gibi kişisel alan tutulmaz.
@@ -159,7 +161,8 @@ Sık kullanacağınız sorguları Explore'da **Save** ile saklayabilirsiniz. Lev
 - **Oyuncu başına toplam:** 30 günün toplam oynaması ÷ aylık aktif oyuncu. GameAnalytics'in özet ekranındaki `Playtime` buna daha yakın görünüyor, tarih aralığına göre fark edebilir.
 - **Ulaşan:** levele başlayan tekil oyuncu; yoksa önceki leveli bitirenler (`~` ile işaretli).
 - **Toplam süre:** `bitirme × ort. süre + kayıp × ort. süre + restart × ort. süre`. Quit dahil değildir, çünkü dönüp devam eden oyuncunun süresi zaten bitirme ya da kayıpta sayılır.
-- **Tıkanma ve Kopma:** kazanma oranı %40 altı ya da ulaşanların %15'ten fazlasının bitirmemesi. 5'ten az başlaması olan level işaretlenmez ve özet kutularına girmez. Eşikler panelde işaret olsun diye seçildi, sektör ölçütü değildir.
+- **Kazanma %:** `bitirme ÷ (bitirme + kayıp)`. Oyunu açıp kapatmak ve Restart da Start ürettiği için başlama sayısı kullanılmaz; Restart ile bırakılan denemeler orana girmez.
+- **Tıkanma ve Kopma:** kazanma oranı %40 altı ya da ulaşanların %15'ten fazlasının bitirmemesi. Bitirme ve kayıp toplamı 5'ten az olan level işaretlenmez ve özet kutularına girmez. Eşikler panelde işaret olsun diye seçildi, sektör ölçütü değildir.
 - **Reklam dışı oyuncu:** `GA yeni oyuncu − Meta kurulum`. İki kaynak farklı sayar, kaba tahmindir.
 
 ## Doğrulama durumu
