@@ -147,7 +147,8 @@ Sık kullanacağınız sorguları Explore'da **Save** ile saklayabilirsiniz. Lev
 - **Churn:** `100 − N. gün retention`. Kalıcı kaybı değil, o gün dönmeyenleri gösterir.
 - **Ülke D1:** yalnızca API ile, son en çok 14 kohortun düz ortalaması.
 - **MAU:** dönemin son gününden geriye 30 gün içindeki tekil oyuncu.
-- **Günlük oynama:** `session_length_per_user`, gün içinde oyuncu başına toplam süre.
+- **Günlük oynama:** Aktif oyuncunun bir günde oynadığı süre; günler oyuncu sayısıyla ağırlıklıdır.
+- **Oyuncu başına toplam:** 30 günün toplam oynaması ÷ aylık aktif oyuncu. GameAnalytics'in özet ekranındaki `Playtime` buna daha yakın görünüyor, tarih aralığına göre fark edebilir.
 - **Ulaşan:** levele başlayan tekil oyuncu; yoksa önceki leveli bitirenler (`~` ile işaretli).
 - **Toplam süre:** `bitirme × ort. süre + kayıp × ort. süre + restart × ort. süre`. Quit dahil değildir, çünkü dönüp devam eden oyuncunun süresi zaten bitirme ya da kayıpta sayılır.
 - **Tıkanma ve Kopma:** kazanma oranı %40 altı ya da ulaşanların %15'ten fazlasının bitirmemesi. 5'ten az başlaması olan level işaretlenmez ve özet kutularına girmez. Eşikler panelde işaret olsun diye seçildi, sektör ölçütü değildir.

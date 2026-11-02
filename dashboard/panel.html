@@ -1070,6 +1070,12 @@ const dayLabel = (iso, long) => {
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const sum = (arr, k) => arr.reduce((a, d) => a + (ok(d[k]) ? d[k] : 0), 0);
+/** Günleri ağırlıkla ortalar: 10 oyunculu gün, 1 oyunculu günden çok sayılır. */
+const weightedAvg = (arr, k, weightKey) => {
+  const rows = arr.filter((d) => ok(d[k]) && ok(d[weightKey]) && d[weightKey] > 0);
+  const weight = rows.reduce((a, d) => a + d[weightKey], 0);
+  return weight > 0 ? rows.reduce((a, d) => a + d[k] * d[weightKey], 0) / weight : null;
+};
 const avg = (arr, k) => { const v = arr.map((d) => d[k]).filter(ok); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
 const div = (a, b) => (ok(a) && ok(b) && b > 0 ? a / b : null);
 const times100 = (v) => (ok(v) ? v * 100 : null);
@@ -1194,8 +1200,9 @@ function derive() {
     mau: data.mau,
     stickiness: times100(div(dau, data.mau)),
     sessionsPerUser: div(sum(d, 'sessions'), sum(d, 'dau')),
-    avgSession: avg(d, 'avgSessionSec'),
-    playtime: avg(d, 'playtimeSec'),
+    avgSession: weightedAvg(d, 'avgSessionSec', 'sessions'),
+    playtime: weightedAvg(d, 'playtimeSec', 'dau'),
+    totalPlaytimePerPlayer: days === 30 ? div(d.reduce((a, x) => a + (ok(x.playtimeSec) && ok(x.dau) ? x.playtimeSec * x.dau : 0), 0), data.mau) : null,
     d1: ret(1), d3: ret(3), d7: ret(7), d14: ret(14), d30: ret(30),
     levels: deriveLevels(data.levels),
   };
@@ -1517,8 +1524,9 @@ function render() {
     ['D30 retention', pct(m.d30), `Churn ${pct(churn(m.d30))}`],
   ]);
   kpis('kpiPlay', [
-    ['Günlük oynama', mins(m.playtime), 'Aktif oyuncu başına'],
+    ['Günlük oynama', mins(m.playtime), 'Aktif oyuncunun bir günde oynadığı'],
     ['Ort. oturum süresi', secs(m.avgSession)],
+    ['Oyuncu başına toplam', ok(m.totalPlaytimePerPlayer) ? mins(m.totalPlaytimePerPlayer) : '—', '30 gün toplamı ÷ aylık aktif; 30 gün seçiliyken'],
   ]);
   kpis('kpiAcq', [
     ['Harcama', money(m.spend, 0), `CPM ${money(m.cpm)}`],
