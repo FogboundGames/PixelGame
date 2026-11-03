@@ -408,7 +408,14 @@ namespace PixelGame
         private float m_AutoPlaceCheckTimer = 0f;
         private int m_PlayerSentShipCount = 0;
 
-        public void NotifyShipSent() => m_PlayerSentShipCount++;
+        public static event System.Action<ShipController> ShipDispatchedFromQueue;
+        public int PlayerSentShipCount => m_PlayerSentShipCount;
+
+        public void NotifyShipSent(ShipController ship = null)
+        {
+            m_PlayerSentShipCount++;
+            ShipDispatchedFromQueue?.Invoke(ship);
+        }
 
         [Header("❌ Seviye Başarısızlık (Deadlock)")]
         [SerializeField] private bool m_EnableFailOnDeadlock = true;
@@ -2562,6 +2569,7 @@ namespace PixelGame
 
                 m_PlayerSentShipCount++;
 
+                ShipDispatchedFromQueue?.Invoke(members != null && members.Count > 0 ? members[0] : null);
                 SailLinkedGroupToSlots(members, groupSlots);
                 return true;
             }
@@ -2593,6 +2601,7 @@ namespace PixelGame
             }
 
             m_PlayerSentShipCount++;
+            ShipDispatchedFromQueue?.Invoke(ship);
             ship.SailToSlot(emptySlot);
             return true;
         }

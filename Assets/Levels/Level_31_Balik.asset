@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_31_Balik
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: "Bal\u0131k"
-  m_LevelIndex: 4
+  m_LevelIndex: 5
   m_DifficultyTier: 0
   m_DifficultyManual: 0
   m_LegacyIsHardLevel: 0
@@ -75,42 +75,63 @@ MonoBehaviour:
     label: Vagon
     linkId: 0
     isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.9607844, g: 0.54901963, b: 0.15686275, a: 1}
     capacity: 30
     paletteIndex: 0
     label: Vagon
     linkId: 0
     isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.1764706, g: 0.15686275, b: 0.1764706, a: 1}
     capacity: 3
     paletteIndex: 3
     label: Vagon
     linkId: 0
     isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.7843138, g: 0.3137255, b: 0.11764707, a: 1}
     capacity: 20
     paletteIndex: 1
     label: Vagon
     linkId: 0
     isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.7843138, g: 0.3137255, b: 0.11764707, a: 1}
     capacity: 16
     paletteIndex: 1
     label: Vagon
     linkId: 0
     isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.9607844, g: 0.94117653, b: 0.8941177, a: 1}
     capacity: 17
     paletteIndex: 2
     label: Vagon
     linkId: 0
     isHidden: 1
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.9607844, g: 0.54901963, b: 0.15686275, a: 1}
     capacity: 14
     paletteIndex: 0
     label: Vagon
     linkId: 0
     isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   m_FigureShadowTexture: {fileID: 0}
   m_UseCustomColorTheme: 0
   m_ColorTheme:

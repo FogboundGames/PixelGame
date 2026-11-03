@@ -105,6 +105,7 @@ namespace PixelGame
 
         public int Capacity => m_Columns * m_Rows;
         public List<ShipController> WaitingShips => m_WaitingShips;
+        public List<Transform> QueueSpots => m_QueueSpots;
         public bool UsingLevelSequence => m_UsingLevelSequence;
         public int RemainingSequenceShipsCount => RemainingSequenceShipsTotal();
 

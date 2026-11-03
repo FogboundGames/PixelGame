@@ -1450,6 +1450,10 @@ namespace PixelGame
             }
         }
 
+        [Tooltip("Konteynerin etrafındaki beyaz kontur (Container_Outline). Kullanıcı isteğiyle kapatıldı.")]
+        [SerializeField] private bool m_EnableUiOutline = false;
+        public bool EnableUiOutline { get => m_EnableUiOutline; set => m_EnableUiOutline = value; }
+
         private Image m_UiOutlineImage;
         private static Sprite s_ContainerOutlineSprite;
         // Kontur sprite'ı gövde sprite'ından her yandan 64/512 geniş (gölge taşmasın): anchor'lar o kadar dışarıda
@@ -1463,6 +1467,14 @@ namespace PixelGame
         private void EnsureUiOutline()
         {
             if (!IsUiContainer) return;
+
+            Transform existingOutline = transform.Find("Outline");
+            if (!m_EnableUiOutline)
+            {
+                if (existingOutline != null) existingOutline.gameObject.SetActive(false);
+                if (m_UiOutlineImage != null) m_UiOutlineImage.gameObject.SetActive(false);
+                return;
+            }
 #if UNITY_EDITOR
             if (UnityEditor.PrefabUtility.IsPartOfPrefabAsset(gameObject)) return;
 #endif

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_15_Pizza
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Pizza
-  m_LevelIndex: 10
+  m_LevelIndex: 9
   m_DifficultyTier: 1
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0
@@ -83,84 +83,126 @@ MonoBehaviour:
     label: Vagon
     linkId: 0
     isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.96470594, g: 0.7372549, b: 0.28627452, a: 1}
     capacity: 12
     paletteIndex: 0
     label: Vagon
     linkId: 1
     isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.7294118, g: 0.16470589, b: 0.20392159, a: 1}
     capacity: 30
     paletteIndex: 3
     label: Vagon
     linkId: 0
     isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.5411765, g: 0.30588236, b: 0.14117648, a: 1}
     capacity: 30
     paletteIndex: 1
     label: Vagon
     linkId: 0
     isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.8980393, g: 0.5764706, b: 0.18431373, a: 1}
     capacity: 18
     paletteIndex: 2
     label: Vagon
     linkId: 1
     isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.96470594, g: 0.7372549, b: 0.28627452, a: 1}
     capacity: 20
     paletteIndex: 0
     label: Vagon
     linkId: 0
     isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.96470594, g: 0.7372549, b: 0.28627452, a: 1}
     capacity: 30
     paletteIndex: 0
     label: Vagon
     linkId: 0
     isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.7019608, g: 0.43921572, b: 0.23529413, a: 1}
     capacity: 16
     paletteIndex: 5
     label: Vagon
     linkId: 0
     isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.7294118, g: 0.16470589, b: 0.20392159, a: 1}
     capacity: 11
     paletteIndex: 3
     label: Vagon
     linkId: 0
     isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.5411765, g: 0.30588236, b: 0.14117648, a: 1}
     capacity: 16
     paletteIndex: 1
     label: Vagon
     linkId: 0
     isHidden: 1
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.96470594, g: 0.7372549, b: 0.28627452, a: 1}
     capacity: 30
     paletteIndex: 0
     label: Vagon
     linkId: 2
     isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.5411765, g: 0.30588236, b: 0.14117648, a: 1}
     capacity: 20
     paletteIndex: 1
     label: Vagon
     linkId: 2
     isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.8980393, g: 0.5764706, b: 0.18431373, a: 1}
     capacity: 30
     paletteIndex: 2
     label: Vagon
     linkId: 0
     isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   - wagonColor: {r: 0.43137258, g: 0.078431375, b: 0.11764707, a: 1}
     capacity: 19
     paletteIndex: 4
     label: Vagon
     linkId: 0
     isHidden: 1
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
   m_FigureShadowTexture: {fileID: 0}
   m_UseCustomColorTheme: 0
   m_ColorTheme:

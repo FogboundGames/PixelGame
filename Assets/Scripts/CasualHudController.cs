@@ -123,6 +123,10 @@ namespace PixelGame
         /// <summary>Hard level banner aktifken gemilere, küplere veya iskeleye tıklanmasını engeller.</summary>
         public static bool IsHardBannerActive { get; private set; }
 
+        [Header("🎓 Level 1 Tutorial")]
+        [SerializeField] private LevelTutorialController m_LevelTutorial;
+        public LevelTutorialController LevelTutorial => m_LevelTutorial;
+
         private int m_CurrentLives;
         private int m_CurrentCoins;
         private const string CoinsPrefKey = "PixelGame_Coins";
@@ -209,6 +213,7 @@ namespace PixelGame
             PixelArtGenerator.LevelLoaded += HandleLevelLoaded;
             EnsureRabbitMascot();
             EnsureHardLevelBanner();
+            EnsureLevelTutorial();
         }
 
         private void OnDisable()
@@ -222,6 +227,7 @@ namespace PixelGame
         {
             EnsureRabbitMascot();
             EnsureHardLevelBanner();
+            EnsureLevelTutorial();
             SetLives(m_StartingLives);
             HideCoinPill();
             RefreshLevelFromScene();
@@ -484,6 +490,8 @@ namespace PixelGame
             if (m_LevelText != null) m_LevelText.text = $"LEVEL {safeNum}";
             if (m_SubHeaderLevelText != null) m_SubHeaderLevelText.text = $"Level {safeNum}";
             SetHardBadge(isHard);
+            EnsureLevelTutorial();
+            if (m_LevelTutorial != null) m_LevelTutorial.OnLevelChanged(safeNum);
         }
 
         public void SetHardBadge(bool active)
@@ -604,6 +612,35 @@ namespace PixelGame
         /// Hard Level afişini arar veya yoksa otomatik oluşturup yapılandırır.
         /// Ekranın ortasında yatayda uzanan (1140x380 px), Y=-150 hizasında (resim alt ucu ile iskele arası) yer alır.
         /// </summary>
+        /// <summary>
+        /// Level 1 eğitim (tutorial) kontrolcüsünü arar veya yoksa otomatik oluşturup yapılandırır.
+        /// </summary>
+        public void EnsureLevelTutorial()
+        {
+            if (m_LevelTutorial == null)
+            {
+                m_LevelTutorial = GetComponentInChildren<LevelTutorialController>(true);
+                if (m_LevelTutorial == null)
+                {
+                    Transform found = transform.Find("[LevelTutorial_Level1]");
+                    if (found != null)
+                    {
+                        m_LevelTutorial = found.GetComponent<LevelTutorialController>();
+                    }
+                    else
+                    {
+                        GameObject tutGo = new GameObject("[LevelTutorial_Level1]", typeof(RectTransform), typeof(LevelTutorialController));
+                        tutGo.transform.SetParent(transform, false);
+                        m_LevelTutorial = tutGo.GetComponent<LevelTutorialController>();
+                    }
+                }
+            }
+            if (m_LevelTutorial != null)
+            {
+                m_LevelTutorial.EnsureUIHierarchy();
+            }
+        }
+
         public void EnsureHardLevelBanner()
         {
             if (m_HardLevelBannerObj == null)
@@ -769,6 +806,7 @@ namespace PixelGame
         public void ShowHardLevelBanner()
         {
             EnsureHardLevelBanner();
+            EnsureLevelTutorial();
             if (m_HardLevelBannerObj == null) return;
 
             if (m_HardBannerRoutine != null)
@@ -790,6 +828,7 @@ namespace PixelGame
             yield return new WaitForSecondsRealtime(Mathf.Max(0.04f, m_HardBannerStartDelay));
 
             EnsureHardLevelBanner();
+            EnsureLevelTutorial();
             if (m_HardLevelBannerObj == null) yield break;
 
             m_HardLevelBannerObj.transform.SetAsLastSibling();
@@ -953,7 +992,7 @@ namespace PixelGame
             }
         }
 
-        private Sprite FindSpriteByName(string nameSnippet)
+        public Sprite FindSpriteByName(string nameSnippet)
         {
             var allImgs = GetComponentsInChildren<UnityEngine.UI.Image>(true);
             foreach (var img in allImgs)
