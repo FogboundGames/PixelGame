@@ -275,7 +275,7 @@ tr.selected td { background: var(--wash); font-weight: 600; }
 
     <section>
       <h2>Cihazlar <span class="tag" data-src="devices"></span></h2>
-      <p class="hint">Firestore'a yazan her cihaz, ekip cihazları ve testler dahil. Tarih seçiciden etkilenmez. Kimlik cihazda üretilen rastgele numaranın başıdır.</p>
+      <p class="hint">Firestore'a yazan cihazlar; Türkiye ve test cihazları üstteki düğmeye göre gösterilir ya da gizlenir. Tarih seçiciden etkilenmez. Kimlik cihazda üretilen rastgele numaranın başıdır.</p>
       <figure class="card wide"><figcaption>Cihaz listesi <span class="muted">— ayrıntı için satıra tıklayın</span></figcaption><div id="deviceTable" class="tablewrap"></div></figure>
       <div id="deviceDetail" hidden>
         <h3 id="deviceTitle"></h3>
@@ -1170,15 +1170,21 @@ const EMPTY_GA = { daily: [], mau: null, retention: [], retentionTrend: [], coun
 
 /** API verisini (sunucuyla açıldıysa) ve CSV'leri tek veri kümesinde birleştirir. Sayfa ya tamamen örnek ya tamamen gerçek veri gösterir. */
 function buildDashboard(from, to, api, players, playersError, directMeta) {
-  const csv = loadCsv(allCsvFiles(), from, to);
+  const allCsv = loadCsv(allCsvFiles(), from, to);
+  // GameAnalytics CSV'lerinde ve API'lerinde oyuncu başına ülke yok, Türkiye ayrılamaz. "Hariç" konumunda
+  // bu kaynaklar kullanılmaz; sayılar yalnızca ülkesi bilinen Firestore verisinden gelir.
+  const csv = includeTestDevices ? allCsv : loadCsv([], from, to);
   const metaOn = (api && api.metaState.status !== 'off') || directMeta?.data;
   const gaOn = api && (api.gaState.status !== 'off' || api.firebaseState.status !== 'off');
-  const counted = (players ?? []).filter((p) => includeTestDevices || !isTestDevice(p));
+  // "Hariç" konumunda Türkiye'deki cihazlar da sayılmaz (çoğu ekip ve tanıdık). Ülkesi bilinmeyenler sayılmaya devam eder.
+  const counted = (players ?? []).filter((p) => includeTestDevices || (!isTestDevice(p) && p.country !== HOME_COUNTRY));
   const live = counted.length ? summarizePlayers(counted, from, to) : null;
-  const regions = counted.length ? compareRegions(counted, from, to) : null;
-  const demo = !metaOn && !gaOn && !csv.any && !live;
+  // Karşılaştırma bölümünde Türkiye sütunu dolu kalsın: buradan yalnızca test cihazları çıkar
+  const regionPlayers = (players ?? []).filter((p) => includeTestDevices || !isTestDevice(p));
+  const regions = regionPlayers.length ? compareRegions(regionPlayers, from, to) : null;
+  const demo = !metaOn && !gaOn && !allCsv.any && !live;
   const meta = demo ? demoMeta(from, to) : (api?.meta ?? directMeta?.data ?? EMPTY_META);
-  const ga = demo ? demoGA(from, to, meta.daily) : (api?.ga ?? api?.firebase ?? EMPTY_GA);
+  const ga = demo ? demoGA(from, to, meta.daily) : (includeTestDevices ? api?.ga ?? api?.firebase ?? EMPTY_GA : EMPTY_GA);
   const directState = directMeta && (directMeta.data ? { status: 'live' } : { status: 'error', message: directMeta.error });
   const metaState = demo ? { status: 'demo' } : (api?.meta ? api.metaState : directState ?? api?.metaState ?? { status: 'off' });
   const gaState = demo ? { status: 'demo' } : (api?.gaState ?? { status: 'off', message: 'API yalnızca PipelineIQ planında var' });
@@ -1243,7 +1249,7 @@ function buildDashboard(from, to, api, players, playersError, directMeta) {
       meta: metaState,
       ga: gaState,
       firebase: firebaseState,
-      firestore: playersError ? { status: 'error', message: playersError } : { status: players?.length ? 'live' : 'off', message: players?.length ? `${counted.length} oyuncu${counted.length < players.length ? ` (${players.length - counted.length} test hariç)` : ''}` : '' },
+      firestore: playersError ? { status: 'error', message: playersError } : { status: players?.length ? 'live' : 'off', message: players?.length ? `${counted.length} oyuncu${counted.length < players.length ? ` (${players.length - counted.length} Türkiye/test hariç)` : ''}` : '' },
       csvErrors: csv.errors,
       daily: dailyPick.source,
       retention: retention.source,
@@ -1268,7 +1274,7 @@ function buildDashboard(from, to, api, players, playersError, directMeta) {
     retentionTrend: retentionTrend.rows,
     countries: countries.rows,
     platforms: live?.platforms.length ? live.platforms : ga.platforms,
-    devices: deviceRows(players ?? []),
+    devices: deviceRows(counted),
     categories: ga.categories,
     cumulativePlaytime: cumulativePlaytime.rows,
     levels: withLevelGaps(levels.rows),
@@ -1322,7 +1328,7 @@ const TEST_TOGGLE_KEY = 'landflow-include-tests';
 let includeTestDevices = false;
 
 function renderTestToggle() {
-  document.getElementById('testToggle').textContent = includeTestDevices ? 'Test cihazları: dahil' : 'Test cihazları: hariç';
+  document.getElementById('testToggle').textContent = includeTestDevices ? 'Türkiye ve test cihazları: dahil' : 'Türkiye ve test cihazları: hariç';
 }
 const directMetaCache = new Map();
 
