@@ -243,6 +243,17 @@ tr.selected td { background: var(--wash); font-weight: 600; }
     </section>
 
     <section>
+      <h2>Türkiye ve diğer ülkeler <span class="tag" data-src="regions"></span></h2>
+      <p class="hint">Türkiye'deki oyuncuların çoğu ekip, arkadaş ve tanıdık olabilir; bu bölüm onları ayırıp oyunun yabancı oyuncuda nasıl tuttuğunu gösterir. Yalnızca Firestore'dan gelir (oyuncu başına veri gerekir; GameAnalytics CSV'si bu ayrımı yapamaz). Ülke cihazın bölge ayarıdır. Test cihazı ayarı burada da geçerlidir. Oranların yanındaki (x/y) kaç kişiden hesaplandığını gösterir.</p>
+      <div id="kpiRegion" class="kpis"></div>
+      <figure class="card wide"><figcaption>Karşılaştırma <span class="muted">— seçili dönemde oynayan oyuncular</span></figcaption><div id="regionTable" class="tablewrap"></div></figure>
+      <div class="grid2">
+        <figure class="card"><figcaption>Günlük aktif oyuncu</figcaption><div id="chRegionDau" class="chart"></div></figure>
+        <figure class="card"><figcaption>Oyuncu hunisi (levele kadar bitiren %)</figcaption><div id="chRegionFunnel" class="chart"></div></figure>
+      </div>
+    </section>
+
+    <section>
       <h2>Level analizi <span class="tag" data-src="levels"></span></h2>
       <div id="levelView" class="seg" role="group" aria-label="Level verisi">
         <button data-view="live" class="on">Güncel sıra</button>
@@ -824,6 +835,72 @@ function summarizePlayers(players, from, to) {
   };
 }
 
+// ---------- Türkiye / diğer ülkeler ----------
+const HOME_COUNTRY = 'TR';
+const REGION_FUNNEL_MAX = 30;
+const REGIONS = [
+  ['home', 'Türkiye', (p) => p.country === HOME_COUNTRY],
+  ['abroad', 'Türkiye dışı', (p) => Boolean(p.country) && p.country !== HOME_COUNTRY],
+  ['all', 'Tümü', () => true],
+];
+const levelNumber = (id) => Number(/^Level_(\d+)$/.exec(id)?.[1] ?? 0);
+
+/**
+ * Seçili dönemde oynayan oyuncuları Türkiye ve Türkiye dışı diye ayırır. Level sayaçları tüm zamanlarındır (Firestore öyle tutar).
+ * Ülkesi bilinmeyen oyuncu yalnızca "Tümü"ne girer.
+ */
+function compareRegions(players, from, to) {
+  const lastFullDay = addDays(to, -1);
+  const known = players.filter((p) => p.firstSeen);
+  const periodDays = (p) => Object.entries(p.days ?? {}).filter(([date]) => date >= from && date <= to);
+  const active = known.filter((p) => periodDays(p).length > 0);
+  const levelSum = (p, action) => Object.values(p.levels ?? {}).reduce((a, c) => a + (c[action] ?? 0), 0);
+  const furthestCompleted = (p) => Math.max(0, ...Object.entries(p.levels ?? {}).filter(([, c]) => (c.complete ?? 0) > 0).map(([id]) => levelNumber(id)));
+  const ratio = (hit, n) => ({ pct: n > 0 ? (hit / n) * 100 : null, hit, n });
+  const median = (values) => {
+    if (!values.length) return null;
+    const v = [...values].sort((a, b) => a - b), mid = Math.floor(v.length / 2);
+    return v.length % 2 ? v[mid] : (v[mid - 1] + v[mid]) / 2;
+  };
+
+  const groups = REGIONS.map(([key, label, match]) => {
+    const g = active.filter(match);
+    const newbies = g.filter((p) => p.firstSeen >= from && p.firstSeen <= to);
+    const retained = (day) => {
+      const eligible = newbies.filter((p) => addDays(p.firstSeen, day) <= lastFullDay);
+      return ratio(eligible.filter((p) => p.days?.[addDays(p.firstSeen, day)]).length, eligible.length);
+    };
+    const seconds = g.reduce((a, p) => a + periodDays(p).reduce((b, [, d]) => b + (d.seconds ?? 0), 0), 0);
+    const sessions = g.reduce((a, p) => a + periodDays(p).reduce((b, [, d]) => b + (d.sessions ?? 0), 0), 0);
+    const activeDays = g.reduce((a, p) => a + periodDays(p).length, 0);
+    const starts = g.reduce((a, p) => a + levelSum(p, 'start'), 0);
+    const completes = g.reduce((a, p) => a + levelSum(p, 'complete'), 0);
+    const fails = g.reduce((a, p) => a + levelSum(p, 'fail'), 0);
+    const abandons = g.reduce((a, p) => a + levelSum(p, 'restart') + levelSum(p, 'quit'), 0);
+    const startedL1 = newbies.filter((p) => (p.levels?.Level_001?.start ?? 0) > 0);
+    const furthest = g.map(furthestCompleted);
+    return {
+      key, label,
+      users: g.length,
+      newUsers: newbies.length,
+      playtimeSec: g.length ? seconds / g.length : null,
+      sessionsPerUser: g.length ? sessions / g.length : null,
+      activeDays: g.length ? activeDays / g.length : null,
+      d1: retained(1),
+      d3: retained(3),
+      d7: retained(7),
+      level1: ratio(startedL1.filter((p) => (p.levels.Level_001.complete ?? 0) > 0).length, startedL1.length),
+      winRate: ratio(completes, completes + fails),
+      abandonRate: ratio(abandons, starts),
+      medianFurthest: median(furthest),
+      maxFurthest: furthest.length ? Math.max(...furthest) : null,
+      funnel: Array.from({ length: REGION_FUNNEL_MAX }, (_, i) => (g.length ? (furthest.filter((f) => f >= i + 1).length / g.length) * 100 : null)),
+      daily: enumerateDays(from, to).map((date) => known.filter(match).filter((p) => p.days?.[date]).length),
+    };
+  });
+  return { groups, dates: enumerateDays(from, to), unknownCountry: active.filter((p) => !p.country).length };
+}
+
 /** Bir oyuncunun saatli akışı; günlük kayıtları birleştirir. Oyuncu başına gün sayısı kadar okuma yapar. */
 async function fetchActivity(playerId) {
   const days = [];
@@ -1098,6 +1175,7 @@ function buildDashboard(from, to, api, players, playersError, directMeta) {
   const gaOn = api && (api.gaState.status !== 'off' || api.firebaseState.status !== 'off');
   const counted = (players ?? []).filter((p) => includeTestDevices || !isTestDevice(p));
   const live = counted.length ? summarizePlayers(counted, from, to) : null;
+  const regions = counted.length ? compareRegions(counted, from, to) : null;
   const demo = !metaOn && !gaOn && !csv.any && !live;
   const meta = demo ? demoMeta(from, to) : (api?.meta ?? directMeta?.data ?? EMPTY_META);
   const ga = demo ? demoGA(from, to, meta.daily) : (api?.ga ?? api?.firebase ?? EMPTY_GA);
@@ -1177,6 +1255,7 @@ function buildDashboard(from, to, api, players, playersError, directMeta) {
       cumulativePlaytime: cumulativePlaytime.source,
       levels: levels.source,
       design: design.source,
+      regions: { kind: regions ? 'api' : 'none' },
       adSpend: { kind: meta.totals ? apiKind : 'none' },
     },
     daily,
@@ -1194,6 +1273,7 @@ function buildDashboard(from, to, api, players, playersError, directMeta) {
     cumulativePlaytime: cumulativePlaytime.rows,
     levels: withLevelGaps(levels.rows),
     design: design.rows,
+    regions,
   };
 }
 
@@ -1674,6 +1754,68 @@ const GAPS = [
   ['Sürümler arası karşılaştırma', 'GA ayarlarında Build sabit 0.1, oyun sürümü 1.4; bütün sürümler 0.1 görünür', 'GA ayarında sürüm numarasını güncelle ya da "Use Player Settings" aç'],
 ];
 
+const NO_REGIONS = "Bu karşılaştırma Firestore'daki oyuncu verisinden yapılır; yeni sürümü oynayan oyuncu geldikçe dolar.";
+
+/** Türkiye / Türkiye dışı karşılaştırması. Az kişiyle oranlar çok oynar; her oranın yanında kaç kişiden geldiği yazar. */
+function renderRegions() {
+  const r = data.regions;
+  const group = (key) => r?.groups.find((g) => g.key === key);
+  const home = group('home'), abroad = group('abroad');
+  const rate = (x) => (x && x.n > 0 ? `${pct(x.pct, 0)} <span class="muted">(${x.hit}/${x.n})</span>` : '—');
+  const num1 = (v) => (ok(v) ? nf1.format(v) : '—');
+  const shareOf = (g) => (r && group('all').users ? pct((g.users / group('all').users) * 100, 0) : '—');
+
+  kpis('kpiRegion', abroad ? [
+    ['Türkiye dışı oyuncu', int(abroad.users), `Dönemdeki oyuncuların ${shareOf(abroad)}'i · ${int(abroad.newUsers)} yeni`],
+    ['Türkiye dışı D1', abroad.d1.n ? pct(abroad.d1.pct, 0) : '—', `${abroad.d1.n} kişiden · Türkiye ${home?.d1.n ? pct(home.d1.pct, 0) : '—'}`],
+    ['Türkiye dışı süre / oyuncu', mins(abroad.playtimeSec), `Türkiye ${mins(home?.playtimeSec)}`],
+    ['Level 1 bitiren', abroad.level1.n ? pct(abroad.level1.pct, 0) : '—', `Yeni ve Level 1'e başlayan ${abroad.level1.n} kişiden · Türkiye ${home?.level1.n ? pct(home.level1.pct, 0) : '—'}`],
+    ['Ortanca en ileri level', abroad.users ? int(abroad.medianFurthest) : '—', `Türkiye ${home?.users ? int(home.medianFurthest) : '—'}`],
+  ] : []);
+
+  const metrics = [
+    ['Oyuncu', (g) => int(g.users), 'Seçili dönemde en az bir gün oynayan'],
+    ['Yeni oyuncu', (g) => int(g.newUsers), 'İlk kez seçili dönemde görülen'],
+    ['Oynama / oyuncu', (g) => mins(g.playtimeSec), 'Dönem boyunca toplam'],
+    ['Oturum / oyuncu', (g) => num1(g.sessionsPerUser)],
+    ['Aktif gün / oyuncu', (g) => num1(g.activeDays)],
+    ['D1 retention', (g) => rate(g.d1), 'Dönemde gelen yeni oyunculardan ertesi gün dönen'],
+    ['D3 retention', (g) => rate(g.d3)],
+    ['D7 retention', (g) => rate(g.d7)],
+    ['Level 1 bitirme', (g) => rate(g.level1), "Dönemde gelen ve Level 1'e başlayan yeni oyunculardan bitiren"],
+    ['Kazanma oranı', (g) => rate(g.winRate), 'Bitirme ÷ (bitirme + kayıp), tüm leveller'],
+    ['Yarıda bırakma', (g) => rate(g.abandonRate), '(Restart + çıkış) ÷ başlatılan deneme'],
+    ['Ortanca en ileri level', (g) => (g.users ? int(g.medianFurthest) : '—'), 'Oyuncunun bitirdiği en büyük level numarası'],
+    ['En ileri level', (g) => (g.users ? int(g.maxFurthest) : '—')],
+  ];
+  const host = document.getElementById('regionTable');
+  if (!r) { host.innerHTML = `<p class="empty">${NO_REGIONS}</p>`; return; }
+  host.innerHTML = `<table><thead><tr><th class="l"></th>${r.groups.map((g) => `<th>${esc(g.label)}</th>`).join('')}</tr></thead>
+    <tbody>${metrics.map(([label, fmt, help]) => `<tr title="${esc(help || '')}"><td class="l">${label}</td>${r.groups.map((g) => `<td>${fmt(g)}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+    + (r.unknownCountry ? `<p class="muted">${r.unknownCountry} oyuncunun ülkesi bilinmiyor; yalnızca Tümü'ne girdi.</p>` : '');
+}
+
+function renderRegionCharts() {
+  const r = data.regions;
+  if (!r) { emptyHint('chRegionDau', NO_REGIONS); emptyHint('chRegionFunnel', NO_REGIONS); return; }
+  const s1 = css('--s1'), s2 = css('--s2');
+  const home = r.groups.find((g) => g.key === 'home'), abroad = r.groups.find((g) => g.key === 'abroad');
+  const compact = (v, axis) => (axis ? nfc.format(v) : int(v));
+  lineChart(document.getElementById('chRegionDau'), {
+    labels: r.dates, xFormat: (iso, long) => dayLabel(iso, long), format: compact,
+    series: [{ name: 'Türkiye', values: home.daily, color: s1 }, { name: 'Türkiye dışı', values: abroad.daily, color: s2 }],
+  });
+  // Hunide en ileri bitirilen levelden sonrası boş kalmasın
+  const last = Math.max(1, home.maxFurthest ?? 0, abroad.maxFurthest ?? 0);
+  const n = Math.min(REGION_FUNNEL_MAX, last);
+  lineChart(document.getElementById('chRegionFunnel'), {
+    labels: Array.from({ length: n }, (_, i) => i + 1),
+    xFormat: (v, long) => (long ? `Level ${v}` : String(v)),
+    format: (v, axis) => (axis ? `%${Math.round(v)}` : pct(v, 0)),
+    series: [{ name: 'Türkiye', values: home.funnel.slice(0, n), color: s1 }, { name: 'Türkiye dışı', values: abroad.funnel.slice(0, n), color: s2 }],
+  });
+}
+
 function renderLevelSummary(m) {
   const L = m.levels;
   const host = document.getElementById('levelSummary');
@@ -1700,6 +1842,7 @@ function emptyHint(id, html) {
 
 function renderCharts() {
   const m = derive();
+  renderRegionCharts();
   const d = data.daily;
   const labels = d.map((x) => x.date);
   const s1 = css('--s1'), s2 = css('--s2'), crit = css('--critical'), warn = css('--warning');
@@ -1861,6 +2004,7 @@ function render() {
   ]);
   renderLevelSummary(m);
   renderTables(m);
+  renderRegions();
   table('gapTable', [
     { key: 'what', label: 'Ölçülemeyen', left: true, fmt: (g) => esc(g[0]) },
     { key: 'why', label: 'Neden', left: true, fmt: (g) => esc(g[1]) },

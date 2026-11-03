@@ -96,6 +96,10 @@ Panel sunucuyla açılınca Firebase verisini kendisi çeker, CSV gerekmez. Ayn�
 - **Sayılar:** GameAnalytics ile birebir tutmaz, iki servis farklı sayar. Oynama süresi Firebase'te ön planda geçen süredir.
 - **Level alanları:** Google Analytics → Custom definitions'ta `level_id` (Event boyutu) ve `seconds` (Event metriği, Seconds) tanımlı olmalı. `http://localhost:5173/api/firebase/check` son 30 dakikanın olaylarını ve tanımları gösterir.
 
+## Türkiye ve diğer ülkeler
+
+Türkiye'deki oyuncuların çoğu ekip ve tanıdık olabileceği için bu bölüm Türkiye, Türkiye dışı ve tümünü yan yana koyar: oyuncu, yeni oyuncu, oynama süresi, oturum, D1/D3/D7 retention, Level 1 bitirme, kazanma oranı, yarıda bırakma ve en ileri level; ayrıca iki grubun günlük aktif oyuncusu ve level hunisi. Yalnızca Firestore'daki oyuncu başına veriden hesaplanır (GameAnalytics CSV'si oyuncuyu ülkeyle eşleyemez). Her oranın yanında kaç kişiden hesaplandığı yazar. Ülkesi bilinmeyen oyuncu yalnızca Tümü'ne girer.
+
 ## Meta Ads
 
 Sunucu gerekmez: üstteki **Meta Ads** satırından **Bağla** deyin, erişim anahtarını ve reklam hesabı kimliğini girin. Anahtar yalnızca o tarayıcıda saklanır, repoya girmez, istekler doğrudan Meta'ya gider. Her kişi ve her tarayıcı ayrı girer. Paylaşılan bilgisayarda kullanmayın, **Bağlantıyı kes** anahtarı siler. Sunucu `.env` içinde Meta anahtarı bulursa o kullanılır.
