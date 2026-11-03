@@ -281,7 +281,8 @@ namespace PixelGame
             PlayerPrefs.Save();
         }
 
-        private static string PlayerId()
+        /// <summary>Cihazda üretilen rastgele oyuncu kimliği; panelin test cihazı listesi bunun ilk karakterleriyle eşleşir.</summary>
+        public static string PlayerId()
         {
             string id = PlayerPrefs.GetString(PlayerIdPrefKey, "");
             if (id.Length > 0) return id;

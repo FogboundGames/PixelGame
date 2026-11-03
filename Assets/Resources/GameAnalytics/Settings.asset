@@ -43,7 +43,9 @@ MonoBehaviour:
   InfoLogBuild: 1
   VerboseLogBuild: 0
   UseManualSessionHandling: 0
-  CustomDimensions01: []
+  CustomDimensions01:
+  - player
+  - tester
   CustomDimensions02: []
   CustomDimensions03: []
   ResourceItemTypes: []

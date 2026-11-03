@@ -10,6 +10,8 @@ namespace PixelGame
     /// Level başlangıç/bitiş/kayıp olaylarını "Level_015:Hayalet" biçiminde gönderir (sıra değişse de level adı ayırt edilebilsin diye).
     /// Yarıda kesilen denemeler için "Level:Restart:Level_015" ve "Level:Quit:Level_015" tasarım olaylarını, değer olarak geçen saniyeyle gönderir.
     /// Quit, level sürerken uygulama arka plana geçince deneme başına bir kez gider; oyuncu sonra dönüp devam etmiş olabilir.
+    /// Her olay custom dimension 01 = "tester" ya da "player" taşır; GA panelinde Filter → Custom dimension 01 = player ile test cihazları çıkarılır.
+    /// İlk deneyim adımları "FTUE:..." tasarım olayları olarak oyuncu başına bir kez gider (DesignOnce).
     /// </summary>
     public static class LandFlowAnalytics
     {
@@ -26,6 +28,32 @@ namespace PixelGame
         private static bool s_LevelActive;
         private static bool s_QuitSent;
         private static float s_LevelElapsed;
+        private static readonly System.Collections.Generic.List<(string id, float value)> s_PendingOnce = new System.Collections.Generic.List<(string, float)>();
+
+        /// <summary>
+        /// Test cihazlarının oyuncu kimliği başları; dashboard/panel.html'deki TEST_DEVICE_IDS ile aynı tutun.
+        /// Kimlik, cihazda PlayerPrefs "LandFlow_PlayerId" değeridir (Firestore panelinde oyuncu satırında görünür).
+        /// </summary>
+        private static readonly string[] TestDeviceIds = { "b9d8182c", "test-sil" };
+
+        private const string TesterDimension = "tester";
+        private const string PlayerDimension = "player";
+        private const string OncePrefPrefix = "LandFlow_GAOnce_";
+
+        /// <summary>Editör, development build ya da listedeki cihaz.</summary>
+        public static bool IsTester
+        {
+            get
+            {
+                if (Application.isEditor || Debug.isDebugBuild) return true;
+                string id = LandFlowFirestore.PlayerId();
+                foreach (string prefix in TestDeviceIds)
+                {
+                    if (id.StartsWith(prefix, System.StringComparison.Ordinal)) return true;
+                }
+                return false;
+            }
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
@@ -51,7 +79,11 @@ namespace PixelGame
             if (s_Started)
             {
                 GameAnalytics.SetEnabledEventSubmission(allowed);
-                if (allowed) SendPendingStart();
+                if (allowed)
+                {
+                    SendPendingStart();
+                    SendPendingOnce();
+                }
                 return;
             }
             if (!allowed) return;
@@ -61,6 +93,9 @@ namespace PixelGame
                 new GameObject("GameAnalytics").AddComponent<GameAnalytics>();
             }
 
+            // SettingsGA'ya erişmek izinli boyut değerlerini (Settings → CustomDimensions01) yükler; boyut Initialize'dan önce
+            // verilir ki oturum başlangıcı da onu taşısın
+            if (GameAnalytics.SettingsGA != null) GameAnalytics.SetCustomDimension01(IsTester ? TesterDimension : PlayerDimension);
             GameAnalytics.Initialize();
             s_Started = true;
 
@@ -69,6 +104,7 @@ namespace PixelGame
             listener.AddComponent<LevelTimer>();
 
             SendPendingStart();
+            SendPendingOnce();
         }
 
         private static string ProgressionId(PixelLevelData level, out string levelName)
@@ -181,6 +217,31 @@ namespace PixelGame
             if (!s_Enabled) return;
             GameAnalytics.NewDesignEvent(eventId, value);
             LandFlowFirestore.RecordEvent(eventId);
+        }
+
+        /// <summary>
+        /// Oyuncu başına yalnızca bir kez giden tasarım olayı, ör. "FTUE:Tutorial:Done". İzin henüz yoksa bekletilir, izin gelince gider;
+        /// gönderildiği cihaza kaydedilir ki tekrar oynamada huni şişmesin.
+        /// </summary>
+        public static void DesignOnce(string eventId, float value = 0f)
+        {
+            if (PlayerPrefs.GetInt(OncePrefPrefix + eventId, 0) == 1) return;
+            if (!s_Enabled)
+            {
+                if (!s_PendingOnce.Exists(e => e.id == eventId)) s_PendingOnce.Add((eventId, value));
+                return;
+            }
+            PlayerPrefs.SetInt(OncePrefPrefix + eventId, 1);
+            PlayerPrefs.Save();
+            Design(eventId, value);
+        }
+
+        private static void SendPendingOnce()
+        {
+            if (s_PendingOnce.Count == 0) return;
+            var pending = s_PendingOnce.ToArray();
+            s_PendingOnce.Clear();
+            foreach (var (id, value) in pending) DesignOnce(id, value);
         }
 
         /// <summary>Deneme süresini kare kare toplar; arka planda geçen süre sayılmaz. Uygulamanın arka plana geçişini de bildirir.</summary>

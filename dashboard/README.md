@@ -56,6 +56,10 @@ Windows'ta `dashboard/Panel.bat` de aynısını yapar. Sayfa aynıdır, CSV'ler 
 | Level sürerken arka plana geçildi | `Level:Quit:Level_015`, değer = geçen saniye | Deneme başına bir kez; oyuncu dönüp devam etmiş olabilir |
 | Oturum | GA SDK'sı otomatik gönderir | DAU, süre ve retention buradan |
 
+GameAnalytics'te **test cihazlarını ayırmak** için her olay custom dimension 01 taşır: editör, development build ve `LandFlowAnalytics.TestDeviceIds` listesindeki cihazlar `tester`, diğerleri `player`. GA panelinde Filter → Custom dimension 01 → `player` seçin. Yeni test cihazı eklerken kimliğin ilk karakterlerini hem bu listeye hem `panel.html` içindeki `TEST_DEVICE_IDS`'e yazın.
+
+**İlk deneyim (FTUE) olayları**, oyuncu başına bir kez: `FTUE:Tutorial:Shown` (Level 1'de el işareti göründü) ve `FTUE:Tutorial:Done` (ilk gemi gönderildi, değer = geçen saniye). Shown ile Done arasındaki fark, tutorial'da takılıp çıkan oyuncu sayısıdır.
+
 `Assets/Scripts/LandFlowMeta.cs` (Meta): `FB.ActivateApp()`, SDK'nın otomatik olayları Level 5, 10, 20 bitince oyuncu başına birer kez `fb_mobile_level_achieved` (`fb_level` = level numarası) ve her denemede `LevelComplete`, `LevelFail`, `LevelRestart`, `LevelQuit` özel olayları (`fb_level` = `Level_015`, `valueToSum` = geçen saniye). Bu olaylar Events Manager'da görünür, panele gelmez; level bazında süre analizi için GameAnalytics kullanılır.
 
 `Assets/Scripts/LandFlowFirebase.cs` (Firebase / Google Analytics): `level_start`, `level_complete`, `level_fail`, `level_restart`, `level_quit`, parametreleri `level_id` ve `seconds`. Veri toplama izin gelene kadar kapalıdır, reklam kimliği toplanmaz (Android). Panele bağlantısı henüz yok.
@@ -107,6 +111,8 @@ cp dashboard/.env.example dashboard/.env
 **Meta:**
 1. business.facebook.com → İşletme ayarları → Sistem kullanıcıları → kullanıcı ekleyin, reklam hesabını atayın.
 2. Token oluşturun, `ads_read` iznini seçin, `META_ACCESS_TOKEN` olarak yazın.
+   - Son kullanma tarihi olarak **Hiçbir zaman** seçin. Graph API Explorer'dan alınan anahtar 1-2 saatte, uzun ömürlüsü 60 günde düşer ve panel "süresi doldu" hatası verir. Sistem kullanıcısı anahtarı düşmez.
+   - Panelde bağladıysanız hata satırındaki **Yeni anahtar** ile yalnızca anahtarı yenileyin, hesap kimliği hazır gelir.
 3. Ads Manager adres çubuğundaki `act=` değerini `META_AD_ACCOUNT_ID` olarak yazın.
 
 **GameAnalytics (yalnızca PipelineIQ):**

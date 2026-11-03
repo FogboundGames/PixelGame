@@ -12,6 +12,16 @@ function accountPath() {
   return id.startsWith('act_') ? id : `act_${id}`;
 }
 
+/** 190 = anahtar geçersiz ya da süresi dolmuş. Graph API Explorer anahtarları 1-2 saatte, uzun ömürlüler 60 günde düşer. */
+function metaErrorText(error, status) {
+  if (error?.code === 190) {
+    return error.error_subcode === 463
+      ? 'Meta anahtarının süresi doldu. .env içindeki META_ACCESS_TOKEN yerine süresiz Sistem kullanıcısı token\'ı yazın (README → Anahtarlar)'
+      : 'Meta anahtarı geçersiz ya da iptal edilmiş. .env içindeki META_ACCESS_TOKEN değerini yenileyin (README → Anahtarlar)';
+  }
+  return `Meta API: ${error?.message || `HTTP ${status}`}`;
+}
+
 const graphBase = () => env('META_BASE_URL', `https://graph.facebook.com/${env('META_API_VERSION', 'v26.0')}`);
 
 async function graphGetAll(path, params) {
@@ -24,10 +34,7 @@ async function graphGetAll(path, params) {
   for (let page = 0; next && page < 20; page++) {
     const res = await fetchSafe(next);
     const body = await res.json().catch(() => ({}));
-    if (!res.ok || body.error) {
-      const msg = body.error?.message || `HTTP ${res.status}`;
-      throw new Error(`Meta API: ${msg}`);
-    }
+    if (!res.ok || body.error) throw new Error(metaErrorText(body.error, res.status));
     rows.push(...(body.data || []));
     next = body.paging?.next;
   }
@@ -62,7 +69,7 @@ async function accountInfo() {
   url.searchParams.set('access_token', env('META_ACCESS_TOKEN'));
   const res = await fetchSafe(url.toString());
   const body = await res.json().catch(() => ({}));
-  if (!res.ok || body.error) throw new Error(`Meta API: ${body.error?.message || `HTTP ${res.status}`}`);
+  if (!res.ok || body.error) throw new Error(metaErrorText(body.error, res.status));
   return body;
 }
 

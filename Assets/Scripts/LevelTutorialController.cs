@@ -62,6 +62,7 @@ namespace PixelGame
         private Sequence m_HandSequence;
         private Vector2 m_CurrentHandTargetPos = Vector2.zero;
         private bool m_HandAnimationStarted = false;
+        private float m_ShownAt;
 
         public bool IsActive => m_IsActive;
 
@@ -364,9 +365,11 @@ namespace PixelGame
         {
             EnsureUIHierarchy();
             gameObject.SetActive(true);
+            if (!m_IsActive) m_ShownAt = Time.unscaledTime;
             m_IsActive = true;
             m_IsDismissing = false;
             m_HandAnimationStarted = false;
+            LandFlowAnalytics.DesignOnce("FTUE:Tutorial:Shown");
 
             // En uste getir (Canvas'taki diger HUD ogelerinin ustunde golge olabilsin)
             transform.SetAsLastSibling();
@@ -390,6 +393,8 @@ namespace PixelGame
         {
             if (!m_IsActive || m_IsDismissing) return;
             m_IsDismissing = true;
+            // Değer: el işaretinin görünmesinden ilk gemi gönderimine kadar geçen saniye
+            LandFlowAnalytics.DesignOnce("FTUE:Tutorial:Done", Time.unscaledTime - m_ShownAt);
 
             KillAnimations();
 
