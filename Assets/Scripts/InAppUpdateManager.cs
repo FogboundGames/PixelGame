@@ -6,6 +6,11 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
 using TMPro;
+
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -43,8 +48,6 @@ namespace PixelGame
         private TextMeshProUGUI m_MessageText;
         private TextMeshProUGUI m_VersionBadgeText;
         private Button m_UpdateButton;
-        private Button m_LaterButton;
-        private GameObject m_LaterButtonObj;
         private Button m_CloseButton;
         private GameObject m_CloseButtonObj;
         private Coroutine m_CardPopInCoroutine;
@@ -66,6 +69,12 @@ namespace PixelGame
         private static void AutoBootstrap()
         {
             if (s_Instance != null) return;
+            var existing = UnityEngine.Object.FindFirstObjectByType<InAppUpdateManager>();
+            if (existing != null)
+            {
+                s_Instance = existing;
+                return;
+            }
             GameObject go = new GameObject("[InAppUpdateManager]");
             s_Instance = go.AddComponent<InAppUpdateManager>();
             if (Application.isPlaying) DontDestroyOnLoad(go);
@@ -81,43 +90,36 @@ namespace PixelGame
             }
             s_Instance = this;
             if (Application.isPlaying) DontDestroyOnLoad(gameObject);
+
+            BindExistingPopupIfPresent();
+        }
+
+        private void OnEnable()
+        {
+            BindExistingPopupIfPresent();
         }
 
         private void Start()
         {
+            BindExistingPopupIfPresent();
+
             if (Application.isPlaying && m_CheckOnStart)
             {
-                // Sahne elemanları ve ağ hazır olunca kontrol et
                 StartCoroutine(DelayedCheckRoutine());
             }
         }
 
         private void Update()
         {
-            // Pop-up açık değilse işlem yapma
             if (m_PopupRoot == null || !m_PopupRoot.activeSelf) return;
 
-            // Zorunlu güncelleme ise kapatma kontrolleri devre dışıdır
+            // Zorunlu güncelleme ise kapatmaya izin verilmez
             if (m_CurrentInfo != null && m_CurrentInfo.IsForce) return;
 
-            // Tıklama / Dokunma algılama (Hem Play Mode hem Edit Mode desteği)
-            bool clicked = false;
-            Vector2 screenPos = Vector2.zero;
-
-            if (Input.GetMouseButtonDown(0))
+            // Güvenli giriş algılama (New Input System ve Legacy Input uyumlu)
+            if (GetPointerDown(out Vector2 screenPos))
             {
-                clicked = true;
-                screenPos = Input.mousePosition;
-            }
-            else if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
-            {
-                clicked = true;
-                screenPos = Input.GetTouch(0).position;
-            }
-
-            if (clicked)
-            {
-                // 1. Sağ Üst '✕' Butonu Tıklaması
+                // 1. Sağ Üst Çarpı Butonu Tıklaması
                 if (m_CloseButtonObj != null && m_CloseButtonObj.activeSelf)
                 {
                     RectTransform closeRt = (RectTransform)m_CloseButtonObj.transform;
@@ -128,18 +130,7 @@ namespace PixelGame
                     }
                 }
 
-                // 2. 'Daha Sonra' Butonu Tıklaması
-                if (m_LaterButtonObj != null && m_LaterButtonObj.activeSelf)
-                {
-                    RectTransform laterRt = (RectTransform)m_LaterButtonObj.transform;
-                    if (RectTransformUtility.RectangleContainsScreenPoint(laterRt, screenPos, null))
-                    {
-                        DismissPopup();
-                        return;
-                    }
-                }
-
-                // 3. Kartın Dışına (Arka Plan Karartmasına) Tıklama
+                // 2. Kartın dışına (arka plan karartmasına) tıklayınca kapatma
                 if (m_CardRect != null)
                 {
                     if (!RectTransformUtility.RectangleContainsScreenPoint(m_CardRect, screenPos, null))
@@ -149,6 +140,20 @@ namespace PixelGame
                     }
                 }
             }
+        }
+
+        private bool GetPointerDown(out Vector2 screenPos)
+        {
+            screenPos = Vector2.zero;
+
+#if ENABLE_INPUT_SYSTEM
+            if (Pointer.current != null && Pointer.current.press.wasPressedThisFrame)
+            {
+                screenPos = Pointer.current.position.ReadValue();
+                return true;
+            }
+#endif
+            return false;
         }
 
         private IEnumerator DelayedCheckRoutine()
@@ -202,14 +207,13 @@ namespace PixelGame
 
                 if (isNewer)
                 {
-                    // Kullanıcı zorunlu olmayan bir güncellemeyi bugün zaten kapattıysa günde bir kereden fazla boğmayalım
                     string today = DateTime.UtcNow.ToString("yyyy-MM-dd");
                     string dismissedDate = PlayerPrefs.GetString(DismissedDatePrefKey, "");
                     string dismissedVer = PlayerPrefs.GetString(DismissedVersionPrefKey, "");
 
                     if (!isForce && dismissedDate == today && dismissedVer == info.LatestVersion && !m_DebugForceShow)
                     {
-                        Debug.Log("[InAppUpdateManager] Güncelleme mevcut ama kullanıcı bugün zaten 'Daha Sonra' dedi.");
+                        Debug.Log("[InAppUpdateManager] Güncelleme mevcut ama kullanıcı bugün zaten kapattı.");
                         onComplete?.Invoke(false, info);
                         yield break;
                     }
@@ -234,7 +238,7 @@ namespace PixelGame
                 // 1. Version
                 info.LatestVersion = ExtractFieldString(json, "version");
 
-                // 2. Device (min version ve force bayrağı burada saklanabilir: min:1.0.0|force:1)
+                // 2. Device (min version ve force bayrağı: min:1.0.0|force:1)
                 string deviceStr = ExtractFieldString(json, "device");
                 if (!string.IsNullOrEmpty(deviceStr))
                 {
@@ -249,7 +253,7 @@ namespace PixelGame
                     }
                 }
 
-                // 3. Title ve Message (events haritası altında stringValue olarak tutulur)
+                // 3. Title ve Message
                 string title = ExtractMapFieldString(json, "title");
                 if (!string.IsNullOrEmpty(title)) info.Title = title;
 
@@ -327,13 +331,8 @@ namespace PixelGame
             }
 
             // Zorunlu güncelleme kontrolü:
-            // Zorunlu ise (IsForce == true) ne 'X' butonu ne de 'Daha Sonra' butonu görünür!
+            // Zorunlu ise (IsForce == true) 'X' butonu görünmez!
             bool canDismiss = !m_CurrentInfo.IsForce;
-
-            if (m_LaterButtonObj != null)
-            {
-                m_LaterButtonObj.SetActive(canDismiss);
-            }
 
             if (m_CloseButtonObj != null)
             {
@@ -342,7 +341,7 @@ namespace PixelGame
 
             m_PopupRoot.SetActive(true);
 
-            // Açılış animasyonu (Pop / Punch - yalnızca Play Mode'da)
+            // Açılış animasyonu
             if (m_CardRect != null)
             {
                 if (Application.isPlaying)
@@ -393,14 +392,12 @@ namespace PixelGame
         }
 
         /// <summary>
-        /// Pop-up'ı kapatır ve oyun içi ekranı tamamen serbest bırakır.
-        /// Eğer güncelleme zorunluysa kapatmaya izin vermez.
+        /// Pop-up'ı kapatır ve oyun içi kontrolleri tamamen aktif eder.
         /// </summary>
         public void DismissPopup()
         {
             if (m_CurrentInfo != null && m_CurrentInfo.IsForce)
             {
-                // Zorunlu güncelleme ise kapatılamaz
                 Debug.Log("[InAppUpdateManager] Bu güncelleme zorunludur, kapatılamaz.");
                 return;
             }
@@ -461,7 +458,6 @@ namespace PixelGame
 
         private static Sprite LoadVioletSprite(string assetPath, string resourceName)
         {
-            // 1. Önce Resources klasörünü dene (Çalışma zamanı / Build desteği)
             if (!string.IsNullOrEmpty(resourceName))
             {
                 Sprite rSp = Resources.Load<Sprite>(resourceName);
@@ -469,11 +465,9 @@ namespace PixelGame
             }
 
 #if UNITY_EDITOR
-            // 2. AssetDatabase doğrudan Sprite yüklemeyi dene
             Sprite directSp = AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
             if (directSp != null) return directSp;
 
-            // 3. AssetDatabase alt varlıkları ara (Multiple Sprite Mode için)
             UnityEngine.Object[] subAssets = AssetDatabase.LoadAllAssetsAtPath(assetPath);
             if (subAssets != null)
             {
@@ -487,6 +481,111 @@ namespace PixelGame
             return null;
         }
 
+        private void BindExistingPopupIfPresent()
+        {
+            if (m_PopupRoot != null && m_CloseButtonObj != null) return;
+
+            GameObject popup = GameObject.Find("InAppUpdate_Popup");
+            if (popup == null)
+            {
+                var allGos = Resources.FindObjectsOfTypeAll<GameObject>();
+                for (int i = 0; i < allGos.Length; i++)
+                {
+                    if (allGos[i] != null && allGos[i].name == "InAppUpdate_Popup" && allGos[i].scene.isLoaded)
+                    {
+                        popup = allGos[i];
+                        break;
+                    }
+                }
+            }
+
+            if (popup != null)
+            {
+                m_PopupRoot = popup;
+                ConfigureExistingPopup(popup);
+            }
+        }
+
+        private void ConfigureExistingPopup(GameObject popup)
+        {
+            m_PopupRoot = popup;
+
+            // Arka plan overlay butonuna tıklayınca kapatma
+            Button overlayBtn = popup.GetComponent<Button>();
+            if (overlayBtn != null)
+            {
+                overlayBtn.onClick.RemoveAllListeners();
+                overlayBtn.onClick.AddListener(() =>
+                {
+                    if (m_CurrentInfo != null && !m_CurrentInfo.IsForce)
+                    {
+                        DismissPopup();
+                    }
+                });
+            }
+
+            Transform cardTr = popup.transform.Find("Update_Card");
+            if (cardTr == null) return;
+            m_CardRect = (RectTransform)cardTr;
+
+            // 'Daha Sonra' butonunu tamamen kaldır
+            Transform laterTr = cardTr.Find("Btn_Later");
+            if (laterTr != null)
+            {
+                if (Application.isPlaying) Destroy(laterTr.gameObject);
+                else DestroyImmediate(laterTr.gameObject);
+            }
+
+            // 'ŞİMDİ GÜNCELLE' butonunu aşağıya doğru ortala ve bağla
+            Transform updateTr = cardTr.Find("Btn_Update");
+            if (updateTr != null)
+            {
+                RectTransform updateRt = (RectTransform)updateTr;
+                updateRt.anchoredPosition = new Vector2(0f, 65f); // Daha Sonra kalktığı için dengeli konum
+                m_UpdateButton = updateTr.GetComponent<Button>();
+                if (m_UpdateButton != null)
+                {
+                    m_UpdateButton.onClick.RemoveAllListeners();
+                    m_UpdateButton.onClick.AddListener(OpenStore);
+                }
+            }
+
+            // Kullanıcının eklediği / özelleştirdiği Çarpı ('✕') Butonu
+            Transform closeTr = cardTr.Find("Btn_Close");
+            if (closeTr == null) closeTr = popup.transform.Find("Btn_Close");
+
+            if (closeTr != null)
+            {
+                m_CloseButtonObj = closeTr.gameObject;
+                m_CloseButton = closeTr.GetComponent<Button>();
+                if (m_CloseButton == null) m_CloseButton = closeTr.gameObject.AddComponent<Button>();
+
+                Image closeImg = closeTr.GetComponent<Image>();
+                if (closeImg != null)
+                {
+                    closeImg.raycastTarget = true;
+                    m_CloseButton.targetGraphic = closeImg;
+                }
+
+                // Tıklayınca DismissPopup fonksiyonunu çağır
+                m_CloseButton.onClick.RemoveAllListeners();
+                m_CloseButton.onClick.AddListener(DismissPopup);
+
+                // En üst katmana getir (hiçbir nesne arkasında kalmasın)
+                closeTr.SetAsLastSibling();
+            }
+
+            // Metin referanslarını bağla
+            Transform titleTr = cardTr.Find("Title_Text");
+            if (titleTr != null) m_TitleText = titleTr.GetComponent<TextMeshProUGUI>();
+
+            Transform pillTr = cardTr.Find("Version_Pill/Version_Text");
+            if (pillTr != null) m_VersionBadgeText = pillTr.GetComponent<TextMeshProUGUI>();
+
+            Transform msgTr = cardTr.Find("Message_Text");
+            if (msgTr != null) m_MessageText = msgTr.GetComponent<TextMeshProUGUI>();
+        }
+
         private void EnsurePopupUi()
         {
             if (m_CardPopInCoroutine != null)
@@ -495,23 +594,32 @@ namespace PixelGame
                 m_CardPopInCoroutine = null;
             }
 
-            // Sahnedeki tüm eski InAppUpdate_Popup ve InAppUpdate_Canvas nesnelerini kökten temizle
-            GameObject[] allGos = Resources.FindObjectsOfTypeAll<GameObject>();
-            for (int i = 0; i < allGos.Length; i++)
+            // 1. Sahnede zaten var olan bir InAppUpdate_Popup varsa onu doğrudan kullan ve özelleştir
+            GameObject existingPopup = GameObject.Find("InAppUpdate_Popup");
+            if (existingPopup == null)
             {
-                if (allGos[i] != null && (allGos[i].name == "InAppUpdate_Popup" || allGos[i].name == "InAppUpdate_Canvas"))
+                var allGos = Resources.FindObjectsOfTypeAll<GameObject>();
+                for (int i = 0; i < allGos.Length; i++)
                 {
-                    if (Application.isPlaying) Destroy(allGos[i]);
-                    else DestroyImmediate(allGos[i]);
+                    if (allGos[i] != null && allGos[i].name == "InAppUpdate_Popup" && allGos[i].scene.isLoaded)
+                    {
+                        existingPopup = allGos[i];
+                        break;
+                    }
                 }
             }
-            m_PopupRoot = null;
 
-            // Bağımsız, en üst katmanda Overlay Canvas kur (Hiçbir 3D nesne veya HUD katmanı tıklamayı engelleyemez)
+            if (existingPopup != null)
+            {
+                ConfigureExistingPopup(existingPopup);
+                return;
+            }
+
+            // 2. Sahnede yoksa sıfırdan oluştur
             GameObject canvasGo = new GameObject("InAppUpdate_Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             Canvas targetCanvas = canvasGo.GetComponent<Canvas>();
             targetCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            targetCanvas.sortingOrder = 32767; // Unity'deki en yüksek katman (Her şeyin üstünde)
+            targetCanvas.sortingOrder = 32767;
 
             GraphicRaycaster gr = canvasGo.GetComponent<GraphicRaycaster>();
             gr.blockingObjects = GraphicRaycaster.BlockingObjects.None;
@@ -535,7 +643,7 @@ namespace PixelGame
             TMP_FontAsset fallbackFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
 #endif
 
-            // 1. Fullscreen Dark Overlay (Karartma & Arka Plana Tıklayınca Kapanma)
+            // Karartma Overlay
             m_PopupRoot = new GameObject("InAppUpdate_Popup", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
             m_PopupRoot.transform.SetParent(targetCanvas.transform, false);
 
@@ -559,7 +667,7 @@ namespace PixelGame
                 }
             });
 
-            // 2. Card Panel (Modern, ferah ve orantılı tasarım)
+            // Card Panel
             GameObject cardGo = new GameObject("Update_Card", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Outline));
             cardGo.transform.SetParent(m_PopupRoot.transform, false);
 
@@ -568,17 +676,17 @@ namespace PixelGame
             m_CardRect.anchorMax = new Vector2(0.5f, 0.5f);
             m_CardRect.pivot = new Vector2(0.5f, 0.5f);
             m_CardRect.anchoredPosition = new Vector2(0f, 15f);
-            m_CardRect.sizeDelta = new Vector2(660f, 500f);
+            m_CardRect.sizeDelta = new Vector2(660f, 480f);
 
             Image cardImg = cardGo.GetComponent<Image>();
-            cardImg.color = new Color(0.10f, 0.15f, 0.24f, 0.98f); // Koyu lacivert/slate zemin
+            cardImg.color = new Color(0.10f, 0.15f, 0.24f, 0.98f);
             cardImg.raycastTarget = true;
 
             Outline cardOutline = cardGo.GetComponent<Outline>();
             cardOutline.effectColor = new Color(0.25f, 0.45f, 0.80f, 0.85f);
             cardOutline.effectDistance = new Vector2(3f, -3f);
 
-            // 3. Başlık (İkonsuz, Büyük, Belirgin ve Vurgulu)
+            // Başlık
             GameObject titleGo = new GameObject("Title_Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
             titleGo.transform.SetParent(cardGo.transform, false);
             RectTransform titleRt = (RectTransform)titleGo.transform;
@@ -593,12 +701,12 @@ namespace PixelGame
             m_TitleText.fontSize = 44f;
             m_TitleText.fontStyle = FontStyles.Bold;
             m_TitleText.alignment = TextAlignmentOptions.Center;
-            m_TitleText.color = new Color(1f, 0.84f, 0.20f); // Altın sarısı
+            m_TitleText.color = new Color(1f, 0.84f, 0.20f);
             m_TitleText.outlineColor = Color.black;
             m_TitleText.outlineWidth = 0.28f;
             m_TitleText.text = "YENİ GÜNCELLEME!";
 
-            // 4. Versiyon Hapı (v1.7 -> v1.8)
+            // Versiyon Hapı
             GameObject verPillGo = new GameObject("Version_Pill", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Outline));
             verPillGo.transform.SetParent(cardGo.transform, false);
             RectTransform verPillRt = (RectTransform)verPillGo.transform;
@@ -631,7 +739,7 @@ namespace PixelGame
             m_VersionBadgeText.color = new Color(0.75f, 0.85f, 0.98f);
             m_VersionBadgeText.text = "v1.7 -> v1.8";
 
-            // 5. Mesaj Açıklama Metni (Büyük, Ferah ve Okunaklı)
+            // Mesaj Metni
             GameObject msgGo = new GameObject("Message_Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
             msgGo.transform.SetParent(cardGo.transform, false);
             RectTransform msgRt = (RectTransform)msgGo.transform;
@@ -650,18 +758,18 @@ namespace PixelGame
             m_MessageText.color = new Color(0.90f, 0.94f, 1f);
             m_MessageText.text = "30 yeni piksel bölüm, taze çizimler ve görsel geliştirmeler eklendi!";
 
-            // 6. GÜNCELLE Butonu (Geniş, Büyük, Canlı Yeşil)
+            // GÜNCELLE Butonu (Daha Sonra yazısı olmadan tek, büyük ve ortalanmış)
             GameObject btnUpdateGo = new GameObject("Btn_Update", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button), typeof(Outline));
             btnUpdateGo.transform.SetParent(cardGo.transform, false);
             RectTransform btnUpdateRt = (RectTransform)btnUpdateGo.transform;
             btnUpdateRt.anchorMin = new Vector2(0.5f, 0f);
             btnUpdateRt.anchorMax = new Vector2(0.5f, 0f);
             btnUpdateRt.pivot = new Vector2(0.5f, 0.5f);
-            btnUpdateRt.anchoredPosition = new Vector2(0f, 105f);
-            btnUpdateRt.sizeDelta = new Vector2(520f, 84f);
+            btnUpdateRt.anchoredPosition = new Vector2(0f, 65f);
+            btnUpdateRt.sizeDelta = new Vector2(520f, 88f);
 
             Image btnUpdateImg = btnUpdateGo.GetComponent<Image>();
-            btnUpdateImg.color = new Color(0.08f, 0.74f, 0.38f); // Canlı Zümrüt Yeşili (#15B760)
+            btnUpdateImg.color = new Color(0.08f, 0.74f, 0.38f);
 
             Outline btnOutline = btnUpdateGo.GetComponent<Outline>();
             btnOutline.effectColor = new Color(0.05f, 0.45f, 0.22f);
@@ -689,46 +797,7 @@ namespace PixelGame
             btnUpdateTmp.outlineWidth = 0.24f;
             btnUpdateTmp.text = "ŞİMDİ GÜNCELLE";
 
-            // 7. DAHA SONRA Butonu (Tıklanabilir Şık Pill Buton)
-            m_LaterButtonObj = new GameObject("Btn_Later", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button), typeof(Outline));
-            m_LaterButtonObj.transform.SetParent(cardGo.transform, false);
-            RectTransform btnLaterRt = (RectTransform)m_LaterButtonObj.transform;
-            btnLaterRt.anchorMin = new Vector2(0.5f, 0f);
-            btnLaterRt.anchorMax = new Vector2(0.5f, 0f);
-            btnLaterRt.pivot = new Vector2(0.5f, 0.5f);
-            btnLaterRt.anchoredPosition = new Vector2(0f, 38f);
-            btnLaterRt.sizeDelta = new Vector2(260f, 42f);
-
-            Image btnLaterImg = m_LaterButtonObj.GetComponent<Image>();
-            btnLaterImg.color = new Color(0.14f, 0.20f, 0.32f, 0.75f); // Tıklanabilir zemin
-            btnLaterImg.raycastTarget = true;
-
-            Outline laterOutline = m_LaterButtonObj.GetComponent<Outline>();
-            laterOutline.effectColor = new Color(0.25f, 0.35f, 0.55f, 0.50f);
-            laterOutline.effectDistance = new Vector2(1f, -1f);
-
-            m_LaterButton = m_LaterButtonObj.GetComponent<Button>();
-            m_LaterButton.targetGraphic = btnLaterImg;
-            m_LaterButton.onClick.AddListener(DismissPopup);
-
-            GameObject btnLaterTextGo = new GameObject("Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
-            btnLaterTextGo.transform.SetParent(m_LaterButtonObj.transform, false);
-            RectTransform btnLaterTextRt = (RectTransform)btnLaterTextGo.transform;
-            btnLaterTextRt.anchorMin = Vector2.zero;
-            btnLaterTextRt.anchorMax = Vector2.one;
-            btnLaterTextRt.offsetMin = Vector2.zero;
-            btnLaterTextRt.offsetMax = Vector2.zero;
-
-            TextMeshProUGUI btnLaterTmp = btnLaterTextGo.GetComponent<TextMeshProUGUI>();
-            if (fallbackFont != null) btnLaterTmp.font = fallbackFont;
-            else if (m_Font != null) btnLaterTmp.font = m_Font;
-            btnLaterTmp.fontSize = 22f;
-            btnLaterTmp.alignment = TextAlignmentOptions.Center;
-            btnLaterTmp.color = new Color(0.70f, 0.80f, 0.95f, 0.95f);
-            btnLaterTmp.raycastTarget = false;
-            btnLaterTmp.text = "Daha Sonra";
-
-            // 8. ❌ Sağ Üst Kapatma Çarpı Butonu (Violet Theme UI Orijinal Sprite Entegreli)
+            // ❌ Sağ Üst Kapatma Çarpı Butonu (Violet Theme UI Close İkonlu)
             m_CloseButtonObj = new GameObject("Btn_Close", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
             m_CloseButtonObj.transform.SetParent(cardGo.transform, false);
             RectTransform btnCloseRt = (RectTransform)m_CloseButtonObj.transform;
@@ -739,10 +808,10 @@ namespace PixelGame
             btnCloseRt.sizeDelta = new Vector2(58f, 58f);
 
             Image btnCloseImg = m_CloseButtonObj.GetComponent<Image>();
-            Sprite violetRedBtnSprite = LoadVioletSprite("Assets/Violet Theme Ui/Buttons/Misc/Small Square Button Red.png", "ui_violet_red_button");
-            if (violetRedBtnSprite != null)
+            Sprite closeSprite = LoadVioletSprite("Assets/Violet Theme Ui/Colored Icons/Close.png", "ui_violet_close");
+            if (closeSprite != null)
             {
-                btnCloseImg.sprite = violetRedBtnSprite;
+                btnCloseImg.sprite = closeSprite;
                 btnCloseImg.color = Color.white;
             }
             else
@@ -755,33 +824,6 @@ namespace PixelGame
             m_CloseButton.targetGraphic = btnCloseImg;
             m_CloseButton.onClick.AddListener(DismissPopup);
 
-            // Violet White Close İkonu
-            GameObject closeIconGo = new GameObject("Violet_Close_Icon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            closeIconGo.transform.SetParent(m_CloseButtonObj.transform, false);
-            RectTransform closeIconRt = (RectTransform)closeIconGo.transform;
-            closeIconRt.anchorMin = new Vector2(0.5f, 0.5f);
-            closeIconRt.anchorMax = new Vector2(0.5f, 0.5f);
-            closeIconRt.pivot = new Vector2(0.5f, 0.5f);
-            closeIconRt.anchoredPosition = new Vector2(0f, 2f); // Buton kabartmasına göre hafif yukarı merkezli
-            closeIconRt.sizeDelta = new Vector2(34f, 34f);
-
-            Image closeIconImg = closeIconGo.GetComponent<Image>();
-            Sprite violetCloseIconSprite = LoadVioletSprite("Assets/Violet Theme Ui/White Icons/White Close.png", "ui_violet_close");
-            if (violetCloseIconSprite != null)
-            {
-                closeIconImg.sprite = violetCloseIconSprite;
-                closeIconImg.color = Color.white;
-            }
-            else
-            {
-                // Alternatif Colored Icons Close sprite'ı dene
-                Sprite coloredClose = LoadVioletSprite("Assets/Violet Theme Ui/Colored Icons/Close.png", "");
-                if (coloredClose != null) closeIconImg.sprite = coloredClose;
-            }
-            closeIconImg.preserveAspect = true;
-            closeIconImg.raycastTarget = false; // Tıklamayı ana butonun alması için false
-
-            // Çarpı butonunu en üst sıraya yerleştir
             m_CloseButtonObj.transform.SetAsLastSibling();
 
             m_PopupRoot.SetActive(false);
