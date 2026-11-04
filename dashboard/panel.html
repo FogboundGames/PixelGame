@@ -214,7 +214,7 @@ tr.selected td { background: var(--wash); font-weight: 600; }
 
     <section>
       <h2>Retention ve churn <span class="tag" data-src="retention"></span></h2>
-      <p class="hint">Churn, retention'ın tersidir: N. gün churn = 100 − N. gün retention. GameAnalytics churn'ü ayrı bir metrik olarak vermez, bu değerler buradan hesaplanır. Seçili dönemde N günü dolmuş yeterli kohort yoksa önceki kohortlar kullanılır.</p>
+      <p class="hint">Churn, retention'ın tersidir: N. gün churn = 100 − N. gün retention. GameAnalytics churn'ü ayrı bir metrik olarak vermez, bu değerler buradan hesaplanır. Seçili dönemde N günü dolmuş yeterli kohort yoksa önceki kohortlar kullanılır. N. günü bugüne denk gelen oyuncular da sayılır; bugün henüz dönmeyenler gün bitene kadar dönebileceği için bu değer gün içinde artabilir.</p>
       <div id="kpiRetention" class="kpis"></div>
       <div class="grid2">
         <figure class="card"><figcaption>Retention eğrisi (N. gün geri dönen yeni oyuncu %)</figcaption><div id="chRet" class="chart"></div></figure>
@@ -728,7 +728,11 @@ async function fetchPlayers() {
   return players;
 }
 
-/** Oyuncu özetlerinden panelin veri biçimini çıkarır. Level sayıları tüm zamanların toplamıdır. Bugün henüz bitmediği için N. gün hesaplarına girmez. */
+/**
+ * Oyuncu özetlerinden panelin veri biçimini çıkarır. Level sayıları tüm zamanların toplamıdır. Oynama süresi gibi N. gün
+ * toplamlarına bugün girmez (gün bitmedi). Retention'a girer: bugün dönen oyuncu zaten dönmüştür, dışarıda bırakılırsa dün
+ * gelen kohort hiç sayılmaz. Bugün henüz dönmeyenler gün içinde dönebilir, o yüzden bu değer "partial" işaretlenir ve artabilir.
+ */
 function summarizePlayers(players, from, to) {
   const lastFullDay = addDays(to, -1);
   const known = players.filter((p) => p.firstSeen);
@@ -753,11 +757,14 @@ function summarizePlayers(players, from, to) {
   const enoughPlayers = inPeriod.length >= FIRESTORE_MIN_COHORT;
   const retention = [];
   for (const day of FIRESTORE_RETENTION_DAYS) {
-    const eligible = inPeriod.filter((p) => addDays(p.firstSeen, day) <= lastFullDay);
-    if (enoughPlayers && eligible.length) retention.push({ day, pct: (eligible.filter((p) => activeOn(p, addDays(p.firstSeen, day))).length / eligible.length) * 100 });
+    const eligible = inPeriod.filter((p) => addDays(p.firstSeen, day) <= to);
+    if (!enoughPlayers || !eligible.length) continue;
+    const hit = eligible.filter((p) => activeOn(p, addDays(p.firstSeen, day))).length;
+    const partial = eligible.some((p) => addDays(p.firstSeen, day) === to);
+    retention.push({ day, pct: (hit / eligible.length) * 100, hit, n: eligible.length, partial });
   }
   const trendPct = (date, day) => {
-    if (!enoughPlayers || addDays(date, day) > lastFullDay || !cohort(date).length) return null;
+    if (!enoughPlayers || addDays(date, day) > to || !cohort(date).length) return null;
     return (cohort(date).filter((p) => activeOn(p, addDays(date, day))).length / cohort(date).length) * 100;
   };
 
@@ -850,7 +857,6 @@ const levelNumber = (id) => Number(/^Level_(\d+)$/.exec(id)?.[1] ?? 0);
  * Ülkesi bilinmeyen oyuncu yalnızca "Tümü"ne girer.
  */
 function compareRegions(players, from, to) {
-  const lastFullDay = addDays(to, -1);
   const known = players.filter((p) => p.firstSeen);
   const periodDays = (p) => Object.entries(p.days ?? {}).filter(([date]) => date >= from && date <= to);
   const active = known.filter((p) => periodDays(p).length > 0);
@@ -867,7 +873,7 @@ function compareRegions(players, from, to) {
     const g = active.filter(match);
     const newbies = g.filter((p) => p.firstSeen >= from && p.firstSeen <= to);
     const retained = (day) => {
-      const eligible = newbies.filter((p) => addDays(p.firstSeen, day) <= lastFullDay);
+      const eligible = newbies.filter((p) => addDays(p.firstSeen, day) <= to); // bugün dönen sayılır, bkz. summarizePlayers
       return ratio(eligible.filter((p) => p.days?.[addDays(p.firstSeen, day)]).length, eligible.length);
     };
     const seconds = g.reduce((a, p) => a + periodDays(p).reduce((b, [, d]) => b + (d.seconds ?? 0), 0), 0);
@@ -1482,7 +1488,7 @@ function derive() {
   const newUsers = sum(d, 'newUsers');
   const hasGaNew = d.some((x) => ok(x.newUsers));
   const metaInstalls = data.metaTotals ? mt.installs : null;
-  const ret = (n) => data.retention.find((r) => r.day === n)?.pct ?? null;
+  const ret = (n) => data.retention.find((r) => r.day === n) ?? null;
   const dau = avg(d, 'dau');
   return {
     spend: mt.spend, impressions: mt.impressions, reach: mt.reach, clicks: mt.clicks, metaInstalls,
@@ -1980,6 +1986,14 @@ function render() {
   sample.textContent = `Son 30 günde yalnızca ${int(m.mau)} oyuncu var. Oranlar birkaç kişiyle değişir, karar için değil yön görmek için kullanın.`;
 
   const churn = (v) => (ok(v) ? 100 - v : null);
+  // Firestore satırları kaç kişiden hesaplandığını ve bugünün dahil olup olmadığını taşır; CSV/API satırları yalnızca yüzdeyi
+  const retKpi = (n) => {
+    const r = m[`d${n}`];
+    const parts = [`Churn ${pct(churn(r?.pct))}`];
+    if (r?.n) parts.push(`${r.hit}/${r.n} kişi`);
+    if (r?.partial) parts.push('bugün sürüyor, artabilir');
+    return [`D${n} retention`, pct(r?.pct ?? null), parts.join(' · ')];
+  };
   kpis('kpiActive', [
     ['Ort. günlük aktif', int(m.dau), 'DAU'],
     ['Aylık aktif', int(m.mau), 'MAU, son 30 gün'],
@@ -1988,11 +2002,7 @@ function render() {
     ['Oturum / oyuncu / gün', ok(m.sessionsPerUser) ? nf1.format(m.sessionsPerUser) : '—'],
   ]);
   kpis('kpiRetention', [
-    ['D1 retention', pct(m.d1), `Churn ${pct(churn(m.d1))}`],
-    ['D3 retention', pct(m.d3), `Churn ${pct(churn(m.d3))}`],
-    ['D7 retention', pct(m.d7), `Churn ${pct(churn(m.d7))}`],
-    ['D14 retention', pct(m.d14), `Churn ${pct(churn(m.d14))}`],
-    ['D30 retention', pct(m.d30), `Churn ${pct(churn(m.d30))}`],
+    retKpi(1), retKpi(3), retKpi(7), retKpi(14), retKpi(30),
   ]);
   kpis('kpiPlay', [
     ['Günlük oynama', mins(m.playtime), 'Aktif oyuncunun bir günde oynadığı'],
