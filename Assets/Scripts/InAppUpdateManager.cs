@@ -438,6 +438,7 @@ namespace PixelGame
                 return;
             }
             m_PopupRoot.SetActive(true);
+            EnsurePopupHierarchyVisible(m_PopupRoot.transform);
             Debug.Log($"[InAppUpdateManager] Pop-up gösterildi: '{GetPath(m_PopupRoot.transform)}' activeInHierarchy={m_PopupRoot.activeInHierarchy} kart={(m_CardRect != null)}");
             m_IsPopupVisible = true;
 
@@ -457,6 +458,36 @@ namespace PixelGame
                 else
                 {
                     m_CardRect.localScale = Vector3.one;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Build'e giden (diske kayıtlı) sahnede pop-up'ın üst objeleri kapalı, Canvas'ı devre dışı ya da
+        /// CanvasGroup alpha'sı 0 olabilir; Editor'daki kaydedilmemiş sahne ise farklı görünebilir.
+        /// Pop-up'ın gerçekten ekranda görünmesi için tüm zinciri açar.
+        /// </summary>
+        private static void EnsurePopupHierarchyVisible(Transform popup)
+        {
+            for (Transform t = popup; t != null; t = t.parent)
+            {
+                if (!t.gameObject.activeSelf) t.gameObject.SetActive(true);
+
+                var canvas = t.GetComponent<Canvas>();
+                if (canvas != null && !canvas.enabled) canvas.enabled = true;
+
+                var group = t.GetComponent<CanvasGroup>();
+                if (group != null)
+                {
+                    group.alpha = 1f;
+                    group.interactable = true;
+                    group.blocksRaycasts = true;
+                }
+
+                if (t.parent == null && canvas != null)
+                {
+                    canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                    canvas.sortingOrder = 32767;
                 }
             }
         }
