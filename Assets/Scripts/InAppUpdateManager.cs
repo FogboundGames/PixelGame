@@ -222,6 +222,26 @@ namespace PixelGame
             return false;
         }
 
+        // Ağ hatasında artan aralıklarla yeniden dene (oyun internetsiz açılıp sonra bağlanırsa).
+        private static readonly float[] RetryDelays = { 5f, 15f, 30f, 60f };
+        private int m_RetryCount;
+        private Coroutine m_RetryCoroutine;
+
+        private void ScheduleRetry()
+        {
+            if (!Application.isPlaying || m_RetryCoroutine != null) return;
+            float delay = RetryDelays[Mathf.Min(m_RetryCount, RetryDelays.Length - 1)];
+            m_RetryCount++;
+            m_RetryCoroutine = StartCoroutine(RetryRoutine(delay));
+        }
+
+        private IEnumerator RetryRoutine(float delay)
+        {
+            yield return new WaitForSecondsRealtime(delay);
+            m_RetryCoroutine = null;
+            CheckForUpdates();
+        }
+
         private IEnumerator DelayedCheckRoutine()
         {
             yield return new WaitForSeconds(1.2f);
@@ -264,10 +284,12 @@ namespace PixelGame
                 if (req.result != UnityWebRequest.Result.Success)
                 {
                     Debug.Log($"[InAppUpdateManager] Versiyon kontrolü yapılamadı (çevrimdışı ya da ağ hatası): {req.error}");
+                    ScheduleRetry();
                     onComplete?.Invoke(false, null);
                     yield break;
                 }
 
+                m_RetryCount = 0;
                 string json = req.downloadHandler.text;
                 UpdateInfo info = ParseFirestoreVersionDoc(json);
 
