@@ -61,6 +61,11 @@ namespace PixelGame
             public string Title = "Yeni Güncelleme Geldi!";
             public string Message = "Yepyeni seviyeler ve eğlenceli geliştirmeler seni bekliyor!";
             public string StoreUrl = "";
+            // Firestore belgesinin son yazılma zamanı: panelden her "Yayınla" yeni bir değer üretir.
+            public string PublishStamp = "";
+
+            /// <summary>"X" ile kapatma bu yayına özeldir; panelden yeniden yayınlanınca tekrar gösterilir.</summary>
+            public string DismissKey => LatestVersion + "|" + PublishStamp;
             public bool IsForce = false;
         }
 
@@ -284,11 +289,11 @@ namespace PixelGame
 
                 if (isNewer)
                 {
-                    string today = DateTime.UtcNow.ToString("yyyy-MM-dd");
+                    string today = DateTime.Now.ToString("yyyy-MM-dd");
                     string dismissedDate = PlayerPrefs.GetString(DismissedDatePrefKey, "");
                     string dismissedVer = PlayerPrefs.GetString(DismissedVersionPrefKey, "");
 
-                    if (!isForce && dismissedDate == today && dismissedVer == info.LatestVersion && !m_DebugForceShow)
+                    if (!isForce && dismissedDate == today && dismissedVer == info.DismissKey && !m_DebugForceShow)
                     {
                         Debug.Log("[InAppUpdateManager] Güncelleme mevcut ama kullanıcı bugün zaten kapattı.");
                         onComplete?.Invoke(false, info);
@@ -320,6 +325,9 @@ namespace PixelGame
 
                 // 1. Version
                 info.LatestVersion = ExtractFieldString(json, "version");
+
+                var stamp = Regex.Match(json, "\"updateTime\"\\s*:\\s*\"([^\"]*)\"");
+                if (stamp.Success) info.PublishStamp = stamp.Groups[1].Value;
 
                 // 2. Device (min version ve force bayrağı: min:1.0.0|force:1)
                 string deviceStr = ExtractFieldString(json, "device");
@@ -494,8 +502,8 @@ namespace PixelGame
 
             if (m_CurrentInfo != null && !m_CurrentInfo.IsForce)
             {
-                PlayerPrefs.SetString(DismissedDatePrefKey, DateTime.UtcNow.ToString("yyyy-MM-dd"));
-                PlayerPrefs.SetString(DismissedVersionPrefKey, m_CurrentInfo.LatestVersion);
+                PlayerPrefs.SetString(DismissedDatePrefKey, DateTime.Now.ToString("yyyy-MM-dd"));
+                PlayerPrefs.SetString(DismissedVersionPrefKey, m_CurrentInfo.DismissKey);
                 PlayerPrefs.Save();
             }
 
