@@ -254,6 +254,7 @@ namespace PixelGame
 
         private IEnumerator FetchVersionConfigCore(Action<bool, UpdateInfo> onComplete)
         {
+            Debug.Log($"[InAppUpdateManager] Güncelleme kontrolü başlıyor (cihaz sürümü {Application.version}).");
             string url = VersionDocUrl + "?t=" + DateTime.UtcNow.Ticks;
             using (UnityWebRequest req = UnityWebRequest.Get(url))
             {
@@ -281,6 +282,7 @@ namespace PixelGame
                 bool isNewer = IsVersionNewer(info.LatestVersion, currentVersion);
                 bool isForce = info.IsForce || IsVersionNewer(info.MinRequiredVersion, currentVersion);
                 info.IsForce = isForce;
+                Debug.Log($"[InAppUpdateManager] Kontrol: yayındaki={info.LatestVersion} cihazdaki={currentVersion} yeniMi={isNewer} zorunlu={isForce} kapatılan='{PlayerPrefs.GetString(DismissedVersionPrefKey, "")}' tarih='{PlayerPrefs.GetString(DismissedDatePrefKey, "")}'");
 
                 if (m_DebugForceShow)
                 {
@@ -430,7 +432,13 @@ namespace PixelGame
                 m_CloseButtonObj.SetActive(canDismiss);
             }
 
+            if (m_PopupRoot == null)
+            {
+                Debug.LogWarning("[InAppUpdateManager] Pop-up objesi bulunamadı/oluşturulamadı!");
+                return;
+            }
             m_PopupRoot.SetActive(true);
+            Debug.Log($"[InAppUpdateManager] Pop-up gösterildi: '{GetPath(m_PopupRoot.transform)}' activeInHierarchy={m_PopupRoot.activeInHierarchy} kart={(m_CardRect != null)}");
             m_IsPopupVisible = true;
 
             // Açılış animasyonu
@@ -451,6 +459,13 @@ namespace PixelGame
                     m_CardRect.localScale = Vector3.one;
                 }
             }
+        }
+
+        private static string GetPath(Transform t)
+        {
+            string path = t.name;
+            while (t.parent != null) { t = t.parent; path = t.name + "/" + path; }
+            return path;
         }
 
         private IEnumerator CardPopInRoutine(RectTransform rt)
