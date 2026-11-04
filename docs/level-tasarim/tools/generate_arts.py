@@ -870,16 +870,16 @@ def gen_derindeniz():
 def gen_japontapinagi():
     c = Canvas('2')
     pal = {
-        '1': (250, 180, 160),  # Dawn sky top
-        '2': (255, 225, 195),  # Dawn horizon
-        'S': (220, 45, 55),    # Crimson sun
-        'W': (245, 248, 255),  # Fuji snow
-        'F': (75, 95, 155),    # Fuji slope
-        'T': (205, 35, 40),    # Torii red
-        'D': (125, 20, 28),    # Torii shade
-        'P': (255, 145, 185),  # Sakura pink
-        'B': (85, 50, 35),     # Branch wood
-        'L': (55, 85, 140)     # Lake water
+        '1': (250, 175, 145),  # Dawn peach
+        '2': (255, 230, 185),  # Dawn golden
+        'S': (195, 20, 40),    # Deep crimson sun
+        'W': (245, 248, 255),  # Pure snow
+        'F': (60, 50, 110),    # Indigo Fuji slope (distinct from lake)
+        'T': (240, 75, 35),    # Vermilion torii gate (distinct from sun)
+        'D': (115, 20, 30),    # Deep maroon torii shadow
+        'P': (255, 140, 180),  # Blossom pink
+        'B': (75, 40, 25),     # Bark brown
+        'L': (35, 120, 175)    # Crisp lake teal-blue (distinct from Fuji)
     }
     c.fill_rect(0, 0, 31, 10, '1')
     c.fill_rect(0, 11, 31, 21, '2')
@@ -1019,16 +1019,16 @@ def gen_antikmisir():
 def gen_sibersehir():
     c = Canvas('2')
     pal = {
-        '1': (45, 20, 65),     # Dusk purple
-        '2': (95, 30, 90),     # Dusk magenta
-        'T': (40, 42, 55),     # Tower body
-        'D': (24, 25, 35),     # Tower dark
+        '1': (70, 25, 110),    # Deep violet sky (distinct from tower body and shadow)
+        '2': (145, 40, 120),   # Vibrant dusk magenta
+        'T': (65, 80, 105),    # Steel slate tower body (distinct from shadow)
+        'D': (18, 16, 26),     # Dark obsidian shadow
         'C': (40, 230, 245),   # Neon cyan
         'P': (255, 45, 145),   # Neon pink
         'Y': (255, 220, 40),   # Neon yellow
-        'O': (220, 85, 40),    # Spinner car
+        'O': (235, 105, 30),   # Spinner car orange
         'R': (240, 35, 45),    # Beacon red
-        'H': (75, 130, 215)    # Highway glow
+        'H': (40, 145, 240)    # Electric highway blue
     }
     c.fill_rect(0, 0, 31, 9, '1')
     c.fill_rect(0, 10, 31, 16, '2')
