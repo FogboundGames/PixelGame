@@ -259,6 +259,8 @@ namespace PixelGame.Editor
 
             var scSo = new SerializedObject(sc);
             scSo.FindProperty("m_IsUiContainer").boolValue = true;
+            scSo.FindProperty("m_EnableUiOutline").boolValue = true;
+            scSo.FindProperty("m_EnableFakeShadow").boolValue = true;
             scSo.FindProperty("m_ContainerImage").objectReferenceValue = img;
             scSo.FindProperty("m_BadgeText").objectReferenceValue = tmp;
             scSo.ApplyModifiedPropertiesWithoutUndo();
@@ -465,6 +467,8 @@ namespace PixelGame.Editor
                     shipSo.FindProperty("m_Capacity").intValue = caps[spotIdx];
                     shipSo.FindProperty("m_CurrentCargo").intValue = 0;
                     shipSo.FindProperty("m_IsUiContainer").boolValue = true;
+                    shipSo.FindProperty("m_EnableUiOutline").boolValue = true;
+                    shipSo.FindProperty("m_EnableFakeShadow").boolValue = true;
                     if (cImg != null) shipSo.FindProperty("m_ContainerImage").objectReferenceValue = cImg;
                     if (tmp != null) shipSo.FindProperty("m_BadgeText").objectReferenceValue = tmp;
                     shipSo.ApplyModifiedPropertiesWithoutUndo();

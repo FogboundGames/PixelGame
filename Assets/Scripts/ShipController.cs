@@ -1250,6 +1250,7 @@ namespace PixelGame
             if (IsUiContainer)
             {
                 if (m_FakeShadowObj != null) m_FakeShadowObj.SetActive(false);
+                EnsureUiOutline();
                 return;
             }
 
@@ -1450,8 +1451,8 @@ namespace PixelGame
             }
         }
 
-        [Tooltip("Konteynerin etrafındaki beyaz kontur (Container_Outline). Kullanıcı isteğiyle kapatıldı.")]
-        [SerializeField] private bool m_EnableUiOutline = false;
+        [Tooltip("Konteynerin sahte gölgesi ve konturu (Container_Outline / Fake Shadow).")]
+        [SerializeField] private bool m_EnableUiOutline = true;
         public bool EnableUiOutline { get => m_EnableUiOutline; set => m_EnableUiOutline = value; }
 
         private Image m_UiOutlineImage;
@@ -1460,20 +1461,23 @@ namespace PixelGame
         private const float UiOutlinePad = 64f / 512f;
 
         /// <summary>
-        /// Konteynerin beyaz konturu ve yumuşak gölgesi (Container_Outline). Kendi Canvas'ında, kök Canvas'tan bir sıra
-        /// geride çizilir: tüm konturlar tüm konteyner gövdelerinin ve halat köprüsünün arkasında kalır. Halatın
-        /// konteynere girdiği yerde köprü konturun üstünden geçtiği için iki konteyner ve halat tek parça görünür.
+        /// Konteynerin beyaz konturu ve yumuşak gölgesi (Container_Outline / Fake Shadow). Kendi Canvas'ında, kök Canvas'tan bir sıra
+        /// geride çizilir: tüm konturlar tüm konteyner gövdelerinin ve halat köprüsünün arkasında kalır.
         /// </summary>
         private void EnsureUiOutline()
         {
             if (!IsUiContainer) return;
 
             Transform existingOutline = transform.Find("Outline");
-            if (!m_EnableUiOutline)
+            if (!m_EnableUiOutline && !m_EnableFakeShadow)
             {
                 if (existingOutline != null) existingOutline.gameObject.SetActive(false);
                 if (m_UiOutlineImage != null) m_UiOutlineImage.gameObject.SetActive(false);
                 return;
+            }
+            if (existingOutline != null && !existingOutline.gameObject.activeSelf)
+            {
+                existingOutline.gameObject.SetActive(true);
             }
 #if UNITY_EDITOR
             if (UnityEditor.PrefabUtility.IsPartOfPrefabAsset(gameObject)) return;
@@ -1509,8 +1513,12 @@ namespace PixelGame
                 m_UiOutlineImage = go.GetComponent<Image>();
                 m_UiOutlineImage.raycastTarget = false;
             }
-            m_UiOutlineImage.sprite = s_ContainerOutlineSprite;
-            m_UiOutlineImage.color = Color.white;
+            if (m_UiOutlineImage != null)
+            {
+                if (!m_UiOutlineImage.gameObject.activeSelf) m_UiOutlineImage.gameObject.SetActive(true);
+                m_UiOutlineImage.sprite = s_ContainerOutlineSprite;
+                m_UiOutlineImage.color = Color.white;
+            }
 
             Canvas parentCanvas = transform.parent != null ? transform.parent.GetComponentInParent<Canvas>() : null;
             Canvas root = parentCanvas != null ? parentCanvas.rootCanvas : null;

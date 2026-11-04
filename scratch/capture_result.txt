@@ -1,0 +1,1 @@
+SUCCESS:scratch/update_popup_preview.png

@@ -1,0 +1,4 @@
+SUCCESS
+BtnSprite: ui_violet_red_button
+IconSprite: ui_violet_close
+DismissedOk: True

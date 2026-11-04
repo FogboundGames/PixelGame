@@ -1,0 +1,3 @@
+SUCCESS
+Normal: CloseActive=True, LaterActive=True, DismissedOk=True
+Forced: CloseHidden=True, LaterHidden=True

@@ -1,0 +1,17 @@
+Konteynerların **Fake Shadow**'unun kaybolmasına neden olan durum eski commit ve kod geçmişinden tespit edilip diğer hiçbir yapıya dokunulmadan eksiksiz olarak geri getirildi:
+
+### 🔍 Tespit Edilen Neden
+* `8911d436` numaralı önceki commit'te [ShipController.cs](file:///c:/Users/ezgid/Desktop/PixelGame/Assets/Scripts/ShipController.cs) içerisine `m_EnableUiOutline = false` alanı eklenmiş ve [Gemi.unity](file:///c:/Users/ezgid/Desktop/PixelGame/Assets/Scenes/Gemi.unity) sahnesindeki 8 konteynerin tamamında `0` (kapalı) yapılmıştı.
+* Konteynerlerin yumuşak sahte zemin gölgesi `EnsureUiOutline()` metodu ve `Container_Outline.png` üzerinden üretildiği için, bu ayarın kapatılması sahnedeki tüm konteynerlerin sahte gölgesini (`Outline` alt nesnesini) devre dışı bırakarak gölgesiz kalmalarına yol açmıştı.
+
+---
+
+### 🛠️ Yapılan Düzeltmeler
+1. **[`ShipController.cs`](file:///c:/Users/ezgid/Desktop/PixelGame/Assets/Scripts/ShipController.cs):**
+   * `m_EnableUiOutline` varsayılan değeri tekrar `true` yapıldı.
+   * `EnsureFakeShadow()` metodu UI konteynerler için çağrıldığında doğrudan `EnsureUiOutline()` tetiklenerek gölgenin oluşturulması/aktif tutulması sağlandı.
+   * `EnsureUiOutline()` içerisinde gölge nesnesi pasif kalmışsa otomatik olarak `SetActive(true)` yapılarak sahnede ve çalışma anında görünmesi garanti altına alındı.
+2. **[`Gemi.unity`](file:///c:/Users/ezgid/Desktop/PixelGame/Assets/Scenes/Gemi.unity):**
+   * Sahnedeki 8 UI konteyner instance'ının tamamında `m_EnableUiOutline: 1` olarak güncellendi.
+3. **[`Container_UI.prefab`](file:///c:/Users/ezgid/Desktop/PixelGame/Assets/Prefabs/Container_UI.prefab) & [`SetupContainerReferenceLayout.cs`](file:///c:/Users/ezgid/Desktop/PixelGame/Assets/Editor/SetupContainerReferenceLayout.cs):**
+   * Prefab ve editör kurulum scriptinde sahte gölge bayrakları (`m_EnableUiOutline = true`, `m_EnableFakeShadow = true`) kalıcı hale getirildi.
