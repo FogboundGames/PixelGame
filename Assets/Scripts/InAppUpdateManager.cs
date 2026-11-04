@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
+using UnityEngine.SceneManagement;
 using TMPro;
 
 #if ENABLE_INPUT_SYSTEM
@@ -65,6 +66,14 @@ namespace PixelGame
 
         private UpdateInfo m_CurrentInfo;
 
+        // Pop-up şu an gösterilmesi gereken durumda mı? (sahne yeniden yüklenince durumu korumak için)
+        private bool m_IsPopupVisible;
+        // Aynı anda birden fazla ağ isteği atılmasını engeller.
+        private bool m_IsChecking;
+        // Uygulama arka plandan dönünce tekrar kontrol için son kontrol zamanı (gerçek zaman).
+        private float m_LastCheckRealtime = -1000f;
+        private const float ResumeRecheckCooldown = 5f;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoBootstrap()
         {
@@ -92,11 +101,63 @@ namespace PixelGame
             if (Application.isPlaying) DontDestroyOnLoad(gameObject);
 
             BindExistingPopupIfPresent();
+            HideScenePopupIfNotShowing();
         }
 
         private void OnEnable()
         {
             BindExistingPopupIfPresent();
+            if (Application.isPlaying) SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+
+        private void OnDisable()
+        {
+            if (Application.isPlaying) SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
+
+        /// <summary>
+        /// Sahne yeniden yüklendiğinde (seviye restart vb.) sahnedeki pop-up yeniden oluşur.
+        /// Önceki durumu (gösteriliyor / gizli) yeni pop-up'a uygula.
+        /// </summary>
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            if (s_Instance != this) return;
+            m_PopupRoot = null;
+            m_CloseButtonObj = null;
+            BindExistingPopupIfPresent();
+
+            if (m_IsPopupVisible && m_CurrentInfo != null) ShowUpdatePopup(m_CurrentInfo);
+            else HideScenePopupIfNotShowing();
+        }
+
+        /// <summary>
+        /// Sahneye gömülü pop-up varsayılan olarak aktif kaydedilmiş olabilir; güncelleme yoksa görünmemeli.
+        /// </summary>
+        private void HideScenePopupIfNotShowing()
+        {
+            if (!Application.isPlaying || m_IsPopupVisible) return;
+            if (m_PopupRoot != null && m_PopupRoot.activeSelf) m_PopupRoot.SetActive(false);
+        }
+
+        /// <summary>
+        /// Android/iOS'ta oyunu "kapatıp açmak" çoğu zaman uygulamayı yeniden başlatmaz, sadece arka plandan
+        /// geri getirir; bu durumda Start() tekrar çalışmaz. Bu yüzden her ön plana dönüşte yeniden kontrol edilir.
+        /// </summary>
+        private void OnApplicationPause(bool paused)
+        {
+            if (!paused) RecheckOnResume();
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (hasFocus) RecheckOnResume();
+        }
+
+        private void RecheckOnResume()
+        {
+            if (!Application.isPlaying || !m_CheckOnStart || s_Instance != this) return;
+            if (Time.realtimeSinceStartup - m_LastCheckRealtime < ResumeRecheckCooldown) return;
+            CheckForUpdates();
         }
 
         private void Start()
@@ -167,10 +228,26 @@ namespace PixelGame
         /// </summary>
         public void CheckForUpdates(Action<bool, UpdateInfo> onComplete = null)
         {
+            if (m_IsChecking) return;
             StartCoroutine(FetchVersionConfigRoutine(onComplete));
         }
 
         private IEnumerator FetchVersionConfigRoutine(Action<bool, UpdateInfo> onComplete)
+        {
+            m_IsChecking = true;
+            m_LastCheckRealtime = Time.realtimeSinceStartup;
+            try
+            {
+                yield return FetchVersionConfigCore(onComplete);
+            }
+            finally
+            {
+                m_IsChecking = false;
+                m_LastCheckRealtime = Time.realtimeSinceStartup;
+            }
+        }
+
+        private IEnumerator FetchVersionConfigCore(Action<bool, UpdateInfo> onComplete)
         {
             string url = VersionDocUrl + "?t=" + DateTime.UtcNow.Ticks;
             using (UnityWebRequest req = UnityWebRequest.Get(url))
@@ -224,6 +301,12 @@ namespace PixelGame
                 else
                 {
                     Debug.Log($"[InAppUpdateManager] Oyun sürümü güncel ({currentVersion}).");
+                    // Panelden sürüm geri alındıysa açık kalan pop-up'ı kapat.
+                    if (m_IsPopupVisible)
+                    {
+                        m_IsPopupVisible = false;
+                        if (m_PopupRoot != null) m_PopupRoot.SetActive(false);
+                    }
                     onComplete?.Invoke(false, info);
                 }
             }
@@ -340,6 +423,7 @@ namespace PixelGame
             }
 
             m_PopupRoot.SetActive(true);
+            m_IsPopupVisible = true;
 
             // Açılış animasyonu
             if (m_CardRect != null)
@@ -415,6 +499,7 @@ namespace PixelGame
                 PlayerPrefs.Save();
             }
 
+            m_IsPopupVisible = false;
             if (m_PopupRoot != null)
             {
                 m_PopupRoot.SetActive(false);
