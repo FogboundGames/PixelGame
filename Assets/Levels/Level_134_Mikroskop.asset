@@ -25,31 +25,31 @@ MonoBehaviour:
   m_ColorPalette:
   - originalColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
     targetColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
-    pixelCount: 111
+    pixelCount: 152
     label: 
-  - originalColor: {r: 0.25490195, g: 0.29411766, b: 0.3529412, a: 1}
-    targetColor: {r: 0.25490195, g: 0.29411766, b: 0.3529412, a: 1}
-    pixelCount: 107
+  - originalColor: {r: 0.25490196, g: 0.29411765, b: 0.35294118, a: 1}
+    targetColor: {r: 0.25490196, g: 0.29411765, b: 0.35294118, a: 1}
+    pixelCount: 123
     label: 
-  - originalColor: {r: 0.52941173, g: 0.5686275, b: 0.627451, a: 1}
-    targetColor: {r: 0.52941173, g: 0.5686275, b: 0.627451, a: 1}
-    pixelCount: 49
+  - originalColor: {r: 0.52941176, g: 0.56862745, b: 0.62745098, a: 1}
+    targetColor: {r: 0.52941176, g: 0.56862745, b: 0.62745098, a: 1}
+    pixelCount: 93
     label: 
-  - originalColor: {r: 0.84313726, g: 0.88235295, b: 0.92156863, a: 1}
-    targetColor: {r: 0.84313726, g: 0.88235295, b: 0.92156863, a: 1}
-    pixelCount: 28
+  - originalColor: {r: 0.84313725, g: 0.88235294, b: 0.92156863, a: 1}
+    targetColor: {r: 0.84313725, g: 0.88235294, b: 0.92156863, a: 1}
+    pixelCount: 67
+    label: 
+  - originalColor: {r: 0.96078431, g: 0.7254902, b: 0.15686275, a: 1}
+    targetColor: {r: 0.96078431, g: 0.7254902, b: 0.15686275, a: 1}
+    pixelCount: 32
+    label: 
+  - originalColor: {r: 0.31372549, g: 0.8627451, b: 0.94117647, a: 1}
+    targetColor: {r: 0.31372549, g: 0.8627451, b: 0.94117647, a: 1}
+    pixelCount: 22
     label: 
   - originalColor: {r: 1, g: 1, b: 1, a: 1}
     targetColor: {r: 1, g: 1, b: 1, a: 1}
-    pixelCount: 19
-    label: 
-  - originalColor: {r: 0.3137255, g: 0.8627451, b: 0.9411765, a: 1}
-    targetColor: {r: 0.3137255, g: 0.8627451, b: 0.9411765, a: 1}
-    pixelCount: 18
-    label: 
-  - originalColor: {r: 0.9607843, g: 0.7254902, b: 0.15686275, a: 1}
-    targetColor: {r: 0.9607843, g: 0.7254902, b: 0.15686275, a: 1}
-    pixelCount: 15
+    pixelCount: 20
     label: 
   m_TintColor: {r: 1, g: 1, b: 1, a: 1}
   m_HueShift: 0
@@ -67,23 +67,26 @@ MonoBehaviour:
   m_InnerPadding: 0.08
   m_SkipTransparent: 1
   m_MysteryCubeCoordinates:
-  - {x: 10, y: 15}
-  - {x: 11, y: 15}
-  - {x: 11, y: 16}
-  - {x: 12, y: 14}
-  - {x: 12, y: 15}
-  - {x: 12, y: 16}
-  - {x: 13, y: 13}
-  - {x: 13, y: 14}
-  - {x: 13, y: 15}
-  - {x: 13, y: 16}
-  - {x: 14, y: 14}
-  - {x: 14, y: 15}
-  - {x: 14, y: 16}
-  - {x: 14, y: 17}
-  - {x: 15, y: 15}
-  - {x: 15, y: 16}
-  - {x: 16, y: 15}
+  - {x: 12, y: 21}
+  - {x: 13, y: 20}
+  - {x: 13, y: 21}
+  - {x: 13, y: 22}
+  - {x: 14, y: 20}
+  - {x: 14, y: 21}
+  - {x: 14, y: 22}
+  - {x: 14, y: 23}
+  - {x: 15, y: 19}
+  - {x: 15, y: 20}
+  - {x: 15, y: 21}
+  - {x: 15, y: 22}
+  - {x: 15, y: 23}
+  - {x: 16, y: 20}
+  - {x: 16, y: 21}
+  - {x: 16, y: 22}
+  - {x: 17, y: 20}
+  - {x: 17, y: 21}
+  - {x: 17, y: 22}
+  - {x: 18, y: 21}
   m_MysteryRevealCondition: 0
   m_MysteryCubeColor: {r: 0.470588, g: 0.431373, b: 0.392157, a: 1}
   m_SlotSprite: {fileID: 0}
@@ -91,43 +94,43 @@ MonoBehaviour:
   m_PoolColumns: 4
   m_PoolRows: 3
   m_DisableAutoPlaceTurbo: 0
-  m_TruckCapacity: 30
+  m_TruckCapacity: 40
   m_MinTruckCapacity: 4
   m_PeakTruckCapacity: 10
   m_UseRoundCapacities: 1
   m_RoundCapacityRatio: 0.8
   m_UseCustomWagonSequence: 1
   m_WagonSequence:
-  - wagonColor: {r: 0.25490195, g: 0.29411766, b: 0.3529412, a: 1}
+  - wagonColor: {r: 0.84313725, g: 0.88235294, b: 0.92156863, a: 1}
+    capacity: 40
+    paletteIndex: 3
+    label: Vagon
+    linkId: 1
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.25490196, g: 0.29411765, b: 0.35294118, a: 1}
     capacity: 30
     paletteIndex: 1
     label: Vagon
-    linkId: 0
-    isHidden: 0
-    isDualColor: 0
-    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
-    secondaryCapacity: 0
-  - wagonColor: {r: 1, g: 1, b: 1, a: 1}
-    capacity: 19
-    paletteIndex: 4
-    label: Vagon
     linkId: 1
     isHidden: 0
     isDualColor: 0
     secondaryColor: {r: 0, g: 0, b: 0, a: 1}
     secondaryCapacity: 0
   - wagonColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
-    capacity: 30
+    capacity: 20
     paletteIndex: 0
     label: Vagon
-    linkId: 1
+    linkId: 0
     isHidden: 0
     isDualColor: 0
     secondaryColor: {r: 0, g: 0, b: 0, a: 1}
     secondaryCapacity: 0
-  - wagonColor: {r: 0.52941173, g: 0.5686275, b: 0.627451, a: 1}
-    capacity: 30
-    paletteIndex: 2
+  - wagonColor: {r: 0.84313725, g: 0.88235294, b: 0.92156863, a: 1}
+    capacity: 10
+    paletteIndex: 3
     label: Vagon
     linkId: 0
     isHidden: 0
@@ -135,7 +138,16 @@ MonoBehaviour:
     secondaryColor: {r: 0, g: 0, b: 0, a: 1}
     secondaryCapacity: 0
   - wagonColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
-    capacity: 30
+    capacity: 12
+    paletteIndex: 0
+    label: Vagon
+    linkId: 0
+    isHidden: 1
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
+    capacity: 40
     paletteIndex: 0
     label: Vagon
     linkId: 2
@@ -143,26 +155,35 @@ MonoBehaviour:
     isDualColor: 0
     secondaryColor: {r: 0, g: 0, b: 0, a: 1}
     secondaryCapacity: 0
-  - wagonColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
-    capacity: 10
-    paletteIndex: 0
+  - wagonColor: {r: 0.25490196, g: 0.29411765, b: 0.35294118, a: 1}
+    capacity: 40
+    paletteIndex: 1
+    label: Vagon
+    linkId: 2
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.96078431, g: 0.7254902, b: 0.15686275, a: 1}
+    capacity: 32
+    paletteIndex: 4
     label: Vagon
     linkId: 0
     isHidden: 1
     isDualColor: 0
     secondaryColor: {r: 0, g: 0, b: 0, a: 1}
     secondaryCapacity: 0
-  - wagonColor: {r: 0.9607843, g: 0.7254902, b: 0.15686275, a: 1}
-    capacity: 15
-    paletteIndex: 6
+  - wagonColor: {r: 0.25490196, g: 0.29411765, b: 0.35294118, a: 1}
+    capacity: 40
+    paletteIndex: 1
     label: Vagon
     linkId: 0
-    isHidden: 1
+    isHidden: 0
     isDualColor: 0
     secondaryColor: {r: 0, g: 0, b: 0, a: 1}
     secondaryCapacity: 0
-  - wagonColor: {r: 0.84313726, g: 0.88235295, b: 0.92156863, a: 1}
-    capacity: 28
+  - wagonColor: {r: 0.84313725, g: 0.88235294, b: 0.92156863, a: 1}
+    capacity: 17
     paletteIndex: 3
     label: Vagon
     linkId: 0
@@ -170,53 +191,35 @@ MonoBehaviour:
     isDualColor: 0
     secondaryColor: {r: 0, g: 0, b: 0, a: 1}
     secondaryCapacity: 0
-  - wagonColor: {r: 0.25490195, g: 0.29411766, b: 0.3529412, a: 1}
-    capacity: 17
-    paletteIndex: 1
-    label: Vagon
-    linkId: 2
-    isHidden: 0
-    isDualColor: 0
-    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
-    secondaryCapacity: 0
-  - wagonColor: {r: 0.25490195, g: 0.29411766, b: 0.3529412, a: 1}
-    capacity: 30
-    paletteIndex: 1
-    label: Vagon
-    linkId: 0
-    isHidden: 1
-    isDualColor: 0
-    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
-    secondaryCapacity: 0
-  - wagonColor: {r: 0.3137255, g: 0.8627451, b: 0.9411765, a: 1}
-    capacity: 18
-    paletteIndex: 5
-    label: Vagon
-    linkId: 0
-    isHidden: 0
-    isDualColor: 0
-    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
-    secondaryCapacity: 0
-  - wagonColor: {r: 0.25490195, g: 0.29411766, b: 0.3529412, a: 1}
-    capacity: 30
-    paletteIndex: 1
-    label: Vagon
-    linkId: 0
-    isHidden: 1
-    isDualColor: 0
-    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
-    secondaryCapacity: 0
   - wagonColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
-    capacity: 30
+    capacity: 40
     paletteIndex: 0
     label: Vagon
-    linkId: 3
+    linkId: 0
+    isHidden: 1
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.52941176, g: 0.56862745, b: 0.62745098, a: 1}
+    capacity: 13
+    paletteIndex: 2
+    label: Vagon
+    linkId: 0
     isHidden: 0
     isDualColor: 0
     secondaryColor: {r: 0, g: 0, b: 0, a: 1}
     secondaryCapacity: 0
-  - wagonColor: {r: 0.52941173, g: 0.5686275, b: 0.627451, a: 1}
-    capacity: 19
+  - wagonColor: {r: 0.52941176, g: 0.56862745, b: 0.62745098, a: 1}
+    capacity: 40
+    paletteIndex: 2
+    label: Vagon
+    linkId: 0
+    isHidden: 1
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.52941176, g: 0.56862745, b: 0.62745098, a: 1}
+    capacity: 40
     paletteIndex: 2
     label: Vagon
     linkId: 3
@@ -224,12 +227,39 @@ MonoBehaviour:
     isDualColor: 0
     secondaryColor: {r: 0, g: 0, b: 0, a: 1}
     secondaryCapacity: 0
-  - wagonColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
-    capacity: 11
-    paletteIndex: 0
+  - wagonColor: {r: 1, g: 1, b: 1, a: 1}
+    capacity: 20
+    paletteIndex: 6
+    label: Vagon
+    linkId: 3
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.25490196, g: 0.29411765, b: 0.35294118, a: 1}
+    capacity: 13
+    paletteIndex: 1
     label: Vagon
     linkId: 0
     isHidden: 1
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.13333333, g: 0.10196078, b: 0.15686275, a: 1}
+    capacity: 40
+    paletteIndex: 0
+    label: Vagon
+    linkId: 4
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.31372549, g: 0.8627451, b: 0.94117647, a: 1}
+    capacity: 22
+    paletteIndex: 5
+    label: Vagon
+    linkId: 4
+    isHidden: 0
     isDualColor: 0
     secondaryColor: {r: 0, g: 0, b: 0, a: 1}
     secondaryCapacity: 0
