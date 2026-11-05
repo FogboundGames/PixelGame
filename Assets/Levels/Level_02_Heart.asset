@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_02_Piksel Kalp
   m_EditorClassIdentifier: PixelGame::PixelGame.PixelLevelData
   m_LevelName: Piksel Kalp
-  m_LevelIndex: 3
+  m_LevelIndex: 5
   m_DifficultyTier: 0
   m_DifficultyManual: 0
   m_LegacyIsHardLevel: 0

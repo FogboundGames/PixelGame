@@ -1,0 +1,10 @@
+<!-- Google Play In-App Updates: LandFlowPlayUpdate.cs bu kütüphaneyi JNI ile çağırır. -->
+<dependencies>
+  <androidPackages>
+    <androidPackage spec="com.google.android.play:app-update:2.1.0">
+      <repositories>
+        <repository>https://maven.google.com</repository>
+      </repositories>
+    </androidPackage>
+  </androidPackages>
+</dependencies>

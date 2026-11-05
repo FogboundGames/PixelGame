@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_186_Bumerang
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Bumerang
-  m_LevelIndex: 186
+  m_LevelIndex: 180
   m_DifficultyTier: 0
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0
@@ -56,7 +56,7 @@ MonoBehaviour:
   m_SkipTransparent: 0
   m_MysteryCubeCoordinates: []
   m_MysteryRevealCondition: 0
-  m_MysteryCubeColor: {r: 0.125, g: 0.118, b: 0.306, a: 1}
+  m_MysteryCubeColor: {r: 0.12549, g: 0.117647, b: 0.305882, a: 1}
   m_SlotSprite: {fileID: 0}
   m_SlotCount: 5
   m_PoolColumns: 3
@@ -72,7 +72,43 @@ MonoBehaviour:
   - wagonColor: {r: 0.60784316, g: 0.37254903, b: 0.1764706, a: 1}
     capacity: 10
     paletteIndex: 0
-    label: Renk #1 (1)
+    label: Vagon
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.4117647, g: 0.23529412, b: 0.11764706, a: 1}
+    capacity: 30
+    paletteIndex: 2
+    label: Vagon
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.60784316, g: 0.37254903, b: 0.1764706, a: 1}
+    capacity: 30
+    paletteIndex: 0
+    label: Vagon
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.98039216, g: 0.9019608, b: 0.3137255, a: 1}
+    capacity: 15
+    paletteIndex: 3
+    label: Vagon
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.60784316, g: 0.37254903, b: 0.1764706, a: 1}
+    capacity: 30
+    paletteIndex: 0
+    label: Vagon
     linkId: 0
     isHidden: 0
     isDualColor: 0
@@ -81,34 +117,34 @@ MonoBehaviour:
   - wagonColor: {r: 0.88235295, g: 0.1764706, b: 0.1764706, a: 1}
     capacity: 14
     paletteIndex: 1
-    label: Renk #2 (1)
+    label: Vagon
     linkId: 0
     isHidden: 0
     isDualColor: 0
     secondaryColor: {r: 0, g: 0, b: 0, a: 1}
     secondaryCapacity: 0
-  - wagonColor: {r: 0.4117647, g: 0.23529412, b: 0.11764706, a: 1}
-    capacity: 20
-    paletteIndex: 2
-    label: Renk #3 (1)
-    linkId: 4
+  - wagonColor: {r: 0.60784316, g: 0.37254903, b: 0.1764706, a: 1}
+    capacity: 30
+    paletteIndex: 0
+    label: Vagon
+    linkId: 1
     isHidden: 0
     isDualColor: 0
     secondaryColor: {r: 0, g: 0, b: 0, a: 1}
     secondaryCapacity: 0
-  - wagonColor: {r: 0.98039216, g: 0.9019608, b: 0.3137255, a: 1}
-    capacity: 15
-    paletteIndex: 3
-    label: Renk #4 (1)
-    linkId: 4
+  - wagonColor: {r: 0.88235295, g: 0.1764706, b: 0.1764706, a: 1}
+    capacity: 10
+    paletteIndex: 1
+    label: Vagon
+    linkId: 1
     isHidden: 0
     isDualColor: 0
     secondaryColor: {r: 0, g: 0, b: 0, a: 1}
     secondaryCapacity: 0
   - wagonColor: {r: 0.60784316, g: 0.37254903, b: 0.1764706, a: 1}
-    capacity: 14
+    capacity: 30
     paletteIndex: 0
-    label: Renk #1 (2)
+    label: Vagon
     linkId: 0
     isHidden: 0
     isDualColor: 0
@@ -117,106 +153,34 @@ MonoBehaviour:
   - wagonColor: {r: 0.4117647, g: 0.23529412, b: 0.11764706, a: 1}
     capacity: 16
     paletteIndex: 2
-    label: Renk #3 (2)
-    linkId: 0
-    isHidden: 1
-    isDualColor: 0
-    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
-    secondaryCapacity: 0
-  - wagonColor: {r: 0.4117647, g: 0.23529412, b: 0.11764706, a: 1}
-    capacity: 10
-    paletteIndex: 2
-    label: Renk #3 (3)
-    linkId: 3
-    isHidden: 0
-    isDualColor: 0
-    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
-    secondaryCapacity: 0
-  - wagonColor: {r: 0.60784316, g: 0.37254903, b: 0.1764706, a: 1}
-    capacity: 20
-    paletteIndex: 0
-    label: Renk #1 (3)
+    label: Vagon
     linkId: 0
     isHidden: 0
     isDualColor: 0
     secondaryColor: {r: 0, g: 0, b: 0, a: 1}
     secondaryCapacity: 0
   - wagonColor: {r: 0.60784316, g: 0.37254903, b: 0.1764706, a: 1}
-    capacity: 20
+    capacity: 30
     paletteIndex: 0
-    label: Renk #1 (4)
-    linkId: 3
-    isHidden: 0
-    isDualColor: 0
-    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
-    secondaryCapacity: 0
-  - wagonColor: {r: 0.60784316, g: 0.37254903, b: 0.1764706, a: 1}
-    capacity: 10
-    paletteIndex: 0
-    label: Renk #1 (5)
+    label: Vagon
     linkId: 0
     isHidden: 0
     isDualColor: 0
     secondaryColor: {r: 0, g: 0, b: 0, a: 1}
     secondaryCapacity: 0
   - wagonColor: {r: 0.88235295, g: 0.1764706, b: 0.1764706, a: 1}
-    capacity: 20
+    capacity: 30
     paletteIndex: 1
-    label: Renk #2 (2)
-    linkId: 0
-    isHidden: 0
-    isDualColor: 0
-    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
-    secondaryCapacity: 0
-  - wagonColor: {r: 0.88235295, g: 0.1764706, b: 0.1764706, a: 1}
-    capacity: 20
-    paletteIndex: 1
-    label: Renk #2 (3)
-    linkId: 0
-    isHidden: 0
-    isDualColor: 0
-    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
-    secondaryCapacity: 0
-  - wagonColor: {r: 0.60784316, g: 0.37254903, b: 0.1764706, a: 1}
-    capacity: 20
-    paletteIndex: 0
-    label: Renk #1 (6)
-    linkId: 0
-    isHidden: 0
-    isDualColor: 0
-    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
-    secondaryCapacity: 0
-  - wagonColor: {r: 0.60784316, g: 0.37254903, b: 0.1764706, a: 1}
-    capacity: 20
-    paletteIndex: 0
-    label: Renk #1 (7)
+    label: Vagon
     linkId: 0
     isHidden: 1
     isDualColor: 0
     secondaryColor: {r: 0, g: 0, b: 0, a: 1}
     secondaryCapacity: 0
   - wagonColor: {r: 0.60784316, g: 0.37254903, b: 0.1764706, a: 1}
-    capacity: 20
+    capacity: 14
     paletteIndex: 0
-    label: Renk #1 (8)
-    linkId: 0
-    isHidden: 0
-    isDualColor: 0
-    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
-    secondaryCapacity: 0
-  - wagonColor: {r: 0.60784316, g: 0.37254903, b: 0.1764706, a: 1}
-    capacity: 20
-    paletteIndex: 0
-    label: Renk #1 (9)
-    linkId: 0
-    isHidden: 0
-    isDualColor: 0
-    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
-    secondaryCapacity: 0
-  - wagonColor: {r: 0.60784316, g: 0.37254903, b: 0.1764706, a: 1}
-    capacity: 20
-    paletteIndex: 0
-    label: Renk #1 (10)
+    label: Vagon
     linkId: 0
     isHidden: 0
     isDualColor: 0

@@ -11,6 +11,7 @@ import { loadEnv, env } from './lib/env.mjs';
 import { fetchMeta, metaConfigured } from './lib/meta.mjs';
 import { fetchGA, gaConfigured, gaCheck } from './lib/gameanalytics.mjs';
 import { fetchFirebase, firebaseConfigured, firebaseCheck } from './lib/firebase.mjs';
+import { readUpdateConfig, publishUpdateConfig, remoteConfigConfigured } from './lib/remoteconfig.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 loadEnv(join(ROOT, '.env'));
@@ -57,6 +58,22 @@ async function loadSources(from, to, force) {
   return { meta, ga, firebase, metaState, gaState, firebaseState };
 }
 
+/** Yayın isteği yalnızca panelin kendi sayfasından gelebilir: başka bir site tarayıcı üzerinden buraya yazamasın. */
+function isPanelRequest(req) {
+  const origin = req.headers.origin;
+  const sameOrigin = origin === `http://localhost:${PORT}` || origin === `http://127.0.0.1:${PORT}`;
+  return sameOrigin && (req.headers['content-type'] || '').startsWith('application/json');
+}
+
+async function readJsonBody(req) {
+  let raw = '';
+  for await (const chunk of req) {
+    raw += chunk;
+    if (raw.length > 10_000) throw new Error('İstek çok büyük');
+  }
+  return JSON.parse(raw || '{}');
+}
+
 function sendJson(res, status, body) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
   res.end(JSON.stringify(body));
@@ -80,6 +97,18 @@ const server = createServer(async (req, res) => {
     if (url.pathname === '/api/firebase/check') {
       if (!firebaseConfigured()) return sendJson(res, 400, { error: 'FIREBASE_KEY_FILE ve FIREBASE_PROPERTY_ID gerekli' });
       return sendJson(res, 200, await firebaseCheck());
+    }
+    // Oyundaki güncelleme bildirimi: Firebase Remote Config'teki update_* parametreleri
+    if (url.pathname === '/api/update-config') {
+      if (!remoteConfigConfigured()) return sendJson(res, 400, { error: '.env içinde FIREBASE_KEY_FILE yok' });
+      if (req.method === 'GET') return sendJson(res, 200, await readUpdateConfig());
+      if (req.method !== 'POST') return sendJson(res, 405, { error: 'Yalnızca GET ve POST' });
+      if (!isPanelRequest(req)) return sendJson(res, 403, { error: 'Yalnızca panel sayfasından yayınlanabilir' });
+      try {
+        return sendJson(res, 200, await publishUpdateConfig(await readJsonBody(req)));
+      } catch (e) {
+        return sendJson(res, 400, { error: e.message });
+      }
     }
     if (url.pathname === '/data/csv-paket.js') {
       res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-cache' });

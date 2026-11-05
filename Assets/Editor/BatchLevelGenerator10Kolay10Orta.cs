@@ -70,17 +70,13 @@ namespace PixelGame.Editor
                     minCapacity = 10,
                     peakCapacity = 20,
                     maxCapacity = 30,
-                    poolRows = 2,
-                    poolColumns = 5,
+                    poolRows = 3,
+                    poolColumns = 3, // Kolay her zaman 3 sütun
                     slotCount = 5
                 };
 
                 var res = LevelBenchmarkEngine.GenerateFromTexture(tex, config);
-                if (!res.success)
-                {
-                    Debug.LogError($"[Batch Kolay] Seviye {lvlIdx} üretilemedi: {res.errorMessage}");
-                    continue;
-                }
+                if (!IsSaveable(res, $"[Batch Kolay] Seviye {lvlIdx} ({item.name})")) continue;
 
                 LevelBenchmarkEngine.SaveAndRegisterNewLevel(
                     tex,
@@ -99,7 +95,7 @@ namespace PixelGame.Editor
                     config.maxCapacity,
                     out string savedPath);
 
-                Debug.Log($"[Batch Kolay ✓] Seviye {lvlIdx} ({item.name}) kaydedildi: {savedPath} | {res.totalCubes} Küp | {res.sequence.Count} Gemi | %100 Çözülebilir");
+                Debug.Log($"[Batch Kolay ✓] Seviye {lvlIdx} ({item.name}) kaydedildi: {savedPath} | {res.totalCubes} Küp | {res.sequence.Count} Gemi | rastgele %{res.simRandomWinRate * 100:F0}, akıllı %{res.simSmartWinRate * 100:F0}");
                 successCount++;
             }
 
@@ -124,7 +120,7 @@ namespace PixelGame.Editor
                     generateLinks = true,
                     generateHidden = true,
                     generateMysteryCubes = true,
-                    mysteryCubePercent = 25,
+                    mysteryCubePercent = 4,
                     mysteryRevealCondition = MysteryRevealCondition.WhenExposed,
                     preferRoundCapacities = true,
                     roundRatio = 1.0f,
@@ -134,17 +130,13 @@ namespace PixelGame.Editor
                     minCapacity = 10,
                     peakCapacity = 20,
                     maxCapacity = 30,
-                    poolRows = 2,
-                    poolColumns = 5,
+                    poolRows = 3,
+                    poolColumns = PoolColumnsFor(tex),
                     slotCount = 5
                 };
 
                 var res = LevelBenchmarkEngine.GenerateFromTexture(tex, config);
-                if (!res.success)
-                {
-                    Debug.LogError($"[Batch Orta] Seviye {lvlIdx} üretilemedi: {res.errorMessage}");
-                    continue;
-                }
+                if (!IsSaveable(res, $"[Batch Orta] Seviye {lvlIdx} ({item.name})")) continue;
 
                 LevelBenchmarkEngine.SaveAndRegisterNewLevel(
                     tex,
@@ -163,13 +155,39 @@ namespace PixelGame.Editor
                     config.maxCapacity,
                     out string savedPath);
 
-                Debug.Log($"[Batch Orta ✓] Seviye {lvlIdx} ({item.name}) kaydedildi: {savedPath} | {res.totalCubes} Küp | {res.sequence.Count} Gemi | {res.dualCount} Güçlü | %100 Çözülebilir");
+                Debug.Log($"[Batch Orta ✓] Seviye {lvlIdx} ({item.name}) kaydedildi: {savedPath} | {res.totalCubes} Küp | {res.sequence.Count} Gemi | {res.dualCount} Güçlü | rastgele %{res.simRandomWinRate * 100:F0}, akıllı %{res.simSmartWinRate * 100:F0}");
                 successCount++;
             }
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log($"<color=#00FF88>🎉 [Batch Tamamlandı] Toplam {successCount}/20 yeni seviye başarıyla üretildi ve LevelSequence'e eklendi!</color>");
+        }
+
+        // Rehber: kuyruk çoğunlukla 4 sütun; ≤~23 gemilik küçük levellerde 3
+        private static int PoolColumnsFor(Texture2D tex)
+        {
+            if (tex == null) return 4;
+            PixelPaletteOptimizer.EnsureReadable(tex);
+            int cubes = 0;
+            foreach (var p in tex.GetPixels32()) if (p.a > 0) cubes++;
+            return cubes < 600 ? 3 : 4;
+        }
+
+        /// <summary>Kural hatası olan ya da kuyruk simülatöründe çözülemeyen level kaydedilmez.</summary>
+        private static bool IsSaveable(LevelBenchmarkEngine.GenerationResult res, string tag)
+        {
+            if (!res.success)
+            {
+                Debug.LogError($"{tag} üretilemedi: {res.errorMessage}");
+                return false;
+            }
+            if (!res.is100PercentSolvable)
+            {
+                Debug.LogError($"{tag} KAYDEDİLMEDİ: {res.benchmarkSummary}");
+                return false;
+            }
+            return true;
         }
     }
 }

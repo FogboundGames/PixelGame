@@ -18,7 +18,8 @@ namespace PixelGame.Editor
     /// - Gizli Gemiler (Hidden): Seviyelerin %94'ünde var (ortalama 4-7 gemi, asla ilk 5 sırada değil)
     /// - Gizli Küpler (Mystery ?): Zor seviyelerin %90'ında var (ortalama 40-70 küp)
     /// - Çift Renkli Konteyner (Dual): Seviyelerin %32'sinde 1 adet
-    /// - %100 Çözülebilirlik (0 Deadlock) simülasyon garantisi
+    /// - Çözülebilirlik: her deneme LevelQueueSimulator ile (gerçek kuyruk + halat kuralları) ölçülür;
+    ///   kurallara uymayan ya da çözülemeyen sonuç işaretlenir
     /// - Birebir kopya seviye üretmeme (Benzersizlik doğrulaması)
     /// </summary>
     public static class LevelBenchmarkEngine
@@ -51,7 +52,7 @@ namespace PixelGame.Editor
             public bool generateLinks = true;
             public bool generateHidden = true;
             public bool generateMysteryCubes = true;
-            public int mysteryCubePercent = 30; // İç küplerin % kaçı '?' olsun
+            public int mysteryCubePercent = 5;  // Tüm küplerin % kaçı '?' olsun (en fazla MaxMysteryCubePercent)
             public MysteryRevealCondition mysteryRevealCondition = MysteryRevealCondition.WhenExposed;
             public bool preferRoundCapacities = true;
             public float roundRatio = 0.75f;
@@ -65,8 +66,8 @@ namespace PixelGame.Editor
             public int peakCapacity = 20;
 
             // Havuz & İskele Slot Ayarları
-            public int poolRows = 2;       // Sıra (dalga)
-            public int poolColumns = 5;    // Kolon
+            public int poolRows = 3;       // Sıra (dalga) — ekranda her şeridin ilk 3 gemisi görünür
+            public int poolColumns = 4;    // Kolon — rehber: çoğunlukla 4, Kolay ve küçük levellerde 3
             public int slotCount = 5;      // ⚓ Yanaşma Slotu
         }
 
@@ -85,8 +86,12 @@ namespace PixelGame.Editor
             public int dualCount;
             public int mysteryCubeCount;
             public LevelDifficultyTier resolvedTier;
-            public bool is100PercentSolvable;
-            public float deadlockRisk;
+            public bool is100PercentSolvable;   // kurallara uyuyor VE kuyruk simülatöründe çözülebilir
+            public float deadlockRisk;          // akıllı oyuncunun kaybetme oranı
+            public bool simulated;
+            public float simRandomWinRate;
+            public float simSmartWinRate;
+            public List<string> ruleErrors = new List<string>();
             public bool isUnique;
             public string estimatedPlaytime;
             public string benchmarkSummary;
@@ -192,13 +197,10 @@ namespace PixelGame.Editor
 
             // 5. Gizli Küpler (Mystery Cubes - '?') Üretimi
             List<Vector2Int> generatedMystery = new List<Vector2Int>();
-            if (config.generateMysteryCubes && (config.mysteryCubePercent > 0 || config.durationPacing != PuzzleDurationPacing.FastCasual))
+            // Rehber §1.5: küplerin ~%4–5'i, "abartmadan" (eskiden %25/%35'e zorlanıyordu, oyuncu resmin üçte birini göremiyordu)
+            if (config.generateMysteryCubes && config.mysteryCubePercent > 0)
             {
-                int percent = (config.durationPacing == PuzzleDurationPacing.TacticalDeep) ? Mathf.Max(35, config.mysteryCubePercent) :
-                              (config.durationPacing == PuzzleDurationPacing.StandardPuzzle) ? Mathf.Max(25, config.mysteryCubePercent) :
-                              config.mysteryCubePercent;
-
-                generatedMystery = GenerateInnerMysteryCubes(grid, minX, maxX, minY, maxY, percent);
+                generatedMystery = GenerateInnerMysteryCubes(grid, minX, maxX, minY, maxY, config.mysteryCubePercent);
             }
             res.mysteryCubes = generatedMystery;
             res.mysteryCubeCount = generatedMystery.Count;
@@ -234,61 +236,63 @@ namespace PixelGame.Editor
             }
 
             // 7. Taktiksel Katman Kilitli Interleaving (Bulmaca Açılışı & Pacing)
-            List<WagonSequenceEntry> masterSequence = InterleaveWithLayerLock(wagonsByColor, exposedColorPriorities, config.durationPacing, rng);
+            List<WagonSequenceEntry> baseOrder = InterleaveWithLayerLock(wagonsByColor, exposedColorPriorities, config.durationPacing, rng);
 
-            // 8. Halatlı Gemiler (Linked Ships) Uygula
-            if (config.generateLinks && masterSequence.Count >= 6)
+            // 8. Çift Renkli Konteyner: iki gemiyi birleştirip birini sildiği için halat/gizli konumları belirlenmeden ÖNCE yapılır
+            //    (eskiden sonra yapılıyordu; silinen geminin arkasındaki herkes bir sıra kayıyor, halatlar geçersiz konuma düşüyordu)
+            if (config.allowDualColor && baseOrder.Count >= 10)
             {
-                int linkPairs = (config.durationPacing == PuzzleDurationPacing.TacticalDeep) ? Mathf.Clamp(masterSequence.Count / 5, 5, 8) :
-                                (config.durationPacing == PuzzleDurationPacing.StandardPuzzle) ? Mathf.Clamp(masterSequence.Count / 6, 3, 5) :
-                                Mathf.Clamp(masterSequence.Count / 8, 1, 3);
-
-                ApplyStrategicLinks(masterSequence, linkPairs, rng);
+                ApplyBenchmarkDualColor(baseOrder, tempLevel.ColorPalette, rng);
             }
 
-            // 9. Gizli Gemiler (Hidden Ships) Uygula
-            if (config.generateHidden && masterSequence.Count >= 8)
-            {
-                int hiddenCount = (config.durationPacing == PuzzleDurationPacing.TacticalDeep) ? Mathf.Clamp(masterSequence.Count / 5, 6, 9) :
-                                  (config.durationPacing == PuzzleDurationPacing.StandardPuzzle) ? Mathf.Clamp(masterSequence.Count / 7, 3, 5) :
-                                  Mathf.Clamp(masterSequence.Count / 9, 1, 3);
+            // 9–11. Sıra + halat + gizli: birkaç deneme üret, her birini kurallarla ve gerçek kuyruk simülatörüyle ölç,
+            //       kurallara uyan, çözülebilir ve zorluk bandına en yakın olanı seç
+            int cols = tempLevel.PoolColumns;
+            var (minPairs, maxPairs) = MechanicRange(tier, baseOrder.Count);
+            int attempts = config.guaranteeSolvability ? 16 : 1;
+            List<WagonSequenceEntry> masterSequence = null;
+            List<string> bestErrors = null;
+            LevelQueueSimulator.Result bestSim = default;
+            double bestScore = double.MaxValue;
 
-                ApplyBenchmarkHidden(masterSequence, hiddenCount, rng);
+            for (int attempt = 0; attempt < attempts; attempt++)
+            {
+                var seq = baseOrder.Select(CloneWithoutMechanics).ToList();
+                if (attempt > 0) PerturbOrder(seq, cols, rng, 1 + attempt);
+                FixColumnRepeats(seq, cols, rng);
+
+                if (config.generateLinks) ApplyStrategicLinks(seq, rng.Next(minPairs, maxPairs + 1), cols, rng);
+                if (config.generateHidden) ApplyBenchmarkHidden(seq, rng.Next(minPairs, maxPairs + 1), cols, rng);
+
+                var errors = ValidateQueueRules(seq, cols);
+                LevelQueueSimulator.Result sim = default;
+                double score = errors.Count * 10.0;
+                if (config.guaranteeSolvability)
+                {
+                    sim = LevelQueueSimulator.Simulate(tempLevel, seq, Mathf.Clamp(config.solvabilityTrials / 2, 20, 60), attempt + 1);
+                    score += (sim.Solvable ? 0.0 : 100.0) + BandDistance(tier, sim);
+                }
+
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    masterSequence = seq;
+                    bestErrors = errors;
+                    bestSim = sim;
+                }
+                if (score < 0.01) break;
             }
 
-            // 10. Çift Renkli Konteyner (Dual Color) Uygula
-            if (config.allowDualColor && masterSequence.Count >= 10)
-            {
-                ApplyBenchmarkDualColor(masterSequence, tempLevel.ColorPalette, rng);
-            }
-
-            // 11. Simülasyon ile %100 Çözülebilirlik Doğrulaması & Kilitlenme Otomatik Çözücü
             tempLevel.WagonSequence = masterSequence;
             tempLevel.UseCustomWagonSequence = true;
 
-            bool isSolvable = true;
-            float risk = 0f;
-
-            if (config.guaranteeSolvability)
-            {
-                var simReport = LevelSolvabilityAnalyzer.Analyze(tempLevel, runSimulation: true, trials: config.solvabilityTrials);
-                if (simReport.deadlockCount > 0)
-                {
-                    bool solved = ResolveDeadlocksWithMutation(tempLevel, grid, minX, maxX, minY, maxY, config.solvabilityTrials, rng);
-                    if (solved)
-                    {
-                        masterSequence = tempLevel.WagonSequence;
-                        isSolvable = true;
-                        risk = 0f;
-                    }
-                    else
-                    {
-                        var retest = LevelSolvabilityAnalyzer.Analyze(tempLevel, runSimulation: true, trials: config.solvabilityTrials);
-                        isSolvable = (retest.deadlockCount == 0);
-                        risk = retest.DeadlockRisk;
-                    }
-                }
-            }
+            bool isSolvable = !config.guaranteeSolvability || bestSim.Solvable;
+            float risk = config.guaranteeSolvability ? 1f - bestSim.smartWinRate : 0f;
+            res.ruleErrors = bestErrors;
+            res.simRandomWinRate = bestSim.randomWinRate;
+            res.simSmartWinRate = bestSim.smartWinRate;
+            res.simulated = config.guaranteeSolvability;
+            if (bestSim.error != null) res.ruleErrors.Add("Simülasyon: " + bestSim.error);
 
             // 12. Benzersizlik Doğrulaması
             res.isUnique = VerifySequenceNovelty(masterSequence);
@@ -299,13 +303,17 @@ namespace PixelGame.Editor
             res.linkedCount = masterSequence.Count(w => w.linkId > 0);
             res.hiddenCount = masterSequence.Count(w => w.isHidden);
             res.dualCount = masterSequence.Count(w => w.isDualColor);
-            res.is100PercentSolvable = isSolvable;
+            res.is100PercentSolvable = isSolvable && res.ruleErrors.Count == 0;
             res.deadlockRisk = risk;
 
+            string verdict = !res.simulated ? "⚠️ Simüle edilmedi"
+                : !isSolvable ? "⛔ Çözülemiyor"
+                : res.ruleErrors.Count > 0 ? $"⚠️ {res.ruleErrors.Count} kural hatası"
+                : $"✓ Çözülebilir (rastgele %{res.simRandomWinRate * 100:F0}, akıllı %{res.simSmartWinRate * 100:F0})";
             res.benchmarkSummary = $"Bölüm {config.targetLevelIndex} Üretildi ({res.estimatedPlaytime}): {res.totalCubes} Küp | {res.sequence.Count} Gemi | " +
                                    $"{(res.mysteryCubeCount > 0 ? $"{res.mysteryCubeCount} Gizli Küp (?) | " : "")}" +
-                                   $"{res.linkedCount / 2} Halat Çifti | {res.hiddenCount} Gizli Gemi | " +
-                                   $"{(res.is100PercentSolvable ? "✓ %100 Çözülebilir (0 Deadlock)" : $"⚠️ Kilitlenme Riski: %{risk * 100:F1}")}";
+                                   $"{res.linkedCount / 2} Halat Çifti | {res.hiddenCount} Gizli Gemi | {verdict}" +
+                                   (res.ruleErrors.Count > 0 ? "\n• " + string.Join("\n• ", res.ruleErrors.Take(6)) : "");
 
             UnityEngine.Object.DestroyImmediate(tempLevel);
             return res;
@@ -453,6 +461,12 @@ namespace PixelGame.Editor
             }
         }
 
+        public const int MaxMysteryCubePercent = 10;
+
+        /// <summary>
+        /// Gizli küpler: tüm küplerin percent'i kadar (en fazla %10), iç bölgede renk sınırlarına denk gelen
+        /// 2–3 küçük küme olarak (docs/level-tasarim/tools/level_asset.py mystery ile aynı yaklaşım).
+        /// </summary>
         public static List<Vector2Int> GenerateInnerMysteryCubes(
             Dictionary<(int, int), int> grid,
             int minX, int maxX, int minY, int maxY,
@@ -461,38 +475,39 @@ namespace PixelGame.Editor
             var result = new List<Vector2Int>();
             if (grid == null || grid.Count == 0 || percent <= 0) return result;
 
-            var innerCandidates = new List<Vector2Int>();
-            foreach (var kvp in grid)
-            {
-                int x = kvp.Key.Item1;
-                int y = kvp.Key.Item2;
+            bool Inner((int, int) p) => grid.ContainsKey((p.Item1 - 1, p.Item2)) && grid.ContainsKey((p.Item1 + 1, p.Item2))
+                                        && grid.ContainsKey((p.Item1, p.Item2 - 1)) && grid.ContainsKey((p.Item1, p.Item2 + 1));
+            var neighbours = new (int, int)[] { (1, 0), (-1, 0), (0, 1), (0, -1) };
+            bool OnBoundary((int, int) p) => neighbours.Any(d => grid.TryGetValue((p.Item1 + d.Item1, p.Item2 + d.Item2), out int c) && c != grid[p]);
 
-                if (grid.ContainsKey((x - 1, y)) &&
-                    grid.ContainsKey((x + 1, y)) &&
-                    grid.ContainsKey((x, y - 1)) &&
-                    grid.ContainsKey((x, y + 1)))
+            var seeds = grid.Keys.Where(p => Inner(p) && OnBoundary(p)).ToList();
+            if (seeds.Count == 0) seeds = grid.Keys.Where(Inner).ToList();
+            if (seeds.Count == 0) return result;
+
+            var rng = new System.Random();
+            int target = Mathf.RoundToInt(grid.Count * Mathf.Min(percent, MaxMysteryCubePercent) / 100f);
+            int clusters = Mathf.Clamp(target / 8, 2, 3);
+            int perCluster = Mathf.Max(1, Mathf.CeilToInt(target / (float)clusters));
+            var chosen = new HashSet<(int, int)>();
+
+            for (int c = 0; c < clusters && chosen.Count < target; c++)
+            {
+                var seed = seeds[rng.Next(seeds.Count)];
+                if (chosen.Contains(seed)) continue;
+                var queue = new Queue<(int, int)>();
+                queue.Enqueue(seed);
+                int added = 0;
+                while (queue.Count > 0 && added < perCluster && chosen.Count < target)
                 {
-                    innerCandidates.Add(new Vector2Int(x, y));
+                    var p = queue.Dequeue();
+                    if (chosen.Contains(p) || !Inner(p)) continue;
+                    chosen.Add(p);
+                    added++;
+                    foreach (var d in neighbours.OrderBy(_ => rng.Next())) queue.Enqueue((p.Item1 + d.Item1, p.Item2 + d.Item2));
                 }
             }
 
-            if (innerCandidates.Count == 0) return result;
-
-            var rng = new System.Random();
-            for (int i = innerCandidates.Count - 1; i > 0; i--)
-            {
-                int j = rng.Next(i + 1);
-                var temp = innerCandidates[i];
-                innerCandidates[i] = innerCandidates[j];
-                innerCandidates[j] = temp;
-            }
-
-            int targetCount = Mathf.Clamp(Mathf.RoundToInt(innerCandidates.Count * (percent / 100f)), 15, 80);
-            for (int i = 0; i < Mathf.Min(targetCount, innerCandidates.Count); i++)
-            {
-                result.Add(innerCandidates[i]);
-            }
-
+            foreach (var p in chosen) result.Add(new Vector2Int(p.Item1, p.Item2));
             return result;
         }
 
@@ -591,67 +606,188 @@ namespace PixelGame.Editor
             return result;
         }
 
-        private static void ApplyStrategicLinks(List<WagonSequenceEntry> list, int targetPairs, System.Random rng)
+        // ------------------------------------------------------------------
+        // Kuyruk kuralları (docs/level-tasarim/REHBER.md §1.3, §1.4, §4.2)
+        // ------------------------------------------------------------------
+
+        /// <summary>Zorluğa göre halat çifti / gizli gemi sayısı aralığı; küçük kuyruklarda gemi sayısıyla sınırlanır.</summary>
+        public static (int min, int max) MechanicRange(LevelDifficultyTier tier, int shipCount)
+        {
+            var (lo, hi) = tier == LevelDifficultyTier.Kolay ? (1, 2) : tier == LevelDifficultyTier.Orta ? (4, 6) : (5, 6);
+            int cap = Mathf.Max(1, shipCount / 4);
+            return (Mathf.Min(lo, cap), Mathf.Min(hi, cap));
+        }
+
+        /// <summary>Halatlı iki gemi yan yana (aynı satır, komşu sütun) ya da başlangıç havuzunda alt alta olmalı.</summary>
+        public static bool IsValidLinkPosition(int a, int b, int cols)
+        {
+            if (a > b) { int t = a; a = b; b = t; }
+            if (b == a + 1 && a % cols != cols - 1) return true;
+            return b == a + cols && b < cols * 3;
+        }
+
+        private static bool IsLinkable(WagonSequenceEntry w) => w != null && w.linkId == 0 && !w.isHidden && !w.isDualColor;
+
+        /// <summary>
+        /// Halat çiftleri: yalnızca geçerli konumlar, iki farklı renk, Güçlü/gizli gemiye halat yok.
+        /// Açılış: ilk 3 satırda en fazla 2 halat, ön sıranın en fazla yarısı halatlı.
+        /// </summary>
+        public static void ApplyStrategicLinks(List<WagonSequenceEntry> list, int targetPairs, int cols, System.Random rng)
         {
             int n = list.Count;
-            int pairCount = 0;
-            var usedIndices = new HashSet<int>();
-
-            var candidates = Enumerable.Range(2, n - 2).ToList();
+            var candidates = new List<(int a, int b)>();
+            for (int i = 0; i < n; i++)
+            {
+                if (i + 1 < n && IsValidLinkPosition(i, i + 1, cols)) candidates.Add((i, i + 1));
+                if (i + cols < n && IsValidLinkPosition(i, i + cols, cols)) candidates.Add((i, i + cols));
+            }
             for (int i = candidates.Count - 1; i > 0; i--)
             {
                 int j = rng.Next(i + 1);
-                int t = candidates[i]; candidates[i] = candidates[j]; candidates[j] = t;
+                var t = candidates[i]; candidates[i] = candidates[j]; candidates[j] = t;
             }
 
-            int linkId = 1;
-            for (int c = 0; c < candidates.Count - 1 && pairCount < targetPairs; c++)
+            int linkId = list.Where(w => w != null).Select(w => w.linkId).DefaultIfEmpty(0).Max() + 1;
+            int pairs = 0, openingPairs = 0, frontLinked = 0;
+            foreach (var (a, b) in candidates)
             {
-                int idxA = candidates[c];
-                int idxB = idxA + 1;
-                if (idxB >= n) idxB = idxA - 1;
+                if (pairs >= targetPairs) break;
+                if (!IsLinkable(list[a]) || !IsLinkable(list[b]) || list[a].paletteIndex == list[b].paletteIndex) continue;
+                bool opening = a < cols * 3;
+                int front = (a < cols ? 1 : 0) + (b < cols ? 1 : 0);
+                if (opening && openingPairs >= 2) continue;
+                if (frontLinked + front > cols / 2) continue;
 
-                if (usedIndices.Contains(idxA) || usedIndices.Contains(idxB)) continue;
-
-                var wA = list[idxA];
-                var wB = list[idxB];
-                if (wA == null || wB == null) continue;
-
-                wA.linkId = linkId;
-                wB.linkId = linkId;
-                usedIndices.Add(idxA);
-                usedIndices.Add(idxB);
-
+                list[a].linkId = linkId;
+                list[b].linkId = linkId;
                 linkId++;
-                pairCount++;
+                pairs++;
+                if (opening) openingPairs++;
+                frontLinked += front;
             }
         }
 
-        private static void ApplyBenchmarkHidden(List<WagonSequenceEntry> list, int targetHidden, System.Random rng)
+        /// <summary>Gizli gemi ön sırada başlamaz (yanaşana kadar açılmaz), halatlı ve Güçlü olmaz.</summary>
+        public static void ApplyBenchmarkHidden(List<WagonSequenceEntry> list, int targetHidden, int cols, System.Random rng)
         {
-            int n = list.Count;
-            int hiddenAssigned = 0;
-
             var candidates = new List<int>();
-            for (int i = 5; i < n; i++)
+            for (int i = cols; i < list.Count; i++)
             {
-                if (list[i] != null && list[i].linkId == 0)
-                {
-                    candidates.Add(i);
-                }
+                if (list[i] != null && list[i].linkId == 0 && !list[i].isDualColor && !list[i].isHidden) candidates.Add(i);
             }
-
             for (int i = candidates.Count - 1; i > 0; i--)
             {
                 int j = rng.Next(i + 1);
                 int t = candidates[i]; candidates[i] = candidates[j]; candidates[j] = t;
             }
+            for (int k = 0; k < candidates.Count && k < targetHidden; k++) list[candidates[k]].isHidden = true;
+        }
 
-            for (int k = 0; k < candidates.Count && hiddenAssigned < targetHidden; k++)
+        private static bool SameColor(WagonSequenceEntry a, WagonSequenceEntry b) => a != null && b != null && a.paletteIndex == b.paletteIndex;
+
+        private static int ColumnConflicts(List<WagonSequenceEntry> list, int i, int cols)
+        {
+            int c = 0;
+            if (i - cols >= 0 && SameColor(list[i], list[i - cols])) c++;
+            if (i + cols < list.Count && SameColor(list[i], list[i + cols])) c++;
+            return c;
+        }
+
+        /// <summary>Aynı sütunda aynı renk arka arkaya gelmesin: çakışan gemiyi çakışmayı azaltan bir gemiyle yer değiştirir.</summary>
+        public static void FixColumnRepeats(List<WagonSequenceEntry> list, int cols, System.Random rng)
+        {
+            for (int pass = 0; pass < 4; pass++)
             {
-                list[candidates[k]].isHidden = true;
-                hiddenAssigned++;
+                bool changed = false;
+                for (int i = cols; i < list.Count; i++)
+                {
+                    if (!SameColor(list[i], list[i - cols]) || list[i].linkId != 0) continue;
+                    int start = rng.Next(list.Count);
+                    for (int k = 0; k < list.Count; k++)
+                    {
+                        int j = (start + k) % list.Count;
+                        if (j == i || list[j].linkId != 0) continue;
+                        int before = ColumnConflicts(list, i, cols) + ColumnConflicts(list, j, cols);
+                        (list[i], list[j]) = (list[j], list[i]);
+                        int after = ColumnConflicts(list, i, cols) + ColumnConflicts(list, j, cols);
+                        if (after < before) { changed = true; break; }
+                        (list[i], list[j]) = (list[j], list[i]);
+                    }
+                }
+                if (!changed) break;
             }
+        }
+
+        /// <summary>Halatsız gemiler arasında rastgele yer değişimi (yeni deneme için kuyruğu biraz karıştırır).</summary>
+        private static void PerturbOrder(List<WagonSequenceEntry> list, int cols, System.Random rng, int swaps)
+        {
+            for (int k = 0; k < swaps; k++)
+            {
+                int i = rng.Next(list.Count), j = rng.Next(list.Count);
+                if (i != j && list[i].linkId == 0 && list[j].linkId == 0) (list[i], list[j]) = (list[j], list[i]);
+            }
+        }
+
+        private static WagonSequenceEntry CloneWithoutMechanics(WagonSequenceEntry w)
+        {
+            return new WagonSequenceEntry(w.wagonColor, w.capacity, w.paletteIndex, w.label)
+            {
+                isDualColor = w.isDualColor,
+                secondaryColor = w.secondaryColor,
+                secondaryCapacity = w.secondaryCapacity,
+            };
+        }
+
+        /// <summary>Kuyruğun kesin kural ihlalleri (level_asset.py check'teki HATA satırlarının karşılığı).</summary>
+        public static List<string> ValidateQueueRules(List<WagonSequenceEntry> list, int cols)
+        {
+            var errors = new List<string>();
+            if (list == null) return errors;
+            cols = Mathf.Max(1, cols);
+
+            for (int i = cols; i < list.Count; i++)
+            {
+                if (SameColor(list[i], list[i - cols])) errors.Add($"Aynı sütunda aynı renk arka arkaya: sıra {i - cols + 1} ve {i + 1}");
+            }
+
+            var groups = new Dictionary<int, List<int>>();
+            for (int i = 0; i < list.Count; i++)
+            {
+                var w = list[i];
+                if (w == null) continue;
+                if (w.isHidden && i < cols) errors.Add($"Gizli gemi ön sırada (sıra {i + 1}) — yanaşana kadar açılmaz");
+                if (w.isHidden && w.linkId > 0) errors.Add($"Gizli gemi halatlı (sıra {i + 1})");
+                if (w.linkId <= 0) continue;
+                if (!groups.TryGetValue(w.linkId, out var g)) groups[w.linkId] = g = new List<int>();
+                g.Add(i);
+            }
+
+            int openingPairs = 0;
+            foreach (var kv in groups)
+            {
+                var g = kv.Value;
+                if (g.Count != 2)
+                {
+                    errors.Add($"Halat {kv.Key}: {g.Count} gemi (yalnızca ikili halat)");
+                    continue;
+                }
+                if (!IsValidLinkPosition(g[0], g[1], cols)) errors.Add($"Halat {kv.Key}: sıra {g[0] + 1}-{g[1] + 1} geçersiz (yan yana komşu sütun ya da başlangıç havuzunda alt alta olmalı)");
+                if (SameColor(list[g[0]], list[g[1]])) errors.Add($"Halat {kv.Key}: iki gemi aynı renk");
+                if (list[g[0]].isDualColor || list[g[1]].isDualColor) errors.Add($"Halat {kv.Key}: Güçlü konteyner halatlı olmaz");
+                if (g[0] < cols * 3) openingPairs++;
+            }
+            if (openingPairs > 2) errors.Add($"Açılışta (ilk 3 sıra) {openingPairs} halat — en fazla 2");
+            return errors;
+        }
+
+        /// <summary>Simülasyon sonucunun zorluk bandına uzaklığı (docs/level-tasarim/tools/design.py BANDS; Zor = adil Zor "S").</summary>
+        private static double BandDistance(LevelDifficultyTier tier, LevelQueueSimulator.Result sim)
+        {
+            var (rLo, rHi, sLo, sHi) = tier == LevelDifficultyTier.Kolay ? (0.55, 0.80, 0.98, 1.00)
+                : tier == LevelDifficultyTier.Orta ? (0.30, 0.55, 0.90, 1.00)
+                : (0.12, 0.30, 0.80, 0.95);
+            double Out(double v, double lo, double hi) => v < lo ? lo - v : v > hi ? v - hi : 0.0;
+            return Out(sim.randomWinRate, rLo, rHi) + Out(sim.smartWinRate, sLo, sHi);
         }
 
         private static void ApplyBenchmarkDualColor(List<WagonSequenceEntry> list, List<PaletteColorOverride> palette, System.Random rng)
@@ -725,67 +861,34 @@ namespace PixelGame.Editor
             list.RemoveAt(bIdx);
         }
 
-        private static bool ResolveDeadlocksWithMutation(
-            PixelLevelData level,
-            Dictionary<(int, int), int> grid,
-            int minX, int maxX, int minY, int maxY,
-            int trials,
-            System.Random rng)
+        /// <summary>Elle düzenlenmiş bir kuyruğu kaydetmeden önce kurallarla ve kuyruk simülatörüyle ölçer.</summary>
+        public static (List<string> errors, LevelQueueSimulator.Result sim) CheckWorkingSequence(
+            Texture2D texture, List<PaletteColorOverride> palette, List<WagonSequenceEntry> sequence, int poolRows, int poolColumns, int slotCount)
         {
-            var seq = level.WagonSequence;
-            if (seq == null || seq.Count <= 2) return true;
+            var errors = ValidateQueueRules(sequence, poolColumns);
+            if (texture == null || palette == null || sequence == null || sequence.Count == 0) return (errors, default);
 
-            for (int step = 0; step < 16; step++)
+            PixelPaletteOptimizer.EnsureReadable(texture);
+            var temp = ScriptableObject.CreateInstance<PixelLevelData>();
+            try
             {
-                var air = LevelSolvabilityAnalyzer.ComputeOutsideAir(grid, minX, maxX, minY, maxY);
-                var exposedPalIndices = new HashSet<int>();
-                foreach (var kvp in grid)
-                {
-                    if (LevelSolvabilityAnalyzer.IsExposed(air, kvp.Key.Item1, kvp.Key.Item2))
-                    {
-                        exposedPalIndices.Add(kvp.Value);
-                    }
-                }
-
-                int exposedFrontCount = 0;
-                for (int i = 0; i < Mathf.Min(5, seq.Count); i++)
-                {
-                    if (exposedPalIndices.Contains(seq[i].paletteIndex)) exposedFrontCount++;
-                }
-
-                if (exposedFrontCount < 2)
-                {
-                    for (int j = 5; j < seq.Count; j++)
-                    {
-                        if (exposedPalIndices.Contains(seq[j].paletteIndex) && seq[j].linkId == 0)
-                        {
-                            var temp = seq[1];
-                            seq[1] = seq[j];
-                            seq[j] = temp;
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    int i1 = 2 + rng.Next(Mathf.Max(1, seq.Count - 2));
-                    int i2 = 2 + rng.Next(Mathf.Max(1, seq.Count - 2));
-                    if (seq[i1].linkId == 0 && seq[i2].linkId == 0)
-                    {
-                        var temp = seq[i1];
-                        seq[i1] = seq[i2];
-                        seq[i2] = temp;
-                    }
-                }
-
-                var check = LevelSolvabilityAnalyzer.Analyze(level, runSimulation: true, trials: trials);
-                if (check.completed && check.deadlockCount == 0)
-                {
-                    return true;
-                }
+                temp.LevelTexture = texture;
+                temp.OriginalSourceTexture = texture;
+                temp.UseNativeResolution = true;
+                temp.SkipTransparent = false;
+                temp.ColorPalette.Clear();
+                temp.ColorPalette.AddRange(palette);
+                temp.PoolColumns = Mathf.Clamp(poolColumns, 1, 8);
+                temp.PoolRows = Mathf.Clamp(poolRows, 1, 6);
+                temp.SlotCount = Mathf.Clamp(slotCount, 1, 8);
+                var sim = LevelQueueSimulator.Simulate(temp, sequence);
+                if (sim.error != null) errors.Add("Simülasyon: " + sim.error);
+                return (errors, sim);
             }
-
-            return false;
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(temp);
+            }
         }
 
         public static bool VerifySequenceNovelty(List<WagonSequenceEntry> newSeq)

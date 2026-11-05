@@ -25,8 +25,8 @@ namespace PixelGame.Editor
         private bool m_DenoiseKMeans = true;
 
         // 2. Havuz & Slot Ayarları (Kullanıcının İstediği Birebir Kontroller)
-        private int m_PoolRows = 2;       // Sıra (dalga) [−] [2] [+]
-        private int m_PoolColumns = 5;    // Kolon        [−] [5] [+]
+        private int m_PoolRows = 3;       // Sıra (dalga) [−] [3] [+] — ekranda her şeridin ilk 3 gemisi görünür
+        private int m_PoolColumns = 4;    // Kolon        [−] [4] [+] — rehber: çoğunlukla 4, Kolay'da 3
         private int m_SlotCount = 5;      // ⚓ Yanaşma Slotu [−] [5] [+]
 
         // 3. Gemi Kapasiteleri (Sayı Dağılımı)
@@ -40,7 +40,7 @@ namespace PixelGame.Editor
         private bool m_GenerateLinks = true;
         private bool m_GenerateHidden = true;
         private bool m_GenerateMysteryCubes = true;
-        private int m_MysteryCubePercent = 35;
+        private int m_MysteryCubePercent = 5;
         private MysteryRevealCondition m_MysteryRevealCondition = MysteryRevealCondition.WhenExposed;
         private bool m_AllowDualColor = false;
         private bool m_GuaranteeSolvability = true;
@@ -52,6 +52,12 @@ namespace PixelGame.Editor
         private List<PaletteColorOverride> m_WorkingPalette = new List<PaletteColorOverride>();
         private List<Vector2Int> m_WorkingMysteryCubes = new List<Vector2Int>();
         private int m_TotalCubes = 0;
+        private Texture2D m_GeneratedTexture;   // kuyruğun üretildiği doku (renk azaltma açıksa optimize edilmiş kopya); kayıt da bununla yapılır
+
+        // Son kural + simülasyon kontrolü (kuyruk elle değişince geçersiz olur)
+        private bool m_CheckValid;
+        private List<string> m_CheckErrors = new List<string>();
+        private LevelQueueSimulator.Result m_CheckSim;
 
         // 6. GUI & Scroll Durumları
         private Vector2 m_MainScroll;
@@ -306,7 +312,7 @@ namespace PixelGame.Editor
                 m_MinCapacity = 10;
                 m_PeakCapacity = 20;
                 m_GenerateMysteryCubes = true;
-                m_MysteryCubePercent = 25;
+                m_MysteryCubePercent = 4;
                 TriggerSmartGeneration();
             }
 
@@ -319,7 +325,7 @@ namespace PixelGame.Editor
                 m_MinCapacity = 10;
                 m_PeakCapacity = 20;
                 m_GenerateMysteryCubes = true;
-                m_MysteryCubePercent = 35;
+                m_MysteryCubePercent = 5;
                 TriggerSmartGeneration();
             }
 
@@ -350,7 +356,7 @@ namespace PixelGame.Editor
             {
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField("İç Küp Gizleme Oranı:", GUILayout.Width(135));
-                m_MysteryCubePercent = EditorGUILayout.IntSlider(m_MysteryCubePercent, 10, 60);
+                m_MysteryCubePercent = EditorGUILayout.IntSlider(m_MysteryCubePercent, 0, LevelBenchmarkEngine.MaxMysteryCubePercent);
                 EditorGUILayout.EndHorizontal();
 
                 m_MysteryRevealCondition = (MysteryRevealCondition)EditorGUILayout.EnumPopup("Açılma Kuralı:", m_MysteryRevealCondition);
@@ -517,6 +523,15 @@ namespace PixelGame.Editor
 
             if (m_CurrentResult.success)
             {
+                m_GeneratedTexture = activeTex;
+                m_CheckValid = true;
+                m_CheckErrors = m_CurrentResult.ruleErrors;
+                m_CheckSim = new LevelQueueSimulator.Result
+                {
+                    randomWinRate = m_CurrentResult.simRandomWinRate,
+                    smartWinRate = m_CurrentResult.simSmartWinRate,
+                    dfs = m_CurrentResult.is100PercentSolvable ? 1 : 0,
+                };
                 m_WorkingSequence = m_CurrentResult.sequence;
                 m_WorkingPalette = m_CurrentResult.palette;
                 m_WorkingMysteryCubes = m_CurrentResult.mysteryCubes;
@@ -644,9 +659,13 @@ namespace PixelGame.Editor
             GUILayout.FlexibleSpace();
 
             // Çözülebilirlik Rozeti
-            bool solvable = (m_CurrentResult != null && m_CurrentResult.is100PercentSolvable);
-            GUI.color = solvable ? new Color(0.2f, 0.9f, 0.4f) : new Color(1f, 0.7f, 0.2f);
-            GUILayout.Label(solvable ? "✓ %100 Çözülebilir" : "⚠️ Kilitlenme İhtimali", EditorStyles.boldLabel);
+            bool ok = m_CheckValid && m_CheckErrors.Count == 0 && m_CheckSim.Solvable;
+            string badge = !m_CheckValid ? "⚠️ Doğrulanmadı"
+                : !m_CheckSim.Solvable ? "⛔ Çözülemiyor"
+                : m_CheckErrors.Count > 0 ? $"⚠️ {m_CheckErrors.Count} kural hatası"
+                : $"✓ Çözülebilir · rastgele %{m_CheckSim.randomWinRate * 100:F0} · akıllı %{m_CheckSim.smartWinRate * 100:F0}";
+            GUI.color = ok ? new Color(0.2f, 0.9f, 0.4f) : new Color(1f, 0.7f, 0.2f);
+            GUILayout.Label(new GUIContent(badge, m_CheckErrors.Count > 0 ? string.Join("\n", m_CheckErrors) : null), EditorStyles.boldLabel);
             GUI.color = Color.white;
 
             EditorGUILayout.EndHorizontal();
@@ -674,6 +693,12 @@ namespace PixelGame.Editor
             if (GUILayout.Button("⚖️ Kapasiteyi Eşitle", EditorStyles.miniButton, GUILayout.Width(120)))
             {
                 AutoBalanceCapacities();
+                m_CheckValid = false;
+            }
+
+            if (GUILayout.Button(new GUIContent("🔍 Doğrula", "Kuralları ve kuyruk simülatörünü çalıştırır"), EditorStyles.miniButton, GUILayout.Width(80)))
+            {
+                RunCheck();
             }
 
             GUILayout.FlexibleSpace();
@@ -988,9 +1013,18 @@ namespace PixelGame.Editor
             if (m_Preset == LevelBenchmarkEngine.DifficultyPreset.Kolay) tier = LevelDifficultyTier.Kolay;
             else if (m_Preset == LevelBenchmarkEngine.DifficultyPreset.Zor) tier = LevelDifficultyTier.Zor;
 
+            // Kuyruk elle değişmiş olabilir: kaydetmeden önce yeniden ölç, sorun varsa sor
+            RunCheck();
+            if (m_CheckErrors.Count > 0 || !m_CheckSim.Solvable)
+            {
+                string problems = (!m_CheckSim.Solvable ? "• Kuyruk simülatöründe çözülemiyor\n" : "") +
+                                  string.Join("\n", m_CheckErrors.Take(8).Select(e => "• " + e));
+                if (!EditorUtility.DisplayDialog("Level kurallara uymuyor", problems, "Yine de kaydet", "Vazgeç")) return;
+            }
+
             string savedPath;
             var createdLevel = LevelBenchmarkEngine.SaveAndRegisterNewLevel(
-                m_SourceTexture,
+                m_GeneratedTexture != null ? m_GeneratedTexture : m_SourceTexture,
                 m_LevelName,
                 m_TargetLevelIndex,
                 tier,
@@ -1030,83 +1064,98 @@ namespace PixelGame.Editor
 
         #region Yardımcı Metotlar
 
+        private LevelDifficultyTier CurrentTier()
+        {
+            if (m_Preset == LevelBenchmarkEngine.DifficultyPreset.Kolay) return LevelDifficultyTier.Kolay;
+            if (m_Preset == LevelBenchmarkEngine.DifficultyPreset.Zor) return LevelDifficultyTier.Zor;
+            return LevelDifficultyTier.Orta;
+        }
+
+        private void RunCheck()
+        {
+            var (errors, sim) = LevelBenchmarkEngine.CheckWorkingSequence(
+                m_GeneratedTexture != null ? m_GeneratedTexture : m_SourceTexture,
+                m_WorkingPalette, m_WorkingSequence, m_PoolRows, m_PoolColumns, m_SlotCount);
+            m_CheckErrors = errors;
+            m_CheckSim = sim;
+            m_CheckValid = true;
+            Repaint();
+        }
+
         private void SwapWagons(int a, int b)
         {
             if (a < 0 || a >= m_WorkingSequence.Count || b < 0 || b >= m_WorkingSequence.Count) return;
             var temp = m_WorkingSequence[a];
             m_WorkingSequence[a] = m_WorkingSequence[b];
             m_WorkingSequence[b] = temp;
+            m_CheckValid = false;
         }
 
+        /// <summary>Halatı kaldırır ya da geçerli bir komşuya (sağ, sol, alt, üst; farklı renk) bağlar.</summary>
         private void ToggleWagonLink(int index)
         {
+            m_CheckValid = false;
             var w = m_WorkingSequence[index];
             if (w.linkId > 0)
             {
                 int oldId = w.linkId;
-                w.linkId = 0;
-                var partner = m_WorkingSequence.FirstOrDefault(x => x != null && x.linkId == oldId);
-                if (partner != null) partner.linkId = 0;
+                foreach (var x in m_WorkingSequence) if (x != null && x.linkId == oldId) x.linkId = 0;
+                return;
             }
-            else
+
+            int cols = Mathf.Max(1, m_PoolColumns);
+            foreach (int p in new[] { index + 1, index - 1, index + cols, index - cols })
             {
+                if (p < 0 || p >= m_WorkingSequence.Count || !LevelBenchmarkEngine.IsValidLinkPosition(index, p, cols)) continue;
+                var partner = m_WorkingSequence[p];
+                if (partner == null || partner.linkId != 0 || partner.isHidden || partner.isDualColor || w.isHidden || w.isDualColor) continue;
+                if (partner.paletteIndex == w.paletteIndex) continue;
+
                 int newId = 1;
                 while (m_WorkingSequence.Any(x => x != null && x.linkId == newId)) newId++;
-
                 w.linkId = newId;
-                int partnerIdx = (index + 1 < m_WorkingSequence.Count) ? (index + 1) : (index - 1);
-                if (partnerIdx >= 0 && partnerIdx < m_WorkingSequence.Count)
-                {
-                    m_WorkingSequence[partnerIdx].linkId = newId;
-                }
+                partner.linkId = newId;
+                return;
             }
+
+            m_StatusMessage = $"{index + 1}. gemi için geçerli halat partneri yok (yan yana ya da başlangıç havuzunda alt alta, farklı renk, gizli/Güçlü olmayan gemi gerekir).";
+            m_StatusType = MessageType.Warning;
         }
 
+        /// <summary>Halatsız gemileri karıştırır, sonra sütun kuralını onarır ve ön sıraya düşen gizli gemiyi açar.</summary>
         private void SafeShuffleWorkingSequence()
         {
             var rng = new System.Random();
-            for (int i = m_WorkingSequence.Count - 1; i > 3; i--)
+            int cols = Mathf.Max(1, m_PoolColumns);
+            for (int i = m_WorkingSequence.Count - 1; i > 0; i--)
             {
-                int j = 3 + rng.Next(i - 2);
+                int j = rng.Next(i + 1);
                 if (m_WorkingSequence[i].linkId == 0 && m_WorkingSequence[j].linkId == 0)
                 {
-                    var temp = m_WorkingSequence[i];
-                    m_WorkingSequence[i] = m_WorkingSequence[j];
-                    m_WorkingSequence[j] = temp;
+                    (m_WorkingSequence[i], m_WorkingSequence[j]) = (m_WorkingSequence[j], m_WorkingSequence[i]);
                 }
             }
+            LevelBenchmarkEngine.FixColumnRepeats(m_WorkingSequence, cols, rng);
+            for (int i = 0; i < Mathf.Min(cols, m_WorkingSequence.Count); i++) m_WorkingSequence[i].isHidden = false;
+            m_CheckValid = false;
         }
 
         private void ReassignLinks()
         {
-            var rng = new System.Random();
             foreach (var w in m_WorkingSequence) w.linkId = 0;
-
-            int targetPairs = Mathf.Clamp(m_WorkingSequence.Count / 5, 3, 7);
-            int linkId = 1;
-            for (int i = 2; i < m_WorkingSequence.Count - 1 && linkId <= targetPairs; i += 3)
-            {
-                m_WorkingSequence[i].linkId = linkId;
-                m_WorkingSequence[i + 1].linkId = linkId;
-                linkId++;
-            }
+            var (min, max) = LevelBenchmarkEngine.MechanicRange(CurrentTier(), m_WorkingSequence.Count);
+            var rng = new System.Random();
+            LevelBenchmarkEngine.ApplyStrategicLinks(m_WorkingSequence, rng.Next(min, max + 1), Mathf.Max(1, m_PoolColumns), rng);
+            m_CheckValid = false;
         }
 
         private void ReassignHidden()
         {
             foreach (var w in m_WorkingSequence) w.isHidden = false;
+            var (min, max) = LevelBenchmarkEngine.MechanicRange(CurrentTier(), m_WorkingSequence.Count);
             var rng = new System.Random();
-
-            int targetHidden = Mathf.Clamp(m_WorkingSequence.Count / 6, 4, 8);
-            int count = 0;
-            for (int i = 5; i < m_WorkingSequence.Count && count < targetHidden; i++)
-            {
-                if (m_WorkingSequence[i].linkId == 0 && rng.NextDouble() > 0.35)
-                {
-                    m_WorkingSequence[i].isHidden = true;
-                    count++;
-                }
-            }
+            LevelBenchmarkEngine.ApplyBenchmarkHidden(m_WorkingSequence, rng.Next(min, max + 1), Mathf.Max(1, m_PoolColumns), rng);
+            m_CheckValid = false;
         }
 
         private void ToggleDualColor(int index)
@@ -1114,6 +1163,7 @@ namespace PixelGame.Editor
             if (index < 0 || index >= m_WorkingSequence.Count) return;
             var w = m_WorkingSequence[index];
             if (w == null) return;
+            m_CheckValid = false;
 
             if (w.isDualColor)
             {
@@ -1131,7 +1181,12 @@ namespace PixelGame.Editor
                                               .FirstOrDefault();
                 if (partner == null) return;
 
-                w.linkId = 0;
+                // Güçlü konteyner halatlı olmaz: partnerin halatı da kalkar (yoksa tek başına "halatlı" gemi kalıyordu)
+                if (w.linkId > 0)
+                {
+                    int oldId = w.linkId;
+                    foreach (var x in m_WorkingSequence) if (x != null && x.linkId == oldId) x.linkId = 0;
+                }
                 w.isHidden = false;
                 w.isDualColor = true;
                 w.secondaryColor = partner.targetColor;
@@ -1222,6 +1277,7 @@ namespace PixelGame.Editor
             if (m_WorkingPalette.Count == 0) return;
             var p = m_WorkingPalette[0];
             m_WorkingSequence.Add(new WagonSequenceEntry(p.targetColor, 20, 0, "Yeni Vagon"));
+            m_CheckValid = false;
         }
 
         private static GUIStyle s_RichMiniLabel;

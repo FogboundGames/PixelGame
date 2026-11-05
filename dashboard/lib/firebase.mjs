@@ -28,22 +28,28 @@ export function firebaseConfigured() {
 // ---------- kimlik doğrulama ----------
 
 const base64url = (value) => Buffer.from(value).toString('base64url');
-let token = null;
+const tokens = new Map();
 
-async function accessToken() {
-  if (token && Date.now() < token.expires) return token.value;
-
+/** Servis hesabı anahtarı (proje kimliği Remote Config için de buradan okunur). */
+export function serviceAccount() {
   const path = env('FIREBASE_KEY_FILE').replace(/^~(?=\/)/, homedir());
-  let key;
   try {
-    key = JSON.parse(readFileSync(path, 'utf8'));
+    return JSON.parse(readFileSync(path, 'utf8'));
   } catch (e) {
     throw new Error(`Anahtar dosyası okunamadı (${path}): ${e.code || e.message}`);
   }
+}
+
+/** Kapsam başına önbelleğe alınan erişim jetonu; varsayılan kapsam Analytics okumadır. */
+export async function accessToken(scope = SCOPE) {
+  const token = tokens.get(scope);
+  if (token && Date.now() < token.expires) return token.value;
+
+  const key = serviceAccount();
 
   const now = Math.floor(Date.now() / 1000);
   const unsigned = `${base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))}.${base64url(JSON.stringify({
-    iss: key.client_email, scope: SCOPE, aud: key.token_uri, iat: now, exp: now + 3600,
+    iss: key.client_email, scope, aud: key.token_uri, iat: now, exp: now + 3600,
   }))}`;
   const signature = createSign('RSA-SHA256').update(unsigned).sign(key.private_key, 'base64url');
 
@@ -55,8 +61,8 @@ async function accessToken() {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`Google girişi reddetti: ${body.error_description || body.error || `HTTP ${res.status}`}`);
 
-  token = { value: body.access_token, expires: Date.now() + (body.expires_in - 60) * 1000 };
-  return token.value;
+  tokens.set(scope, { value: body.access_token, expires: Date.now() + (body.expires_in - 60) * 1000 });
+  return body.access_token;
 }
 
 // ---------- istek ----------

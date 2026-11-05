@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_30_Yelkenli
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Gemi
-  m_LevelIndex: 4
+  m_LevelIndex: 3
   m_DifficultyTier: 0
   m_DifficultyManual: 0
   m_LegacyIsHardLevel: 0

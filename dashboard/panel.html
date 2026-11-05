@@ -169,6 +169,15 @@ body.dropping .drop-overlay { display: flex; }
 tr.clickable { cursor: pointer; }
 tr.clickable:hover td { background: var(--wash); }
 tr.selected td { background: var(--wash); font-weight: 600; }
+.upd-form { display: grid; gap: 12px; padding: 16px 20px; }
+.upd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: start; }
+.upd-form label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; }
+.upd-form input, .upd-form textarea { font: inherit; font-size: 14px; font-weight: 400; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--page); color: var(--ink); resize: vertical; }
+.upd-form small { font-weight: 400; color: var(--muted); }
+.upd-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
+.upd-actions .good-ink { color: var(--good-ink); font-weight: 600; }
+.upd-actions .error-ink { color: var(--crit-ink); font-weight: 600; }
+.upd-actions .btn { padding: 8px 16px; text-decoration: none; color: inherit; }
 </style>
 </head>
 <body>
@@ -203,49 +212,27 @@ tr.selected td { background: var(--wash); font-weight: 600; }
   <div id="sampleNote" class="sample-note" hidden></div>
 
   <main>
-    <!-- Oyun Sürümü ve Güncelleme Bildirimi Yönetimi -->
+    <!-- Güncelleme bildirimi: oyun ayarları Firebase Remote Config'ten okur, panel sunucu üzerinden yayınlar -->
     <section id="secUpdateManager">
-      <h2>🚀 Oyun Sürümü ve Güncelleme Bildirimi (In-App Update)</h2>
-      <p class="hint">Yeni bir build yayınladığınızda sürüm numarasını ve oyunculara gösterilecek duyuru metnini buradan anında güncelleyebilirsiniz. Eski sürümdeki tüm oyuncuların oyun içi ekranına otomatik olarak güncelleme iletisi ve mağaza butonu düşer.</p>
-      
-      <div class="card wide" style="padding: 16px 20px;">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px;">
+      <h2>Güncelleme bildirimi</h2>
+      <p class="hint">Build Play'de yayına girdikten sonra son sürümü artırıp yayınla. Bu sürümden eskiler pop-up'ı bir sonraki level başında görür ("Later" 3 gün susturur). Android'de pop-up yalnızca Play güncellemeyi o cihaza gerçekten sunuyorsa çıkar. Her yayın Firebase'de kaydedilir ve geri alınabilir.</p>
+      <form id="updForm" class="card wide upd-form" autocomplete="off">
+        <div class="upd-grid">
+          <label>Son sürüm<input id="updLatest" required placeholder="1.9"><small>Bundan eskilere isteğe bağlı pop-up</small></label>
+          <label>Zorunlu sürüm<input id="updMin" placeholder="boş = zorunlu yok"><small>Bundan eskiler oyuna devam edemez</small></label>
+          <label>iOS uygulama no<input id="updIos" placeholder="App Store'daki sayı (yoksa boş)"></label>
+        </div>
+        <label>Başlık<input id="updTitle" required maxlength="40"></label>
+        <label>Mesaj<textarea id="updMessage" required rows="2" maxlength="160"></textarea><small>İngilizce ve emojisiz yaz: oyunun yazı tipinde Türkçe harf ve emoji yok.</small></label>
+        <div class="upd-actions">
+          <div id="updStatus" class="muted">Yükleniyor…</div>
           <div>
-            <label style="display:block; font-weight:600; font-size:12px; margin-bottom:4px;">En Son Sürüm (Latest Version):</label>
-            <input type="text" id="upLatestVer" value="1.8" style="width:100%; padding:8px 12px; font-size:14px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--ink);" placeholder="Örn: 1.8">
-          </div>
-          <div>
-            <label style="display:block; font-weight:600; font-size:12px; margin-bottom:4px;">Zorunlu Minimum Sürüm (Min Version):</label>
-            <input type="text" id="upMinVer" value="1.0" style="width:100%; padding:8px 12px; font-size:14px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--ink);" placeholder="Örn: 1.0">
-          </div>
-          <div style="display:flex; align-items:center; gap:8px; margin-top:22px;">
-            <input type="checkbox" id="upIsForce" style="width:18px; height:18px; cursor:pointer;">
-            <label for="upIsForce" style="font-weight:600; font-size:13px; cursor:pointer;">Zorunlu Güncelleme (Daha Sonra Butonunu Gizle)</label>
+            <a class="btn" href="https://console.firebase.google.com/project/landflow-385da/config" target="_blank" rel="noopener">Geçmiş / geri al</a>
+            <button id="updPublish" class="btn primary" type="submit" disabled>Yayınla</button>
           </div>
         </div>
-
-        <div style="display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px;">
-          <div>
-            <label style="display:block; font-weight:600; font-size:12px; margin-bottom:4px;">Pop-up Başlığı (Title):</label>
-            <input type="text" id="upTitle" value="NEW UPDATE AVAILABLE! 🚀" style="width:100%; padding:8px 12px; font-size:14px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--ink);">
-          </div>
-          <div>
-            <label style="display:block; font-weight:600; font-size:12px; margin-bottom:4px;">Duyuru Mesajı (Message):</label>
-            <textarea id="upMessage" rows="2" style="width:100%; padding:8px 12px; font-size:14px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--ink); resize:vertical;">Brand new levels, fresh artwork, and exciting improvements await!</textarea>
-          </div>
-          <div>
-            <label style="display:block; font-weight:600; font-size:12px; margin-bottom:4px;">Özel Mağaza Linki (Boşsa varsayılan Google Play / App Store sayfası açılır):</label>
-            <input type="text" id="upStoreUrl" value="" style="width:100%; padding:8px 12px; font-size:14px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--ink);" placeholder="Opsiyonel, ör: market://details?id=com.fogboundgames.pixelflow">
-          </div>
-        </div>
-
-        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; border-top:1px solid var(--border); padding-top:14px;">
-          <div id="upStatus" style="font-size:13px; font-weight:600; color:var(--muted);">Sürüm bilgisi yükleniyor...</div>
-          <button id="btnSaveUpdate" class="btn" style="background:var(--s1); color:#fff; font-weight:600; padding:10px 22px; border:none; cursor:pointer; border-radius:6px;">
-            💾 Güncellemeyi Kaydet & Yayınla
-          </button>
-        </div>
-      </div>
+      </form>
+      <p class="hint" style="margin-top:8px;">1.8 ve önceki sürümler eski Firestore belgesini (<code>players/_app_version</code>) okur; onları buradaki ayar etkilemez.</p>
     </section>
 
 
@@ -2088,109 +2075,59 @@ load();
 
 })();
 
-// ---------- Oyun Sürümü ve Güncelleme Bildirimi Yönetimi ----------
-const APP_VERSION_DOC_URL = 'https://firestore.googleapis.com/v1/projects/landflow-385da/databases/(default)/documents/players/_app_version';
-const FIRESTORE_COMMIT_URL = 'https://firestore.googleapis.com/v1/projects/landflow-385da/databases/(default)/documents:commit';
+// ---------- Güncelleme bildirimi (Remote Config, sunucu üzerinden) ----------
+(() => {
+  const form = document.getElementById('updForm');
+  const status = document.getElementById('updStatus');
+  const publish = document.getElementById('updPublish');
+  const fields = { latest: 'updLatest', min: 'updMin', iosAppId: 'updIos', title: 'updTitle', message: 'updMessage' };
+  const input = (field) => document.getElementById(fields[field]);
+  const show = (html, cls = 'muted') => { status.className = cls; status.innerHTML = html; };
+  const versionLine = (v) => v ? `Yayında: Remote Config sürüm ${v.number} · ${new Date(v.time).toLocaleString('tr-TR')}${v.user ? ` · ${v.user}` : ''}` : 'Henüz yayın yok';
+  const escape = (text) => String(text).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
-async function initUpdateManager() {
-  const elStatus = document.getElementById('upStatus');
-  const elBtn = document.getElementById('btnSaveUpdate');
-  const elLatest = document.getElementById('upLatestVer');
-  const elMin = document.getElementById('upMinVer');
-  const elForce = document.getElementById('upIsForce');
-  const elTitle = document.getElementById('upTitle');
-  const elMsg = document.getElementById('upMessage');
-  const elStore = document.getElementById('upStoreUrl');
-
-  if (!elBtn) return;
-
-  // 1. Mevcut sürüm bilgisini oku
-  try {
-    const res = await fetch(APP_VERSION_DOC_URL + '?t=' + Date.now());
-    if (res.ok) {
-      const data = await res.json();
-      const fields = data.fields ?? {};
-      if (fields.version?.stringValue) elLatest.value = fields.version.stringValue;
-      
-      const deviceStr = fields.device?.stringValue ?? '';
-      if (deviceStr) {
-        const mMin = deviceStr.match(/min:([0-9\.]+)/);
-        if (mMin) elMin.value = mMin[1];
-        if (deviceStr.includes('force:1') || deviceStr.includes('force:true')) elForce.checked = true;
-        else elForce.checked = false;
-      }
-
-      const events = fields.events?.mapValue?.fields ?? {};
-      if (events.title?.stringValue) elTitle.value = events.title.stringValue;
-      if (events.message?.stringValue) elMsg.value = events.message.stringValue;
-      if (events.store_url?.stringValue) elStore.value = events.store_url.stringValue;
-
-      elStatus.innerHTML = `<span style="color:var(--good-ink);">● Yayındaki Sürüm: <b>v${elLatest.value}</b> (${data.updateTime ? new Date(data.updateTime).toLocaleDateString('tr-TR') : 'Aktif'})</span>`;
-    } else {
-      elStatus.textContent = 'Henüz yayında sürüm kaydı yok (varsayılanlar gösteriliyor).';
-    }
-  } catch (err) {
-    elStatus.textContent = 'Sürüm bilgisi okunamadı: ' + err.message;
+  if (!location.protocol.startsWith('http')) {
+    show('Düzenlemek için paneli sunucuyla aç (node dashboard/server.mjs).');
+    return;
   }
 
-  // 2. Kaydet ve Yayınla butonu
-  elBtn.onclick = async () => {
-    elBtn.disabled = true;
-    elStatus.innerHTML = '<span style="color:var(--ink-2);">Yayınlanıyor, lütfen bekleyin...</span>';
-
-    const latest = elLatest.value.trim() || '1.8';
-    const minVer = elMin.value.trim() || '1.0';
-    const isForce = elForce.checked ? 1 : 0;
-    const title = elTitle.value.trim() || 'NEW UPDATE AVAILABLE! 🚀';
-    const message = elMsg.value.trim() || 'Brand new levels, fresh artwork, and exciting improvements await!';
-    const storeUrl = elStore.value.trim();
-
-    const commitPayload = {
-      writes: [
-        {
-          update: {
-            name: 'projects/landflow-385da/databases/(default)/documents/players/_app_version',
-            fields: {
-              version: { stringValue: latest },
-              platform: { stringValue: 'all' },
-              device: { stringValue: `min:${minVer}|force:${isForce}` },
-              events: {
-                mapValue: {
-                  fields: {
-                    title: { stringValue: title },
-                    message: { stringValue: message },
-                    store_url: { stringValue: storeUrl }
-                  }
-                }
-              }
-            }
-          }
-        }
-      ]
-    };
-
+  async function load() {
     try {
-      const res = await fetch(FIRESTORE_COMMIT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(commitPayload)
-      });
-
-      if (res.ok) {
-        elStatus.innerHTML = `<span style="color:var(--good-ink); font-weight:700;">✓ v${latest} güncellemesi başarıyla yayınlandı! Tüm eski sürüm oyuncularına iletilecek.</span>`;
-      } else {
-        const errText = await res.text();
-        elStatus.innerHTML = `<span style="color:var(--crit-ink);">Hata: ${errText}</span>`;
-      }
-    } catch (err) {
-      elStatus.innerHTML = `<span style="color:var(--crit-ink);">İstek hatası: ${err.message}</span>`;
-    } finally {
-      elBtn.disabled = false;
+      const res = await fetch('/api/update-config', { cache: 'no-store' });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+      for (const field of Object.keys(fields)) input(field).value = body.values[field] ?? '';
+      if (!input('title').value) input('title').value = 'New Update!';
+      if (!input('message').value) input('message').value = 'New levels and improvements are waiting for you!';
+      const note = body.conditional.length ? ` · Uyarı: ${body.conditional.join(', ')} konsolda koşullu değere sahip; burada yalnızca varsayılan değer değişir.` : '';
+      show(escape(versionLine(body.version) + note));
+      publish.disabled = false;
+    } catch (e) {
+      show(`Okunamadı: ${escape(e.message)}`, 'error-ink');
     }
-  };
-}
+  }
 
-window.addEventListener('DOMContentLoaded', initUpdateManager);
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const values = Object.fromEntries(Object.keys(fields).map((field) => [field, input(field).value.trim()]));
+    const summary = `Son sürüm ${values.latest}${values.min ? `, zorunlu ${values.min}` : ''} yayınlansın mı?\nBu sürümden eskiler pop-up'ı görecek.`;
+    if (!confirm(summary)) return;
+    publish.disabled = true;
+    show('Yayınlanıyor…');
+    try {
+      const res = await fetch('/api/update-config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(values) });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+      show(`✓ Yayınlandı. ${escape(versionLine(body.version))}`, 'good-ink');
+    } catch (e) {
+      show(`Yayınlanamadı: ${escape(e.message)}`, 'error-ink');
+    } finally {
+      publish.disabled = false;
+    }
+  });
+
+  load();
+})();
 
 </script>
 </body>

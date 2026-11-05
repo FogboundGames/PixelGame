@@ -33,6 +33,7 @@ namespace PixelGame
         private static readonly Queue<PendingEvent> s_Pending = new Queue<PendingEvent>();
         private static bool s_Initializing;
         private static bool s_Ready;
+        private static System.Action s_ReadyCallbacks;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
@@ -72,7 +73,18 @@ namespace PixelGame
                     PendingEvent pending = s_Pending.Dequeue();
                     if (consent) Send(pending.Name, pending.LevelId, pending.Seconds);
                 }
+
+                System.Action callbacks = s_ReadyCallbacks;
+                s_ReadyCallbacks = null;
+                callbacks?.Invoke();
             });
+        }
+
+        /// <summary>Firebase hazırsa hemen, değilse oyuncu izin verip Firebase başlayınca çalışır (Remote Config gibi servisler için).</summary>
+        public static void WhenReady(System.Action action)
+        {
+            if (s_Ready) action();
+            else s_ReadyCallbacks += action;
         }
 
         /// <summary>Çağıran, oyuncunun izin verdiğini denetlemiş olmalı (LandFlowAnalytics).</summary>

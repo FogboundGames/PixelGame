@@ -117,8 +117,8 @@ namespace PixelGame
             SetConsent(allow);
         }
 
-        // Paketteki panel görselleri 9-slice'a uygun değil; yuvarlak köşeli kart koddan üretilir
-        private static Sprite GetCardSprite()
+        // Paketteki panel görselleri 9-slice'a uygun değil; yuvarlak köşeli kart koddan üretilir (güncelleme pop-up'ı da kullanır)
+        internal static Sprite GetCardSprite()
         {
             if (s_CardSprite != null) return s_CardSprite;
 
@@ -144,7 +144,7 @@ namespace PixelGame
             return s_CardSprite;
         }
 
-        private static RectTransform CreateRect(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 size)
+        internal static RectTransform CreateRect(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 size)
         {
             var go = new GameObject(name, typeof(RectTransform));
             RectTransform rect = (RectTransform)go.transform;
@@ -156,7 +156,7 @@ namespace PixelGame
             return rect;
         }
 
-        private static TextMeshProUGUI CreateText(string name, RectTransform parent, Vector2 position, Vector2 size, string text, float fontSize, TMP_FontAsset font)
+        internal static TextMeshProUGUI CreateText(string name, RectTransform parent, Vector2 position, Vector2 size, string text, float fontSize, TMP_FontAsset font)
         {
             RectTransform rect = CreateRect(name, parent, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), position, size);
             TextMeshProUGUI tmp = rect.gameObject.AddComponent<TextMeshProUGUI>();
