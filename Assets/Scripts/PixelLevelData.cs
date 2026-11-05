@@ -639,7 +639,7 @@ namespace PixelGame
         }
 
         public Sprite SlotSprite { get => m_SlotSprite; set => m_SlotSprite = value; }
-        public int SlotCount { get => FixedSlotCount; set { } }
+        public int SlotCount { get => m_SlotCount > 0 ? m_SlotCount : FixedSlotCount; set => m_SlotCount = Mathf.Clamp(value, 1, 8); }
         public int PoolColumns { get => m_PoolColumns; set => m_PoolColumns = Mathf.Max(1, value); }
         public int PoolRows { get => m_PoolRows; set => m_PoolRows = Mathf.Max(1, value); }
         public bool DisableAutoPlaceTurbo { get => m_DisableAutoPlaceTurbo; set => m_DisableAutoPlaceTurbo = value; }

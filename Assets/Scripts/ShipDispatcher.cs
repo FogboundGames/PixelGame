@@ -1192,11 +1192,21 @@ namespace PixelGame
                 {
                     ShipController ship = slot.DockedShip;
                     // Slot gemiye yola çıkarken ayrılır; tren ancak gemi slota oturunca başlasın
-                    if (ship != null && ship.IsDocked && !ship.IsMoving && ship.CanAcceptMore && !m_ActiveExtractingShips.Contains(ship))
+                    if (ship != null && ship.IsDocked && !ship.IsMoving && !ship.IsDeparting)
                     {
-                        if (CanLaunchNow(ship))
+                        // Güvenlik kontrolü: Gemi dolduysa VEYA panoda alabileceği hiç küp kalmadıysa (0 küp) kalkış yap
+                        if ((ship.IsFull || GetRemainingNeededForShip(ship) == 0) && ship.ActiveWorkersOut <= 0 && !ship.HasPendingCargo)
                         {
-                            StartCoroutine(ExtractMatchingCubesToShipRoutine(ship));
+                            ship.DepartAndFreeSlot();
+                            continue;
+                        }
+
+                        if (ship.CanAcceptMore && !m_ActiveExtractingShips.Contains(ship))
+                        {
+                            if (CanLaunchNow(ship))
+                            {
+                                StartCoroutine(ExtractMatchingCubesToShipRoutine(ship));
+                            }
                         }
                     }
                 }
@@ -1257,8 +1267,8 @@ namespace PixelGame
                             continue;
                         }
 
-                        // Tüm işçiler döndü ve gemi tamamen dolduysa kalkış yap:
-                        if (ship != null && ship.IsFull && ship.ActiveWorkersOut <= 0 && !ship.IsDeparting)
+                        // Tüm işçiler döndü ve gemi tamamen dolduysa (veya panoda alabileceği küp kalmadıysa) kalkış yap:
+                        if (ship != null && (ship.IsFull || GetRemainingNeededForShip(ship) == 0) && ship.ActiveWorkersOut <= 0 && !ship.IsDeparting)
                         {
                             yield return new WaitForSeconds(0.2f);
                             if (ship != null && !ship.IsDeparting)
@@ -1300,7 +1310,7 @@ namespace PixelGame
 
                         // Açılacak yeni küp yok ve yolda işçi de kalmadı:
                         while (ship != null && (ship.HasPendingCargo || ship.ActiveWorkersOut > 0)) yield return null;
-                        if (ship != null && ship.IsFull && ship.ActiveWorkersOut <= 0 && !ship.IsDeparting)
+                        if (ship != null && (ship.IsFull || GetRemainingNeededForShip(ship) == 0) && ship.ActiveWorkersOut <= 0 && !ship.IsDeparting)
                         {
                             yield return new WaitForSeconds(0.2f);
                             if (ship != null && !ship.IsDeparting)

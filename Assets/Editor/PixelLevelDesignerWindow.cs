@@ -68,6 +68,7 @@ namespace PixelGame.Editor
         {
             var window = GetWindow<PixelLevelDesignerWindow>("Level Designer");
             window.minSize = new Vector2(980, 680);
+            window.RefreshLevelList(importChanges: true, syncSequence: false);
             window.Show();
         }
 
@@ -78,17 +79,17 @@ namespace PixelGame.Editor
             m_GenHiddenPercent = EditorPrefs.GetInt("PixelGame_GenHiddenPercent", 15);
             EditorApplication.update -= OnEditorUpdate;
             EditorApplication.update += OnEditorUpdate;
+            EditorApplication.projectChanged -= OnProjectChanged;
+            EditorApplication.projectChanged += OnProjectChanged;
             Undo.undoRedoPerformed -= OnUndoRedo;
             Undo.undoRedoPerformed += OnUndoRedo;
-            // Açılışta sadece listeyi oku: tüm projeyi yeniden taramak (AssetDatabase.Refresh) ve sırayı/sahneyi
-            // kaydetmek her açılışta (ve her derlemeden sonra) yapılıyordu; OneDrive gibi yavaş disklerde
-            // pencereyi açar açmaz donduruyordu, ayrıca LevelSequence'teki elle yapılmış sırayı eziyordu.
             RefreshLevelList(importChanges: false, syncSequence: false);
         }
 
         private void OnDisable()
         {
             EditorApplication.update -= OnEditorUpdate;
+            EditorApplication.projectChanged -= OnProjectChanged;
             Undo.undoRedoPerformed -= OnUndoRedo;
             // Pencere kapanırken bekleyen sahne senkronu kaybolmasın
             if (m_LiveUpdatePending)
@@ -97,6 +98,18 @@ namespace PixelGame.Editor
                 if (m_LiveUpdateShipsOnly) ApplyShipQueueUpdate();
                 else ApplyLiveSceneUpdate();
             }
+        }
+
+        private void OnFocus()
+        {
+            RefreshLevelList(importChanges: false, syncSequence: false);
+            Repaint();
+        }
+
+        private void OnProjectChanged()
+        {
+            RefreshLevelList(importChanges: false, syncSequence: false);
+            Repaint();
         }
 
         private void OnGUI()
@@ -4649,6 +4662,11 @@ namespace PixelGame.Editor
             if (importChanges) AssetDatabase.Refresh();
             m_AllLevels.Clear();
             string[] guids = AssetDatabase.FindAssets("t:PixelLevelData");
+            if (guids.Length < 170 && !importChanges)
+            {
+                AssetDatabase.Refresh();
+                guids = AssetDatabase.FindAssets("t:PixelLevelData");
+            }
             foreach (string guid in guids)
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);

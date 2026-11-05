@@ -412,6 +412,7 @@ namespace PixelGame.Editor.Studio
         {
             // Tuval ya da eski araçta yapılan değişiklikleri göster
             if (m_Board == null || m_Pending != null) return;
+            LoadLevels();
             if (m_Tab == TabCanvas) m_Canvas.Sync();
             RefreshAll();
             m_List?.RefreshItems();

@@ -1,0 +1,838 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56621c704aae40878464c98bd3ff671a, type: 3}
+  m_Name: Level_198_UzayIstasyonu
+  m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
+  m_LevelName: Uzay Istasyonu
+  m_LevelIndex: 198
+  m_DifficultyTier: 2
+  m_DifficultyManual: 1
+  m_LegacyIsHardLevel: 0
+  m_LevelTexture: {fileID: 2800000, guid: a455b1f10e6d4084814b59703caca7ad, type: 3}
+  m_OriginalSourceTexture: {fileID: 2800000, guid: a455b1f10e6d4084814b59703caca7ad, type: 3}
+  m_LevelSprite: {fileID: 0}
+  m_UseNativeResolution: 1
+  m_CustomResolution: {x: 24, y: 24}
+  m_ColorPalette:
+  - originalColor: {r: 0.17647058823529413, g: 0.5098039215686274, b: 0.8431372549019608, a: 1.0}
+    targetColor: {r: 0.17647058823529413, g: 0.5098039215686274, b: 0.8431372549019608, a: 1.0}
+    pixelCount: 271
+    label: 
+  - originalColor: {r: 0.047058823529411764, g: 0.054901960784313725, b: 0.14901960784313725, a: 1.0}
+    targetColor: {r: 0.047058823529411764, g: 0.054901960784313725, b: 0.14901960784313725, a: 1.0}
+    pixelCount: 223
+    label: 
+  - originalColor: {r: 0.13725490196078433, g: 0.29411764705882354, b: 0.6078431372549019, a: 1.0}
+    targetColor: {r: 0.13725490196078433, g: 0.29411764705882354, b: 0.6078431372549019, a: 1.0}
+    pixelCount: 144
+    label: 
+  - originalColor: {r: 0.09411764705882353, g: 0.12549019607843137, b: 0.29411764705882354, a: 1.0}
+    targetColor: {r: 0.09411764705882353, g: 0.12549019607843137, b: 0.29411764705882354, a: 1.0}
+    pixelCount: 94
+    label: 
+  - originalColor: {r: 1.0, g: 0.803921568627451, b: 0.19607843137254902, a: 1.0}
+    targetColor: {r: 1.0, g: 0.803921568627451, b: 0.19607843137254902, a: 1.0}
+    pixelCount: 84
+    label: 
+  - originalColor: {r: 0.1568627450980392, g: 0.5686274509803921, b: 0.3333333333333333, a: 1.0}
+    targetColor: {r: 0.1568627450980392, g: 0.5686274509803921, b: 0.3333333333333333, a: 1.0}
+    pixelCount: 75
+    label: 
+  - originalColor: {r: 0.9215686274509803, g: 0.9607843137254902, b: 1.0, a: 1.0}
+    targetColor: {r: 0.9215686274509803, g: 0.9607843137254902, b: 1.0, a: 1.0}
+    pixelCount: 74
+    label: 
+  - originalColor: {r: 0.7647058823529411, g: 0.803921568627451, b: 0.8627450980392157, a: 1.0}
+    targetColor: {r: 0.7647058823529411, g: 0.803921568627451, b: 0.8627450980392157, a: 1.0}
+    pixelCount: 33
+    label: 
+  - originalColor: {r: 1.0, g: 0.9803921568627451, b: 0.7450980392156863, a: 1.0}
+    targetColor: {r: 1.0, g: 0.9803921568627451, b: 0.7450980392156863, a: 1.0}
+    pixelCount: 14
+    label: 
+  - originalColor: {r: 0.3333333333333333, g: 0.37254901960784315, b: 0.45098039215686275, a: 1.0}
+    targetColor: {r: 0.3333333333333333, g: 0.37254901960784315, b: 0.45098039215686275, a: 1.0}
+    pixelCount: 12
+    label: 
+  m_TintColor: {r: 1, g: 1, b: 1, a: 1}
+  m_HueShift: 0
+  m_ColorBrightness: 1
+  m_ColorSaturation: 1
+  m_ColorContrast: 1
+  m_EmissionIntensity: 0
+  m_CubeSpacing: 0.06
+  m_CubeSpacingX: 0
+  m_CubeDepth: 1
+  m_BoardTiltAngle: 18
+  m_CubeFrontTiltAngle: -6
+  m_TargetZ: 0
+  m_CubeRowStepOffset: {x: 0, y: 0, z: 0}
+  m_InnerPadding: 0.08
+  m_SkipTransparent: 0
+  m_MysteryCubeCoordinates:
+  - {x: 2, y: 17}
+  - {x: 28, y: 28}
+  - {x: 29, y: 24}
+  - {x: 3, y: 10}
+  - {x: 19, y: 15}
+  - {x: 10, y: 10}
+  - {x: 6, y: 20}
+  - {x: 6, y: 15}
+  - {x: 26, y: 19}
+  - {x: 20, y: 9}
+  - {x: 11, y: 21}
+  - {x: 26, y: 8}
+  - {x: 29, y: 3}
+  - {x: 6, y: 23}
+  - {x: 22, y: 20}
+  - {x: 26, y: 29}
+  - {x: 27, y: 14}
+  - {x: 15, y: 30}
+  - {x: 22, y: 11}
+  - {x: 7, y: 29}
+  - {x: 10, y: 7}
+  - {x: 27, y: 23}
+  - {x: 29, y: 11}
+  - {x: 18, y: 21}
+  - {x: 21, y: 30}
+  - {x: 20, y: 20}
+  - {x: 5, y: 18}
+  - {x: 21, y: 20}
+  - {x: 15, y: 17}
+  - {x: 27, y: 20}
+  - {x: 10, y: 2}
+  - {x: 27, y: 22}
+  - {x: 13, y: 15}
+  - {x: 25, y: 7}
+  - {x: 12, y: 23}
+  - {x: 21, y: 27}
+  - {x: 7, y: 3}
+  - {x: 9, y: 10}
+  - {x: 19, y: 21}
+  - {x: 22, y: 2}
+  - {x: 13, y: 19}
+  - {x: 21, y: 21}
+  - {x: 15, y: 1}
+  - {x: 11, y: 12}
+  - {x: 12, y: 26}
+  - {x: 30, y: 4}
+  - {x: 29, y: 18}
+  - {x: 29, y: 23}
+  - {x: 24, y: 4}
+  - {x: 17, y: 17}
+  - {x: 10, y: 27}
+  - {x: 29, y: 10}
+  - {x: 19, y: 20}
+  - {x: 25, y: 15}
+  - {x: 11, y: 25}
+  - {x: 5, y: 1}
+  - {x: 20, y: 23}
+  - {x: 20, y: 18}
+  - {x: 10, y: 18}
+  - {x: 30, y: 18}
+  - {x: 11, y: 15}
+  - {x: 18, y: 16}
+  - {x: 5, y: 19}
+  - {x: 2, y: 29}
+  - {x: 13, y: 14}
+  - {x: 8, y: 6}
+  - {x: 24, y: 22}
+  - {x: 8, y: 14}
+  - {x: 3, y: 19}
+  - {x: 19, y: 19}
+  - {x: 9, y: 28}
+  - {x: 2, y: 15}
+  - {x: 23, y: 13}
+  - {x: 6, y: 5}
+  - {x: 20, y: 6}
+  - {x: 17, y: 3}
+  - {x: 21, y: 16}
+  - {x: 3, y: 6}
+  - {x: 6, y: 26}
+  - {x: 28, y: 24}
+  - {x: 5, y: 16}
+  - {x: 25, y: 17}
+  - {x: 6, y: 24}
+  - {x: 7, y: 14}
+  - {x: 7, y: 26}
+  - {x: 6, y: 3}
+  - {x: 19, y: 4}
+  - {x: 15, y: 20}
+  - {x: 26, y: 2}
+  - {x: 7, y: 9}
+  - {x: 24, y: 14}
+  - {x: 29, y: 16}
+  - {x: 17, y: 19}
+  - {x: 7, y: 16}
+  - {x: 30, y: 15}
+  - {x: 20, y: 27}
+  - {x: 23, y: 14}
+  - {x: 24, y: 19}
+  - {x: 25, y: 10}
+  - {x: 16, y: 12}
+  - {x: 8, y: 11}
+  - {x: 10, y: 5}
+  - {x: 1, y: 15}
+  - {x: 22, y: 15}
+  - {x: 15, y: 26}
+  - {x: 20, y: 4}
+  - {x: 10, y: 23}
+  - {x: 3, y: 1}
+  - {x: 7, y: 30}
+  - {x: 7, y: 20}
+  - {x: 18, y: 15}
+  - {x: 8, y: 1}
+  - {x: 26, y: 9}
+  - {x: 23, y: 7}
+  - {x: 11, y: 30}
+  - {x: 7, y: 1}
+  - {x: 12, y: 2}
+  - {x: 10, y: 19}
+  - {x: 12, y: 15}
+  - {x: 27, y: 10}
+  - {x: 3, y: 9}
+  - {x: 16, y: 17}
+  - {x: 30, y: 24}
+  - {x: 2, y: 23}
+  - {x: 23, y: 10}
+  - {x: 15, y: 13}
+  - {x: 8, y: 10}
+  - {x: 9, y: 30}
+  - {x: 10, y: 21}
+  - {x: 23, y: 26}
+  - {x: 12, y: 24}
+  - {x: 8, y: 19}
+  - {x: 9, y: 7}
+  - {x: 13, y: 24}
+  - {x: 4, y: 8}
+  - {x: 5, y: 23}
+  - {x: 14, y: 9}
+  - {x: 18, y: 14}
+  - {x: 12, y: 7}
+  - {x: 30, y: 30}
+  - {x: 30, y: 21}
+  - {x: 16, y: 6}
+  - {x: 20, y: 19}
+  - {x: 28, y: 7}
+  - {x: 26, y: 25}
+  - {x: 17, y: 16}
+  - {x: 10, y: 14}
+  - {x: 20, y: 17}
+  - {x: 14, y: 16}
+  - {x: 12, y: 29}
+  - {x: 22, y: 12}
+  - {x: 12, y: 17}
+  - {x: 13, y: 10}
+  - {x: 13, y: 12}
+  - {x: 19, y: 9}
+  - {x: 5, y: 6}
+  - {x: 25, y: 26}
+  - {x: 19, y: 17}
+  - {x: 25, y: 1}
+  - {x: 24, y: 15}
+  - {x: 25, y: 13}
+  - {x: 22, y: 30}
+  - {x: 25, y: 22}
+  - {x: 26, y: 23}
+  - {x: 20, y: 2}
+  - {x: 22, y: 13}
+  - {x: 2, y: 22}
+  - {x: 3, y: 14}
+  - {x: 12, y: 22}
+  - {x: 10, y: 29}
+  - {x: 23, y: 1}
+  - {x: 2, y: 27}
+  - {x: 5, y: 8}
+  - {x: 21, y: 25}
+  - {x: 28, y: 2}
+  - {x: 9, y: 9}
+  - {x: 17, y: 6}
+  - {x: 19, y: 6}
+  - {x: 23, y: 20}
+  - {x: 20, y: 13}
+  - {x: 1, y: 16}
+  - {x: 12, y: 9}
+  - {x: 23, y: 30}
+  - {x: 30, y: 16}
+  - {x: 10, y: 30}
+  - {x: 9, y: 23}
+  - {x: 12, y: 27}
+  - {x: 30, y: 25}
+  - {x: 21, y: 17}
+  - {x: 11, y: 17}
+  - {x: 20, y: 7}
+  - {x: 12, y: 30}
+  - {x: 17, y: 15}
+  - {x: 27, y: 3}
+  - {x: 8, y: 23}
+  - {x: 30, y: 7}
+  - {x: 7, y: 27}
+  - {x: 17, y: 22}
+  - {x: 17, y: 5}
+  - {x: 7, y: 8}
+  - {x: 8, y: 21}
+  - {x: 6, y: 21}
+  - {x: 21, y: 23}
+  - {x: 9, y: 1}
+  - {x: 11, y: 18}
+  - {x: 27, y: 7}
+  - {x: 15, y: 14}
+  - {x: 13, y: 6}
+  - {x: 1, y: 13}
+  - {x: 1, y: 6}
+  - {x: 3, y: 26}
+  - {x: 13, y: 11}
+  - {x: 28, y: 29}
+  - {x: 18, y: 3}
+  - {x: 18, y: 4}
+  - {x: 2, y: 3}
+  - {x: 2, y: 26}
+  - {x: 7, y: 13}
+  - {x: 21, y: 8}
+  - {x: 17, y: 27}
+  - {x: 20, y: 29}
+  - {x: 28, y: 20}
+  - {x: 25, y: 21}
+  - {x: 18, y: 18}
+  - {x: 28, y: 21}
+  - {x: 4, y: 6}
+  - {x: 4, y: 4}
+  - {x: 23, y: 15}
+  - {x: 5, y: 3}
+  - {x: 4, y: 19}
+  - {x: 19, y: 16}
+  - {x: 30, y: 17}
+  - {x: 16, y: 3}
+  - {x: 23, y: 17}
+  - {x: 14, y: 25}
+  - {x: 25, y: 29}
+  - {x: 9, y: 14}
+  - {x: 15, y: 9}
+  - {x: 1, y: 10}
+  - {x: 4, y: 30}
+  - {x: 28, y: 23}
+  - {x: 29, y: 22}
+  - {x: 24, y: 16}
+  - {x: 15, y: 12}
+  - {x: 9, y: 27}
+  - {x: 14, y: 28}
+  - {x: 13, y: 9}
+  - {x: 24, y: 21}
+  - {x: 22, y: 16}
+  - {x: 17, y: 9}
+  - {x: 24, y: 7}
+  - {x: 22, y: 26}
+  - {x: 11, y: 1}
+  - {x: 6, y: 29}
+  - {x: 24, y: 2}
+  - {x: 1, y: 25}
+  - {x: 28, y: 10}
+  - {x: 27, y: 4}
+  - {x: 25, y: 23}
+  - {x: 27, y: 11}
+  - {x: 25, y: 6}
+  - {x: 16, y: 28}
+  - {x: 29, y: 19}
+  - {x: 11, y: 23}
+  - {x: 20, y: 11}
+  - {x: 6, y: 14}
+  - {x: 12, y: 10}
+  - {x: 15, y: 24}
+  - {x: 24, y: 11}
+  - {x: 29, y: 26}
+  - {x: 18, y: 1}
+  - {x: 1, y: 27}
+  - {x: 7, y: 4}
+  - {x: 7, y: 17}
+  - {x: 17, y: 10}
+  - {x: 1, y: 26}
+  - {x: 24, y: 10}
+  - {x: 28, y: 6}
+  - {x: 30, y: 20}
+  - {x: 4, y: 11}
+  - {x: 23, y: 19}
+  - {x: 23, y: 28}
+  - {x: 4, y: 7}
+  - {x: 29, y: 17}
+  - {x: 16, y: 22}
+  - {x: 10, y: 20}
+  - {x: 5, y: 11}
+  - {x: 22, y: 7}
+  - {x: 30, y: 27}
+  - {x: 16, y: 26}
+  - {x: 1, y: 4}
+  - {x: 16, y: 18}
+  - {x: 25, y: 5}
+  - {x: 14, y: 10}
+  - {x: 11, y: 10}
+  - {x: 22, y: 8}
+  - {x: 25, y: 12}
+  - {x: 27, y: 2}
+  - {x: 17, y: 12}
+  - {x: 6, y: 8}
+  - {x: 14, y: 30}
+  - {x: 20, y: 28}
+  - {x: 1, y: 3}
+  - {x: 5, y: 30}
+  - {x: 6, y: 12}
+  - {x: 27, y: 30}
+  - {x: 18, y: 11}
+  - {x: 17, y: 29}
+  - {x: 19, y: 25}
+  - {x: 29, y: 28}
+  - {x: 26, y: 30}
+  - {x: 26, y: 1}
+  - {x: 21, y: 22}
+  - {x: 8, y: 26}
+  - {x: 27, y: 1}
+  m_MysteryRevealCondition: 0
+  m_MysteryCubeColor: {r: 0.125, g: 0.118, b: 0.306, a: 1}
+  m_SlotSprite: {fileID: 0}
+  m_SlotCount: 5
+  m_PoolColumns: 4
+  m_PoolRows: 3
+  m_DisableAutoPlaceTurbo: 0
+  m_TruckCapacity: 30
+  m_MinTruckCapacity: 10
+  m_PeakTruckCapacity: 20
+  m_UseCustomWagonSequence: 1
+  m_WagonSequence:
+  - wagonColor: {r: 0.047058823529411764, g: 0.054901960784313725, b: 0.14901960784313725, a: 1.0}
+    capacity: 30
+    paletteIndex: 1
+    label: "Renk #2 (1)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.17647058823529413, g: 0.5098039215686274, b: 0.8431372549019608, a: 1.0}
+    capacity: 30
+    paletteIndex: 0
+    label: "Renk #1 (1)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.09411764705882353, g: 0.12549019607843137, b: 0.29411764705882354, a: 1.0}
+    capacity: 24
+    paletteIndex: 3
+    label: "Renk #4 (1)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.13725490196078433, g: 0.29411764705882354, b: 0.6078431372549019, a: 1.0}
+    capacity: 20
+    paletteIndex: 2
+    label: "Güçlü (Renk #3+Renk #9)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 1
+    secondaryColor: {r: 1.0, g: 0.9803921568627451, b: 0.7450980392156863, a: 1.0}
+    secondaryCapacity: 14
+  - wagonColor: {r: 1.0, g: 0.803921568627451, b: 0.19607843137254902, a: 1.0}
+    capacity: 24
+    paletteIndex: 4
+    label: "Renk #5 (1)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.1568627450980392, g: 0.5686274509803921, b: 0.3333333333333333, a: 1.0}
+    capacity: 30
+    paletteIndex: 5
+    label: "Renk #6 (1)"
+    linkId: 8
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.9215686274509803, g: 0.9607843137254902, b: 1.0, a: 1.0}
+    capacity: 20
+    paletteIndex: 6
+    label: "Renk #7 (1)"
+    linkId: 7
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.7647058823529411, g: 0.803921568627451, b: 0.8627450980392157, a: 1.0}
+    capacity: 13
+    paletteIndex: 7
+    label: "Renk #8 (1)"
+    linkId: 8
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.3333333333333333, g: 0.37254901960784315, b: 0.45098039215686275, a: 1.0}
+    capacity: 12
+    paletteIndex: 9
+    label: "Renk #10 (1)"
+    linkId: 0
+    isHidden: 1
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.13725490196078433, g: 0.29411764705882354, b: 0.6078431372549019, a: 1.0}
+    capacity: 20
+    paletteIndex: 2
+    label: "Renk #3 (2)"
+    linkId: 7
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.17647058823529413, g: 0.5098039215686274, b: 0.8431372549019608, a: 1.0}
+    capacity: 30
+    paletteIndex: 0
+    label: "Renk #1 (2)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.9215686274509803, g: 0.9607843137254902, b: 1.0, a: 1.0}
+    capacity: 20
+    paletteIndex: 6
+    label: "Renk #7 (2)"
+    linkId: 0
+    isHidden: 1
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.09411764705882353, g: 0.12549019607843137, b: 0.29411764705882354, a: 1.0}
+    capacity: 30
+    paletteIndex: 3
+    label: "Renk #4 (2)"
+    linkId: 4
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.047058823529411764, g: 0.054901960784313725, b: 0.14901960784313725, a: 1.0}
+    capacity: 20
+    paletteIndex: 1
+    label: "Renk #2 (2)"
+    linkId: 0
+    isHidden: 1
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.13725490196078433, g: 0.29411764705882354, b: 0.6078431372549019, a: 1.0}
+    capacity: 34
+    paletteIndex: 2
+    label: "Renk #3 (3)"
+    linkId: 4
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.9215686274509803, g: 0.9607843137254902, b: 1.0, a: 1.0}
+    capacity: 34
+    paletteIndex: 6
+    label: "Renk #7 (3)"
+    linkId: 0
+    isHidden: 1
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.047058823529411764, g: 0.054901960784313725, b: 0.14901960784313725, a: 1.0}
+    capacity: 20
+    paletteIndex: 1
+    label: "Renk #2 (3)"
+    linkId: 3
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.17647058823529413, g: 0.5098039215686274, b: 0.8431372549019608, a: 1.0}
+    capacity: 30
+    paletteIndex: 0
+    label: "Renk #1 (3)"
+    linkId: 3
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.1568627450980392, g: 0.5686274509803921, b: 0.3333333333333333, a: 1.0}
+    capacity: 20
+    paletteIndex: 5
+    label: "Renk #6 (2)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.7647058823529411, g: 0.803921568627451, b: 0.8627450980392157, a: 1.0}
+    capacity: 20
+    paletteIndex: 7
+    label: "Renk #8 (2)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.13725490196078433, g: 0.29411764705882354, b: 0.6078431372549019, a: 1.0}
+    capacity: 20
+    paletteIndex: 2
+    label: "Renk #3 (4)"
+    linkId: 6
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 1.0, g: 0.803921568627451, b: 0.19607843137254902, a: 1.0}
+    capacity: 30
+    paletteIndex: 4
+    label: "Renk #5 (2)"
+    linkId: 0
+    isHidden: 1
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.1568627450980392, g: 0.5686274509803921, b: 0.3333333333333333, a: 1.0}
+    capacity: 25
+    paletteIndex: 5
+    label: "Renk #6 (3)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.09411764705882353, g: 0.12549019607843137, b: 0.29411764705882354, a: 1.0}
+    capacity: 20
+    paletteIndex: 3
+    label: "Renk #4 (3)"
+    linkId: 6
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 1.0, g: 0.803921568627451, b: 0.19607843137254902, a: 1.0}
+    capacity: 30
+    paletteIndex: 4
+    label: "Renk #5 (3)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.13725490196078433, g: 0.29411764705882354, b: 0.6078431372549019, a: 1.0}
+    capacity: 30
+    paletteIndex: 2
+    label: "Renk #3 (5)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.17647058823529413, g: 0.5098039215686274, b: 0.8431372549019608, a: 1.0}
+    capacity: 20
+    paletteIndex: 0
+    label: "Renk #1 (4)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.047058823529411764, g: 0.054901960784313725, b: 0.14901960784313725, a: 1.0}
+    capacity: 20
+    paletteIndex: 1
+    label: "Renk #2 (4)"
+    linkId: 9
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.09411764705882353, g: 0.12549019607843137, b: 0.29411764705882354, a: 1.0}
+    capacity: 20
+    paletteIndex: 3
+    label: "Renk #4 (4)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.17647058823529413, g: 0.5098039215686274, b: 0.8431372549019608, a: 1.0}
+    capacity: 20
+    paletteIndex: 0
+    label: "Renk #1 (5)"
+    linkId: 9
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.17647058823529413, g: 0.5098039215686274, b: 0.8431372549019608, a: 1.0}
+    capacity: 30
+    paletteIndex: 0
+    label: "Renk #1 (6)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.13725490196078433, g: 0.29411764705882354, b: 0.6078431372549019, a: 1.0}
+    capacity: 20
+    paletteIndex: 2
+    label: "Renk #3 (6)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.047058823529411764, g: 0.054901960784313725, b: 0.14901960784313725, a: 1.0}
+    capacity: 30
+    paletteIndex: 1
+    label: "Renk #2 (5)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.17647058823529413, g: 0.5098039215686274, b: 0.8431372549019608, a: 1.0}
+    capacity: 20
+    paletteIndex: 0
+    label: "Renk #1 (7)"
+    linkId: 0
+    isHidden: 1
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.17647058823529413, g: 0.5098039215686274, b: 0.8431372549019608, a: 1.0}
+    capacity: 21
+    paletteIndex: 0
+    label: "Renk #1 (8)"
+    linkId: 0
+    isHidden: 1
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.047058823529411764, g: 0.054901960784313725, b: 0.14901960784313725, a: 1.0}
+    capacity: 30
+    paletteIndex: 1
+    label: "Renk #2 (6)"
+    linkId: 0
+    isHidden: 1
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.047058823529411764, g: 0.054901960784313725, b: 0.14901960784313725, a: 1.0}
+    capacity: 20
+    paletteIndex: 1
+    label: "Renk #2 (7)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.047058823529411764, g: 0.054901960784313725, b: 0.14901960784313725, a: 1.0}
+    capacity: 30
+    paletteIndex: 1
+    label: "Renk #2 (8)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.17647058823529413, g: 0.5098039215686274, b: 0.8431372549019608, a: 1.0}
+    capacity: 30
+    paletteIndex: 0
+    label: "Renk #1 (9)"
+    linkId: 5
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.17647058823529413, g: 0.5098039215686274, b: 0.8431372549019608, a: 1.0}
+    capacity: 20
+    paletteIndex: 0
+    label: "Renk #1 (10)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.047058823529411764, g: 0.054901960784313725, b: 0.14901960784313725, a: 1.0}
+    capacity: 23
+    paletteIndex: 1
+    label: "Renk #2 (9)"
+    linkId: 5
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  - wagonColor: {r: 0.17647058823529413, g: 0.5098039215686274, b: 0.8431372549019608, a: 1.0}
+    capacity: 20
+    paletteIndex: 0
+    label: "Renk #1 (11)"
+    linkId: 0
+    isHidden: 0
+    isDualColor: 0
+    secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+    secondaryCapacity: 0
+  m_FigureShadowTexture: {fileID: 0}
+  m_UseCustomColorTheme: 0
+  m_ColorTheme:
+    m_Parts:
+    - part: 6
+      matchBlockColor: 1
+      customColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+    - part: 7
+      matchBlockColor: 1
+      customColor: {r: 0.9019608, g: 0.15686275, b: 0.15686275, a: 1}
+    - part: 0
+      matchBlockColor: 0
+      customColor: {r: 0.19607843, g: 0.19607843, b: 0.21568628, a: 1}
+    - part: 1
+      matchBlockColor: 0
+      customColor: {r: 0.7647059, g: 0.77254903, b: 0.7921569, a: 1}
+    - part: 2
+      matchBlockColor: 0
+      customColor: {r: 0.3529412, g: 0.43137255, b: 0.50980395, a: 1}
+    - part: 3
+      matchBlockColor: 0
+      customColor: {r: 0.9882353, g: 0.98039216, b: 0.93333334, a: 1}
+    - part: 4
+      matchBlockColor: 0
+      customColor: {r: 0.5294118, g: 0.09411765, b: 0.11764706, a: 1}
+    - part: 5
+      matchBlockColor: 0
+      customColor: {r: 0.23529412, g: 0.23529412, b: 0.25882354, a: 1}
+    - part: 8
+      matchBlockColor: 0
+      customColor: {r: 0.5019608, g: 0.5176471, b: 0.54901963, a: 1}
+    - part: 11
+      matchBlockColor: 0
+      customColor: {r: 0.3764706, g: 0.3882353, b: 0.42352942, a: 1}
+    - part: 9
+      matchBlockColor: 0
+      customColor: {r: 0.47058824, g: 0.30588236, b: 0.1882353, a: 1}
+    - part: 10
+      matchBlockColor: 0
+      customColor: {r: 0.07058824, g: 0.0627451, b: 0.08627451, a: 1}
+    - part: 12
+      matchBlockColor: 0
+      customColor: {r: 0.92156863, g: 0.39215687, b: 0.078431375, a: 1}
+    - part: 13
+      matchBlockColor: 0
+      customColor: {r: 1, g: 0.78431374, b: 0, a: 1}
+    - part: 14
+      matchBlockColor: 0
+      customColor: {r: 0.15686275, g: 0.17254902, b: 0.20392157, a: 1}
+    - part: 15
+      matchBlockColor: 0
+      customColor: {r: 1, g: 0.972549, b: 0.78431374, a: 1}
