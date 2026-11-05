@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_132_KorsanAdasi
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: "Korsan Adas\u0131"
-  m_LevelIndex: 130
+  m_LevelIndex: 135
   m_DifficultyTier: 2
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

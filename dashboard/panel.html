@@ -227,11 +227,11 @@ tr.selected td { background: var(--wash); font-weight: 600; }
         <div style="display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px;">
           <div>
             <label style="display:block; font-weight:600; font-size:12px; margin-bottom:4px;">Pop-up Başlığı (Title):</label>
-            <input type="text" id="upTitle" value="YENİ GÜNCELLEME! 🚀" style="width:100%; padding:8px 12px; font-size:14px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--ink);">
+            <input type="text" id="upTitle" value="NEW UPDATE AVAILABLE! 🚀" style="width:100%; padding:8px 12px; font-size:14px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--ink);">
           </div>
           <div>
             <label style="display:block; font-weight:600; font-size:12px; margin-bottom:4px;">Duyuru Mesajı (Message):</label>
-            <textarea id="upMessage" rows="2" style="width:100%; padding:8px 12px; font-size:14px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--ink); resize:vertical;">30 yeni piksel seviye ve görsel iyileştirmeler seni bekliyor!</textarea>
+            <textarea id="upMessage" rows="2" style="width:100%; padding:8px 12px; font-size:14px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--ink); resize:vertical;">Brand new levels, fresh artwork, and exciting improvements await!</textarea>
           </div>
           <div>
             <label style="display:block; font-weight:600; font-size:12px; margin-bottom:4px;">Özel Mağaza Linki (Boşsa varsayılan Google Play / App Store sayfası açılır):</label>
@@ -355,112 +355,7 @@ tr.selected td { background: var(--wash); font-weight: 600; }
 
     <footer class="muted" id="footer"></footer>
   </main>
-  <script src="data/csv-paket.js">
-// ---------- Oyun Sürümü ve Güncelleme Bildirimi Yönetimi ----------
-const APP_VERSION_DOC_URL = 'https://firestore.googleapis.com/v1/projects/landflow-385da/databases/(default)/documents/players/_app_version';
-const FIRESTORE_COMMIT_URL = 'https://firestore.googleapis.com/v1/projects/landflow-385da/databases/(default)/documents:commit';
-
-async function initUpdateManager() {
-  const elStatus = document.getElementById('upStatus');
-  const elBtn = document.getElementById('btnSaveUpdate');
-  const elLatest = document.getElementById('upLatestVer');
-  const elMin = document.getElementById('upMinVer');
-  const elForce = document.getElementById('upIsForce');
-  const elTitle = document.getElementById('upTitle');
-  const elMsg = document.getElementById('upMessage');
-  const elStore = document.getElementById('upStoreUrl');
-
-  if (!elBtn) return;
-
-  // 1. Mevcut sürüm bilgisini oku
-  try {
-    const res = await fetch(APP_VERSION_DOC_URL + '?t=' + Date.now());
-    if (res.ok) {
-      const data = await res.json();
-      const fields = data.fields ?? {};
-      if (fields.version?.stringValue) elLatest.value = fields.version.stringValue;
-      
-      const deviceStr = fields.device?.stringValue ?? '';
-      if (deviceStr) {
-        const mMin = deviceStr.match(/min:([0-9\.]+)/);
-        if (mMin) elMin.value = mMin[1];
-        if (deviceStr.includes('force:1') || deviceStr.includes('force:true')) elForce.checked = true;
-        else elForce.checked = false;
-      }
-
-      const events = fields.events?.mapValue?.fields ?? {};
-      if (events.title?.stringValue) elTitle.value = events.title.stringValue;
-      if (events.message?.stringValue) elMsg.value = events.message.stringValue;
-      if (events.store_url?.stringValue) elStore.value = events.store_url.stringValue;
-
-      elStatus.innerHTML = `<span style="color:var(--good-ink);">● Yayındaki Sürüm: <b>v${elLatest.value}</b> (${data.updateTime ? new Date(data.updateTime).toLocaleDateString('tr-TR') : 'Aktif'})</span>`;
-    } else {
-      elStatus.textContent = 'Henüz yayında sürüm kaydı yok (varsayılanlar gösteriliyor).';
-    }
-  } catch (err) {
-    elStatus.textContent = 'Sürüm bilgisi okunamadı: ' + err.message;
-  }
-
-  // 2. Kaydet ve Yayınla butonu
-  elBtn.onclick = async () => {
-    elBtn.disabled = true;
-    elStatus.innerHTML = '<span style="color:var(--ink-2);">Yayınlanıyor, lütfen bekleyin...</span>';
-
-    const latest = elLatest.value.trim() || '1.8';
-    const minVer = elMin.value.trim() || '1.0';
-    const isForce = elForce.checked ? 1 : 0;
-    const title = elTitle.value.trim() || 'YENİ GÜNCELLEME! 🚀';
-    const message = elMsg.value.trim() || 'Yeni seviyeler seni bekliyor!';
-    const storeUrl = elStore.value.trim();
-
-    const commitPayload = {
-      writes: [
-        {
-          update: {
-            name: 'projects/landflow-385da/databases/(default)/documents/players/_app_version',
-            fields: {
-              version: { stringValue: latest },
-              platform: { stringValue: 'all' },
-              device: { stringValue: `min:${minVer}|force:${isForce}` },
-              events: {
-                mapValue: {
-                  fields: {
-                    title: { stringValue: title },
-                    message: { stringValue: message },
-                    store_url: { stringValue: storeUrl }
-                  }
-                }
-              }
-            }
-          }
-        }
-      ]
-    };
-
-    try {
-      const res = await fetch(FIRESTORE_COMMIT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(commitPayload)
-      });
-
-      if (res.ok) {
-        elStatus.innerHTML = `<span style="color:var(--good-ink); font-weight:700;">✓ v${latest} güncellemesi başarıyla yayınlandı! Tüm eski sürüm oyuncularına iletilecek.</span>`;
-      } else {
-        const errText = await res.text();
-        elStatus.innerHTML = `<span style="color:var(--crit-ink);">Hata: ${errText}</span>`;
-      }
-    } catch (err) {
-      elStatus.innerHTML = `<span style="color:var(--crit-ink);">İstek hatası: ${err.message}</span>`;
-    } finally {
-      elBtn.disabled = false;
-    }
-  };
-}
-
-window.addEventListener('DOMContentLoaded', initUpdateManager);
-
-</script>
+  <script src="data/csv-paket.js"></script>
   <script>
 (() => {
 'use strict';
@@ -2246,8 +2141,8 @@ async function initUpdateManager() {
     const latest = elLatest.value.trim() || '1.8';
     const minVer = elMin.value.trim() || '1.0';
     const isForce = elForce.checked ? 1 : 0;
-    const title = elTitle.value.trim() || 'YENİ GÜNCELLEME! 🚀';
-    const message = elMsg.value.trim() || 'Yeni seviyeler seni bekliyor!';
+    const title = elTitle.value.trim() || 'NEW UPDATE AVAILABLE! 🚀';
+    const message = elMsg.value.trim() || 'Brand new levels, fresh artwork, and exciting improvements await!';
     const storeUrl = elStore.value.trim();
 
     const commitPayload = {

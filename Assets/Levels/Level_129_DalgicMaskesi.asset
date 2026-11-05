@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_129_DalgicMaskesi
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: "Dalg\u0131\xE7 Maskesi"
-  m_LevelIndex: 127
+  m_LevelIndex: 154
   m_DifficultyTier: 0
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

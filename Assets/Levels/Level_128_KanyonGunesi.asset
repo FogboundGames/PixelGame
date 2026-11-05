@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_128_KanyonGunesi
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: "Kanyon G\xFCne\u015Fi"
-  m_LevelIndex: 126
+  m_LevelIndex: 156
   m_DifficultyTier: 2
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

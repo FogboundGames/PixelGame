@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_135_RubikKup
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: "Rubik K\xFCp"
-  m_LevelIndex: 133
+  m_LevelIndex: 160
   m_DifficultyTier: 0
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0

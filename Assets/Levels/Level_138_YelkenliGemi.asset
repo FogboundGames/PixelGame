@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_138_YelkenliGemi
   m_EditorClassIdentifier: Assembly-CSharp::PixelGame.PixelLevelData
   m_LevelName: Yelkenli Gemi
-  m_LevelIndex: 136
+  m_LevelIndex: 146
   m_DifficultyTier: 1
   m_DifficultyManual: 1
   m_LegacyIsHardLevel: 0
