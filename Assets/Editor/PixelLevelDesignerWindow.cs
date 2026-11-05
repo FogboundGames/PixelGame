@@ -1117,14 +1117,13 @@ namespace PixelGame.Editor
 
             // 2. Zorluk ve Yanaşma Yeri (Slot) Seçimi
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("⚓ Zorluk & İskele Slot Sayısı", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField("Aynı anda yanaşan gemi sayısıdır. Az slot planlama gerektirir, çok slot rahat oynatır.", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("⚓ İskele Slot Sayısı", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Tasarım kuralı: Tüm bölümlerde sabit 5 iskele slotu kullanılır. Zorluk gemi kapasitesi ve halatlarla ayarlanır.", EditorStyles.miniLabel);
 
             EditorGUILayout.BeginHorizontal();
-            int currentSlots = m_SelectedLevel.SlotCount;
-            DrawSlotPresetButton(5, "🟢 Kolay (5 İskele)", currentSlots == 5, new Color(0.35f, 0.85f, 0.45f));
-            DrawSlotPresetButton(4, "🟡 Orta (4 İskele)", currentSlots == 4, new Color(0.95f, 0.85f, 0.35f));
-            DrawSlotPresetButton(3, "🔴 Zor (3 İskele)", currentSlots == 3, new Color(1f, 0.45f, 0.4f));
+            GUI.backgroundColor = new Color(0.35f, 0.85f, 0.45f);
+            GUILayout.Button("⚓ Sabit 5 İskele Slotu", GUILayout.Height(30));
+            GUI.backgroundColor = Color.white;
             EditorGUILayout.EndHorizontal();
             EditorGUILayout.EndVertical();
 
@@ -2200,14 +2199,10 @@ namespace PixelGame.Editor
                     NotifyShipQueueUpdate();
                 }
 
-                int slots = DrawStepperRow("⚓ Yanaşma Slotu", "Aynı anda yanaşabilen açık gemi slotu sayısı. Kalan bölmeler kilitli duba ve zincirle kapanır.", m_SelectedLevel.SlotCount, 1, 8);
-                if (slots != m_SelectedLevel.SlotCount)
-                {
-                    Undo.RecordObject(m_SelectedLevel, "Yanaşma Slotu");
-                    m_SelectedLevel.SlotCount = slots;
-                    EditorUtility.SetDirty(m_SelectedLevel);
-                    NotifyLiveSceneUpdate();
-                }
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Label(new GUIContent("⚓ Yanaşma Slotu", "Tasarım kuralı: Her seviyede 5 slot sabittir."), GUILayout.Width(SequenceLabelWidth));
+                EditorGUILayout.LabelField("5 (Sabit)", EditorStyles.boldLabel);
+                EditorGUILayout.EndHorizontal();
 
 
             });

@@ -859,28 +859,14 @@ namespace PixelGame
 
         private void OnLevelLoaded(PixelLevelData level)
         {
-            if (level != null && level.SlotCount > 0)
-            {
-                SetSlotCount(level.SlotCount);
-            }
-            else
-            {
-                ApplyLayout();
-            }
+            SetSlotCount(level != null ? level.SlotCount : PixelLevelData.FixedSlotCount);
         }
 
         public void SyncWithLevel()
         {
             PixelArtGenerator gen = UnityEngine.Object.FindFirstObjectByType<PixelArtGenerator>();
             PixelLevelData level = gen != null ? gen.ActiveLevelData : null;
-            if (level != null && level.SlotCount > 0)
-            {
-                SetSlotCount(level.SlotCount);
-            }
-            else
-            {
-                ApplyLayout();
-            }
+            SetSlotCount(level != null ? level.SlotCount : PixelLevelData.FixedSlotCount);
         }
 
         public void SetSlotCount(int targetCount)

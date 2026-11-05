@@ -256,8 +256,14 @@ namespace PixelGame.Editor
             int newCols = DrawStepperRow("Kolon", "Havuzda yan yana kaç sütun gemi olur.", m_PoolColumns, 1, 8);
             if (newCols != m_PoolColumns) m_PoolColumns = newCols;
 
-            int newSlots = DrawStepperRow("⚓ Yanaşma Slotu", "Aynı anda yanaşabilen açık iskele gemi yuvası sayısı.", m_SlotCount, 2, 8);
-            if (newSlots != m_SlotCount) m_SlotCount = newSlots;
+            m_SlotCount = PixelLevelData.FixedSlotCount;
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent("⚓ Yanaşma Slotu", "Tasarım kuralı: Her seviyede 5 slot sabittir."), GUILayout.Width(125), GUILayout.Height(20));
+            GUI.color = new Color(0.3f, 0.85f, 1f);
+            GUILayout.Label("<b>5 Slot (Sabit)</b>", GetRichMiniLabel(), GUILayout.Height(20));
+            GUI.color = Color.white;
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
             GUILayout.Label("Havuz Kapasitesi:", EditorStyles.miniLabel, GUILayout.Width(125));
