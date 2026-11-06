@@ -21,8 +21,6 @@ namespace PixelGame.Editor
         private LevelBenchmarkEngine.DifficultyPreset m_Preset = LevelBenchmarkEngine.DifficultyPreset.Zor;
         private LevelBenchmarkEngine.PuzzleDurationPacing m_DurationPacing = LevelBenchmarkEngine.PuzzleDurationPacing.TacticalDeep;
         private int m_TargetShipCount = 45;
-        private int m_TargetColorCount = 0;
-        private bool m_DenoiseKMeans = true;
 
         // 2. Havuz & Slot Ayarları (Kullanıcının İstediği Birebir Kontroller)
         private int m_PoolRows = 3;       // Sıra (dalga) [−] [3] [+] — ekranda her şeridin ilk 3 gemisi görünür
@@ -32,7 +30,7 @@ namespace PixelGame.Editor
         // 3. Gemi Kapasiteleri (Sayı Dağılımı)
         private int m_MinCapacity = 10;   // Min Kapasite
         private int m_PeakCapacity = 20;  // En Sık (Peak) Kapasite
-        private int m_MaxCapacity = 30;   // Maks Kapasite
+        private int m_MaxCapacity = 50;   // Maks Kapasite (rehber: Kolay 30 / büyükte 40, Orta 40, Zor 50)
         private bool m_PreferRoundCapacities = true;
         private float m_RoundRatio = 0.70f;
 
@@ -53,11 +51,15 @@ namespace PixelGame.Editor
         private List<Vector2Int> m_WorkingMysteryCubes = new List<Vector2Int>();
         private int m_TotalCubes = 0;
         private Texture2D m_GeneratedTexture;   // kuyruğun üretildiği doku (renk azaltma açıksa optimize edilmiş kopya); kayıt da bununla yapılır
+        private HashSet<int> m_OuterColors = new HashSet<int>();   // dış katman renkleri (açılış kuralı için)
+        private int m_SourceCubes;     // kaynak resimdeki opak piksel sayısı (sütun / maks kapasite varsayılanı için)
+        private int m_SequenceCount;   // LevelSequence'teki level sayısı
 
         // Son kural + simülasyon kontrolü (kuyruk elle değişince geçersiz olur)
         private bool m_CheckValid;
         private List<string> m_CheckErrors = new List<string>();
         private LevelQueueSimulator.Result m_CheckSim;
+        private List<string> m_CheckWarnings = new List<string>();   // zorluk bandı / tap testi / PONR (kayda engel değil)
 
         // 6. GUI & Scroll Durumları
         private Vector2 m_MainScroll;
@@ -93,8 +95,38 @@ namespace PixelGame.Editor
             var seq = AssetDatabase.LoadAssetAtPath<LevelSequence>("Assets/Levels/LevelSequence.asset");
             if (seq != null && seq.Levels != null)
             {
-                m_TargetLevelIndex = seq.Levels.Count + 1;
+                m_SequenceCount = seq.Levels.Count(l => l != null);
+                m_TargetLevelIndex = m_SequenceCount + 1;
             }
+        }
+
+        private int SequenceCount() => m_SequenceCount;
+        private int CountSourceCubes() => m_SourceCubes;
+
+        private static int TierToolbarIndex(LevelBenchmarkEngine.DifficultyPreset preset)
+        {
+            if (preset == LevelBenchmarkEngine.DifficultyPreset.Kolay) return 0;
+            if (preset == LevelBenchmarkEngine.DifficultyPreset.Zor) return 2;
+            return 1;
+        }
+
+        private static LevelBenchmarkEngine.PuzzleDurationPacing PacingFor(LevelBenchmarkEngine.DifficultyPreset preset)
+        {
+            if (preset == LevelBenchmarkEngine.DifficultyPreset.Kolay) return LevelBenchmarkEngine.PuzzleDurationPacing.FastCasual;
+            if (preset == LevelBenchmarkEngine.DifficultyPreset.Zor) return LevelBenchmarkEngine.PuzzleDurationPacing.TacticalDeep;
+            return LevelBenchmarkEngine.PuzzleDurationPacing.StandardPuzzle;
+        }
+
+        /// <summary>Zorluğa göre rehber varsayılanları: sütun (Kolay 3, küçük resimde 3, yoksa 4), maks kapasite, gizli küp.</summary>
+        private void ApplyTierDefaults(LevelBenchmarkEngine.DifficultyPreset preset)
+        {
+            m_Preset = preset;
+            var tier = CurrentTier();
+            m_PoolColumns = LevelBenchmarkEngine.RecommendedPoolColumns(tier, m_SourceCubes);
+            m_MaxCapacity = LevelBenchmarkEngine.TierMaxCapacity(tier, m_SourceCubes);
+            m_PeakCapacity = Mathf.Min(m_PeakCapacity, m_MaxCapacity);
+            m_GenerateMysteryCubes = tier != LevelDifficultyTier.Kolay;
+            m_MysteryCubePercent = tier == LevelDifficultyTier.Zor ? 5 : 4;
         }
 
         private void OnGUI()
@@ -195,7 +227,7 @@ namespace PixelGame.Editor
             GUI.color = new Color(0.4f, 0.9f, 0.6f);
             GUILayout.Label("📊 162 Seviye Benchmark Referansı:", EditorStyles.boldLabel, GUILayout.Width(220));
             GUI.color = Color.white;
-            GUILayout.Label("Ort. 659 Küp • Zor Seviyelerde 40-55 Gemi • %71.5 Yuvarlak Kapasite • %92 Halat • %94 Gizli • %90 Gizli Küpler (?)", EditorStyles.miniLabel);
+            GUILayout.Label("Ort. 659 Küp • Ort. 23 Gemi (en fazla 36) • %71.5 Yuvarlak Kapasite • %92 Halat • %94 Gizli • %59 Gizli Küpler (?)", EditorStyles.miniLabel);
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.EndVertical();
@@ -282,11 +314,19 @@ namespace PixelGame.Editor
             GUILayout.Label("🔢 3. Gemi Kapasiteleri (Sayı Dağılımı)", EditorStyles.boldLabel);
             EditorGUILayout.BeginVertical(GUI.skin.box);
 
-            m_MinCapacity = DrawStepperRow("Min Kapasite", "Gemi başına en az küp sayısı.", m_MinCapacity, 4, m_PeakCapacity);
-            m_PeakCapacity = DrawStepperRow("En Sık (Peak)", "Kapasitelerin yoğunlaştığı tepe değer.", m_PeakCapacity, m_MinCapacity, m_MaxCapacity);
-            m_MaxCapacity = DrawStepperRow("Maks Kapasite", "Gemi başına en fazla küp sayısı.", m_MaxCapacity, m_PeakCapacity, 60);
-
-            m_PreferRoundCapacities = EditorGUILayout.Toggle(new GUIContent("10'un Katları (10, 20, 30...):", "Sayılar ağırlıklı olarak 10, 20, 30... olur, kalan küpler tek gemide toplanır."), m_PreferRoundCapacities);
+            bool custom = m_DurationPacing == LevelBenchmarkEngine.PuzzleDurationPacing.Custom;
+            int tierMax = custom ? 60 : LevelBenchmarkEngine.TierMaxCapacity(CurrentTier(), m_TotalCubes > 0 ? m_TotalCubes : CountSourceCubes());
+            m_MaxCapacity = DrawStepperRow("Maks Kapasite", "Gemi başına en fazla küp sayısı (rehber: Kolay 30 / büyükte 40, Orta 40, Zor 50).", m_MaxCapacity, 20, tierMax);
+            if (custom)
+            {
+                m_MinCapacity = DrawStepperRow("Min Kapasite", "Gemi başına en az küp sayısı.", m_MinCapacity, 4, m_PeakCapacity);
+                m_PeakCapacity = DrawStepperRow("En Sık (Peak)", "Kapasitelerin yoğunlaştığı tepe değer.", m_PeakCapacity, m_MinCapacity, m_MaxCapacity);
+                m_PreferRoundCapacities = EditorGUILayout.Toggle(new GUIContent("10'un Katları (10, 20, 30...):", "Sayılar ağırlıklı olarak 10, 20, 30... olur, kalan küpler tek gemide toplanır."), m_PreferRoundCapacities);
+            }
+            else
+            {
+                EditorGUILayout.LabelField("Rehber bölmesi: renk başına en az gemi, renk başına en fazla 1 küsuratlı gemi (örn. max 30: 66 → 30, 20, 16).", EditorStyles.wordWrappedMiniLabel);
+            }
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.Space(6);
@@ -294,56 +334,59 @@ namespace PixelGame.Editor
             // -------------------------------------------------------------
             // ⏱️ Bulmaca Süresi & Pacing Seçici
             // -------------------------------------------------------------
-            GUILayout.Label("⏱️ 4. Bulmaca Süresi & Derinlik Modu", EditorStyles.boldLabel);
+            GUILayout.Label("🎯 4. Zorluk & Bulmaca Süresi", EditorStyles.boldLabel);
+
+            // Kaydedilecek zorluk her zaman görünür; eskiden yalnızca en son basılan süre butonundan çıkıyordu
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent("Zorluk:", "Level'a kaydedilecek zorluk. Sütun, maks kapasite, halat/gizli sayısı ve gizli küp buna göre ayarlanır."), GUILayout.Width(60), GUILayout.Height(24));
+            int curTier = TierToolbarIndex(m_Preset);
+            int newTier = GUILayout.Toolbar(curTier, new[] { "Kolay", "Orta", "Zor" }, GUILayout.Height(24));
+            EditorGUILayout.EndHorizontal();
+            if (newTier != curTier)
+            {
+                var preset = newTier == 0 ? LevelBenchmarkEngine.DifficultyPreset.Kolay
+                    : newTier == 1 ? LevelBenchmarkEngine.DifficultyPreset.Orta
+                    : LevelBenchmarkEngine.DifficultyPreset.Zor;
+                if (m_DurationPacing != LevelBenchmarkEngine.PuzzleDurationPacing.Custom) m_DurationPacing = PacingFor(preset);
+                ApplyTierDefaults(preset);
+                if (m_SourceTexture != null) TriggerSmartGeneration();
+            }
+
             EditorGUILayout.BeginHorizontal();
 
             GUI.backgroundColor = (m_DurationPacing == LevelBenchmarkEngine.PuzzleDurationPacing.FastCasual) ? new Color(0.4f, 0.85f, 0.5f) : Color.white;
-            if (GUILayout.Button("⚡ Hızlı\n(~1.5 Dk)", GUILayout.Height(34)))
+            if (GUILayout.Button("⚡ Hızlı\n(Kolay)", GUILayout.Height(34)))
             {
                 m_DurationPacing = LevelBenchmarkEngine.PuzzleDurationPacing.FastCasual;
-                m_Preset = LevelBenchmarkEngine.DifficultyPreset.Kolay;
-                m_MaxCapacity = 40;
-                m_MinCapacity = 10;
-                m_PeakCapacity = 20;
-                m_GenerateMysteryCubes = false;
+                ApplyTierDefaults(LevelBenchmarkEngine.DifficultyPreset.Kolay);
                 TriggerSmartGeneration();
             }
 
             GUI.backgroundColor = (m_DurationPacing == LevelBenchmarkEngine.PuzzleDurationPacing.StandardPuzzle) ? new Color(0.95f, 0.85f, 0.3f) : Color.white;
-            if (GUILayout.Button("🧩 Standart\n(~3-4 Dk)", GUILayout.Height(34)))
+            if (GUILayout.Button("🧩 Standart\n(Orta)", GUILayout.Height(34)))
             {
                 m_DurationPacing = LevelBenchmarkEngine.PuzzleDurationPacing.StandardPuzzle;
-                m_Preset = LevelBenchmarkEngine.DifficultyPreset.Orta;
-                m_MaxCapacity = 30;
-                m_MinCapacity = 10;
-                m_PeakCapacity = 20;
-                m_GenerateMysteryCubes = true;
-                m_MysteryCubePercent = 4;
+                ApplyTierDefaults(LevelBenchmarkEngine.DifficultyPreset.Orta);
                 TriggerSmartGeneration();
             }
 
             GUI.backgroundColor = (m_DurationPacing == LevelBenchmarkEngine.PuzzleDurationPacing.TacticalDeep) ? new Color(1f, 0.5f, 0.4f) : Color.white;
-            if (GUILayout.Button("🧠 Zorlu & Uzun\n(~5-8+ Dk)", GUILayout.Height(34)))
+            if (GUILayout.Button("🧠 Zorlu\n(Zor)", GUILayout.Height(34)))
             {
                 m_DurationPacing = LevelBenchmarkEngine.PuzzleDurationPacing.TacticalDeep;
-                m_Preset = LevelBenchmarkEngine.DifficultyPreset.Zor;
-                m_MaxCapacity = 30;
-                m_MinCapacity = 10;
-                m_PeakCapacity = 20;
-                m_GenerateMysteryCubes = true;
-                m_MysteryCubePercent = 5;
+                ApplyTierDefaults(LevelBenchmarkEngine.DifficultyPreset.Zor);
                 TriggerSmartGeneration();
             }
 
             GUI.backgroundColor = (m_DurationPacing == LevelBenchmarkEngine.PuzzleDurationPacing.Custom) ? new Color(0.5f, 0.8f, 1f) : Color.white;
-            if (GUILayout.Button("🎛️ Özel\n(Slider)", GUILayout.Height(34)))
+            if (GUILayout.Button("🎛️ Özel\n(Gemi Sayısı)", GUILayout.Height(34)))
             {
                 m_DurationPacing = LevelBenchmarkEngine.PuzzleDurationPacing.Custom;
             }
             GUI.backgroundColor = Color.white;
             EditorGUILayout.EndHorizontal();
 
-            if (m_DurationPacing == LevelBenchmarkEngine.PuzzleDurationPacing.Custom || m_DurationPacing == LevelBenchmarkEngine.PuzzleDurationPacing.TacticalDeep)
+            if (m_DurationPacing == LevelBenchmarkEngine.PuzzleDurationPacing.Custom)
             {
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField("Hedef Gemi Sayısı:", GUILayout.Width(125));
@@ -375,7 +418,8 @@ namespace PixelGame.Editor
             // -------------------------------------------------------------
             GUILayout.Label("⚙️ 6. Seviye Adı & Mekanikler", EditorStyles.boldLabel);
             m_LevelName = EditorGUILayout.TextField("Bölüm Adı:", m_LevelName);
-            m_TargetLevelIndex = EditorGUILayout.IntField("Bölüm No (Index):", m_TargetLevelIndex);
+            m_TargetLevelIndex = EditorGUILayout.IntField(new GUIContent("Bölüm No (Sıra):", "Level LevelSequence'te bu konuma eklenir, arkasındakiler bir kayar ve yeniden numaralanır."), m_TargetLevelIndex);
+            m_TargetLevelIndex = Mathf.Clamp(m_TargetLevelIndex, 1, SequenceCount() + 1);
 
             EditorGUILayout.Space(2);
             m_GenerateLinks = EditorGUILayout.Toggle("🔗 Halatlı Gemiler (Linked):", m_GenerateLinks);
@@ -456,6 +500,7 @@ namespace PixelGame.Editor
                 if (GUILayout.Button("Temizle", EditorStyles.miniButton, GUILayout.Width(60)))
                 {
                     m_SourceTexture = null;
+                    m_SourceCubes = 0;
                     m_WorkingSequence.Clear();
                     m_WorkingPalette.Clear();
                     m_WorkingMysteryCubes.Clear();
@@ -475,6 +520,8 @@ namespace PixelGame.Editor
                 m_LevelName = char.ToUpper(clean[0]) + clean.Substring(1);
             }
 
+            m_SourceCubes = LevelBenchmarkEngine.CountOpaquePixels(tex);
+            ApplyTierDefaults(m_Preset);   // sütun ve maks kapasite resmin büyüklüğüne bağlı
             TriggerSmartGeneration();
         }
 
@@ -489,22 +536,11 @@ namespace PixelGame.Editor
 
             Texture2D activeTex = m_SourceTexture;
 
-            if (m_TargetColorCount > 0)
-            {
-                Texture2D quantized = PixelPaletteOptimizer.Quantize(m_SourceTexture, m_TargetColorCount, 0.2f, m_DenoiseKMeans);
-                if (quantized != null)
-                {
-                    Texture2D saved = PixelPaletteOptimizer.SaveAsOptimizedAsset(m_SourceTexture, quantized, $"_{m_TargetColorCount}c");
-                    DestroyImmediate(quantized);
-                    if (saved != null) activeTex = saved;
-                }
-            }
-
             var config = new LevelBenchmarkEngine.GenerationConfig
             {
                 preset = m_Preset,
                 durationPacing = m_DurationPacing,
-                targetShipCount = (m_DurationPacing == LevelBenchmarkEngine.PuzzleDurationPacing.Custom || m_DurationPacing == LevelBenchmarkEngine.PuzzleDurationPacing.TacticalDeep) ? m_TargetShipCount : 0,
+                targetShipCount = m_DurationPacing == LevelBenchmarkEngine.PuzzleDurationPacing.Custom ? m_TargetShipCount : 0,
                 targetLevelIndex = m_TargetLevelIndex,
                 levelName = m_LevelName,
                 poolRows = m_PoolRows,
@@ -530,14 +566,13 @@ namespace PixelGame.Editor
             if (m_CurrentResult.success)
             {
                 m_GeneratedTexture = activeTex;
-                m_CheckValid = true;
+                m_PoolColumns = m_CurrentResult.poolColumns;   // Kolay'da motor 3'e zorlar
+                m_OuterColors = m_CurrentResult.outerColors;
+                // Çözüm garantisi kapalıysa simülasyon yapılmadı: rozet "Doğrulanmadı" der
+                m_CheckValid = m_CurrentResult.simulated;
                 m_CheckErrors = m_CurrentResult.ruleErrors;
-                m_CheckSim = new LevelQueueSimulator.Result
-                {
-                    randomWinRate = m_CurrentResult.simRandomWinRate,
-                    smartWinRate = m_CurrentResult.simSmartWinRate,
-                    dfs = m_CurrentResult.is100PercentSolvable ? 1 : 0,
-                };
+                m_CheckSim = m_CurrentResult.sim;
+                m_CheckWarnings = m_CurrentResult.difficultyWarnings;
                 m_WorkingSequence = m_CurrentResult.sequence;
                 m_WorkingPalette = m_CurrentResult.palette;
                 m_WorkingMysteryCubes = m_CurrentResult.mysteryCubes;
@@ -596,6 +631,8 @@ namespace PixelGame.Editor
 
             // Vagon Listesi
             m_QueueScroll = EditorGUILayout.BeginScrollView(m_QueueScroll, GUILayout.MinHeight(380));
+            // Kapasite / halat / gizli / sıra değişikliği son doğrulamayı geçersiz kılar
+            EditorGUI.BeginChangeCheck();
             if (m_ViewCards)
             {
                 DrawWagonCardsGrid();
@@ -604,6 +641,7 @@ namespace PixelGame.Editor
             {
                 DrawWagonTableView();
             }
+            if (EditorGUI.EndChangeCheck()) m_CheckValid = false;
             EditorGUILayout.EndScrollView();
 
             EditorGUILayout.EndVertical();
@@ -669,12 +707,18 @@ namespace PixelGame.Editor
             string badge = !m_CheckValid ? "⚠️ Doğrulanmadı"
                 : !m_CheckSim.Solvable ? "⛔ Çözülemiyor"
                 : m_CheckErrors.Count > 0 ? $"⚠️ {m_CheckErrors.Count} kural hatası"
-                : $"✓ Çözülebilir · rastgele %{m_CheckSim.randomWinRate * 100:F0} · akıllı %{m_CheckSim.smartWinRate * 100:F0}";
+                : $"✓ Çözülebilir · rastgele %{m_CheckSim.randomWinRate * 100:F0} · akıllı %{m_CheckSim.smartWinRate * 100:F0}" +
+                  (m_CheckSim.extended ? $" · tap %{m_CheckSim.tapSmartWinRate * 100:F0}" + (m_CheckSim.ponrMoves >= 0 ? $" · hata→kayıp {m_CheckSim.ponrMoves:F1} hamle" : "") : "");
             GUI.color = ok ? new Color(0.2f, 0.9f, 0.4f) : new Color(1f, 0.7f, 0.2f);
             GUILayout.Label(new GUIContent(badge, m_CheckErrors.Count > 0 ? string.Join("\n", m_CheckErrors) : null), EditorStyles.boldLabel);
             GUI.color = Color.white;
 
             EditorGUILayout.EndHorizontal();
+
+            if (m_CheckValid && m_CheckWarnings.Count > 0)
+            {
+                EditorGUILayout.HelpBox(string.Join("\n", m_CheckWarnings), MessageType.Warning);
+            }
         }
 
         private void DrawQuickActionsBar()
@@ -889,6 +933,7 @@ namespace PixelGame.Editor
             if (GUILayout.Button("✕ Sil", EditorStyles.miniButton))
             {
                 m_WorkingSequence.RemoveAt(index);
+                m_CheckValid = false;
                 GUIUtility.ExitGUI();
             }
             GUI.color = Color.white;
@@ -961,6 +1006,7 @@ namespace PixelGame.Editor
                 if (GUILayout.Button("✕", EditorStyles.miniButtonRight, GUILayout.Width(22)))
                 {
                     m_WorkingSequence.RemoveAt(i);
+                    m_CheckValid = false;
                     GUIUtility.ExitGUI();
                 }
 
@@ -1021,11 +1067,15 @@ namespace PixelGame.Editor
 
             // Kuyruk elle değişmiş olabilir: kaydetmeden önce yeniden ölç, sorun varsa sor
             RunCheck();
-            if (m_CheckErrors.Count > 0 || !m_CheckSim.Solvable)
+            var placement = LevelBenchmarkEngine.CheckSequencePlacement(m_TargetLevelIndex, tier, m_TotalCubes);
+            if (m_CheckErrors.Count > 0 || !m_CheckSim.Solvable || placement.Count > 0 || m_CheckWarnings.Count > 0)
             {
                 string problems = (!m_CheckSim.Solvable ? "• Kuyruk simülatöründe çözülemiyor\n" : "") +
-                                  string.Join("\n", m_CheckErrors.Take(8).Select(e => "• " + e));
-                if (!EditorUtility.DisplayDialog("Level kurallara uymuyor", problems, "Yine de kaydet", "Vazgeç")) return;
+                                  string.Join("\n", m_CheckErrors.Take(8).Select(e => "• " + e)) +
+                                  (placement.Count > 0 ? "\n\n" + $"Sıra {m_TargetLevelIndex}:\n" + string.Join("\n", placement.Select(e => "• " + e)) : "") +
+                                  (m_CheckWarnings.Count > 0 ? "\n\nZorluk:\n" + string.Join("\n", m_CheckWarnings.Select(e => "• " + e)) : "");
+                problems = problems.Trim();
+                if (!EditorUtility.DisplayDialog("Kaydetmeden önce kontrol et", problems, "Yine de kaydet", "Vazgeç")) return;
             }
 
             string savedPath;
@@ -1084,6 +1134,7 @@ namespace PixelGame.Editor
                 m_WorkingPalette, m_WorkingSequence, m_PoolRows, m_PoolColumns, m_SlotCount);
             m_CheckErrors = errors;
             m_CheckSim = sim;
+            m_CheckWarnings = LevelBenchmarkEngine.DifficultyWarnings(CurrentTier(), sim);
             m_CheckValid = true;
             Repaint();
         }
@@ -1142,6 +1193,8 @@ namespace PixelGame.Editor
                 }
             }
             LevelBenchmarkEngine.FixColumnRepeats(m_WorkingSequence, cols, rng);
+            LevelBenchmarkEngine.FixOpening(m_WorkingSequence, cols, m_OuterColors, rng);
+            LevelBenchmarkEngine.FixColumnRepeats(m_WorkingSequence, cols, rng, m_OuterColors);
             for (int i = 0; i < Mathf.Min(cols, m_WorkingSequence.Count); i++) m_WorkingSequence[i].isHidden = false;
             m_CheckValid = false;
         }

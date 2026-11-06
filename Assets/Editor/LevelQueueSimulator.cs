@@ -25,6 +25,11 @@ namespace PixelGame.Editor
             public int dfs;              // 1 = çözüm var, 0 = yok, -1 = arama bütçesi bitti
             public string error;         // level simüle edilemedi (renk/kapasite uyuşmazlığı vb.)
 
+            // extended = true ile ölçülür (sim.cpp 'm' gürültüsü ve 'p' raporu)
+            public bool extended;
+            public float tapSmartWinRate; // akıllı oyuncu, denizciler toplamayı bitirmeden dokunursa (gemiler paralel/rastgele toplar)
+            public float ponrMoves;       // akıllı bot kaybettiğinde hatanın kaç hamle önce yapıldığı (ort.); -1 = kayıp yok
+
             public bool Solvable => error == null && (dfs == 1 || smartWinRate > 0f || randomWinRate > 0f);
         }
 
@@ -56,7 +61,8 @@ namespace PixelGame.Editor
             }
         }
 
-        public static Result Simulate(PixelLevelData level, IList<WagonSequenceEntry> sequence, int runs = 60, int seed = 9, int dfsBudget = 20000)
+        /// <param name="extended">tap testi (ve measurePonr ise PONR) da ölçülür</param>
+        public static Result Simulate(PixelLevelData level, IList<WagonSequenceEntry> sequence, int runs = 60, int seed = 9, int dfsBudget = 20000, bool extended = false, bool measurePonr = true)
         {
             var result = new Result { dfs = 0 };
             Board b = BuildBoard(level, sequence, out string error);
@@ -76,6 +82,15 @@ namespace PixelGame.Editor
             result.randomWinRate = randomWins / (float)Mathf.Max(1, runs);
             result.smartWinRate = smartWins / (float)Mathf.Max(1, runs);
             result.dfs = smartWins > 0 ? 1 : Dfs(b, dfsBudget);
+
+            if (extended)
+            {
+                int tapWins = 0;
+                for (int r = 0; r < runs; r++) if (Play(b, rng, true, tapNoise: true)) tapWins++;
+                result.tapSmartWinRate = tapWins / (float)Mathf.Max(1, runs);
+                result.ponrMoves = measurePonr ? PonrMoves(b, rng, Mathf.Min(runs, 20), Mathf.Min(dfsBudget, 4000)) : -1f;
+                result.extended = true;
+            }
             return result;
         }
 
@@ -306,6 +321,34 @@ namespace PixelGame.Editor
             }
         }
 
+        /// <summary>
+        /// Gerçek zamanlı toplama (sim.cpp collectNoisy): rastgele bir gemi 1–5 küplük bir tur yapar, bütçe bitene kadar.
+        /// Oyuncu denizciler bitirmeden dokunduğunda tahtanın o anki hali budur.
+        /// </summary>
+        private static void CollectNoisy(Board b, State s, System.Random rng, int budget)
+        {
+            var cand = new List<int>(b.slots);
+            while (budget > 0)
+            {
+                cand.Clear();
+                for (int i = 0; i < b.slots; i++)
+                {
+                    if (s.slotShip[i] >= 0 && !SlotDone(s, i) && PickForSlot(b, s, i, out _) >= 0) cand.Add(i);
+                }
+                if (cand.Count == 0) break;
+                int slot = cand[rng.Next(cand.Count)], trip = 1 + rng.Next(5);
+                while (trip-- > 0 && budget > 0 && !SlotDone(s, slot))
+                {
+                    int c = PickForSlot(b, s, slot, out bool second);
+                    if (c < 0) break;
+                    RemoveCube(b, s, c % b.W, c / b.W);
+                    budget--;
+                    if (second) s.slotRem2[slot]--; else s.slotRem[slot]--;
+                    if (SlotDone(s, slot)) { FinishOne(b, s, slot); break; }
+                }
+            }
+        }
+
         private static int EmptySlots(Board b, State s)
         {
             int n = 0;
@@ -353,7 +396,7 @@ namespace PixelGame.Editor
             }
         }
 
-        private static void Apply(Board b, State s, int lane)
+        private static void SendOnly(Board b, State s, int lane)
         {
             int id = LaneShip(b, lane, s.head[lane]), p = b.ships[id].partner;
             s.head[lane]++;
@@ -363,6 +406,11 @@ namespace PixelGame.Editor
                 s.head[p % b.cols]++;
                 Dock(b, s, p);
             }
+        }
+
+        private static void Apply(Board b, State s, int lane)
+        {
+            SendOnly(b, s, lane);
             Collect(b, s);
         }
 
@@ -378,29 +426,72 @@ namespace PixelGame.Editor
             return (before - s.left) - busy * 3.0 + EmptySlots(b, s) * 2.0;
         }
 
-        private static bool Play(Board b, System.Random rng, bool smart)
+        private static int SmartMove(Board b, State s, List<int> moves, System.Random rng)
+        {
+            int lane = moves[0];
+            double best = double.MinValue;
+            foreach (int c in moves)
+            {
+                double v = ScoreAfter(b, s, c) + rng.Next(1000) * 1e-4;
+                if (v > best) { best = v; lane = c; }
+            }
+            return lane;
+        }
+
+        /// <param name="tapNoise">sim.cpp 'm': her dokunuştan sonra yalnızca 30–149 küp toplanır, gönderilecek gemi yoksa toplama bitene kadar beklenir.</param>
+        private static bool Play(Board b, System.Random rng, bool smart, bool tapNoise = false)
         {
             State s = Init(b);
             while (s.left > 0)
             {
                 var moves = Legal(b, s);
-                if (moves.Count == 0) return false;
-                int lane = moves[rng.Next(moves.Count)];
-                if (smart)
+                if (moves.Count == 0 && tapNoise)
                 {
-                    double best = double.MinValue;
-                    foreach (int c in moves)
-                    {
-                        double v = ScoreAfter(b, s, c) + rng.Next(1000) * 1e-4;
-                        if (v > best) { best = v; lane = c; }
-                    }
+                    CollectNoisy(b, s, rng, int.MaxValue);
+                    moves = Legal(b, s);
                 }
-                Apply(b, s, lane);
+                if (moves.Count == 0) return false;
+                int lane = smart ? SmartMove(b, s, moves, rng) : moves[rng.Next(moves.Count)];
+                if (tapNoise)
+                {
+                    SendOnly(b, s, lane);
+                    CollectNoisy(b, s, rng, 30 + rng.Next(120));
+                }
+                else Apply(b, s, lane);
             }
             return true;
         }
 
-        private static int Dfs(Board b, int budget)
+        /// <summary>
+        /// sim.cpp 'p' raporu: akıllı bot kaybettiğinde, hâlâ çözülebilir olan son durumdan kayba kadar kaç hamle geçtiği (ort.).
+        /// Kısa (≤5) olmalı; uzun = hata çok sonra fark ediliyor ("kör ezber"). Kayıp yoksa -1.
+        /// </summary>
+        private static float PonrMoves(Board b, System.Random rng, int runs, int dfsBudget)
+        {
+            int losses = 0;
+            double gapSum = 0;
+            for (int r = 0; r < runs && losses < 6; r++)
+            {
+                State s = Init(b);
+                var hist = new List<State>();
+                bool lost = false;
+                while (s.left > 0)
+                {
+                    hist.Add(s.Clone());
+                    var moves = Legal(b, s);
+                    if (moves.Count == 0) { lost = true; break; }
+                    Apply(b, s, SmartMove(b, s, moves, rng));
+                }
+                if (!lost) continue;
+                losses++;
+                int n = hist.Count, last = -1;
+                for (int i = n - 1; i >= 0; i--) if (Dfs(b, dfsBudget, hist[i]) != 0) { last = i; break; }
+                gapSum += last < 0 ? n : n - 1 - last;
+            }
+            return losses > 0 ? (float)(gapSum / losses) : -1f;
+        }
+
+        private static int Dfs(Board b, int budget, State start = null)
         {
             int nodes = 0;
             var seen = new HashSet<string>();
@@ -434,7 +525,7 @@ namespace PixelGame.Editor
                 return res;
             }
 
-            return Search(Init(b));
+            return Search(start != null ? start.Clone() : Init(b));
         }
     }
 }

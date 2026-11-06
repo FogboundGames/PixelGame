@@ -187,6 +187,7 @@ namespace PixelGame.Editor
                 Debug.LogError($"{tag} KAYDEDİLMEDİ: {res.benchmarkSummary}");
                 return false;
             }
+            foreach (var w in res.difficultyWarnings) Debug.LogWarning($"{tag}: {w}");
             return true;
         }
     }

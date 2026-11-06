@@ -91,7 +91,11 @@ namespace PixelGame.Editor
             public bool simulated;
             public float simRandomWinRate;
             public float simSmartWinRate;
+            public LevelQueueSimulator.Result sim;               // seçilen kuyruğun genişletilmiş ölçümü (tap testi + PONR)
             public List<string> ruleErrors = new List<string>();
+            public List<string> difficultyWarnings = new List<string>(); // bant dışı / şansa bağlı / geç fark edilen hata (kayda engel değil)
+            public int poolColumns;                              // kullanılan sütun sayısı (Kolay'da 3'e zorlanır)
+            public HashSet<int> outerColors = new HashSet<int>(); // başta ≥6 küpü açıkta olan "dış katman" renkleri (palet indeksi)
             public bool isUnique;
             public string estimatedPlaytime;
             public string benchmarkSummary;
@@ -138,7 +142,9 @@ namespace PixelGame.Editor
             tempLevel.BoardTiltAngle = 18.0f;
             tempLevel.CubeFrontTiltAngle = -6.0f;
             tempLevel.SkipTransparent = false;
-            tempLevel.PoolColumns = Mathf.Clamp(config.poolColumns, 1, 8);
+            // Rehber: Kolay her zaman 3 sütun
+            tempLevel.PoolColumns = tier == LevelDifficultyTier.Kolay ? 3 : Mathf.Clamp(config.poolColumns, 1, 8);
+            res.poolColumns = tempLevel.PoolColumns;
             tempLevel.PoolRows = Mathf.Clamp(config.poolRows, 1, 6);
             tempLevel.SlotCount = Mathf.Clamp(config.slotCount, 1, 8);
 
@@ -153,31 +159,25 @@ namespace PixelGame.Editor
             res.palette = new List<PaletteColorOverride>(tempLevel.ColorPalette);
             res.totalCubes = tempLevel.GetTotalCubeCountInPalette();
 
-            // 3. Süre & Bulmaca Derinliğine Göre Kapasite & Gemi Sayısı Ölçekleme
+            // 3. Kapasite: Özel mod dışında rehber §4.1 bölmesi (renk başına en az gemi, en fazla 1 küsuratlı);
+            //    üst sınır zorluğa göre (Kolay 30 / büyükte 40, Orta 40, Zor 50), kullanıcı daha düşük seçebilir.
+            //    Eskiden hedef gemi sayısına (Zor'da 45) göre bölünüyordu, level'lar küçük gemilerle uzuyordu.
+            bool customSplit = config.durationPacing == PuzzleDurationPacing.Custom;
             int effectiveMinCap = config.minCapacity;
-            int effectiveMaxCap = config.maxCapacity;
+            int effectiveMaxCap = customSplit ? config.maxCapacity : Mathf.Clamp(config.maxCapacity, 20, TierMaxCapacity(tier, res.totalCubes));
             int targetShips = config.targetShipCount;
 
             switch (config.durationPacing)
             {
                 case PuzzleDurationPacing.FastCasual:
-                    effectiveMinCap = Mathf.Max(10, config.minCapacity);
-                    effectiveMaxCap = Mathf.Max(30, config.maxCapacity);
-                    if (targetShips <= 0) targetShips = Mathf.Clamp(res.totalCubes / 30, 16, 28);
                     res.estimatedPlaytime = "~1.5 - 2.5 Dakika (Hızlı)";
                     break;
 
                 case PuzzleDurationPacing.StandardPuzzle:
-                    effectiveMinCap = Mathf.Clamp(config.minCapacity, 10, 20);
-                    effectiveMaxCap = Mathf.Clamp(config.maxCapacity, 20, 35);
-                    if (targetShips <= 0) targetShips = Mathf.Clamp(res.totalCubes / 24, 25, 42);
                     res.estimatedPlaytime = "~3.5 - 5.0 Dakika (Standart)";
                     break;
 
                 case PuzzleDurationPacing.TacticalDeep:
-                    effectiveMinCap = Mathf.Clamp(config.minCapacity, 10, 20);
-                    effectiveMaxCap = Mathf.Clamp(config.maxCapacity, 20, 35);
-                    if (targetShips <= 0) targetShips = Mathf.Clamp(res.totalCubes / 20, 32, 55);
                     res.estimatedPlaytime = "~5.5 - 8.5+ Dakika (Zorlu / Taktiksel)";
                     break;
 
@@ -194,6 +194,8 @@ namespace PixelGame.Editor
             // 4. Izgara & Dış Hava (Peeling Order) Analizi
             var grid = LevelSolvabilityAnalyzer.BuildGrid(tempLevel, out int minX, out int maxX, out int minY, out int maxY);
             var exposedColorPriorities = CalculateExposedColorPriorities(grid, minX, maxX, minY, maxY, tempLevel.ColorPalette.Count);
+            var outer = OuterColors(grid, minX, maxX, minY, maxY);
+            res.outerColors = outer;
 
             // 5. Gizli Küpler (Mystery Cubes - '?') Üretimi
             List<Vector2Int> generatedMystery = new List<Vector2Int>();
@@ -221,11 +223,18 @@ namespace PixelGame.Editor
                 Color col = entry.targetColor;
                 string label = string.IsNullOrEmpty(entry.label) ? $"Renk #{pIdx + 1}" : entry.label;
 
-                // Hedef gemi sayısına göre renk başına düşen gemi miktarını orantıla
-                float colorShare = cubesOfColor / (float)Mathf.Max(1, res.totalCubes);
-                int desiredShipsForColor = Mathf.Max(1, Mathf.RoundToInt(targetShips * colorShare));
-
-                List<int> loads = SplitCapacitiesPaced(cubesOfColor, effectiveMinCap, effectiveMaxCap, desiredShipsForColor, config.preferRoundCapacities, config.roundRatio, rng);
+                List<int> loads;
+                if (customSplit)
+                {
+                    // Özel: hedef gemi sayısına göre renk başına düşen gemi miktarını orantıla
+                    float colorShare = cubesOfColor / (float)Mathf.Max(1, res.totalCubes);
+                    int desiredShipsForColor = Mathf.Max(1, Mathf.RoundToInt(targetShips * colorShare));
+                    loads = SplitCapacitiesPaced(cubesOfColor, effectiveMinCap, effectiveMaxCap, desiredShipsForColor, config.preferRoundCapacities, config.roundRatio, rng);
+                }
+                else
+                {
+                    loads = SplitCapacitiesGuide(cubesOfColor, effectiveMaxCap, rng);
+                }
 
                 var list = new List<WagonSequenceEntry>();
                 for (int w = 0; w < loads.Count; w++)
@@ -235,21 +244,32 @@ namespace PixelGame.Editor
                 wagonsByColor[pIdx] = list;
             }
 
-            // 7. Taktiksel Katman Kilitli Interleaving (Bulmaca Açılışı & Pacing)
-            List<WagonSequenceEntry> baseOrder = InterleaveWithLayerLock(wagonsByColor, exposedColorPriorities, config.durationPacing, rng);
+            // 7. İki taban sıra: içten dışa (kilitli renkler önde, slotu tıkar → zor) ve dıştan içe (açık renkler önde → kolay).
+            //    Eskiden yalnızca dıştan içe vardı; ön sıra hep dış katman renkleriyle doluyor, level kendini oynuyordu.
+            //    Denemeler ikisi arasında dönüşür, açılış kuralı (FixOpening) ikisine de uygulanır, simülatör bandı seçer.
+            var innerFirst = new List<int>(exposedColorPriorities);
+            innerFirst.Reverse();
+            var baseOrders = new List<List<WagonSequenceEntry>>
+            {
+                InterleaveWithLayerLock(CloneWagonsByColor(wagonsByColor), innerFirst, config.durationPacing, rng),
+                InterleaveWithLayerLock(CloneWagonsByColor(wagonsByColor), exposedColorPriorities, config.durationPacing, rng),
+            };
 
             // 8. Çift Renkli Konteyner: iki gemiyi birleştirip birini sildiği için halat/gizli konumları belirlenmeden ÖNCE yapılır
             //    (eskiden sonra yapılıyordu; silinen geminin arkasındaki herkes bir sıra kayıyor, halatlar geçersiz konuma düşüyordu)
-            if (config.allowDualColor && baseOrder.Count >= 10)
+            foreach (var order in baseOrders)
             {
-                ApplyBenchmarkDualColor(baseOrder, tempLevel.ColorPalette, rng);
+                if (config.allowDualColor && order.Count >= 10)
+                {
+                    ApplyBenchmarkDualColor(order, tempLevel.ColorPalette, rng);
+                }
             }
 
             // 9–11. Sıra + halat + gizli: birkaç deneme üret, her birini kurallarla ve gerçek kuyruk simülatörüyle ölç,
             //       kurallara uyan, çözülebilir ve zorluk bandına en yakın olanı seç
             int cols = tempLevel.PoolColumns;
-            var (minPairs, maxPairs) = MechanicRange(tier, baseOrder.Count);
-            int attempts = config.guaranteeSolvability ? 16 : 1;
+            var (minPairs, maxPairs) = MechanicRange(tier, baseOrders[0].Count);
+            int attempts = config.guaranteeSolvability ? 24 : 1;
             List<WagonSequenceEntry> masterSequence = null;
             List<string> bestErrors = null;
             LevelQueueSimulator.Result bestSim = default;
@@ -257,20 +277,23 @@ namespace PixelGame.Editor
 
             for (int attempt = 0; attempt < attempts; attempt++)
             {
-                var seq = baseOrder.Select(CloneWithoutMechanics).ToList();
-                if (attempt > 0) PerturbOrder(seq, cols, rng, 1 + attempt);
+                var seq = baseOrders[attempt % baseOrders.Count].Select(CloneWithoutMechanics).ToList();
+                if (attempt >= baseOrders.Count) PerturbOrder(seq, cols, rng, attempt);
                 FixColumnRepeats(seq, cols, rng);
+                FixOpening(seq, cols, outer, rng);
+                FixColumnRepeats(seq, cols, rng, outer);
 
                 if (config.generateLinks) ApplyStrategicLinks(seq, rng.Next(minPairs, maxPairs + 1), cols, rng);
                 if (config.generateHidden) ApplyBenchmarkHidden(seq, rng.Next(minPairs, maxPairs + 1), cols, rng);
 
-                var errors = ValidateQueueRules(seq, cols);
+                var errors = ValidateQueueRules(seq, cols, outer);
                 LevelQueueSimulator.Result sim = default;
                 double score = errors.Count * 10.0;
                 if (config.guaranteeSolvability)
                 {
-                    sim = LevelQueueSimulator.Simulate(tempLevel, seq, Mathf.Clamp(config.solvabilityTrials / 2, 20, 60), attempt + 1);
-                    score += (sim.Solvable ? 0.0 : 100.0) + BandDistance(tier, sim);
+                    // Tap testi de puana girer: akıllı oyuncu hızlı dokununca çok düşüyorsa level "şansa bağlı" hissettirir
+                    sim = LevelQueueSimulator.Simulate(tempLevel, seq, Mathf.Clamp(config.solvabilityTrials / 2, 20, 60), attempt + 1, extended: true, measurePonr: false);
+                    score += (sim.Solvable ? 0.0 : 100.0) + BandDistance(tier, sim) + TapPenalty(tier, sim);
                 }
 
                 if (score < bestScore)
@@ -285,6 +308,15 @@ namespace PixelGame.Editor
 
             tempLevel.WagonSequence = masterSequence;
             tempLevel.UseCustomWagonSequence = true;
+
+            // Seçilen kuyruğu tap testi ve PONR ile birlikte bir kez daha ölç (denemelerde pahalı olduğu için yalnızca burada)
+            if (config.guaranteeSolvability && masterSequence != null)
+            {
+                bestSim = LevelQueueSimulator.Simulate(tempLevel, masterSequence, 40, 7, extended: true);
+            }
+            bestErrors = bestErrors.Concat(PaletteErrors(tempLevel.ColorPalette)).ToList();
+            res.sim = bestSim;
+            res.difficultyWarnings = DifficultyWarnings(tier, bestSim);
 
             bool isSolvable = !config.guaranteeSolvability || bestSim.Solvable;
             float risk = config.guaranteeSolvability ? 1f - bestSim.smartWinRate : 0f;
@@ -313,10 +345,72 @@ namespace PixelGame.Editor
             res.benchmarkSummary = $"Bölüm {config.targetLevelIndex} Üretildi ({res.estimatedPlaytime}): {res.totalCubes} Küp | {res.sequence.Count} Gemi | " +
                                    $"{(res.mysteryCubeCount > 0 ? $"{res.mysteryCubeCount} Gizli Küp (?) | " : "")}" +
                                    $"{res.linkedCount / 2} Halat Çifti | {res.hiddenCount} Gizli Gemi | {verdict}" +
-                                   (res.ruleErrors.Count > 0 ? "\n• " + string.Join("\n• ", res.ruleErrors.Take(6)) : "");
+                                   (res.ruleErrors.Count > 0 ? "\n• " + string.Join("\n• ", res.ruleErrors.Take(6)) : "") +
+                                   (res.difficultyWarnings.Count > 0 ? "\n⚠ " + string.Join("\n⚠ ", res.difficultyWarnings) : "");
 
             UnityEngine.Object.DestroyImmediate(tempLevel);
             return res;
+        }
+
+        /// <summary>Rehber §0.5: gemi kapasitesi üst sınırı — Kolay 30 (≥900 küplük büyük Kolay'da 40), Orta 40, Zor 50.</summary>
+        public static int TierMaxCapacity(LevelDifficultyTier tier, int totalCubes)
+        {
+            if (tier == LevelDifficultyTier.Zor) return 50;
+            if (tier == LevelDifficultyTier.Orta) return 40;
+            return totalCubes >= 900 ? 40 : 30;
+        }
+
+        /// <summary>Rehber §0.4 / §4.2: Kolay her zaman 3 sütun; diğerleri çoğunlukla 4, küçük (&lt;600 küp) levellerde 3.</summary>
+        public static int RecommendedPoolColumns(LevelDifficultyTier tier, int totalCubes)
+        {
+            if (tier == LevelDifficultyTier.Kolay) return 3;
+            return totalCubes > 0 && totalCubes < 600 ? 3 : 4;
+        }
+
+        public static int CountOpaquePixels(Texture2D tex)
+        {
+            if (tex == null) return 0;
+            PixelPaletteOptimizer.EnsureReadable(tex);
+            int cubes = 0;
+            foreach (var p in tex.GetPixels32()) if (p.a > 0) cubes++;
+            return cubes;
+        }
+
+        /// <summary>
+        /// Rehber §4.1: n ≤ max → tek gemi; değilse varsa bir küsuratlı gemi (10 + n%10), kalanı max'lar, son parça 10'un katı.
+        /// Örn. max 30: 187 → 17,30,30,30,30,30,20; 66 → 16,30,20. Küsuratlı geminin yeri rastgele.
+        /// </summary>
+        public static List<int> SplitCapacitiesGuide(int totalCubes, int maxCap, System.Random rng)
+        {
+            var loads = new List<int>();
+            if (totalCubes <= 0) return loads;
+            maxCap = Mathf.Max(20, maxCap);
+            if (totalCubes <= maxCap)
+            {
+                loads.Add(totalCubes);
+                return loads;
+            }
+
+            int n = totalCubes;
+            int r = n % 10;
+            if (r > 0)
+            {
+                loads.Add(10 + r);
+                n -= 10 + r;
+            }
+            while (n > 0)
+            {
+                int take = Mathf.Min(maxCap, n);
+                loads.Add(take);
+                n -= take;
+            }
+
+            for (int i = loads.Count - 1; i > 0; i--)
+            {
+                int j = rng.Next(i + 1);
+                int t = loads[i]; loads[i] = loads[j]; loads[j] = t;
+            }
+            return loads;
         }
 
         public static List<int> SplitCapacitiesPaced(int totalCubes, int minCap, int maxCap, int desiredCount, bool preferRound, float roundRatio, System.Random rng)
@@ -551,6 +645,103 @@ namespace PixelGame.Editor
             return priorities;
         }
 
+        /// <summary>Rehber §0.10: "dış katman" rengi = başlangıçta en az 6 küpü açıkta olan renk (genelde outline).</summary>
+        public static HashSet<int> OuterColors(Dictionary<(int, int), int> grid, int minX, int maxX, int minY, int maxY)
+        {
+            var outer = new HashSet<int>();
+            if (grid == null || grid.Count == 0) return outer;
+            var air = LevelSolvabilityAnalyzer.ComputeOutsideAir(grid, minX, maxX, minY, maxY);
+            var exposed = new Dictionary<int, int>();
+            foreach (var kv in grid)
+            {
+                if (kv.Value < 0 || !LevelSolvabilityAnalyzer.IsExposed(air, kv.Key.Item1, kv.Key.Item2)) continue;
+                exposed.TryGetValue(kv.Value, out int n);
+                exposed[kv.Value] = n + 1;
+            }
+            foreach (var kv in exposed) if (kv.Value >= 6) outer.Add(kv.Key);
+            return outer;
+        }
+
+        private static Dictionary<int, List<WagonSequenceEntry>> CloneWagonsByColor(Dictionary<int, List<WagonSequenceEntry>> src)
+        {
+            return src.ToDictionary(kv => kv.Key, kv => kv.Value.Select(CloneWithoutMechanics).ToList());
+        }
+
+        public const int MaxOuterInFrontRow = 1;
+        public const int MaxOuterInFirstTwoRows = 3;
+
+        private static bool IsOuter(WagonSequenceEntry w, HashSet<int> outer) => w != null && outer != null && outer.Contains(w.paletteIndex);
+
+        /// <summary>Ön sıradaki ve ilk iki sıradaki dış katman gemisi sayısı.</summary>
+        public static (int front, int firstTwo) OpeningOuterCounts(List<WagonSequenceEntry> list, int cols, HashSet<int> outer)
+        {
+            int front = 0, two = 0;
+            for (int i = 0; i < Mathf.Min(list.Count, cols * 2); i++)
+            {
+                if (!IsOuter(list[i], outer)) continue;
+                two++;
+                if (i < cols) front++;
+            }
+            return (front, two);
+        }
+
+        private static int OpeningExcess(List<WagonSequenceEntry> list, int cols, HashSet<int> outer)
+        {
+            if (outer == null || outer.Count == 0) return 0;
+            var (front, two) = OpeningOuterCounts(list, cols, outer);
+            return Mathf.Max(0, front - MaxOuterInFrontRow) + Mathf.Max(0, two - MaxOuterInFirstTwoRows);
+        }
+
+        /// <summary>Kuralın uygulanabilir olduğu durum: ilk iki sırayı dolduracak kadar dış katman dışı gemi var mı.</summary>
+        private static bool OpeningRuleFeasible(List<WagonSequenceEntry> list, int cols, HashSet<int> outer)
+        {
+            int zone = Mathf.Min(list.Count, cols * 2);
+            int inner = list.Count(w => w != null && !IsOuter(w, outer));
+            return inner >= Mathf.Max(0, Mathf.Min(list.Count, cols) - MaxOuterInFrontRow)
+                && inner >= Mathf.Max(0, zone - MaxOuterInFirstTwoRows);
+        }
+
+        /// <summary>
+        /// Rehber §0.10 açılış kuralı: ön sırada en fazla 1, ilk iki sırada en fazla 3 dış katman gemisi.
+        /// Fazla olanları ilk iki sıranın gerisindeki (halatsız, dış katman olmayan) gemilerle yer değiştirir;
+        /// sütun tekrarını en az artıran adayı seçer.
+        /// </summary>
+        public static void FixOpening(List<WagonSequenceEntry> list, int cols, HashSet<int> outer, System.Random rng)
+        {
+            if (list == null || outer == null || outer.Count == 0) return;
+            cols = Mathf.Max(1, cols);
+            int zone = Mathf.Min(list.Count, cols * 2);
+
+            for (int guard = 0; guard < zone; guard++)
+            {
+                var (front, two) = OpeningOuterCounts(list, cols, outer);
+                int bad = -1;
+                if (front > MaxOuterInFrontRow)
+                {
+                    for (int i = 0; i < Mathf.Min(cols, list.Count); i++) if (IsOuter(list[i], outer) && list[i].linkId == 0) { bad = i; break; }
+                }
+                else if (two > MaxOuterInFirstTwoRows)
+                {
+                    for (int i = cols; i < zone; i++) if (IsOuter(list[i], outer) && list[i].linkId == 0) { bad = i; break; }
+                }
+                if (bad < 0) return;
+
+                int best = -1, bestConf = int.MaxValue;
+                int start = rng.Next(Mathf.Max(1, list.Count - zone));
+                for (int k = 0; k < list.Count - zone; k++)
+                {
+                    int j = zone + (start + k) % (list.Count - zone);
+                    if (IsOuter(list[j], outer) || list[j].linkId != 0) continue;
+                    (list[bad], list[j]) = (list[j], list[bad]);
+                    int conf = ColumnConflicts(list, bad, cols) + ColumnConflicts(list, j, cols);
+                    (list[bad], list[j]) = (list[j], list[bad]);
+                    if (conf < bestConf) { bestConf = conf; best = j; }
+                }
+                if (best < 0) return;
+                (list[bad], list[best]) = (list[best], list[bad]);
+            }
+        }
+
         private static List<WagonSequenceEntry> InterleaveWithLayerLock(
             Dictionary<int, List<WagonSequenceEntry>> wagonsByColor,
             List<int> colorPriority,
@@ -693,9 +884,13 @@ namespace PixelGame.Editor
             return c;
         }
 
-        /// <summary>Aynı sütunda aynı renk arka arkaya gelmesin: çakışan gemiyi çakışmayı azaltan bir gemiyle yer değiştirir.</summary>
-        public static void FixColumnRepeats(List<WagonSequenceEntry> list, int cols, System.Random rng)
+        /// <summary>
+        /// Aynı sütunda aynı renk arka arkaya gelmesin: çakışan gemiyi çakışmayı azaltan bir gemiyle yer değiştirir.
+        /// outer verilirse açılış kuralını (FixOpening) bozan değişimler yapılmaz.
+        /// </summary>
+        public static void FixColumnRepeats(List<WagonSequenceEntry> list, int cols, System.Random rng, HashSet<int> outer = null)
         {
+            int openingBefore = OpeningExcess(list, cols, outer);
             for (int pass = 0; pass < 4; pass++)
             {
                 bool changed = false;
@@ -710,7 +905,7 @@ namespace PixelGame.Editor
                         int before = ColumnConflicts(list, i, cols) + ColumnConflicts(list, j, cols);
                         (list[i], list[j]) = (list[j], list[i]);
                         int after = ColumnConflicts(list, i, cols) + ColumnConflicts(list, j, cols);
-                        if (after < before) { changed = true; break; }
+                        if (after < before && OpeningExcess(list, cols, outer) <= openingBefore) { changed = true; break; }
                         (list[i], list[j]) = (list[j], list[i]);
                     }
                 }
@@ -739,11 +934,19 @@ namespace PixelGame.Editor
         }
 
         /// <summary>Kuyruğun kesin kural ihlalleri (level_asset.py check'teki HATA satırlarının karşılığı).</summary>
-        public static List<string> ValidateQueueRules(List<WagonSequenceEntry> list, int cols)
+        public static List<string> ValidateQueueRules(List<WagonSequenceEntry> list, int cols, HashSet<int> outer = null)
         {
             var errors = new List<string>();
             if (list == null) return errors;
             cols = Mathf.Max(1, cols);
+
+            // Açılış: dış katman renkleri önde olursa oyuncu bakmadan yollar, level kendini oynar (rehber §0.10)
+            if (outer != null && outer.Count > 0 && OpeningRuleFeasible(list, cols, outer))
+            {
+                var (front, two) = OpeningOuterCounts(list, cols, outer);
+                if (front > MaxOuterInFrontRow) errors.Add($"Ön sırada {front} dış katman gemisi — en fazla {MaxOuterInFrontRow}");
+                if (two > MaxOuterInFirstTwoRows) errors.Add($"İlk iki sırada {two} dış katman gemisi — en fazla {MaxOuterInFirstTwoRows}");
+            }
 
             for (int i = cols; i < list.Count; i++)
             {
@@ -780,14 +983,79 @@ namespace PixelGame.Editor
             return errors;
         }
 
+        /// <summary>Rehber §5.3 hedef bantları: (rastgele alt, üst, akıllı alt, üst).</summary>
+        private static (double rLo, double rHi, double sLo, double sHi) Band(LevelDifficultyTier tier)
+        {
+            return tier == LevelDifficultyTier.Kolay ? (0.55, 0.80, 0.98, 1.00)
+                : tier == LevelDifficultyTier.Orta ? (0.30, 0.55, 0.90, 1.00)
+                : (0.12, 0.30, 0.80, 1.00);   // Zor: akıllı 0.80–0.95, 1.00 da olur
+        }
+
         /// <summary>Simülasyon sonucunun zorluk bandına uzaklığı (docs/level-tasarim/tools/design.py BANDS; Zor = adil Zor "S").</summary>
         private static double BandDistance(LevelDifficultyTier tier, LevelQueueSimulator.Result sim)
         {
-            var (rLo, rHi, sLo, sHi) = tier == LevelDifficultyTier.Kolay ? (0.55, 0.80, 0.98, 1.00)
-                : tier == LevelDifficultyTier.Orta ? (0.30, 0.55, 0.90, 1.00)
-                : (0.12, 0.30, 0.80, 0.95);
+            var (rLo, rHi, sLo, sHi) = Band(tier);
             double Out(double v, double lo, double hi) => v < lo ? lo - v : v > hi ? v - hi : 0.0;
             return Out(sim.randomWinRate, rLo, rHi) + Out(sim.smartWinRate, sLo, sHi);
+        }
+
+        /// <summary>
+        /// Rehber §5.3 tap sütunu: Orta'da hızlı dokunan akıllı oyuncu ≥ %85, Zor'da normalden en fazla ~10 puan düşük.
+        /// Kolay'a da Zor'daki fark kuralı uygulanır. DifficultyWarnings ile aynı eşikler.
+        /// </summary>
+        private static double TapPenalty(LevelDifficultyTier tier, LevelQueueSimulator.Result sim)
+        {
+            if (!sim.extended) return 0.0;
+            double gap = Math.Max(0.0, sim.smartWinRate - sim.tapSmartWinRate - 0.1);
+            if (tier == LevelDifficultyTier.Orta) return Math.Max(gap, 0.85 - sim.tapSmartWinRate);
+            return gap;
+        }
+
+        /// <summary>
+        /// Rehber §5.2–5.3 yumuşak kuralları (kayda engel değil, kullanıcıya gösterilir): zorluk bandı,
+        /// tap testi (Orta akıllı ≥ %85; Zor normalden en fazla ~10 puan düşük) ve hatadan kayba ≤ 5 hamle.
+        /// </summary>
+        public static List<string> DifficultyWarnings(LevelDifficultyTier tier, LevelQueueSimulator.Result sim)
+        {
+            var warnings = new List<string>();
+            if (sim.error != null || !sim.Solvable) return warnings;
+            var (rLo, rHi, sLo, sHi) = Band(tier);
+            if (sim.randomWinRate < rLo - 0.001 || sim.randomWinRate > rHi + 0.001 || sim.smartWinRate < sLo - 0.001)
+            {
+                string hint = sim.smartWinRate < sLo ? " — dikkatli oyuncu için fazla zor"
+                    : sim.randomWinRate > rHi ? " — fazla kolay, resimde kilit (iç halka / outline / arka plan) gerekebilir"
+                    : sim.randomWinRate < rLo ? " — fazla zor" : "";
+                warnings.Add($"{tier} bandı dışında: rastgele %{sim.randomWinRate * 100:F0} (hedef %{rLo * 100:F0}–{rHi * 100:F0}), akıllı %{sim.smartWinRate * 100:F0} (hedef ≥%{sLo * 100:F0}){hint}");
+            }
+            if (!sim.extended) return warnings;
+            if (tier == LevelDifficultyTier.Orta && sim.tapSmartWinRate < 0.85f)
+                warnings.Add($"Tap testi: akıllı oyuncu hızlı dokununca %{sim.tapSmartWinRate * 100:F0} (Orta için ≥%85)");
+            if (tier == LevelDifficultyTier.Zor && sim.smartWinRate - sim.tapSmartWinRate > 0.1f)
+                warnings.Add($"Şansa bağlı: akıllı %{sim.smartWinRate * 100:F0}, hızlı dokununca %{sim.tapSmartWinRate * 100:F0} (fark ≤10 puan olmalı)");
+            if (sim.ponrMoves > 5f)
+                warnings.Add($"Hata ortalama {sim.ponrMoves:F1} hamle sonra fark ediliyor (≤5 olmalı; uzunsa \"kör ezber\")");
+            return warnings;
+        }
+
+        /// <summary>Rehber §0.3: kanal başına 14/255'ten yakın iki renk oyuncu için ayırt edilemez (0.04 içi oyun tarafından birleştirilir).</summary>
+        public static List<string> PaletteErrors(List<PaletteColorOverride> palette)
+        {
+            var errors = new List<string>();
+            if (palette == null) return errors;
+            const float minDiff = 14f / 255f;
+            for (int i = 0; i < palette.Count; i++)
+            {
+                for (int j = i + 1; j < palette.Count; j++)
+                {
+                    var a = palette[i]; var c = palette[j];
+                    if (a == null || c == null || a.pixelCount <= 0 || c.pixelCount <= 0) continue;
+                    Color x = a.targetColor, y = c.targetColor;
+                    float d = Mathf.Max(Mathf.Abs(x.r - y.r), Mathf.Abs(x.g - y.g), Mathf.Abs(x.b - y.b));
+                    if (d < minDiff)
+                        errors.Add($"Renk {i + 1} ve {j + 1} çok yakın (#{ColorUtility.ToHtmlStringRGB(x)} / #{ColorUtility.ToHtmlStringRGB(y)}) — oyuncu ayırt edemez, birini değiştir");
+                }
+            }
+            return errors;
         }
 
         private static void ApplyBenchmarkDualColor(List<WagonSequenceEntry> list, List<PaletteColorOverride> palette, System.Random rng)
@@ -865,8 +1133,7 @@ namespace PixelGame.Editor
         public static (List<string> errors, LevelQueueSimulator.Result sim) CheckWorkingSequence(
             Texture2D texture, List<PaletteColorOverride> palette, List<WagonSequenceEntry> sequence, int poolRows, int poolColumns, int slotCount)
         {
-            var errors = ValidateQueueRules(sequence, poolColumns);
-            if (texture == null || palette == null || sequence == null || sequence.Count == 0) return (errors, default);
+            if (texture == null || palette == null || sequence == null || sequence.Count == 0) return (ValidateQueueRules(sequence, poolColumns), default);
 
             PixelPaletteOptimizer.EnsureReadable(texture);
             var temp = ScriptableObject.CreateInstance<PixelLevelData>();
@@ -881,7 +1148,10 @@ namespace PixelGame.Editor
                 temp.PoolColumns = Mathf.Clamp(poolColumns, 1, 8);
                 temp.PoolRows = Mathf.Clamp(poolRows, 1, 6);
                 temp.SlotCount = Mathf.Clamp(slotCount, 1, 8);
-                var sim = LevelQueueSimulator.Simulate(temp, sequence);
+                var grid = LevelSolvabilityAnalyzer.BuildGrid(temp, out int minX, out int maxX, out int minY, out int maxY);
+                var errors = ValidateQueueRules(sequence, poolColumns, OuterColors(grid, minX, maxX, minY, maxY));
+                errors.AddRange(PaletteErrors(palette));
+                var sim = LevelQueueSimulator.Simulate(temp, sequence, extended: true);
                 if (sim.error != null) errors.Add("Simülasyon: " + sim.error);
                 return (errors, sim);
             }
@@ -927,6 +1197,39 @@ namespace PixelGame.Editor
             return sb.ToString();
         }
 
+        public const int BigBoardCubes = 900;
+
+        /// <summary>
+        /// Rehber §8 sıralama kuralları: yeni level targetIndex konumuna girerse iki Zor yan yana geliyor mu,
+        /// 3 büyük (≥900 küp) resim art arda geliyor mu. Kayıttan önce kullanıcıya gösterilir.
+        /// </summary>
+        public static List<string> CheckSequencePlacement(int targetIndex, LevelDifficultyTier tier, int totalCubes)
+        {
+            var warnings = new List<string>();
+            var seqAsset = AssetDatabase.LoadAssetAtPath<LevelSequence>("Assets/Levels/LevelSequence.asset");
+            if (seqAsset == null) return warnings;
+            var levels = seqAsset.Levels.Where(l => l != null).ToList();
+            int pos = Mathf.Clamp(targetIndex, 1, levels.Count + 1) - 1;
+
+            PixelLevelData prev = pos > 0 ? levels[pos - 1] : null;
+            PixelLevelData next = pos < levels.Count ? levels[pos] : null;
+            if (tier == LevelDifficultyTier.Zor)
+            {
+                if (prev != null && prev.DifficultyTier == LevelDifficultyTier.Zor) warnings.Add($"Önceki level ({pos}. {prev.LevelName}) de Zor — iki Zor yan yana gelmez");
+                if (next != null && next.DifficultyTier == LevelDifficultyTier.Zor) warnings.Add($"Sonraki level ({pos + 2}. {next.LevelName}) de Zor — iki Zor yan yana gelmez");
+            }
+
+            if (totalCubes >= BigBoardCubes)
+            {
+                bool Big(int i) => i >= 0 && i < levels.Count && levels[i].GetTotalCubeCountInPalette() >= BigBoardCubes;
+                int run = 1;
+                for (int i = pos - 1; Big(i); i--) run++;
+                for (int i = pos; Big(i); i++) run++;
+                if (run >= 3) warnings.Add($"Bu konumda {run} büyük (≥{BigBoardCubes} küp) resim art arda geliyor — en fazla 2");
+            }
+            return warnings;
+        }
+
         public static PixelLevelData SaveAndRegisterNewLevel(
             Texture2D texture,
             string levelName,
@@ -951,6 +1254,10 @@ namespace PixelGame.Editor
             {
                 AssetDatabase.CreateFolder("Assets", "Levels");
             }
+
+            // Level, LevelSequence'te targetIndex konumuna eklenir (eskiden her zaman sona ekleniyordu; numara alanı yok sayılıyordu)
+            var seqAsset = AssetDatabase.LoadAssetAtPath<LevelSequence>("Assets/Levels/LevelSequence.asset");
+            if (seqAsset != null) targetIndex = Mathf.Clamp(targetIndex, 1, seqAsset.Levels.Count(l => l != null) + 1);
 
             string cleanName = string.IsNullOrEmpty(levelName) ? "Yeni_Bolum" : levelName.Replace(" ", "_");
             string assetPath = AssetDatabase.GenerateUniqueAssetPath($"Assets/Levels/Level_{targetIndex:D2}_{cleanName}.asset");
@@ -1017,19 +1324,33 @@ namespace PixelGame.Editor
             AssetDatabase.CreateAsset(newLevel, assetPath);
             EditorUtility.SetDirty(newLevel);
 
-            var seqAsset = AssetDatabase.LoadAssetAtPath<LevelSequence>("Assets/Levels/LevelSequence.asset");
             if (seqAsset != null)
             {
                 Undo.RecordObject(seqAsset, "Add New Level to Sequence");
-                if (!seqAsset.Levels.Contains(newLevel))
+                var levels = seqAsset.Levels.Where(l => l != null && l != newLevel).ToList();
+                levels.Insert(targetIndex - 1, newLevel);
+                // Level Designer listeyi LevelIndex'e göre kurar: numaralar konumla aynı olmalı (rehber §9)
+                for (int i = 0; i < levels.Count; i++)
                 {
-                    seqAsset.Levels.Add(newLevel);
+                    if (levels[i].LevelIndex == i + 1) continue;
+                    levels[i].LevelIndex = i + 1;
+                    EditorUtility.SetDirty(levels[i]);
                 }
+                seqAsset.SetLevels(levels);
                 EditorUtility.SetDirty(seqAsset);
             }
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+
+            // Açık Level Designer kendi bellek listesini sonra LevelSequence'e geri yazar; eski sırayla ezmesin
+            foreach (var designer in Resources.FindObjectsOfTypeAll<PixelLevelDesignerWindow>())
+            {
+                designer.RefreshLevelList(importChanges: false, syncSequence: false);
+                designer.Repaint();
+            }
+            var lm = UnityEngine.Object.FindFirstObjectByType<LevelManager>();
+            if (lm != null) lm.RefreshFromSequence();
 
             savedPath = assetPath;
             return newLevel;
