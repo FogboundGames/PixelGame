@@ -102,6 +102,9 @@ Konum: `Assets/Levels/Level_<N>_<Ad>.asset` (+ `.meta`, benzersiz guid). YAML; i
 
 ## 3. Resim kuralları
 
+> Yeni resim çizecek ya da mevcut resmi yeniden çizecek yapay zekâ önce **[CIZIM-REHBERI.md](CIZIM-REHBERI.md)**'yi okusun:
+> okunurluk, kompozisyon, gölgelendirme, kilitler, `tools/pixelkit.py` çizim kütüphanesi ve `tools/ornek_cizimler.py` örnekleri orada.
+
 ### 3.1 Teknik
 - 32×32 (daha küçük kare de olur ama tahtada küçük görünür; erken levellerde bile en az ~15 piksel genişlik).
 - Alfa sadece 0 ya da 255.
@@ -199,6 +202,8 @@ cd docs/level-tasarim/tools && g++ -O2 -o sim sim.cpp && cd -
 | `tools/level_asset.py` | `new`, `apply`, `mystery`, `check`, `export`, `art` (§7). |
 | `tools/enrich.py` | Düz ikonu zenginleştirir (§3.4). |
 | `tools/sequence.py` | `show` (sıra + ihlaller), `suggest --from N` (kurallara uyan sıra önerisi). |
+| `tools/pixelkit.py` | Kodla piksel sanat çizim kütüphanesi (şekiller, gölge/kontur, rapor, önizleme sayfası). Bkz. [CIZIM-REHBERI.md](CIZIM-REHBERI.md). |
+| `tools/ornek_cizimler.py` | Oyundaki 6 resmin kaynak kodu (Kolay figür → Zor tam sahne); yeni çizim için başlangıç noktası. |
 
 Güçlü konteynerli level: `KEEP=/tam/yol/Level_X.asset COLS=4 ROWS=3 python3 design.py resim.png S out.json 1` level'ın gemilerini (kapasiteler ve Güçlü konteynerler) aynen korur, sadece sırayı, halatları ve gizlileri yeniden arar. Simülatör, `check` ve `export` bu mekaniği bilir.
 
