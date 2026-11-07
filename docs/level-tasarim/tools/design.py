@@ -3,6 +3,7 @@
 kullanım:  COLS=4 ROWS=3 ITERS=400 python3 design.py <resim.png> <K|O|S|Z> <çıktı.json> [tohum]
   KEEP=<level.asset>: kapasiteleri bölme; o level'ın gemilerini (Güçlü konteynerler dahil) aynen kullanıp sadece
   sırayı/halatları/gizlileri ara. Güçlü konteynerin halatı ve gizliliği olmaz.
+  DUAL=<n>: n adet Güçlü (süper, çift renkli) konteyner kur — Orta'da 1, Zor'da 2–3.
   K = Kolay, O = Orta, S = Zor (adil, önerilen), Z = Zor (eski, sert — kullanma)
 çıktı.json: palette (piksel sayısına göre sıralı), gemi sırası, sim sonuçları. level_asset.py apply ile asset'e yazılır."""
 import sys, json, random, subprocess, os, collections, tempfile
@@ -20,6 +21,16 @@ BANDS = {  # (random lo, hi), (smart lo, hi)
 }
 LINKS = {'K': (1, 2), 'O': (4, 6), 'Z': (5, 7), 'S': (5, 6)}
 HIDDEN = {'K': (1, 2), 'O': (4, 6), 'Z': (5, 7), 'S': (5, 6)}
+# İnce ayar (env): SMART_LO=0.95 akıllı oyuncu alt sınırı · TAP_LO=0.9 hızlı dokunan oyuncu alt sınırı ·
+# LINKS=3,4 / HIDDEN=4,5 halat/gizli aralığı. Sahil Kasabası (akıllı 0.88, dokunma 0.67) oyunda "asla çözülmüyor"du.
+for _t in BANDS:
+    if os.environ.get('SMART_LO'):
+        (_r, (_sl, _sh)) = BANDS[_t]; BANDS[_t] = (_r, (float(os.environ['SMART_LO']), max(_sh, float(os.environ['SMART_LO']))))
+    if os.environ.get('LINKS'):
+        LINKS[_t] = tuple(map(int, os.environ['LINKS'].split(',')))
+    if os.environ.get('HIDDEN'):
+        HIDDEN[_t] = tuple(map(int, os.environ['HIDDEN'].split(',')))
+TAP_LO = float(os.environ.get('TAP_LO', 0))
 
 
 def load(png):
@@ -85,6 +96,14 @@ def run(W, H, g, seq, runs, dfs, seed=1, noise=None):
     out = subprocess.run(args, capture_output=True, text=True).stdout.split()
     os.remove(path)
     return float(out[0]), float(out[1]), int(out[2])
+
+
+def tap_pen(W, H, g, seq, seed):
+    """TAP_LO verildiyse: hızlı dokunan (gemiciler toplarken dokunan) akıllı oyuncunun kazanma oranı bu sınırın altındaysa ceza."""
+    if not TAP_LO:
+        return 0
+    _, smm, _ = run(W, H, g, seq, 60, False, seed + 5000, 'm')
+    return 2 * max(0, TAP_LO - smm)
 
 
 def is_outer(x):
@@ -226,6 +245,35 @@ def kept_ships(asset, pal, cnt):
     return ships
 
 
+def dual_ships(cnt, k, tier, maxc, rnd):
+    """k adet Güçlü (süper, çift renkli) konteyner: iki ayrı rengi birlikte toplar. Kalanlar split ile bölünür.
+    Her renk en fazla bir süper gemide; bir renkten 20/30 (Zor'da 40'a kadar) alınır, geriye 0 ya da ≥10 kalır.
+    En az bir rengi iç katmandan olan çiftler önce denenir (ikisi de dışta olursa açılışta kendini oynar)."""
+    big = 40 if tier in 'ZS' else 30
+    def take(n):
+        for cap in (big, 30, 20):
+            if cap <= n and (n - cap == 0 or n - cap >= 10):
+                return cap
+        return 0
+    cands = [i for i, n in enumerate(cnt) if take(n)]
+    pairs = [(a, b) for a in cands for b in cands if a < b]
+    rnd.shuffle(pairs)
+    pairs.sort(key=lambda p: (p[0] in OUTER) + (p[1] in OUTER))
+    used, rem, out = set(), list(cnt), []
+    for a, b in pairs:
+        if len(out) >= k:
+            break
+        if a in used or b in used:
+            continue
+        ca, cb = take(rem[a]), take(rem[b])
+        if not ca or not cb:
+            continue
+        used |= {a, b}; rem[a] -= ca; rem[b] -= cb
+        out.append({'c': a, 'cap': ca, 'link': 0, 'hid': 0, 'c2': b, 'cap2': cb})
+    out += [{'c': c, 'cap': cap, 'link': 0, 'hid': 0, 'c2': 0, 'cap2': 0} for c, n in enumerate(rem) for cap in (split(n, maxc) if n else [])]
+    return out
+
+
 def initial(caps, tier, rnd, kept=None):
     ships = [dict(x) for x in kept] if kept else \
         [{'c': c, 'cap': cap, 'link': 0, 'hid': 0, 'c2': 0, 'cap2': 0} for c, cl in caps.items() for cap in cl]
@@ -254,24 +302,28 @@ def main():
     maxc = int(os.environ.get('MAXC', 0)) or (50 if tier in 'ZS' else 40 if tier == 'O' or sum(cnt) >= 900 else 30)
     caps = {i: split(n, maxc) for i, n in enumerate(cnt)}
     kept = kept_ships(os.environ['KEEP'], pal, cnt) if os.environ.get('KEEP') else None
+    ndual = int(os.environ.get('DUAL', 0))
+    if ndual and not kept:
+        kept = dual_ships(cnt, ndual, tier, maxc, random.Random(seed))
     best = None
     for restart in range(3):
         s = initial(caps, tier, rnd, kept)
         r, sm, _ = run(W, H, g, s, 60, False, seed)
-        p = penalty(r, sm, tier) + (0 if structure_ok(s, tier) else 1)
+        p = penalty(r, sm, tier) + (0 if structure_ok(s, tier) else 1) + tap_pen(W, H, g, s, seed)
         for it in range(iters):
             t = mutate(s, tier, rnd)
             if not valid_order(t):
                 continue
             r2, sm2, _ = run(W, H, g, t, 60, False, seed + it)
             p2 = penalty(r2, sm2, tier) + (0 if structure_ok(t, tier) else 1)
+            if p2 <= p: p2 += tap_pen(W, H, g, t, seed + it)
             if p2 <= p:
                 s, p, r, sm = t, p2, r2, sm2
             if p == 0 and it > 30:
                 break
         r, sm, d = run(W, H, g, s, 300, True, 777)
         rm, smm, _ = run(W, H, g, s, 300, False, 778, 'm')
-        pf = penalty(r, sm, tier) + (0 if structure_ok(s, tier) else 1) + (0 if d == 1 else 2) + max(0, sm - smm - 0.1)
+        pf = penalty(r, sm, tier) + (0 if structure_ok(s, tier) else 1) + (0 if d == 1 else 2) + max(0, sm - smm - 0.1) + 2 * max(0, TAP_LO - smm)
         print(f'restart {restart}: random {r:.2f} smart {sm:.2f} dfs {d} tap {rm:.2f}/{smm:.2f} pen {pf:.3f}', flush=True)
         if best is None or pf < best[0]:
             best = (pf, s, r, sm, d, rm, smm)
@@ -282,7 +334,7 @@ def main():
                'dfs': d, 'tap_random': rm, 'tap_smart': smm, 'pen': pf}, open(out, 'w'))
     nl, nh = counts(s)
     print(f'DONE {os.path.basename(png)} {tier} cols {COLS} ships {len(s)} links {nl} hidden {nh} '
-          f'random {r:.2f} smart {sm:.2f} dfs {d} tap {rm:.2f}/{smm:.2f} pen {pf:.3f}')
+          f'random {r:.2f} smart {sm:.2f} dfs {d} tap {rm:.2f}/{smm:.2f} pen {pf:.3f} dual {sum(1 for x in s if x["cap2"])}')
 
 
 if __name__ == '__main__':

@@ -20,6 +20,9 @@ import sys
 
 from PIL import Image, ImageDraw, ImageFont
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import renkfarki
+
 W = H = 32
 N4 = ((1, 0), (-1, 0), (0, 1), (0, -1))
 ALL = {(x, y) for y in range(H) for x in range(W)}
@@ -164,8 +167,9 @@ class Canvas:
         for i in range(len(cols)):
             for j in range(i + 1, len(cols)):
                 d = max(abs(a - b) for a, b in zip(cols[i], cols[j]))
-                if d < 14:
-                    msgs.append(f'HATA yakın renk {cols[i]} / {cols[j]} (fark {d} < 14)')
+                de = renkfarki.de2000(cols[i], cols[j])
+                if d < 14 or de < 15:
+                    msgs.append(f'HATA yakın renk {cols[i]} / {cols[j]} (ΔE {de:.1f} < 15) — oyuncu ayırt edemez')
         for col, n in cnt.items():
             if n < 10:
                 msgs.append(f'UYARI {col} yalnızca {n} piksel (10+ olmalı ya da başka renge kat)')

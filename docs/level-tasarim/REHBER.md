@@ -206,6 +206,7 @@ cd docs/level-tasarim/tools && g++ -O2 -o sim sim.cpp && cd -
 | `tools/ornek_cizimler.py` | Oyundaki 6 resmin kaynak kodu (Kolay figür → Zor tam sahne); yeni çizim için başlangıç noktası. |
 
 Güçlü konteynerli level: `KEEP=/tam/yol/Level_X.asset COLS=4 ROWS=3 python3 design.py resim.png S out.json 1` level'ın gemilerini (kapasiteler ve Güçlü konteynerler) aynen korur, sadece sırayı, halatları ve gizlileri yeniden arar. Simülatör, `check` ve `export` bu mekaniği bilir.
+Yeni level'da Güçlü (süper) konteyner kurmak için `DUAL=<n>`: **Orta'da 1, Zor'da 2–3 olmalı** (her yeni Orta/Zor level'da). Her renk en fazla bir süper gemide; bir renkten 20/30 (Zor'da 40'a kadar) alınır, geriye 0 ya da ≥10 kalır; en az bir rengi iç katmandan olan çiftler önce denenir. Süper geminin halatı ve gizliliği olmaz.
 
 `design.py` birden çok tohumla paralel çalıştırılabilir; en iyi adayı seç (önce `pen`, sonra tap testinde smart'ın normalden ne kadar düştüğü, sonra hedef bandın ortası). 25 level × 2 tohum 16 çekirdekte ~15–25 dk sürer: uzun işleri arka planda çalıştır ve kullanıcıya haber ver (uzun süre sessiz kalmak "takıldı mı?" dedirtti).
 

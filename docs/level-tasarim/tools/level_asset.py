@@ -15,6 +15,8 @@ Komutlar (proje kökünden çalıştır: python3 docs/level-tasarim/tools/level_
 """
 import argparse, collections, glob, itertools, json, os, random, re, sys, uuid
 from PIL import Image
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import renkfarki
 
 ROOT = os.path.abspath(os.environ.get('PIXELGAME_ROOT', os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 TEMPLATE = 'Assets/Levels/Level_40_Saturn.asset'
@@ -22,6 +24,7 @@ TEX_META_TEMPLATE = 'Assets/32x32/Saturn.png.meta'
 TIER = {'K': 0, 'O': 1, 'Z': 2, 'S': 2}
 GAME_TOL = 0.04          # oyunun renk eşleştirme toleransı (kanal başına, 0–1)
 NEAR = 14                # 0–255: bu kadar yakın iki renk oyuncu için de ayırt edilemez
+NEAR_DE = 15             # CIEDE2000: bunun altındaki çiftleri oyuncu oynarken karıştırır (Sahil Kasabası dersi)
 
 
 def P(rel):
@@ -211,8 +214,8 @@ def art_report(png):
     for a_, b_ in itertools.combinations(cnt, 2):
         if all(abs(a_[k] - b_[k]) / 255 < GAME_TOL for k in range(3)):
             errs.append(f'oyun bu iki rengi AYNI sayar (tolerans 0.04): {a_} {b_}')
-        elif all(abs(a_[k] - b_[k]) < NEAR for k in range(3)):
-            warns.append(f'çok yakın tonlar, oyuncu ayırt edemez: {a_} {b_}')
+        elif all(abs(a_[k] - b_[k]) < NEAR for k in range(3)) or renkfarki.de2000(a_, b_) < NEAR_DE:
+            warns.append(f'çok yakın tonlar (ΔE {renkfarki.de2000(a_, b_):.1f} < {NEAR_DE}), oyuncu ayırt edemez: {a_} {b_}')
     small = [(c, v) for c, v in cnt.items() if v < 10]
     if small:
         warns.append(f'10 pikselden az renk (birleştir ya da büyüt): {small}')

@@ -12,7 +12,7 @@ Bu dosya yalnızca **resmin kendisini** anlatır; ikisi çelişirse oyun kuralı
 
 1. **Tek bakışta ne olduğu anlaşılmalı.** Önce silüet, sonra detay. Ana nesne büyük ve ortada olsun; isimden tahmin edilen resim başarısızdır.
 2. Resim **32×32**, alfa yalnızca **0 ya da 255**, **6–11 renk**.
-3. Hiçbir iki renk her kanalda birbirine **14'ten yakın** olmasın (oyun 0.04 ≈ 10/255 farkı **aynı renk** sayar → sayılar bozulur, level bitmez).
+3. Hiçbir iki renk birbirine yakın olmasın: algısal fark **ΔE2000 ≥ 15** (rahat okunması için ≥ 18). Kanal başına 14 fark yetmez — açık mavi ile beyaz, kum ile açık turuncu, iki lacivert bu eşikten geçip oyunda yine karışıyordu (Sahil Kasabası). Oyun 0.04 ≈ 10/255 farkı zaten **aynı renk** sayar → sayılar bozulur. `pixelkit.py` raporu ve `level_asset.py art/check` ΔE'yi ölçer (`renkfarki.py`).
 4. Her renk **en az 10 piksel** olsun (rengin tamamı 10'dan azsa o renk tek, küçük bir gemi olur; kaçın).
 5. Her malzeme **3 ton**: ana ton + gölge (sağ/alt) + parlama (sol/üst). Işık **sol üstten**.
 6. Figürlerin etrafında **koyu kontur**: `(34, 26, 40)`. Kontur, figürün rengine benzemesin.
@@ -32,7 +32,7 @@ Bu dosya yalnızca **resmin kendisini** anlatır; ikisi çelişirse oyun kuralı
 | Boyut | 32×32 | Tahta 32×32 hücre; daha küçük resim tahtada küçük görünür |
 | Alfa | 0 veya 255 | Yarı saydam piksel küp sayımını bozar |
 | Renk sayısı | 6–11 (Kolay figürde 6–8 yeter) | Az renk = bulmaca yok; çok renk = küçük gemi kalabalığı |
-| Renk farkı | Her kanalda ≥ 14 (0–255) | <10 oyun için aynı renk; <14 oyuncu ayırt edemez |
+| Renk farkı | ΔE2000 ≥ 15 (rahat: ≥ 18) | kanal farkı <10 oyun için aynı renk; ΔE <15 oyuncu oynarken karıştırır |
 | Renk başına piksel | ≥ 10 | Daha azı 10'dan küçük tek gemi olur |
 | Kontur | `(34, 26, 40)` | Proje standardı; mor-siyah, hiçbir figür rengine yakın değil |
 | Tek renk baskınlığı | Hiçbir renk resmin ~%60'ını geçmesin | Bir renk çok baskınsa aynı sütunda aynı renk tekrar etmeye başlar (kuyruk kuralı bozulur) ve level "düz" hissettirir |
